@@ -4,179 +4,84 @@
 
 // /** @type {{current: {hasDev: boolean, deviceInfo: deviceInfo}}} */
 
-const {sensorDataLoggerConfig} = require('../../../default-intelligence').dcmConfigModel;
+const {
+  dataLoggerConfig
+} = require('../../../default-intelligence').dcmConfigModel;
 
-/** @type {sensorDataLoggerConfig} */
+/** @type {dataLoggerConfig} */
 const config = {
   hasDev: false,
   deviceInfo: {
-    
+
   },
   dataLoggerInfo: {
-    /**
-     * DB상에서 고유한 Logger ID
-     * Data Logger Unique ID (Prefix + Main_Seq + Logger Code
-     * @example
-     * Main Seq: 3, Logger Prefix: DV, Code: 003 --> DV_3_003
-     */
-    sdl_real_id: 'R_GV_1_001',
-    /**
-     * Main당 일반적으로 부를 Logger ID
-     * Data Logger ID (Prefix + Logger Code)
-     * @example
-     * Logger Prefix: DV, Code: 003 --> DV_003
-     */
-    sdl_id: 'R_GV_001',
-    /** 장치 이름 */
+    dl_real_id: 'R_GV_1_001',
+    dl_id: 'R_GV_001',
     target_alias: 'Gate형 밸브',
-    /** Data Logger Sequence */
-    sensor_data_logger_seq: 0,
+    m_name: '6kW 급 TB',
+    data_logger_seq: 1,
+    main_seq: 1,
+    data_logger_def_seq: 4,
+    target_id: '0013A20040F7AB81',
+    target_code: '001',
     connect_info: {
-      /**
-       * 장치 대분류
-       * @example
-       * socket, serial, zigbee
-       */
       type: 'socket',
-      /**
-       * 장치 중분류
-       * @type {string=} subType이 존재한다면 추가적으로 addConfigInfo가 필요함
-       * @example
-       * serial --> parser
-       * zigbee --> xbee
-       */
       subType: '',
-      /**
-       * @type {number=} Serial baud_rate
-       * @defaultvalue 9600
-       */
       baudRate: 9600,
-      /**
-       * @type {string|number=} 대분류가 serial, socket, zigbee일 경우에 사용
-       * @example
-       * serial, zigbee --> windows(COM1~), linux(...)
-       * socket --> socket port
-       */
-      port: 9000,
-      /**
-       * @type {string} socket 일 경우 사용. localhost, IPv4
-       */
-      host: 'localhost',
-      /**
-       * @type {Object} subType이 존재할 경우 그에 해당하는 추가 접속 정보
-       */
-      addConfigInfo: {}
+      port: 9000
     },
     protocol_info: {
-      /**
-       * 파서 대분류
-       * @example
-       * Inverter, Connector, Weathercast, ESS, Saltern
-       */
       mainCategory: 'UPSAS',
-      /**
-       * 파서 중분류
-       * @example
-       * Inverter --> das_1.3
-       * Saltern --> xbee
-       * Weathercast --> vantagepro2
-       * ESS --> das_pv_led
-       */
       subCategory: 'xbee',
-      /**
-       * 장치 ID, 보통 국번을 뜻함
-       * @example
-       * '001', Buffer('001')
-       */
-      deviceId: '0013A20040F7AB81',
-      protocolOptionInfo: {
-        hasTrackingData: true
-      }
-    },
-    /** Data Logger 고유 코드(protocol_info 에 보통 국번으로 들어감) */
-    serial_number: '001'
+      deviceId: '0013A20040F7AB81'
+    }
   },
-  sensorList: [{
-    /** sensor ID (Sequence) */
-    sensor_seq: 29,
-    /**
-   * DB상에서 고유한 Sensor ID
-   * Sensor Unique ID (Prefix + Main_Seq + Sensor Code
-   * @example
-   * Main Seq: 3, Sensor Def Prefix: WD, Code: 003 --> WD_3_003
-   */
-    sensor_real_id: 'WL_1_001',
-    /**
-   * Main 당 일반적으로 부를 Sensor ID
-   * Sensor Unique ID (Prefix + Sensor Code)
-   * @example
-   * Sensor Def Prefix: WD, Code: 003 --> WD_3_003
-   */  
-    sensor_id: 'WL_001',
-    /** Sensor Numbering 번호 (001, 002, ...) */
+  nodeList: [{
+    node_seq: 20,
+    node_real_id: 'SV_1_001',
+    node_id: 'SV_001',
     target_code: '001',
-    /**
-   * Data Logger에서 수집한 데이터 군 중에서 해당 센서 데이터가 위치하는 인덱스
-   * @default 0
-   * @example
-   * Data Logger Data --> {temp: [36.5, 35.1, 37.5], solar: [851, 768, 956]}
-   * sc_target_id: temp 일 경우 --> 36.5 
-   */
     data_logger_index: 0,
-    /**
-   * Sensor Data 이름.
-   * @desc sc_target_id 와 data_logger_index를 이용하여 센서 데이터 결정
-   * @example
-   * temp, solar, lux, ws, reh, ...
-   */
-    sc_target_id: 'device',
-    /**
-   * 표기 단위
-   * @example
-   * ℃, %, m/s, ppm, ...
-   */
-    sc_data_unit: null
-  },{
-    /** sensor ID (Sequence) */
-    sensor_seq: 20,
-    /**
-   * DB상에서 고유한 Sensor ID
-   * Sensor Unique ID (Prefix + Main_Seq + Sensor Code
-   * @example
-   * Main Seq: 3, Sensor Def Prefix: WD, Code: 003 --> WD_3_003
-   */
-    sensor_real_id: 'SV_1_001',
-    /**
-   * Main 당 일반적으로 부를 Sensor ID
-   * Sensor Unique ID (Prefix + Sensor Code)
-   * @example
-   * Sensor Def Prefix: WD, Code: 003 --> WD_3_003
-   */  
-    sensor_id: 'SV_001',
-    /** Sensor Numbering 번호 (001, 002, ...) */
+    dl_real_id: 'R_GV_1_001',
+    dl_id: 'R_GV_001',
+    nd_target_prefix: 'GV',
+    nd_target_id: 'gateValve',
+    nd_target_name: '수문용 밸브',
+    nc_target_id: 'valve',
+    nc_target_name: '밸브',
+    nc_is_sensor: 0,
+    nc_data_unit: null,
+    nc_description: null,
+    m_name: '6kW 급 TB',
+    node_def_seq: 8,
+    node_class_seq: 13,
+    main_seq: 1,
+    data_logger_seq: 1,
+    data_logger_def_seq: 4
+  },
+  {
+    node_seq: 29,
+    node_real_id: 'WL_1_001',
+    node_id: 'WL_001',
     target_code: '001',
-    /**
-   * Data Logger에서 수집한 데이터 군 중에서 해당 센서 데이터가 위치하는 인덱스
-   * @default 0
-   * @example
-   * Data Logger Data --> {temp: [36.5, 35.1, 37.5], solar: [851, 768, 956]}
-   * sc_target_id: temp 일 경우 --> 36.5 
-   */
     data_logger_index: 0,
-    /**
-   * Sensor Data 이름.
-   * @desc sc_target_id 와 data_logger_index를 이용하여 센서 데이터 결정
-   * @example
-   * temp, solar, lux, ws, reh, ...
-   */
-    sc_target_id: 'temp',
-    /**
-   * 표기 단위
-   * @example
-   * ℃, %, m/s, ppm, ...
-   */
-    sc_data_unit: 'cm'
-  }]
-
+    dl_real_id: 'R_GV_1_001',
+    dl_id: 'R_GV_001',
+    nd_target_prefix: 'WL',
+    nd_target_id: 'waterLevel',
+    nd_target_name: null,
+    nc_target_id: 'waterLevel',
+    nc_target_name: '수위',
+    nc_data_unit: 'cm',
+    nc_description: null,
+    nc_is_sensor: 1,
+    m_name: '6kW 급 TB',
+    node_def_seq: 2,
+    node_class_seq: 11,
+    main_seq: 1,
+    data_logger_seq: 1,
+    data_logger_def_seq: 4
+  }
+  ]
 };
 module.exports = config;

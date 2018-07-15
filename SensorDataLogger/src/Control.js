@@ -15,7 +15,7 @@ require('../../../default-intelligence');
 // const {AbstConverter} = require('device-protocol-converter-jh');
 
 class Control extends AbstDeviceClient {
-  /** @param {sensorDataLoggerConfig} config */
+  /** @param {dataLoggerConfig} config */
   constructor(config) {
     super();
 
@@ -31,7 +31,7 @@ class Control extends AbstDeviceClient {
     );
     this.deviceModel = this.baseModel.device;
 
-    this.sensorList = config.sensorList;
+    this.nodeList = config.nodeList;
 
     // 모델 선언
     this.model = new Model(this);
@@ -39,10 +39,35 @@ class Control extends AbstDeviceClient {
     this.observerList = [];
   }
 
+  /**
+   * DB에서 특정 데이터를 가져오고 싶을경우
+   * @param {dbInfo} dbInfo 
+   * @param {{data_logger_seq: number, main_seq: number}} where Logger Sequence
+   */
+  async getDataLoggerInfoByDB(dbInfo, where) {
+    const bmjh = require('base-model-jh');
+    const BM = new bmjh.BM(dbInfo);
+    let dataLoggerInfo = await BM.db.single(`SELECT * FROM v_data_logger WHERE data_logger_seq = ${where.data_logger_seq} AND main_seq = ${where.main_seq} `);
+    const nodeList = await BM.db.single(`SELECT * FROM v_node_profile WHERE data_logger_seq = ${where.data_logger_seq} AND main_seq = ${where.main_seq} `);
+    this.config.dataLoggerInfo = dataLoggerInfo;
+    this.config.nodeList = nodeList;
+
+    dataLoggerInfo = _.head(dataLoggerInfo);
+    dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
+    dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
+
+    const file = {
+      dataLoggerInfo,
+      nodeList
+    };
+    // BU.CLI(file);
+    // BU.writeFile('out.json', file);
+  }
+
   /** config.dataLoggerInfo 를 deviceInfo로 변환하여 저장 */
   setDeviceInfo() {
     this.config.deviceInfo = {
-      target_id: this.config.dataLoggerInfo.sdl_id,
+      target_id: this.config.dataLoggerInfo.dl_id,
       // target_category: 'Saltern',
       target_name: this.config.dataLoggerInfo.target_alias,
       connect_info: this.config.dataLoggerInfo.connect_info,
@@ -113,7 +138,7 @@ class Control extends AbstDeviceClient {
     return {
       id: this.config.deviceInfo.target_id,
       config: this.config.deviceInfo,
-      data: this.model.deviceData,
+      nodeList: this.nodeList,
       // systemErrorList: [{code: 'new Code2222', msg: '에러 테스트 메시지22', occur_date: new Date() }],
       systemErrorList: this.systemErrorList,
       troubleList: this.model.deviceData.operTroubleList,
@@ -123,7 +148,7 @@ class Control extends AbstDeviceClient {
 
   /**
    * 외부에서 명령을 내릴경우
-   * @param {{commandType: string, hasTrue: boolean, modelId: string, commandId: string, rank: number=}} orderInfo
+   * @param {{commandType: string, hasTrue: boolean, modelId: string, commandId: string, rank: {orderInfo: number, main_seq: number}=}} orderInfo
    */
   //  * @param {commandInfo[]} commandInfoList 명령은 완결된 commandInfo[] 형식을 갖쳐야함
   orderOperation(orderInfo) {
@@ -286,14 +311,14 @@ class Control extends AbstDeviceClient {
       if (this.config.deviceInfo.connect_info.type === 'socket') {
         // 데이터 형태가 Buffer 일 경우에만 변환
         dcData.data = JSON.parse(dcData.data.toString());
-        BU.CLI(dcData.data);
+        // BU.CLI(dcData.data);
         dcData.data.data = Buffer.from(dcData.data.data);
         BU.CLI(dcData.data);
       }
 
       const parsedData = this.converter.parsingUpdateData(dcData);
 
-      // BU.CLI(parsedData);
+      BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
@@ -302,7 +327,7 @@ class Control extends AbstDeviceClient {
       parsedData.eventCode === this.definedCommanderResponse.DONE &&
         this.model.onData(parsedData.data);
 
-      // BU.CLIN(this.getDeviceOperationInfo().data);
+      BU.CLIN(this.getDeviceOperationInfo().nodeList);
       // Device Client로 해당 이벤트 Code를 보냄
       return this.requestTakeAction(parsedData.eventCode);
     } catch (error) {

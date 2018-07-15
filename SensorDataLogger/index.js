@@ -7,6 +7,7 @@ module.exports = Control;
 // if __main process
 if (require !== undefined && require.main === module) {
   console.log('__main__');
+  require('dotenv').config();
   const _ = require('lodash');
   const config = require('./src/config');
   const {BU} = require('base-util-jh');
@@ -15,19 +16,27 @@ if (require !== undefined && require.main === module) {
   control.setDeviceInfo();
   control.init();
 
+  // control.getDataLoggerInfoByDB({
+  //   database: process.env.DB_UPSAS_DB,
+  //   host: process.env.DB_UPSAS_HOST,
+  //   password: process.env.DB_UPSAS_PW,
+  //   port: process.env.DB_UPSAS_PORT,
+  //   user: process.env.DB_UPSAS_USER
+  // }, {
+  //   data_logger_seq: 1,
+  //   main_seq: 1
+  // });
+
   // BU.CLI(config)
 
-  // const cloneConfig = _.cloneDeep(config);
   // cloneConfig.dataLoggerInfo.protocol_info.deviceId = '0013a20040f7ab81';
-  // cloneConfig.dataLoggerInfo.sdl_id = 'Direct';
-  // const control_2 = new Control(cloneConfig);
-  // control_2.init();
-  const {BaseModel} = require('../../../module/device-protocol-converter-jh');
+  // cloneConfig.dataLoggerInfo.dl_id = 'Direct';
+  const {UPSAS} = require('../../../module/device-protocol-converter-jh').BaseModel;
 
-  const baseModel = new BaseModel.Saltern(config.deviceInfo.protocol_info);
+  const baseModel = new UPSAS(config.deviceInfo.protocol_info);
 
   // BU.CLI(baseModel.device.VALVE.COMMAND.CLOSE);
-  let cmdList = control.converter.generationCommand(baseModel.device.VALVE.COMMAND.STATUS);
+  let cmdList = control.converter.generationCommand(baseModel.device.VALVE.COMMAND.OPEN);
   BU.CLI(cmdList);
   if(config.dataLoggerInfo.connect_info.type === 'socket'){
     cmdList.forEach(currentItem => {

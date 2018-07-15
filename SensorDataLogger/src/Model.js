@@ -11,7 +11,7 @@ class Model {
    */
   constructor(controller) {
     this.controller = controller;
-    this.sensorList = controller.sensorList;
+    this.nodeList = controller.nodeList;
     this.deviceData = {};
 
     this.hasAverageStorage = false;
@@ -54,14 +54,15 @@ class Model {
    * @param {Object} receiveData 
    */
   onData(receiveData){
+    // BU.CLI(receiveData);
     if(this.hasAverageStorage){
       // 평균 값 설정
       _.set(this, 'deviceData', this.averageStorage.onData(receiveData));
     } else {
       // 데이터 로거에 붙어 있는 센서와 매칭되는 수신데이터를 삽입
-      _.forEach(this.sensorList, sensorInfo => {
-        const dataList = _.get(receiveData, sensorInfo.sd_target_id, []);
-        _.set(sensorInfo.sensorData, _.nth(dataList, sensorInfo.data_logger_index));
+      _.forEach(this.nodeList, nodeInfo => {
+        const dataList = _.get(receiveData, nodeInfo.nc_target_id, []);
+        _.set(nodeInfo, 'data', _.nth(dataList, nodeInfo.data_logger_index));
       });
     }
   }
