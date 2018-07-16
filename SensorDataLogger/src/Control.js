@@ -22,24 +22,30 @@ class Control extends AbstDeviceClient {
     this.config = config;
     this.BaseModel = BaseModel;
 
-    this.converter = new MainConverter(
-      _.get(this.config, 'dataLoggerInfo.protocol_info')
-    );
-
-    this.baseModel = new BaseModel.Saltern(
-      _.get(this.config, 'dataLoggerInfo.protocol_info')
-    );
-    this.deviceModel = this.baseModel.device;
-
-    this.nodeList = config.nodeList;
-
-    // 모델 선언
-    this.model = new Model(this);
+    
     // Model deviceData Prop 정의
     this.observerList = [];
   }
 
   /**
+   * 컨트롤러 ID를 가져올 경우
+   * @return {string} Device Controller를 대표하는 ID
+   */
+  get id() {
+    return this.config.deviceInfo.target_id;
+  }
+
+  /**
+   * DB에 저장할 경우 분류 단위
+   * @return {string}
+   */
+  get category() {
+    return this.config.deviceInfo.target_category;
+  }
+
+
+  /**
+   * @desc Step 1
    * DB에서 특정 데이터를 가져오고 싶을경우
    * @param {dbInfo} dbInfo 
    * @param {{data_logger_seq: number, main_seq: number}} where Logger Sequence
@@ -64,7 +70,10 @@ class Control extends AbstDeviceClient {
     // BU.writeFile('out.json', file);
   }
 
-  /** config.dataLoggerInfo 를 deviceInfo로 변환하여 저장 */
+  /** 
+   * @desc Step 2
+   * config.dataLoggerInfo 를 deviceInfo로 변환하여 저장 
+   */
   setDeviceInfo() {
     this.config.deviceInfo = {
       target_id: this.config.dataLoggerInfo.dl_id,
@@ -88,24 +97,22 @@ class Control extends AbstDeviceClient {
     };
   }
 
-  /**
-   * 컨트롤러 ID를 가져올 경우
-   * @return {string} Device Controller를 대표하는 ID
-   */
-  get id() {
-    return this.config.deviceInfo.target_id;
-  }
 
-  /**
-   * DB에 저장할 경우 분류 단위
-   * @return {string}
-   */
-  get category() {
-    return this.config.deviceInfo.target_category;
-  }
 
-  /** device client 설정 및 프로토콜 바인딩 */
+  /** 
+   * @desc Step 3
+   * device client 설정 및 프로토콜 바인딩
+   */
   init() {
+    let protocol_info = _.get(this.config, 'deviceInfo.protocol_info');
+    this.converter = new MainConverter(protocol_info);
+    this.baseModel = new BaseModel.UPSAS(protocol_info);
+    this.deviceModel = this.baseModel.device;
+    this.nodeList = this.config.nodeList;
+
+    // 모델 선언
+    this.model = new Model(this);
+
     /** 개발 버젼일 경우 Echo Server 구동 */
     if (this.config.hasDev) {
       const EchoServer = require('../../../device-echo-server-jh');
@@ -141,77 +148,32 @@ class Control extends AbstDeviceClient {
       nodeList: this.nodeList,
       // systemErrorList: [{code: 'new Code2222', msg: '에러 테스트 메시지22', occur_date: new Date() }],
       systemErrorList: this.systemErrorList,
-      troubleList: this.model.deviceData.operTroubleList,
+      troubleList: [],
       measureDate: new Date()
     };
   }
 
   /**
    * 외부에서 명령을 내릴경우
-   * @param {{commandType: string, hasTrue: boolean, modelId: string, commandId: string, rank: {orderInfo: number, main_seq: number}=}} orderInfo
+   * @param {requestOrderInfo} requestOrderInfo
    */
-  //  * @param {commandInfo[]} commandInfoList 명령은 완결된 commandInfo[] 형식을 갖쳐야함
-  orderOperation(orderInfo) {
-    BU.CLI(orderInfo);
+  orderOperation(requestOrderInfo) {
     try {
-      let modelId = orderInfo.modelId;
-      let oper;
-      let cmdName;
-      let rank = this.definedCommandSetRank.SECOND;
-
-      if (orderInfo.hasTrue === true) {
-        if (_.includes(modelId, 'WD_')) {
-          oper = this.deviceModel.WATER_DOOR.COMMAND.OPEN;
-          cmdName = `${this.deviceModel.WATER_DOOR.NAME} ${modelId} ${
-            this.deviceModel.WATER_DOOR.STATUS.OPEN
-          }`;
-        } else if (_.includes(modelId, 'P_')) {
-          oper = this.deviceModel.PUMP.COMMAND.ON;
-          cmdName = `${this.deviceModel.PUMP.NAME} ${modelId} ${
-            this.deviceModel.PUMP.STATUS.ON
-          }`;
-        } else if (_.includes(modelId, 'V_') || _.includes(modelId, 'SV_')) {
-          oper = this.deviceModel.VALVE.COMMAND.OPEN;
-          cmdName = `${this.deviceModel.VALVE.NAME} ${modelId} ${
-            this.deviceModel.VALVE.STATUS.OPEN
-          }`;
-        }
-      } else if (orderInfo.hasTrue === false) {
-        if (_.includes(modelId, 'WD_')) {
-          oper = this.deviceModel.WATER_DOOR.COMMAND.CLOSE;
-          cmdName = `${this.deviceModel.WATER_DOOR.NAME} ${modelId} ${
-            this.deviceModel.WATER_DOOR.STATUS.CLOSE
-          }`;
-        } else if (_.includes(modelId, 'P_')) {
-          oper = this.deviceModel.PUMP.COMMAND.OFF;
-          cmdName = `${this.deviceModel.PUMP.NAME} ${modelId} ${
-            this.deviceModel.PUMP.STATUS.OFF
-          }`;
-        } else if (_.includes(modelId, 'V_') || _.includes(modelId, 'SV_')) {
-          oper = this.deviceModel.VALVE.COMMAND.CLOSE;
-          cmdName = `${this.deviceModel.VALVE.NAME} ${modelId} ${
-            this.deviceModel.VALVE.STATUS.CLOSE
-          }`;
-        }
-      } else {
-        rank = this.definedCommandSetRank.THIRD;
-        if (_.includes(modelId, 'WD_')) {
-          oper = this.deviceModel.WATER_DOOR.COMMAND.STATUS;
-          cmdName = `${this.deviceModel.WATER_DOOR.NAME} ${modelId} STATUS`;
-        } else if (_.includes(modelId, 'P_')) {
-          oper = this.deviceModel.PUMP.COMMAND.STATUS;
-          cmdName = `${this.deviceModel.PUMP.NAME} ${modelId} STATUS`;
-        } else if (_.includes(modelId, 'V_') || _.includes(modelId, 'SV_')) {
-          oper = this.deviceModel.VALVE.COMMAND.STATUS;
-          cmdName = `${this.deviceModel.VALVE.NAME} ${modelId} STATUS`;
-        } else {
-          oper = this.deviceModel.VALVE.COMMAND.STATUS;
-          cmdName = `순회 탐색 ${this.id} STATUS`;
-        }
+      let nodeInfo = _.find(this.nodeList, {node_id: requestOrderInfo.nodeId});
+      // let modelId = orderInfo.modelId;
+      if(_.isEmpty(nodeInfo)){
+        throw new Error(`Node ${requestOrderInfo.nodeId} 장치는 존재하지 않습니다.`);
       }
 
-      /** @type {Array.<commandInfo>} */
-      let cmdList = this.converter.generationCommand(oper);
+      let cmdList = this.converter.generationCommand({
+        key: nodeInfo.nc_target_id,
+        value: _.get(requestOrderInfo, 'controlValue') 
+      });
+
+      let cmdName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${requestOrderInfo.hasTrue}`;
+      // 장치를 열거나 
+      let rank = requestOrderInfo.controlValue === 1 || requestOrderInfo.controlValue === 0 ? this.definedCommandSetRank.SECOND : this.definedCommandSetRank.THIRD;
+
       // BU.CLI(cmdList);
       if (this.config.deviceInfo.connect_info.type === 'socket') {
         cmdList.forEach(currentItem => {
@@ -221,18 +183,11 @@ class Control extends AbstDeviceClient {
 
       let commandSet = this.generationManualCommand({
         cmdList: cmdList,
-        commandId: orderInfo.commandId,
+        commandId: requestOrderInfo.commandId,
         commandName: cmdName,
-        commandType: orderInfo.commandType,
+        commandType: requestOrderInfo.commandType,
         rank
       });
-
-      // let commandSet = this.generationManualCommand({
-      //   cmdList: commandInfoList,
-      //   commandId: this.id
-      // });
-
-      // BU.CLIN(commandSet);
 
       this.executeCommand(commandSet);
     } catch (error) {
@@ -304,7 +259,7 @@ class Control extends AbstDeviceClient {
     
     super.onDcData(dcData);
     try {
-      BU.CLI('data', dcData.data.toString());
+      // BU.CLI('data', dcData.data.toString());
 
 
       // TEST 개발용 Socket 일 경우 데이터 처리
@@ -327,7 +282,7 @@ class Control extends AbstDeviceClient {
       parsedData.eventCode === this.definedCommanderResponse.DONE &&
         this.model.onData(parsedData.data);
 
-      BU.CLIN(this.getDeviceOperationInfo().nodeList);
+      // BU.CLIN(this.getDeviceOperationInfo().nodeList);
       // Device Client로 해당 이벤트 Code를 보냄
       return this.requestTakeAction(parsedData.eventCode);
     } catch (error) {

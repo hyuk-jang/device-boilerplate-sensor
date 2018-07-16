@@ -13,9 +13,6 @@ if (require !== undefined && require.main === module) {
   const {BU} = require('base-util-jh');
 
   const control = new Control(config);
-  control.setDeviceInfo();
-  control.init();
-
   // control.getDataLoggerInfoByDB({
   //   database: process.env.DB_UPSAS_DB,
   //   host: process.env.DB_UPSAS_HOST,
@@ -26,6 +23,11 @@ if (require !== undefined && require.main === module) {
   //   data_logger_seq: 1,
   //   main_seq: 1
   // });
+  control.setDeviceInfo();
+  control.init();
+  control.model.hasAverageStorage = true;
+  control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
+
 
   // BU.CLI(config)
 
@@ -35,19 +37,31 @@ if (require !== undefined && require.main === module) {
 
   const baseModel = new UPSAS(config.deviceInfo.protocol_info);
 
-  // BU.CLI(baseModel.device.VALVE.COMMAND.CLOSE);
-  let cmdList = control.converter.generationCommand(baseModel.device.VALVE.COMMAND.OPEN);
-  BU.CLI(cmdList);
-  if(config.dataLoggerInfo.connect_info.type === 'socket'){
-    cmdList.forEach(currentItem => {
-      currentItem.data = JSON.stringify(currentItem.data);
-    });
-  }
+  // setTimeout, setInterval
   setTimeout(() => {
-    let cmd_1 = control.generationManualCommand({cmdList});
-    // BU.CLI(cmd_1.cmdList);
-    control.executeCommand(cmd_1);
-  }, 3000);
+    control.orderOperation({nodeId: 'GV_001', hasTrue: undefined,  commandId: 'TEST'});
+  }, 1000);
+
+  // BU.CLI(baseModel.device.VALVE.COMMAND.CLOSE);
+
+  /** TEST: 직접 명령을 내릴 경우 */
+  // let node = config.nodeList[0];
+  // let cmdList = control.converter.generationCommand({
+  //   key: node.nc_target_id,
+  //   controlValue: 0
+  // });
+
+  // BU.CLI(cmdList);
+  // if(config.dataLoggerInfo.connect_info.type === 'socket'){
+  //   cmdList.forEach(currentItem => {
+  //     currentItem.data = JSON.stringify(currentItem.data);
+  //   });
+  // }
+  // setTimeout(() => {
+  //   let cmd_1 = control.generationManualCommand({cmdList});
+  //   // BU.CLI(cmd_1.cmdList);
+  //   control.executeCommand(cmd_1);
+  // }, 3000);
 
 
 
