@@ -38,7 +38,7 @@ if (require !== undefined && require.main === module) {
   const baseModel = new UPSAS(config.deviceInfo.protocol_info);
 
   // setTimeout, setInterval
-  setTimeout(() => {
+  setInterval(() => {
     control.orderOperation({nodeId: 'GV_001', hasTrue: undefined,  commandId: 'TEST'});
   }, 1000);
 

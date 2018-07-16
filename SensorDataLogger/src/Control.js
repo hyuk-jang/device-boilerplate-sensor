@@ -266,14 +266,13 @@ class Control extends AbstDeviceClient {
       if (this.config.deviceInfo.connect_info.type === 'socket') {
         // 데이터 형태가 Buffer 일 경우에만 변환
         dcData.data = JSON.parse(dcData.data.toString());
-        // BU.CLI(dcData.data);
         dcData.data.data = Buffer.from(dcData.data.data);
-        BU.CLI(dcData.data);
+        // BU.CLI(dcData.data);
       }
 
       const parsedData = this.converter.parsingUpdateData(dcData);
 
-      BU.CLI(parsedData);
+      // BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
@@ -282,7 +281,7 @@ class Control extends AbstDeviceClient {
       parsedData.eventCode === this.definedCommanderResponse.DONE &&
         this.model.onData(parsedData.data);
 
-      // BU.CLIN(this.getDeviceOperationInfo().nodeList);
+      BU.CLIN(this.getDeviceOperationInfo().nodeList);
       // Device Client로 해당 이벤트 Code를 보냄
       return this.requestTakeAction(parsedData.eventCode);
     } catch (error) {
