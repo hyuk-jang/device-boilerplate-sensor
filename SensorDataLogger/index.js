@@ -20,8 +20,8 @@ if (require !== undefined && require.main === module) {
   //   port: process.env.DB_UPSAS_PORT,
   //   user: process.env.DB_UPSAS_USER
   // }, {
-  //   data_logger_seq: 1,
-  //   main_seq: 1
+  //   data_logger_seq: [1],
+  //   main_seq: [1]
   // });
   control.setDeviceInfo();
   control.init();
@@ -38,8 +38,13 @@ if (require !== undefined && require.main === module) {
   const baseModel = new UPSAS(config.deviceInfo.protocol_info);
 
   // setTimeout, setInterval
-  setInterval(() => {
-    control.orderOperation({nodeId: 'GV_001', hasTrue: undefined,  commandId: 'TEST'});
+  setTimeout(() => {
+    // Node 조회
+    // control.orderOperation({nodeId: 'GV_001', hasTrue: undefined, requestCommandId: 'TEST'});
+    
+    // DataLogger 조회
+    control.orderOperationDefault({requestCommandType: 'ADD', requestCommandId: 'MeasureDataLogger'});
+    
   }, 1000);
 
   // BU.CLI(baseModel.device.VALVE.COMMAND.CLOSE);

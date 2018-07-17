@@ -7,7 +7,6 @@ const { BU } = require('base-util-jh');
 const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
-
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
 const {MainConverter, BaseModel} = require('../../../device-protocol-converter-jh');
 
@@ -25,6 +24,10 @@ class Control extends AbstDeviceClient {
     
     // Model deviceData Prop 정의
     this.observerList = [];
+
+    // nodeList 정의
+    /** @type {} */
+    this.childList = [];
   }
 
   /**
@@ -51,10 +54,10 @@ class Control extends AbstDeviceClient {
    * @param {{data_logger_seq: number, main_seq: number}} where Logger Sequence
    */
   async getDataLoggerInfoByDB(dbInfo, where) {
-    const bmjh = require('base-model-jh');
+    const bmjh = require('../../../base-model-jh');
     const BM = new bmjh.BM(dbInfo);
-    let dataLoggerInfo = await BM.db.single(`SELECT * FROM v_data_logger WHERE data_logger_seq = ${where.data_logger_seq} AND main_seq = ${where.main_seq} `);
-    const nodeList = await BM.db.single(`SELECT * FROM v_node_profile WHERE data_logger_seq = ${where.data_logger_seq} AND main_seq = ${where.main_seq} `);
+    let dataLoggerInfo = await BM.getTable('v_data_logger', where, true);
+    const nodeList = await BM.getTable('v_node_profile', where, true);
     this.config.dataLoggerInfo = dataLoggerInfo;
     this.config.nodeList = nodeList;
 
@@ -66,7 +69,7 @@ class Control extends AbstDeviceClient {
       dataLoggerInfo,
       nodeList
     };
-    // BU.CLI(file);
+    BU.CLI(file);
     // BU.writeFile('out.json', file);
   }
 
@@ -170,7 +173,7 @@ class Control extends AbstDeviceClient {
         value: _.get(requestOrderInfo, 'controlValue') 
       });
 
-      let cmdName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${requestOrderInfo.hasTrue}`;
+      let cmdName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${requestOrderInfo.controlValue}`;
       // 장치를 열거나 
       let rank = requestOrderInfo.controlValue === 1 || requestOrderInfo.controlValue === 0 ? this.definedCommandSetRank.SECOND : this.definedCommandSetRank.THIRD;
 
@@ -183,11 +186,46 @@ class Control extends AbstDeviceClient {
 
       let commandSet = this.generationManualCommand({
         cmdList: cmdList,
-        commandId: requestOrderInfo.commandId,
+        commandId: requestOrderInfo.requestCommandId,
         commandName: cmdName,
-        commandType: requestOrderInfo.commandType,
+        commandType: requestOrderInfo.requestCommandType,
         rank
       });
+
+      this.executeCommand(commandSet);
+    } catch (error) {
+      BU.CLI(error);
+    }
+  }
+
+  /**
+   * DataLogger Default 명령을 내리기 위함
+   * @param {{requestCommandType: string=, requestCommandId: string}} requestOrderInfo
+   */
+  orderOperationDefault(requestOrderInfo = {requestCommandType: 'ADD', requestCommandId: 'RegularMeasure', rank: 3}) {
+    try {
+      let cmdList = this.converter.generationCommand({
+        key: 'DEFAULT',
+      });
+      let cmdName = `${this.config.dataLoggerInfo.target_alias} ${this.config.dataLoggerInfo.target_code} Type: ${requestOrderInfo.requestCommandType}`;
+      // 장치를 열거나 
+      let rank = this.definedCommandSetRank.THIRD;
+
+      let commandSet = this.generationManualCommand({
+        cmdList: cmdList,
+        commandId: requestOrderInfo.requestCommandId,
+        commandName: cmdName,
+        commandType: requestOrderInfo.requestCommandType,
+        rank
+      });
+
+      if (this.config.deviceInfo.connect_info.type === 'socket') {
+        cmdList.forEach(currentItem => {
+          currentItem.data = JSON.stringify(currentItem.data);
+        });
+      }
+
+      BU.CLIN(commandSet);
 
       this.executeCommand(commandSet);
     } catch (error) {
