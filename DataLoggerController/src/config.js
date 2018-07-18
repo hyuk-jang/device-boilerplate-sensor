@@ -4,9 +4,7 @@
 
 // /** @type {{current: {hasDev: boolean, deviceInfo: deviceInfo}}} */
 
-const {
-  dataLoggerConfig
-} = require('../../../default-intelligence').dcmConfigModel;
+require('../../../default-intelligence').dcmConfigModel;
 
 /** @type {dataLoggerConfig} */
 const config = {

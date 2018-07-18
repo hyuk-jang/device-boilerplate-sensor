@@ -1,19 +1,24 @@
 'use strict';
 
 const _ = require('lodash');
-const { BU } = require('base-util-jh');
+const {
+  BU
+} = require('base-util-jh');
 
 // const AbstDeviceClient = require('device-client-controller-jh');
 const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
-const {MainConverter, BaseModel} = require('../../../device-protocol-converter-jh');
+const {
+  MainConverter,
+  BaseModel
+} = require('../../../device-protocol-converter-jh');
 
 require('../../../default-intelligence');
 // const {AbstConverter} = require('device-protocol-converter-jh');
 
-class Control extends AbstDeviceClient {
+const DataLoggerController = class extends AbstDeviceClient {
   /** @param {dataLoggerConfig} config */
   constructor(config) {
     super();
@@ -21,13 +26,15 @@ class Control extends AbstDeviceClient {
     this.config = config;
     this.BaseModel = BaseModel;
 
-    
+
     // Model deviceData Prop 정의
     this.observerList = [];
 
-    // nodeList 정의
-    /** @type {} */
-    this.childList = [];
+    /** @type {dataLoggerInfo} */
+    this.dataLoggerInfo = {};
+
+    /** @type {nodeInfo[]} */
+    this.nodeList = [];
   }
 
   /**
@@ -46,44 +53,101 @@ class Control extends AbstDeviceClient {
     return this.config.deviceInfo.target_category;
   }
 
+  /**
+   * 조건에 맞는 노드 리스트를 구함
+   * @param {nodeInfo} nodeInfo 
+   */
+  findNodeList(nodeInfo) {
+    BU.CLI(nodeInfo);
+    return _.filter(this.nodeList, node => {
+      BU.CLI(node);
+      return _.every(nodeInfo, (value, key) => _.isEqual(node[key], value));
+    });
+  }
 
   /**
-   * @desc Step 1
+   * @desc Step 0: DB에서 직접 세팅하고자 할 경우
    * DB에서 특정 데이터를 가져오고 싶을경우
    * @param {dbInfo} dbInfo 
    * @param {{data_logger_seq: number, main_seq: number}} where Logger Sequence
    */
-  async getDataLoggerInfoByDB(dbInfo, where) {
-    const bmjh = require('../../../base-model-jh');
-    const BM = new bmjh.BM(dbInfo);
-    let dataLoggerInfo = await BM.getTable('v_data_logger', where, true);
-    const nodeList = await BM.getTable('v_node_profile', where, true);
-    this.config.dataLoggerInfo = dataLoggerInfo;
-    this.config.nodeList = nodeList;
+  async s0SetDataLoggerDeviceByDB(dbInfo, where) {
+    try {
+      const bmjh = require('../../../base-model-jh');
+      const BM = new bmjh.BM(dbInfo);
+      let dataLoggerInfo = await BM.getTable('v_data_logger', where, false);
 
-    dataLoggerInfo = _.head(dataLoggerInfo);
-    dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
-    dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
+      if (dataLoggerInfo.length > 1) {
+        throw new Error('조건에 맞는 데이터 로거가 1개를 초과하였습니다.');
+      } else if (dataLoggerInfo.length === 0) {
+        throw new Error('조건에 맞는 데이터 로거가 검색되지 않았습니다.');
+      }
 
-    const file = {
-      dataLoggerInfo,
-      nodeList
-    };
-    BU.CLI(file);
-    // BU.writeFile('out.json', file);
+      this.nodeList = await BM.getTable('v_node_profile', where, false);
+      dataLoggerInfo = _.head(dataLoggerInfo);
+      dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
+      dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
+
+      this.dataLoggerInfo = dataLoggerInfo;
+
+      // BU.writeFile('out.json', file);
+
+    } catch (error) {
+      BU.logFile(error);
+    }
   }
 
-  /** 
-   * @desc Step 2
-   * config.dataLoggerInfo 를 deviceInfo로 변환하여 저장 
+  /**
+   * @desc Step 1: Data Logger 정보 설정
+   * 데이터 로거 정보 입력
+   * @param {dataLoggerInfo} dataLoggerInfo 
    */
-  setDeviceInfo() {
+  s1SetDataLogger(dataLoggerInfo) {
+    this.dataLoggerInfo = dataLoggerInfo;
+  }
+
+  /**
+   * @desc Step 1: Node Info 정보 설정
+   * 노드 장치를 추가할 경우. node_id 가 동일하다면 추가하지 않음
+   * @param {nodeInfo[]} nodeInfoList 
+   */
+  s1AddNodeList(nodeInfoList) {
+    nodeInfoList.forEach(nodeInfo => {
+      let foundIt = _.find(this.nodeList, {
+        node_id: nodeInfo.node_id
+      });
+      if (_.isEmpty(foundIt)) {
+        // Node에 Data Logger 바인딩
+        nodeInfo.getDataLogger = () => this.dataLoggerInfo;
+
+
+        let t = nodeInfo.getDataLogger();
+        this.nodeList.push(nodeInfo);
+      }
+    });
+  }
+
+  /**
+   * config에 저장된 값으로 설정하고자 할 경우
+   */
+  s1SetLoggerAndNodeByConfig() {
+    this.s1AddNodeList(this.config.nodeList);
+    this.s1SetDataLogger(this.config.dataLoggerInfo);
+  }
+
+
+
+  /** 
+   * @desc Step 2, Data Logger Info 를 DeviceInfo로 변환하여 저장
+   * dataLoggerInfo 를 deviceInfo로 변환하여 저장 
+   */
+  s2SetDeviceInfo() {
     this.config.deviceInfo = {
-      target_id: this.config.dataLoggerInfo.dl_id,
+      target_id: this.dataLoggerInfo.dl_id,
       // target_category: 'Saltern',
-      target_name: this.config.dataLoggerInfo.target_alias,
-      connect_info: this.config.dataLoggerInfo.connect_info,
-      protocol_info: this.config.dataLoggerInfo.protocol_info,
+      target_name: this.dataLoggerInfo.target_alias,
+      connect_info: this.dataLoggerInfo.connect_info,
+      protocol_info: this.dataLoggerInfo.protocol_info,
       controlInfo: {
         hasErrorHandling: true,
         hasOneAndOne: false,
@@ -111,7 +175,6 @@ class Control extends AbstDeviceClient {
     this.converter = new MainConverter(protocol_info);
     this.baseModel = new BaseModel.UPSAS(protocol_info);
     this.deviceModel = this.baseModel.device;
-    this.nodeList = this.config.nodeList;
 
     // 모델 선언
     this.model = new Model(this);
@@ -127,7 +190,7 @@ class Control extends AbstDeviceClient {
       // 해당 protocol 파서에 나와있는 객체 생성
       echoServer.attachDevice(this.config.deviceInfo.protocol_info);
     }
-    BU.CLI(this.config.deviceInfo);
+    // BU.CLI(this.config.deviceInfo);
     this.setDeviceClient(this.config.deviceInfo);
     this.converter.setProtocolConverter();
   }
@@ -162,27 +225,22 @@ class Control extends AbstDeviceClient {
    */
   orderOperation(requestOrderInfo) {
     try {
-      let nodeInfo = _.find(this.nodeList, {node_id: requestOrderInfo.nodeId});
+      let nodeInfo = _.find(this.nodeList, {
+        node_id: requestOrderInfo.nodeId
+      });
       // let modelId = orderInfo.modelId;
-      if(_.isEmpty(nodeInfo)){
+      if (_.isEmpty(nodeInfo)) {
         throw new Error(`Node ${requestOrderInfo.nodeId} 장치는 존재하지 않습니다.`);
       }
 
       let cmdList = this.converter.generationCommand({
         key: nodeInfo.nc_target_id,
-        value: _.get(requestOrderInfo, 'controlValue') 
+        value: _.get(requestOrderInfo, 'controlValue')
       });
 
       let cmdName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${requestOrderInfo.controlValue}`;
       // 장치를 열거나 
       let rank = requestOrderInfo.controlValue === 1 || requestOrderInfo.controlValue === 0 ? this.definedCommandSetRank.SECOND : this.definedCommandSetRank.THIRD;
-
-      // BU.CLI(cmdList);
-      if (this.config.deviceInfo.connect_info.type === 'socket') {
-        cmdList.forEach(currentItem => {
-          currentItem.data = JSON.stringify(currentItem.data);
-        });
-      }
 
       let commandSet = this.generationManualCommand({
         cmdList: cmdList,
@@ -202,7 +260,11 @@ class Control extends AbstDeviceClient {
    * DataLogger Default 명령을 내리기 위함
    * @param {{requestCommandType: string=, requestCommandId: string}} requestOrderInfo
    */
-  orderOperationDefault(requestOrderInfo = {requestCommandType: 'ADD', requestCommandId: 'RegularMeasure', rank: 3}) {
+  orderOperationDefault(requestOrderInfo = {
+    requestCommandType: 'ADD',
+    requestCommandId: 'RegularMeasure',
+    rank: 3
+  }) {
     try {
       let cmdList = this.converter.generationCommand({
         key: 'DEFAULT',
@@ -219,13 +281,7 @@ class Control extends AbstDeviceClient {
         rank
       });
 
-      if (this.config.deviceInfo.connect_info.type === 'socket') {
-        cmdList.forEach(currentItem => {
-          currentItem.data = JSON.stringify(currentItem.data);
-        });
-      }
-
-      BU.CLIN(commandSet);
+      // BU.CLIN(commandSet);
 
       this.executeCommand(commandSet);
     } catch (error) {
@@ -244,12 +300,10 @@ class Control extends AbstDeviceClient {
   updatedDcEventOnDevice(dcEvent) {
     super.updatedDcEventOnDevice(dcEvent);
 
-    // Error가 발생하면 추적 중인 데이타는 폐기
-    this.converter.resetTrackingDataBuffer();
     // Observer가 해당 메소드를 가지고 있다면 전송
     _.forEach(this.observerList, observer => {
-      if (_.get(observer, 'notifyDevicEvent')) {
-        observer.notifyDevicEvent(this);
+      if (_.get(observer, 'notifyDeviceEvent')) {
+        observer.notifyDeviceEvent(this, dcEvent);
       }
     });
   }
@@ -294,32 +348,21 @@ class Control extends AbstDeviceClient {
    */
   onDcData(dcData) {
     // BU.CLIN(dcData);
-    
+
     super.onDcData(dcData);
     try {
-      // BU.CLI('data', dcData.data.toString());
-
-
-      // TEST 개발용 Socket 일 경우 데이터 처리
-      if (this.config.deviceInfo.connect_info.type === 'socket') {
-        // 데이터 형태가 Buffer 일 경우에만 변환
-        dcData.data = JSON.parse(dcData.data.toString());
-        dcData.data.data = Buffer.from(dcData.data.data);
-        // BU.CLI(dcData.data);
-      }
-
       const parsedData = this.converter.parsingUpdateData(dcData);
-
+      
       // BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
       }
-
+      
       parsedData.eventCode === this.definedCommanderResponse.DONE &&
-        this.model.onData(parsedData.data);
-
-      BU.CLIN(this.getDeviceOperationInfo().nodeList);
+      this.model.onData(parsedData.data);
+      
+      // BU.CLIN(this.getDeviceOperationInfo().nodeList);
       // Device Client로 해당 이벤트 Code를 보냄
       return this.requestTakeAction(parsedData.eventCode);
     } catch (error) {
@@ -327,5 +370,5 @@ class Control extends AbstDeviceClient {
       BU.logFile(error);
     }
   }
-}
-module.exports = Control;
+};
+module.exports = DataLoggerController;

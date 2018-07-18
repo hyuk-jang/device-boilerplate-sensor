@@ -22,8 +22,19 @@ if (require !== undefined && require.main === module) {
     user: process.env.DB_UPSAS_USER
   }, {
     main_seq: 1
-  });
+  })
+  .then(() => {
+    control.init();
 
+    setTimeout(() => {
+      control.discoveryRegularDevice();
+    }, 2000);
+
+    // setTimeout(() => {
+    //   control.runCronDiscoveryRegularDevice();
+    // }, 2000);
+  })
+  
   return;
   control.setDeviceInfo();
   control.init();

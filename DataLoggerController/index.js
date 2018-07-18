@@ -23,7 +23,10 @@ if (require !== undefined && require.main === module) {
   //   data_logger_seq: [1],
   //   main_seq: [1]
   // });
-  control.setDeviceInfo();
+  control.s1SetDataLogger(config.dataLoggerInfo);
+  control.s1AddNodeList(config.nodeList);
+  control.s2SetDeviceInfo();
+
   control.init();
   control.model.hasAverageStorage = true;
   control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);

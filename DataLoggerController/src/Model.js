@@ -76,7 +76,10 @@ class Model {
         // Node에서 사용하는 Index와 매칭되는 dataList를 가져옴
         const data = _.nth(dataList, nodeInfo.data_logger_index);
         // 해당 배열 인덱스에 값이 존재하지 않는다면 해당 Node와는 관련 없는 데이터
-        data !== undefined && _.set(nodeInfo, 'data', data);
+        if(data !== undefined) {
+          _.set(nodeInfo, 'data', data);
+          _.set(nodeInfo, 'writeDate', new Date());
+        } 
       });
     }
   }
