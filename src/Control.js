@@ -54,19 +54,19 @@ class Control {
     this.dataLoggerList = await BM.getTable('v_data_logger', where, true);
     this.nodeList = await BM.getTable('v_node_profile', where, true);
 
-    // 리스트를 돌면서 데이터 로거에 속해있는 Node를 세팅함
+    // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.dataLoggerList.forEach(dataLoggerInfo => {
       /** @type {dataLoggerConfig} */
       let loggerConfig = {};
 
-      let findedNodeList = _.filter(this.nodeList, nodeInfo => {
+      let foundNodeList = _.filter(this.nodeList, nodeInfo => {
         return nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq;
       });
       dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
       dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
 
       loggerConfig.dataLoggerInfo = dataLoggerInfo;
-      loggerConfig.nodeList = findedNodeList;
+      loggerConfig.nodeList = foundNodeList;
       loggerConfig.hasDev = false;
       loggerConfig.deviceInfo = {};
 
@@ -91,11 +91,13 @@ class Control {
     // Node Id 일 경우
     if (_.isString(searchValue)) {
       // Data Logger List에서 찾아봄
-      let dataLoggerInfo = _.find(this.dataLoggerList, {dl_id: searchValue});
+      let dataLoggerInfo = _.find(this.dataLoggerList, {
+        dl_id: searchValue
+      });
 
-      if(dataLoggerInfo){
+      if (dataLoggerInfo) {
         searchValue = dataLoggerInfo;
-      } else {  // 없다면 노드에서 찾아봄
+      } else { // 없다면 노드에서 찾아봄
         let nodeInfo = _.find(this.nodeList, {
           node_id: searchValue
         });
@@ -113,8 +115,8 @@ class Control {
    * 데이터 로거 객체를 생성하고 초기화를 진행
    * 1. setDeviceInfo --> controlInfo 정의 및 logOption 정의, deviceInfo 생성
    * 2. DCM, DPC, Model 정의
-   * 3. Commander를 Observer로 등록
-   * 4. 생성 객체를 routerList에 삽입
+   * 3. Commander 를 Observer로 등록
+   * 4. 생성 객체를 routerLists 에 삽입
    */
   init() {
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
@@ -184,7 +186,7 @@ class Control {
    * FIXME: 임시로 해둠.
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo 
    */
-  excuteAutomaticControl(controlInfo) {
+  executeAutomaticControl(controlInfo) {
     BU.CLI(controlInfo);
     let orderList = [];
     // 배열 병합
@@ -251,15 +253,17 @@ class Control {
       completeList: [],
     };
 
+    // 요청 복합 명령 객체의 요청 리스트를 순회하면서 combinedOrderContainerInfo 객체를 만들고 삽입
     requestCombinedOrder.requestOrderList.forEach(requestOrderInfo => {
-      let foundRemainInfo = _.find(combinedWrapOrder.remainList, {
-        controlValue: requestOrderInfo.controlValue
-      });
+      // controlValue가 없다면 기본 값 2(Stauts)를 입력
+      const controlValue =  requestOrderInfo.controlValue === undefined ? 2 : requestOrderInfo.controlValue;
+      // 해당 controlValue가 remainList에 기존재하는지 체크  
+      let foundRemainInfo = _.find(combinedWrapOrder.remainList, {controlValue});
       // 없다면
       if (!foundRemainInfo) {
         /** @type {combinedOrderContainerInfo} */
         const container = {
-          controlValue: requestOrderInfo.controlValue,
+          controlValue,
           controlSetValue: requestOrderInfo.controlSetValue,
           commandList: [],
         };
@@ -276,15 +280,18 @@ class Control {
           rank: _.get(requestOrderInfo, 'rank', 3),
           uuid: uuidv4()
         };
-        
+
         foundRemainInfo.commandList.push(elementInfo);
       });
     });
+
+
+    BU.CLIN(combinedWrapOrder, 4);
     // 복합 명령 저장
     this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
 
     // 복합 명령 실행 요청
-    
+    this.submitRequestOrder(combinedWrapOrder);
   }
 
   /**
@@ -293,27 +300,38 @@ class Control {
    * @memberof Control
    */
   submitRequestOrder(combinedOrderWrapInfo) {
-    const {requestCommandId,requestCommandName,requestCommandType} = combinedOrderWrapInfo;
+    const {
+      requestCommandId,
+      requestCommandName,
+      requestCommandType
+    } = combinedOrderWrapInfo;
 
     // 아직 요청 전이므로 remainList를 순회하면서 명령 생성 및 요청
     combinedOrderWrapInfo.remainList.forEach(combinedOrderContainerInfo => {
-      const {controlValue,controlSetValue} = combinedOrderContainerInfo;
+      const {
+        controlValue,
+        controlSetValue
+      } = combinedOrderContainerInfo;
 
+      let hasFirst = true;
       combinedOrderContainerInfo.commandList.forEach(combinedOrderElementInfo => {
+        if(hasFirst){
         /** @type {requestOrderInfo} */
-        let requestOrder = {
-          requestCommandId,
-          requestCommandName,
-          requestCommandType,
-          controlValue,
-          controlSetValue,
-          nodeId: combinedOrderElementInfo.nodeId,
-          rank: combinedOrderElementInfo.rank,
-          uuid: combinedOrderElementInfo.uuid
-        };
+          let requestOrder = {
+            requestCommandId,
+            requestCommandName,
+            requestCommandType,
+            controlValue,
+            controlSetValue,
+            nodeId: combinedOrderElementInfo.nodeId,
+            rank: combinedOrderElementInfo.rank,
+            uuid: combinedOrderElementInfo.uuid
+          };
 
-        let dataLoggerController = this.findDataLoggerController(combinedOrderElementInfo.nodeId);
-        dataLoggerController.orderOperation(requestOrder);
+          let dataLoggerController = this.findDataLoggerController(combinedOrderElementInfo.nodeId);
+          dataLoggerController.orderOperation(requestOrder);
+          hasFirst = false;
+        }
       });
     });
   }
@@ -345,116 +363,72 @@ class Control {
 
   /** 정기적인 Router Status 탐색 */
   discoveryRegularDevice() {
+    /** @type {requestCombinedOrder} */
+    let requestCombinedOrder = {
+      requestCommandId: 'discoveryRegularDevice',
+      requestCommandName: '정기 장치 상태 계측',
+      requestCommandType: '',
+      requestOrderList: [{nodeId: _.map(this.dataLoggerList, 'dl_id')}]
+    };
+
+    BU.CLI(requestCombinedOrder);
+    this.excuteCombineOrder(requestCombinedOrder);
+
+
+
     // Data Logger 현재 상태 조회
-    this.dataLoggerControllerList.forEach(router => {
-      /** @type {requestOrderInfo} */
-      let ruquestOrder = {};
-      ruquestOrder.nodeId = 'DEFAULT';
-      ruquestOrder.requestCommandType = 'ADD';
-      ruquestOrder.requestCommandId = 'regularDiscovery';
+    // this.dataLoggerControllerList.forEach(router => {
+    //   /** @type {requestOrderInfo} */
+    //   let ruquestOrder = {};
+    //   ruquestOrder.nodeId = 'DEFAULT';
+    //   ruquestOrder.requestCommandType = 'ADD';
+    //   ruquestOrder.requestCommandId = 'regularDiscovery';
 
-      router.orderOperationDefault(ruquestOrder);
-    });
+    //   router.orderOperationDefault(ruquestOrder);
+    // });
   }
 
 
   /**
-   * Saltern Device로 부터 데이터 갱신이 이루어 졌을때 자동 업데이트 됨.
-   * @param {SalternDevice} salternDevice 
+   * TODO: 데이터 처리
+   * Data Logger Controller 로 부터 데이터 갱신이 이루어 졌을때 자동 업데이트 됨.
+   * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
+   * @param {dcData} dcData 
    */
-  notifyData(salternDevice) {
-    this.model.onData(salternDevice);
+  notifyData(dataLoggerController, dcData) {
 
-    // this.socketServer.
-    let commandStorage = this.model.commandStorage;
-
-    const currentCommandSet = this.model.commandStorage.currentCommandSet;
-
-    const nodeModelName = _.find(salternDevice.nodeModelList, ele => ele.includes('MRT'));
-
-    // if(nodeModelName.length){
-    //   let res = _.find(deviceStorage, {targetId: nodeModelName}).
-    // }
-
-    // TEMP DB에 데이터를 저장하기 위하여 임시로 때려 박음
-    // 정기 데이터 수집일 경우
-
-    // if(currentCommandSet.commandId === 'regularDiscovery'){
-    //   if(_.includes(currentCommandSet.commandName.includes('R_') ) )
-
-    // }
-
-
-
-
-
-    let deviceStorage = this.model.getAllDeviceModelStatus();
-    BU.CLI(commandStorage);
-    BU.CLI(deviceStorage);
-
-    this.socketServer.emitToClientList({
-      commandStorage,
-      deviceStorage
-    });
   }
 
 
   /**
+   * TODO: 이벤트 처리
    * Device Client로부터 Error 수신
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {dcEvent} dcEvent 이벤트 발생 내역
    */
   notifyDeviceEvent(dataLoggerController, dcEvent) {
-    this.model.onData(salternDevice);
-
-    let commandStorage = this.model.commandStorage;
-    let deviceStorage = this.model.getAllDeviceModelStatus();
-    BU.CLI(commandStorage);
-    BU.CLI(deviceStorage);
-
-    this.socketServer.emitToClientList({
-      commandStorage,
-      deviceStorage
-    });
+    
   }
 
 
   /**
+   * TODO: 메시지 처리
    * Device Client로부터 Message 수신
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
   notifyDeviceMessage(dataLoggerController, dcMessage) {
-    this.model.onData(salternDevice);
-
-    let commandStorage = this.model.commandStorage;
-    let deviceStorage = this.model.getAllDeviceModelStatus();
-    BU.CLI(commandStorage);
-    BU.CLI(deviceStorage);
-
-    this.socketServer.emitToClientList({
-      commandStorage,
-      deviceStorage
-    });
+    
   }
 
   /**
+   * TODO: Error 처리
    * Device Client로부터 Error 수신
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {dcError} dcError 명령 수행 결과 데이터
    */
   notifyError(dataLoggerController, dcError) {
-    this.model.onData(salternDevice);
-
-    let commandStorage = this.model.commandStorage;
-    let deviceStorage = this.model.getAllDeviceModelStatus();
-    BU.CLI(commandStorage);
-    BU.CLI(deviceStorage);
-
-    this.socketServer.emitToClientList({
-      commandStorage,
-      deviceStorage
-    });
+   
   }
 
 

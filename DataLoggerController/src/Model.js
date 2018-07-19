@@ -66,6 +66,7 @@ class Model {
    * @param {requestCommandSet} requestCommandSet 
    */
   completeRequestCommandSet(requestCommandSet){
+    // BU.CLIN(requestCommandSet);
     let compareInfo = {
       commandId: requestCommandSet.commandId
     };
@@ -75,7 +76,7 @@ class Model {
     } 
     // 비교 조건과 같은 requestCommandSet 제거 후 남은 List 반환
     return _.remove(this.requestCommandSetList, requestCommandSet => {
-      return _.every(requestCommandSet, compareInfo);
+      return _(requestCommandSet).pick(_.keys(compareInfo)).isEqual(compareInfo);
     });
   }
 

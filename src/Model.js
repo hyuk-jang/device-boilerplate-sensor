@@ -19,25 +19,36 @@ class Model {
     this.nodeStatusList = {};
 
 
-  
+    this.initCombinedOrderStorage();
 
+  }
+
+  /**
+   * 복합 명령 저장소를 초기화
+   */
+  initCombinedOrderStorage() {
     /** @type {combinedOrderStorage} */
-    this.combinedOrderStorage = {
-      controlStorage: {},
-      cancelStorage: {},
-      measureStorage: {}
+    let orderStorage = {
+      controlStorage: {
+        waitingList: [],
+        proceedingList: [],
+        runningList: [],
+      },
+      cancelStorage: {
+        waitingList: [],
+        proceedingList: [],
+      },
+      measureStorage: {
+        waitingList: [],
+        proceedingList: [],
+      }
     };
-    
-    // this.combinedOrderList.controlStorage = {};
-    // this.combinedOrderList.cancelStorage = {};
-    // this.combinedOrderList.measureStorage = {};
-    
-
-
+    this.combinedOrderStorage = orderStorage;
   }
 
 
   /**
+   * TODO: 구현
    * 복합 명령을 저장소 호출
    * @param {string} commandType 저장할 타입 ADD, CANCEL, ''
    */
@@ -46,14 +57,6 @@ class Model {
     const CONTROL = ['ADD', 'CONTROL'];
     const CANCEL = ['CANCEL'];
 
-    // Measure
-    if (_.includes(MEASURE, commandType)) {
-      return this.combinedOrderStorage.
-    } else if (_.includes(CONTROL, commandType)) {
-      this.combinedOrderStorage.controlStorage.push(combinedOrderWrapInfo);
-    } else if (_.includes(CANCEL, commandType)) {
-      this.combinedOrderStorage.cancelStorage.push(combinedOrderWrapInfo);
-    }
   }
 
   /**

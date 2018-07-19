@@ -221,6 +221,8 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {requestOrderInfo} requestOrderInfo
    */
   orderOperation(requestOrderInfo) {
+    BU.CLIN(this.dataLoggerInfo);
+    BU.CLIN(requestOrderInfo);
     try {
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
       const nodeId = _.get(requestOrderInfo, 'nodeId', '');
@@ -253,6 +255,7 @@ const DataLoggerController = class extends AbstDeviceClient {
         rank,
       });
       // 장치로 명령 요청
+      BU.CLIN(commandSet);
       this.executeCommand(commandSet);
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
       this.model.addRequestCommandSet(commandSet);
@@ -274,6 +277,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       let cmdList = this.converter.generationCommand({
         key: 'DEFAULT',
       });
+      BU.CLI(cmdList);
       let cmdName = `${this.config.dataLoggerInfo.target_alias} ${this.config.dataLoggerInfo.target_code} Type: ${requestOrderInfo.requestCommandType}`;
       // 장치를 열거나 
       let rank = this.definedCommandSetRank.THIRD;
@@ -287,7 +291,7 @@ const DataLoggerController = class extends AbstDeviceClient {
         rank
       });
 
-      // BU.CLIN(commandSet);
+      BU.CLIN(commandSet);
       this.executeCommand(commandSet);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
@@ -341,6 +345,20 @@ const DataLoggerController = class extends AbstDeviceClient {
    */
   onDcMessage(dcMessage) {
     super.onDcMessage(dcMessage);
+
+    switch (dcMessage.msgCode) {
+    case this.definedCommandSetMessage.COMMANDSET_EXECUTION_TERMINATE:
+    case this.definedCommandSetMessage.COMMANDSET_DELETE:
+      // BU.CLIN(this.model.requestCommandSetList);
+      this.model.completeRequestCommandSet(dcMessage.commandSet);
+      // BU.CLIN(this.model.requestCommandSetList);
+      break;
+    default:
+      break;
+    }
+    
+
+
     // Observer가 해당 메소드를 가지고 있다면 전송
     this.observerList.forEach(observer => {
       if (_.get(observer, 'notifyDeviceMessage')) {
