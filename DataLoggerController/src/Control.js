@@ -35,6 +35,8 @@ const DataLoggerController = class extends AbstDeviceClient {
 
     /** @type {nodeInfo[]} */
     this.nodeList = [];
+
+    
   }
 
   /**
@@ -58,9 +60,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {nodeInfo} nodeInfo 
    */
   findNodeList(nodeInfo) {
-    BU.CLI(nodeInfo);
     return _.filter(this.nodeList, node => {
-      BU.CLI(node);
       return _.every(nodeInfo, (value, key) => _.isEqual(node[key], value));
     });
   }
@@ -119,9 +119,6 @@ const DataLoggerController = class extends AbstDeviceClient {
       if (_.isEmpty(foundIt)) {
         // Node에 Data Logger 바인딩
         nodeInfo.getDataLogger = () => this.dataLoggerInfo;
-
-
-        let t = nodeInfo.getDataLogger();
         this.nodeList.push(nodeInfo);
       }
     });
@@ -225,6 +222,11 @@ const DataLoggerController = class extends AbstDeviceClient {
    */
   orderOperation(requestOrderInfo) {
     try {
+      // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
+      const nodeId = _.get(requestOrderInfo, 'nodeId', '');
+      if(nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined ){
+        return this.orderOperationDefault(requestOrderInfo);
+      }
       let nodeInfo = _.find(this.nodeList, {
         node_id: requestOrderInfo.nodeId
       });
@@ -247,10 +249,13 @@ const DataLoggerController = class extends AbstDeviceClient {
         commandId: requestOrderInfo.requestCommandId,
         commandName: cmdName,
         commandType: requestOrderInfo.requestCommandType,
-        rank
+        uuid: requestOrderInfo.uuid,
+        rank,
       });
-
+      // 장치로 명령 요청
       this.executeCommand(commandSet);
+      // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
+      this.model.addRequestCommandSet(commandSet);
     } catch (error) {
       BU.CLI(error);
     }
@@ -277,13 +282,16 @@ const DataLoggerController = class extends AbstDeviceClient {
         cmdList: cmdList,
         commandId: requestOrderInfo.requestCommandId,
         commandName: cmdName,
+        uuid: requestOrderInfo.uuid,
         commandType: requestOrderInfo.requestCommandType,
         rank
       });
 
       // BU.CLIN(commandSet);
-
       this.executeCommand(commandSet);
+
+      // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
+      this.model.addRequestCommandSet(commandSet);
     } catch (error) {
       BU.CLI(error);
     }
@@ -336,7 +344,7 @@ const DataLoggerController = class extends AbstDeviceClient {
     // Observer가 해당 메소드를 가지고 있다면 전송
     this.observerList.forEach(observer => {
       if (_.get(observer, 'notifyDeviceMessage')) {
-        observer.notifyDeviceMessage(this);
+        observer.notifyDeviceMessage(this, dcMessage);
       }
     });
   }

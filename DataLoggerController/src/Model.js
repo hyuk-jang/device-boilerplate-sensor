@@ -20,6 +20,9 @@ class Model {
      * @type {string[]} node 장치들
      */
     this.averageNodeIdList = [];
+
+    /** @type {requestCommandSet[]} */
+    this.requestCommandSetList = [];
   }
 
   /**
@@ -47,6 +50,35 @@ class Model {
 
     this.averageStorage = new CU.AverageStorage(averConfig);
   }
+
+  /**
+   * requestCommandSet 저장
+   * @param {requestCommandSet} requestCommandSet 
+   */
+  addRequestCommandSet(requestCommandSet) {
+    this.requestCommandSetList.push(requestCommandSet);
+  }
+
+  /**
+   * 완료된 requestCommandSet 삭제
+   * UUID 값이 있을 경우에는 uuid, commandId 비교. 없을 경우에는 commandId만 비교
+   * @desc 정상적으로 완료했든, 에러 처리됐든 삭제
+   * @param {requestCommandSet} requestCommandSet 
+   */
+  completeRequestCommandSet(requestCommandSet){
+    let compareInfo = {
+      commandId: requestCommandSet.commandId
+    };
+    // uuid 있을 경우 추가
+    if(_.get(requestCommandSet, 'uuid', '').length) {
+      compareInfo.uuid = requestCommandSet.uuid;
+    } 
+    // 비교 조건과 같은 requestCommandSet 제거 후 남은 List 반환
+    return _.remove(this.requestCommandSetList, requestCommandSet => {
+      return _.every(requestCommandSet, compareInfo);
+    });
+  }
+
 
   /**
    * NodeList와 부합되는 곳에 데이터를 정의

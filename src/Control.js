@@ -1,21 +1,24 @@
-'use strict';
-
+const uuidv4 = require('uuid/v4');
 const cron = require('cron');
 const _ = require('lodash');
-const { BU } = require('base-util-jh');
+const {
+  BU
+} = require('base-util-jh');
 
 // const Model = require('./Model');
 
 require('../../default-intelligence');
 
-const DataLoggerController =  require('../DataLoggerController');
+const DataLoggerController = require('../DataLoggerController');
+
+const Model = require('./Model');
 
 class Control {
   /** @param {integratedDataLoggerConfig} config */
   constructor(config) {
-    
+
     this.config = config;
-    
+
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
     /** @type {dataLoggerInfo[]} */
@@ -25,13 +28,15 @@ class Control {
 
     /** @type {DataLoggerController[]} */
     this.preparingDataLoggerControllerList = [];
-    
+
 
     // Data Logger 상태 계측을 위한 Cron Scheduler 객체
     this.cronScheduler = null;
+
+    this.model = new Model(this);
   }
 
-  
+
   /**
    * @desc Step 1
    * DB에서 특정 데이터를 가져오고 싶을경우
@@ -53,7 +58,7 @@ class Control {
     this.dataLoggerList.forEach(dataLoggerInfo => {
       /** @type {dataLoggerConfig} */
       let loggerConfig = {};
-      
+
       let findedNodeList = _.filter(this.nodeList, nodeInfo => {
         return nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq;
       });
@@ -71,7 +76,7 @@ class Control {
     this.config.dataLoggerList = returnValue;
     // _.set(this.config, 'dataLoggerList', returnValue)
     BU.CLI(returnValue);
-    
+
     // BU.CLI(file);
     // BU.writeFile('out.json', file);
   }
@@ -79,18 +84,27 @@ class Control {
 
   /**
    * Data logger와 연결되어 있는 컨트롤러를 반환
-   * @param {dataLoggerInfo|string} searchValue Node ID 또는 DataLogger 객체
+   * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
    * @return {DataLoggerController}
    */
   findDataLoggerController(searchValue) {
     // Node Id 일 경우
-    if(_.isString(searchValue)){
-      let nodeInfo = _.find(this.nodeList, {node_id: searchValue});
-      if(_.isEmpty(nodeInfo)){
-        throw new Error(`Node ID: ${searchValue} is not exist`);
+    if (_.isString(searchValue)) {
+      // Data Logger List에서 찾아봄
+      let dataLoggerInfo = _.find(this.dataLoggerList, {dl_id: searchValue});
+
+      if(dataLoggerInfo){
+        searchValue = dataLoggerInfo;
+      } else {  // 없다면 노드에서 찾아봄
+        let nodeInfo = _.find(this.nodeList, {
+          node_id: searchValue
+        });
+        // string 인데 못 찾았다면 존재하지 않음. 예외 발생
+        if (_.isEmpty(nodeInfo)) {
+          throw new Error(`Node ID: ${searchValue} is not exist`);
+        }
+        searchValue = nodeInfo.getDataLogger();
       }
-      // searchValue 에 데이터로거 세팅
-      searchValue = nodeInfo.getDataLogger();
     }
     return _.find(this.dataLoggerControllerList, router => _.isEqual(router.dataLoggerInfo, searchValue));
   }
@@ -114,7 +128,7 @@ class Control {
       dataLoggerController.s2SetDeviceInfo();
       // DeviceClientController, ProtocolConverter, Model 초기화
       dataLoggerController.attach(this);
-      
+
       // 하부 DataLogger Controller을 router라고 부르고 리스트에 삽입
       this.dataLoggerControllerList.push(dataLoggerController);
     });
@@ -132,14 +146,14 @@ class Control {
    * @return {DataLoggerController[]}
    */
   checkReadyDataControllerList(dataLoggerController, dcEvent) {
-    if(dcEvent.eventName === dataLoggerController.definedControlEvent.CONNECT){
+    if (dcEvent.eventName === dataLoggerController.definedControlEvent.CONNECT) {
       _.remove(this.preparingDataLoggerControllerList, preDataLogger => _.isEqual(preDataLogger, dataLoggerController));
     }
 
     return this.preparingDataLoggerControllerList;
   }
 
-  
+
   /**
    * 외부에서 단일 명령을 내릴경우
    * @param {requestOrderInfo} requestOrderInfo
@@ -147,17 +161,17 @@ class Control {
   excuteSingleControl(requestOrderInfo) {
     try {
       // Data Logger ID가 존재한다면 해당 로거를 직접 호출
-      // if(requestOrderInfo.dl_id) {
+      // if(requestOrderInfo.dlId) {
       //   // Data Logger Controller 객체를 찾음
-      //   let foundIt = _.find(this.dataLoggerList, {dl_id: requestOrderInfo.dl_id});
+      //   let foundIt = _.find(this.dataLoggerList, {dlId: requestOrderInfo.dlId});
       //   if(_.isEmpty(foundIt)){
-      //     throw new Error(`DL ID: ${requestOrderInfo.dl_id} is not exist`);
+      //     throw new Error(`DL ID: ${requestOrderInfo.dlId} is not exist`);
       //   } else {
       //     let foundDataLoggerController = this.findDataLoggerController(foundIt);
       //     foundDataLoggerController.orderOperation(requestOrderInfo);
       //   }
       // } else {
-      
+
       let foundDataLoggerController = this.findDataLoggerController(requestOrderInfo.nodeId);
       foundDataLoggerController.orderOperation(requestOrderInfo);
       // }
@@ -174,7 +188,10 @@ class Control {
     BU.CLI(controlInfo);
     let orderList = [];
     // 배열 병합
-    let commandList = {0: controlInfo.falseList, 1: controlInfo.trueList};
+    let commandList = {
+      0: controlInfo.falseList,
+      1: controlInfo.trueList
+    };
     // 명령 생성 및 요청
     _.forEach(commandList, (modelId, key) => {
       /** @type {requestOrderInfo} */
@@ -196,7 +213,7 @@ class Control {
    * FIXME: 임시로 해둠
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo 
    */
-  cancelAutomaticControl(controlInfo){
+  cancelAutomaticControl(controlInfo) {
     let orderList = [];
     controlInfo.trueList = _.reverse(controlInfo.trueList);
     // 동작 시켰던 장치들을 순회
@@ -214,6 +231,91 @@ class Control {
     });
 
     return orderList;
+  }
+
+  /**
+   * 복합 명령 실행 요청
+   * @param {requestCombinedOrder} requestCombinedOrder
+   * @memberof Control
+   */
+  excuteCombineOrder(requestCombinedOrder) {
+    // TODO: requestCombinedOrder의 실행 가능 여부 체크 메소드 구현
+
+
+    /** @type {combinedOrderWrapInfo} */
+    let combinedWrapOrder = {
+      requestCommandId: requestCombinedOrder.requestCommandId,
+      requestCommandType: requestCombinedOrder.requestCommandType,
+      requestCommandName: requestCombinedOrder.requestCommandName,
+      remainList: [],
+      completeList: [],
+    };
+
+    requestCombinedOrder.requestOrderList.forEach(requestOrderInfo => {
+      let foundRemainInfo = _.find(combinedWrapOrder.remainList, {
+        controlValue: requestOrderInfo.controlValue
+      });
+      // 없다면
+      if (!foundRemainInfo) {
+        /** @type {combinedOrderContainerInfo} */
+        const container = {
+          controlValue: requestOrderInfo.controlValue,
+          controlSetValue: requestOrderInfo.controlSetValue,
+          commandList: [],
+        };
+        foundRemainInfo = container;
+        combinedWrapOrder.remainList.push(container);
+      }
+      // nodeId가 string이라면 배열생성 후 집어넣음
+      requestOrderInfo.nodeId = Array.isArray(requestOrderInfo.nodeId) ? requestOrderInfo.nodeId : [requestOrderInfo.nodeId];
+      // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
+      _.forEach(requestOrderInfo.nodeId, nodeId => {
+        /** @type {combinedOrderElementInfo} */
+        let elementInfo = {
+          nodeId,
+          rank: _.get(requestOrderInfo, 'rank', 3),
+          uuid: uuidv4()
+        };
+        
+        foundRemainInfo.commandList.push(elementInfo);
+      });
+    });
+    // 복합 명령 저장
+    this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
+
+    // 복합 명령 실행 요청
+    
+  }
+
+  /**
+   * Data Logger Controller로 실제로 명령을 요청하는 메소드
+   * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
+   * @memberof Control
+   */
+  submitRequestOrder(combinedOrderWrapInfo) {
+    const {requestCommandId,requestCommandName,requestCommandType} = combinedOrderWrapInfo;
+
+    // 아직 요청 전이므로 remainList를 순회하면서 명령 생성 및 요청
+    combinedOrderWrapInfo.remainList.forEach(combinedOrderContainerInfo => {
+      const {controlValue,controlSetValue} = combinedOrderContainerInfo;
+
+      combinedOrderContainerInfo.commandList.forEach(combinedOrderElementInfo => {
+        /** @type {requestOrderInfo} */
+        let requestOrder = {
+          requestCommandId,
+          requestCommandName,
+          requestCommandType,
+          controlValue,
+          controlSetValue,
+          nodeId: combinedOrderElementInfo.nodeId,
+          rank: combinedOrderElementInfo.rank,
+          uuid: combinedOrderElementInfo.uuid
+        };
+
+        let dataLoggerController = this.findDataLoggerController(combinedOrderElementInfo.nodeId);
+        dataLoggerController.orderOperation(requestOrder);
+      });
+    });
   }
 
   /**
@@ -242,7 +344,7 @@ class Control {
 
 
   /** 정기적인 Router Status 탐색 */
-  discoveryRegularDevice(){
+  discoveryRegularDevice() {
     // Data Logger 현재 상태 조회
     this.dataLoggerControllerList.forEach(router => {
       /** @type {requestOrderInfo} */
@@ -250,7 +352,7 @@ class Control {
       ruquestOrder.nodeId = 'DEFAULT';
       ruquestOrder.requestCommandType = 'ADD';
       ruquestOrder.requestCommandId = 'regularDiscovery';
-      
+
       router.orderOperationDefault(ruquestOrder);
     });
   }
@@ -276,52 +378,83 @@ class Control {
 
     // TEMP DB에 데이터를 저장하기 위하여 임시로 때려 박음
     // 정기 데이터 수집일 경우
-    
+
     // if(currentCommandSet.commandId === 'regularDiscovery'){
     //   if(_.includes(currentCommandSet.commandName.includes('R_') ) )
 
     // }
-    
 
 
 
-    
+
+
     let deviceStorage = this.model.getAllDeviceModelStatus();
     BU.CLI(commandStorage);
     BU.CLI(deviceStorage);
 
-    this.socketServer.emitToClientList({commandStorage, deviceStorage});
+    this.socketServer.emitToClientList({
+      commandStorage,
+      deviceStorage
+    });
   }
 
-    
+
   /**
    * Device Client로부터 Error 수신
-   * @param {dcError} dcError 명령 수행 결과 데이터
+   * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
+   * @param {dcEvent} dcEvent 이벤트 발생 내역
    */
-  notifyDeviceEvent(dcError, salternDevice){
+  notifyDeviceEvent(dataLoggerController, dcEvent) {
     this.model.onData(salternDevice);
-    
+
     let commandStorage = this.model.commandStorage;
     let deviceStorage = this.model.getAllDeviceModelStatus();
     BU.CLI(commandStorage);
     BU.CLI(deviceStorage);
 
-    this.socketServer.emitToClientList({commandStorage, deviceStorage});
+    this.socketServer.emitToClientList({
+      commandStorage,
+      deviceStorage
+    });
   }
-  
+
+
   /**
-   * Device Client로부터 Error 수신
-   * @param {dcError} dcError 명령 수행 결과 데이터
+   * Device Client로부터 Message 수신
+   * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
+   * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
-  notifyError(dcError, salternDevice){
+  notifyDeviceMessage(dataLoggerController, dcMessage) {
     this.model.onData(salternDevice);
-    
+
     let commandStorage = this.model.commandStorage;
     let deviceStorage = this.model.getAllDeviceModelStatus();
     BU.CLI(commandStorage);
     BU.CLI(deviceStorage);
 
-    this.socketServer.emitToClientList({commandStorage, deviceStorage});
+    this.socketServer.emitToClientList({
+      commandStorage,
+      deviceStorage
+    });
+  }
+
+  /**
+   * Device Client로부터 Error 수신
+   * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
+   * @param {dcError} dcError 명령 수행 결과 데이터
+   */
+  notifyError(dataLoggerController, dcError) {
+    this.model.onData(salternDevice);
+
+    let commandStorage = this.model.commandStorage;
+    let deviceStorage = this.model.getAllDeviceModelStatus();
+    BU.CLI(commandStorage);
+    BU.CLI(deviceStorage);
+
+    this.socketServer.emitToClientList({
+      commandStorage,
+      deviceStorage
+    });
   }
 
 
