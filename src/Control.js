@@ -7,7 +7,7 @@ const {
 
 // const Model = require('./Model');
 
-require('../../default-intelligence');
+const {requestCommandType, requestDeviceControlType} = require('../../default-intelligence').dcmConfigModel;
 
 const DataLoggerController = require('../DataLoggerController');
 
@@ -75,7 +75,7 @@ class Control {
 
     this.config.dataLoggerList = returnValue;
     // _.set(this.config, 'dataLoggerList', returnValue)
-    BU.CLI(returnValue);
+    // BU.CLI(returnValue);
 
     // BU.CLI(file);
     // BU.writeFile('out.json', file);
@@ -199,7 +199,7 @@ class Control {
       /** @type {requestOrderInfo} */
       let orderInfo = {
         requestCommandId: controlInfo.cmdName,
-        requestCommandType: 'ADD',
+        requestCommandType: CONTROL,
         nodeId: modelId,
         controlValue: key,
         rank: 2,
@@ -223,7 +223,7 @@ class Control {
       // 명령 타입은 취소
       let orderInfo = {
         requestCommandId: controlInfo.cmdName,
-        requestCommandType: 'CANCEL',
+        requestCommandType: requestCommandType.CANCEL,
         nodeId: modelId,
         controlValue: 0,
         rank: 2,
@@ -249,26 +249,25 @@ class Control {
       requestCommandId: requestCombinedOrder.requestCommandId,
       requestCommandType: requestCombinedOrder.requestCommandType,
       requestCommandName: requestCombinedOrder.requestCommandName,
-      remainList: [],
-      completeList: [],
+      orderContainerList: [],
     };
 
     // 요청 복합 명령 객체의 요청 리스트를 순회하면서 combinedOrderContainerInfo 객체를 만들고 삽입
     requestCombinedOrder.requestOrderList.forEach(requestOrderInfo => {
       // controlValue가 없다면 기본 값 2(Stauts)를 입력
-      const controlValue =  requestOrderInfo.controlValue === undefined ? 2 : requestOrderInfo.controlValue;
-      // 해당 controlValue가 remainList에 기존재하는지 체크  
-      let foundRemainInfo = _.find(combinedWrapOrder.remainList, {controlValue});
+      const controlValue =  requestOrderInfo.controlValue === undefined ? requestDeviceControlType.MEASURE : requestOrderInfo.controlValue;
+      // 해당 controlValue가 orderElementList 기존재하는지 체크  
+      let foundRemainInfo = _.find(combinedWrapOrder.orderContainerList, {controlValue});
       // 없다면
       if (!foundRemainInfo) {
         /** @type {combinedOrderContainerInfo} */
         const container = {
           controlValue,
           controlSetValue: requestOrderInfo.controlSetValue,
-          commandList: [],
+          orderElementList: []
         };
         foundRemainInfo = container;
-        combinedWrapOrder.remainList.push(container);
+        combinedWrapOrder.orderContainerList.push(container);
       }
       // nodeId가 string이라면 배열생성 후 집어넣음
       requestOrderInfo.nodeId = Array.isArray(requestOrderInfo.nodeId) ? requestOrderInfo.nodeId : [requestOrderInfo.nodeId];
@@ -281,12 +280,12 @@ class Control {
           uuid: uuidv4()
         };
 
-        foundRemainInfo.commandList.push(elementInfo);
+        foundRemainInfo.orderElementList.push(elementInfo);
       });
     });
 
 
-    BU.CLIN(combinedWrapOrder, 4);
+    // BU.CLIN(combinedWrapOrder, 4);
     // 복합 명령 저장
     this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
 
@@ -306,15 +305,15 @@ class Control {
       requestCommandType
     } = combinedOrderWrapInfo;
 
-    // 아직 요청 전이므로 remainList를 순회하면서 명령 생성 및 요청
-    combinedOrderWrapInfo.remainList.forEach(combinedOrderContainerInfo => {
+    // 아직 요청 전이므로 orderContainerList 순회하면서 명령 생성 및 요청
+    combinedOrderWrapInfo.orderContainerList.forEach(combinedOrderContainerInfo => {
       const {
         controlValue,
         controlSetValue
       } = combinedOrderContainerInfo;
 
       let hasFirst = true;
-      combinedOrderContainerInfo.commandList.forEach(combinedOrderElementInfo => {
+      combinedOrderContainerInfo.orderElementList.forEach(combinedOrderElementInfo => {
         if(hasFirst){
         /** @type {requestOrderInfo} */
           let requestOrder = {
@@ -367,7 +366,7 @@ class Control {
     let requestCombinedOrder = {
       requestCommandId: 'discoveryRegularDevice',
       requestCommandName: '정기 장치 상태 계측',
-      requestCommandType: '',
+      requestCommandType: requestCommandType.MEASURE,
       requestOrderList: [{nodeId: _.map(this.dataLoggerList, 'dl_id')}]
     };
 
@@ -388,6 +387,15 @@ class Control {
     // });
   }
 
+
+  /**
+   * Data Logger Controller 에서 명령을 처리하였을 경우
+   * @param {dataLoggerController} dataLoggerController 
+   * @param {commandSet} commandSet 
+   */
+  notifyCompleteOrder(dataLoggerController, commandSet) {
+
+  }
 
   /**
    * TODO: 데이터 처리
@@ -418,6 +426,10 @@ class Control {
    * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
   notifyDeviceMessage(dataLoggerController, dcMessage) {
+    // const {COMMANDSET_EXECUTION_START, COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE} = dataLoggerController.definedCommandSetMessage;
+    // const commandSet = dcMessage.commandSet;
+
+    this.model.manageCombinedStorage(dataLoggerController, dcMessage);
     
   }
 

@@ -43,10 +43,10 @@ if (require !== undefined && require.main === module) {
   // setTimeout, setInterval
   setTimeout(() => {
     // Node 조회
-    // control.orderOperation({nodeId: 'GV_001', hasTrue: undefined, requestCommandId: 'TEST'});
+    control.orderOperation({nodeId: 'GV_001', hasTrue: undefined, requestCommandId: 'TEST'});
     
     // DataLogger 조회
-    control.orderOperationDefault({requestCommandType: 'ADD', requestCommandId: 'MeasureDataLogger'});
+    // control.orderOperationDefault({requestCommandType: 'ADD', requestCommandId: 'MeasureDataLogger'});
     
   }, 1000);
 
