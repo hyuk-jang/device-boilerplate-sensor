@@ -1,6 +1,3 @@
-'use strict';
-
-
 // const {integratedDataLoggerConfig} = require('../../default-intelligence').dcmConfigModel;
 
 /** @type {integratedDataLoggerConfig} */
@@ -16,8 +13,8 @@ const config = {
     /** 사용할 port */
     port: 3306,
     /** 사용할 database */
-    database: ''
+    database: '',
   },
-  dataLoggerList: []
+  dataLoggerList: [],
 };
 module.exports = config;

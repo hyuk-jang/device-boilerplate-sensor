@@ -1,5 +1,3 @@
-
-
 const Control = require('./src/Control');
 
 module.exports = Control;
@@ -31,23 +29,27 @@ if (require !== undefined && require.main === module) {
   control.model.hasAverageStorage = true;
   control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
 
-
   // BU.CLI(config)
 
   // cloneConfig.dataLoggerInfo.protocol_info.deviceId = '0013a20040f7ab81';
   // cloneConfig.dataLoggerInfo.dl_id = 'Direct';
-  const {UPSAS} = require('../../../module/device-protocol-converter-jh').BaseModel;
+  const {
+    UPSAS,
+  } = require('../../../module/device-protocol-converter-jh').BaseModel;
 
   const baseModel = new UPSAS(config.deviceInfo.protocol_info);
 
   // setTimeout, setInterval
   setTimeout(() => {
     // Node 조회
-    control.orderOperation({nodeId: 'GV_001', hasTrue: undefined, requestCommandId: 'TEST'});
-    
+    control.orderOperation({
+      nodeId: 'GV_001',
+      hasTrue: undefined,
+      requestCommandId: 'TEST',
+    });
+
     // DataLogger 조회
     // control.orderOperationDefault({requestCommandType: 'ADD', requestCommandId: 'MeasureDataLogger'});
-    
   }, 1000);
 
   // BU.CLI(baseModel.device.VALVE.COMMAND.CLOSE);
@@ -71,20 +73,16 @@ if (require !== undefined && require.main === module) {
   //   control.executeCommand(cmd_1);
   // }, 3000);
 
-
-
-
   // control.setDeviceInfo();
 
-  process.on('uncaughtException', function (err) {
+  process.on('uncaughtException', err => {
     // BU.debugConsole();
     console.error(err.stack);
     console.log(err.message);
     console.log('Node NOT Exiting...');
   });
-  
-  
-  process.on('unhandledRejection', function (err) {
+
+  process.on('unhandledRejection', err => {
     // BU.debugConsole();
     console.error(err.stack);
     console.log(err.message);
