@@ -223,13 +223,13 @@ class Model {
 
     const {commandSet} = dcMessage;
 
-    BU.CLIN(commandSet);
+    // BU.CLIN(commandSet);
 
     // 명령 타입에 따라서 저장소를 가져옴(Control, Cancel, Measure)
 
     const resOrderInfo = this.findAllCombinedOrderByCommandId(commandSet.commandId);
 
-    BU.CLI(this.combinedOrderStorage);
+    // BU.CLI(this.combinedOrderStorage);
 
     // requestCommandType에 맞는 저장소가 없는 경우
     if (!resOrderInfo.orderStorageKeyLV1.length) {
@@ -277,6 +277,8 @@ class Model {
       // 가져온 flatten 리스트에서 uuid가 동일한 객체 검색
       const orderElementInfo = _.find(flatOrderElementList, {uuid: commandSet.uuid});
 
+      BU.CLI('NodeID', orderElementInfo.nodeId);
+
       // 완료 처리
       if (orderElementInfo) {
         orderElementInfo.hasComplete = true;
@@ -284,6 +286,15 @@ class Model {
       }
 
       // 해당 명령이 모두 완료되었을 경우
+      // BU.CLI(flatOrderElementList);
+      // const hasComLen = _(flatOrderElementList)
+      //   .map(ele => ele.hasComplete === true)
+      //   .value().length;
+
+      const flatSimpleList = _.map(flatOrderElementList, ele =>
+        _.pick(ele, ['hasComplete', 'nodeId']),
+      );
+      BU.CLI(flatSimpleList);
       if (_.every(flatOrderElementList, 'hasComplete')) {
         BU.CLI('All Completed CommandId: ', dcMessage.commandSet.commandId);
         // proceedingList에서 제거
@@ -378,7 +389,7 @@ class Model {
       })
       .orderBy('node_id')
       .value();
-    BU.CLI(statusList);
+    // BU.CLI(statusList);
     return statusList;
     // BU.CLI(this.nodeList);
   }

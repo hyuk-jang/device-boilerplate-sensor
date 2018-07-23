@@ -6,6 +6,7 @@
     "quotes": "error",
     "no-console": "off",
     "max-len": "off",
+    "no-unused-expressions": "off",
     "no-param-reassign": "off",
     "class-methods-use-this": "off",
     "consistent-return": "off",

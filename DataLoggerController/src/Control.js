@@ -239,6 +239,7 @@ const DataLoggerController = class extends AbstDeviceClient {
         commandName: cmdName,
         commandType: executeOrderInfo.requestCommandType,
         uuid: executeOrderInfo.uuid,
+        nodeId: executeOrderInfo.nodeId,
         rank,
       });
       // 장치로 명령 요청
@@ -371,7 +372,7 @@ const DataLoggerController = class extends AbstDeviceClient {
     try {
       const parsedData = this.converter.parsingUpdateData(dcData);
 
-      BU.CLI(parsedData);
+      // BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
@@ -381,7 +382,7 @@ const DataLoggerController = class extends AbstDeviceClient {
         this.model.onData(parsedData.data);
       }
 
-      BU.CLIN(this.getDeviceOperationInfo().nodeList);
+      // BU.CLIN(this.getDeviceOperationInfo().nodeList);
       // Device Client로 해당 이벤트 Code를 보냄
       return this.requestTakeAction(parsedData.eventCode);
     } catch (error) {
