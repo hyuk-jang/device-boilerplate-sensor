@@ -7,14 +7,9 @@ const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
-const {
-  MainConverter,
-  BaseModel,
-} = require('../../../device-protocol-converter-jh');
+const {MainConverter, BaseModel} = require('../../../device-protocol-converter-jh');
 
-const {
-  requestCommandType,
-} = require('../../../default-intelligence').dcmConfigModel;
+const {requestOrderCommandType} = require('../../../default-intelligence').dcmConfigModel;
 // require('../../../default-intelligence');
 // const {AbstConverter} = require('device-protocol-converter-jh');
 
@@ -81,12 +76,8 @@ const DataLoggerController = class extends AbstDeviceClient {
 
       this.nodeList = await BM.getTable('v_node_profile', where, false);
       dataLoggerInfo = _.head(dataLoggerInfo);
-      dataLoggerInfo.protocol_info = JSON.parse(
-        _.get(dataLoggerInfo, 'protocol_info'),
-      );
-      dataLoggerInfo.connect_info = JSON.parse(
-        _.get(dataLoggerInfo, 'connect_info'),
-      );
+      dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
+      dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
 
       this.dataLoggerInfo = dataLoggerInfo;
 
@@ -175,9 +166,7 @@ const DataLoggerController = class extends AbstDeviceClient {
     if (this.config.hasDev) {
       // const EchoServer = require('device-echo-server-jh');
       // 지정된 port로 생성
-      const echoServer = new EchoServer(
-        this.config.deviceInfo.connect_info.port,
-      );
+      const echoServer = new EchoServer(this.config.deviceInfo.connect_info.port);
       // 해당 protocol 파서에 나와있는 객체 생성
       echoServer.attachDevice(this.config.deviceInfo.protocol_info);
     }
@@ -212,51 +201,44 @@ const DataLoggerController = class extends AbstDeviceClient {
 
   /**
    * 외부에서 명령을 내릴경우
-   * @param {requestOrderInfo} requestOrderInfo
+   * @param {executeOrderInfo} executeOrderInfo
    */
-  orderOperation(requestOrderInfo) {
-    // BU.CLIN(requestOrderInfo);
+  orderOperation(executeOrderInfo) {
+    // BU.CLIN(executeOrderInfo);
     try {
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
-      const nodeId = _.get(requestOrderInfo, 'nodeId', '');
-      if (
-        nodeId === this.dataLoggerInfo.dl_id ||
-        nodeId === '' ||
-        nodeId === undefined
-      ) {
-        return this.orderOperationDefault(requestOrderInfo);
+      const nodeId = _.get(executeOrderInfo, 'nodeId', '');
+      if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
+        return this.orderOperationDefault(executeOrderInfo);
       }
       const nodeInfo = _.find(this.nodeList, {
-        node_id: requestOrderInfo.nodeId,
+        node_id: executeOrderInfo.nodeId,
       });
       // let modelId = orderInfo.modelId;
       if (_.isEmpty(nodeInfo)) {
-        throw new Error(
-          `Node ${requestOrderInfo.nodeId} 장치는 존재하지 않습니다.`,
-        );
+        throw new Error(`Node ${executeOrderInfo.nodeId} 장치는 존재하지 않습니다.`);
       }
 
       const cmdList = this.converter.generationCommand({
         key: nodeInfo.nc_target_id,
-        value: _.get(requestOrderInfo, 'controlValue'),
+        value: _.get(executeOrderInfo, 'controlValue'),
       });
 
       const cmdName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${
-        requestOrderInfo.controlValue
+        executeOrderInfo.controlValue
       }`;
       // 장치를 열거나
       const rank =
-        requestOrderInfo.controlValue === 1 ||
-        requestOrderInfo.controlValue === 0
+        executeOrderInfo.controlValue === 1 || executeOrderInfo.controlValue === 0
           ? this.definedCommandSetRank.SECOND
           : this.definedCommandSetRank.THIRD;
 
       const commandSet = this.generationManualCommand({
         cmdList,
-        commandId: requestOrderInfo.requestCommandId,
+        commandId: executeOrderInfo.requestCommandId,
         commandName: cmdName,
-        commandType: requestOrderInfo.requestCommandType,
-        uuid: requestOrderInfo.uuid,
+        commandType: executeOrderInfo.requestCommandType,
+        uuid: executeOrderInfo.uuid,
         rank,
       });
       // 장치로 명령 요청
@@ -270,11 +252,12 @@ const DataLoggerController = class extends AbstDeviceClient {
 
   /**
    * DataLogger Default 명령을 내리기 위함
-   * @param {{requestCommandType: string=, requestCommandId: string}} requestOrderInfo
+   * @param {{requestCommandType: string=, requestCommandId: string}} executeOrder
    */
   orderOperationDefault(
-    requestOrderInfo = {
-      requestCommandType: requestCommandType.MEASURE,
+    /** @type {executeOrderInfo} */
+    executeOrder = {
+      requestCommandType: requestOrderCommandType.MEASURE,
       requestCommandId: 'RegularMeasure',
       rank: 3,
     },
@@ -285,16 +268,16 @@ const DataLoggerController = class extends AbstDeviceClient {
       });
       const cmdName = `${this.config.dataLoggerInfo.target_alias} ${
         this.config.dataLoggerInfo.target_code
-      } Type: ${requestOrderInfo.requestCommandType}`;
+      } Type: ${executeOrder.requestCommandType}`;
       // 장치를 열거나
       const rank = this.definedCommandSetRank.THIRD;
 
       const commandSet = this.generationManualCommand({
         cmdList,
-        commandId: requestOrderInfo.requestCommandId,
+        commandId: executeOrder.requestCommandId,
         commandName: cmdName,
-        uuid: requestOrderInfo.uuid,
-        commandType: requestOrderInfo.requestCommandType,
+        uuid: executeOrder.uuid,
+        commandType: executeOrder.requestCommandType,
         rank,
       });
 
@@ -388,7 +371,7 @@ const DataLoggerController = class extends AbstDeviceClient {
     try {
       const parsedData = this.converter.parsingUpdateData(dcData);
 
-      // BU.CLI(parsedData);
+      BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
@@ -398,7 +381,7 @@ const DataLoggerController = class extends AbstDeviceClient {
         this.model.onData(parsedData.data);
       }
 
-      // BU.CLIN(this.getDeviceOperationInfo().nodeList);
+      BU.CLIN(this.getDeviceOperationInfo().nodeList);
       // Device Client로 해당 이벤트 Code를 보냄
       return this.requestTakeAction(parsedData.eventCode);
     } catch (error) {

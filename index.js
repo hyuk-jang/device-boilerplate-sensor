@@ -9,7 +9,7 @@ if (require !== undefined && require.main === module) {
   require('dotenv').config();
   const _ = require('lodash');
   const config = require('./src/config');
-  const { BU } = require('base-util-jh');
+  const {BU} = require('base-util-jh');
 
   const control = new Control(config);
   control
@@ -19,11 +19,11 @@ if (require !== undefined && require.main === module) {
         host: process.env.DB_UPSAS_HOST,
         password: process.env.DB_UPSAS_PW,
         port: process.env.DB_UPSAS_PORT,
-        user: process.env.DB_UPSAS_USER
+        user: process.env.DB_UPSAS_USER,
       },
       {
-        main_seq: 1
-      }
+        main_seq: 1,
+      },
     )
     .then(() => {
       control.init();
@@ -37,20 +37,14 @@ if (require !== undefined && require.main === module) {
       // }, 2000);
     });
 
-  return;
-  control.setDeviceInfo();
-  control.init();
-  control.model.hasAverageStorage = true;
-  control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
-
-  process.on('uncaughtException', function(err) {
+  process.on('uncaughtException', err => {
     // BU.debugConsole();
     console.error(err.stack);
     console.log(err.message);
     console.log('Node NOT Exiting...');
   });
 
-  process.on('unhandledRejection', function(err) {
+  process.on('unhandledRejection', err => {
     // BU.debugConsole();
     console.error(err.stack);
     console.log(err.message);

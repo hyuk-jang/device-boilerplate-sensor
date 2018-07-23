@@ -90,17 +90,15 @@ class Model {
     if (this.hasAverageStorage) {
       _.forEach(this.nodeList, nodeInfo => {
         // Node Class와 매칭되는 데이터 리스트를 가져옴
-        const dataList = _.get(receiveData, nodeInfo.nc_target_id, []);
+        const dataList = _.get(receiveData, nodeInfo.nd_target_id, []);
         // Node에서 사용하는 Index와 매칭되는 dataList를 가져옴
+        // BU.CLI(nodeInfo.nd_target_id);
         let data = _.nth(dataList, nodeInfo.data_logger_index);
+        // BU.CLI(data);
 
         // 평균 값 추적 중인 데이터 일 경우 평균 값 도출 메소드 사용
-        if (
-          _.find(this.averageNodeIdList, nodeId => nodeId === nodeInfo.node_id)
-        ) {
-          data = this.averageStorage
-            .addData(nodeInfo.node_id, data)
-            .getAverage(nodeInfo.node_id);
+        if (_.find(this.averageNodeIdList, nodeId => nodeId === nodeInfo.node_id)) {
+          data = this.averageStorage.addData(nodeInfo.node_id, data).getAverage(nodeInfo.node_id);
         }
         // 해당 배열 인덱스에 값이 존재하지 않는다면 해당 Node와는 관련 없는 데이터
         if (data !== undefined) _.set(nodeInfo, 'data', data);
@@ -109,9 +107,11 @@ class Model {
       // 데이터 로거에 붙어 있는 센서와 매칭되는 수신데이터를 삽입
       _.forEach(this.nodeList, nodeInfo => {
         // Node Class와 매칭되는 데이터 리스트를 가져옴
-        const dataList = _.get(receiveData, nodeInfo.nc_target_id, []);
+        const dataList = _.get(receiveData, nodeInfo.nd_target_id, []);
         // Node에서 사용하는 Index와 매칭되는 dataList를 가져옴
+        // BU.CLI(nodeInfo.nd_target_id);
         const data = _.nth(dataList, nodeInfo.data_logger_index);
+        // BU.CLI(data);
         // 해당 배열 인덱스에 값이 존재하지 않는다면 해당 Node와는 관련 없는 데이터
         if (data !== undefined) {
           _.set(nodeInfo, 'data', data);

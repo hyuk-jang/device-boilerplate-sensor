@@ -33,9 +33,7 @@ if (require !== undefined && require.main === module) {
 
   // cloneConfig.dataLoggerInfo.protocol_info.deviceId = '0013a20040f7ab81';
   // cloneConfig.dataLoggerInfo.dl_id = 'Direct';
-  const {
-    UPSAS,
-  } = require('../../../module/device-protocol-converter-jh').BaseModel;
+  const {UPSAS} = require('../../../module/device-protocol-converter-jh').BaseModel;
 
   const baseModel = new UPSAS(config.deviceInfo.protocol_info);
 
@@ -47,33 +45,7 @@ if (require !== undefined && require.main === module) {
       hasTrue: undefined,
       requestCommandId: 'TEST',
     });
-
-    // DataLogger 조회
-    // control.orderOperationDefault({requestCommandType: 'ADD', requestCommandId: 'MeasureDataLogger'});
   }, 1000);
-
-  // BU.CLI(baseModel.device.VALVE.COMMAND.CLOSE);
-
-  /** TEST: 직접 명령을 내릴 경우 */
-  // let node = config.nodeList[0];
-  // let cmdList = control.converter.generationCommand({
-  //   key: node.nc_target_id,
-  //   controlValue: 0
-  // });
-
-  // BU.CLI(cmdList);
-  // if(config.dataLoggerInfo.connect_info.type === 'socket'){
-  //   cmdList.forEach(currentItem => {
-  //     currentItem.data = JSON.stringify(currentItem.data);
-  //   });
-  // }
-  // setTimeout(() => {
-  //   let cmd_1 = control.generationManualCommand({cmdList});
-  //   // BU.CLI(cmd_1.cmdList);
-  //   control.executeCommand(cmd_1);
-  // }, 3000);
-
-  // control.setDeviceInfo();
 
   process.on('uncaughtException', err => {
     // BU.debugConsole();

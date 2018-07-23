@@ -1,24 +1,22 @@
-
-
 // require('./define.js');
 
 // /** @type {{current: {hasDev: boolean, deviceInfo: deviceInfo}}} */
 
-require('../../../default-intelligence').dcmConfigModel;
+require('../../../../default-intelligence').dcmConfigModel;
 
 /** @type {dataLoggerConfig} */
 const config = {
   hasDev: false,
   deviceInfo: {},
   dataLoggerInfo: {
-    dl_real_id: 'R_GV_1_001',
-    dl_id: 'R_GV_001',
+    dl_real_id: 'R_EP_1_001',
+    dl_id: 'R_EP_001',
     target_alias: 'Gate형 밸브',
     m_name: '6kW 급 TB',
     data_logger_seq: 1,
     main_seq: 1,
     data_logger_def_seq: 4,
-    target_id: '0013A20040F7AB81',
+    target_id: '0013A20040F7AB86',
     target_code: '001',
     connect_info: {
       type: 'socket',
@@ -29,23 +27,23 @@ const config = {
     protocol_info: {
       mainCategory: 'UPSAS',
       subCategory: 'xbee',
-      deviceId: '0013A20040F7AB81',
+      deviceId: '0013A20040F7AB86',
     },
   },
   nodeList: [
     {
       node_seq: 20,
-      node_real_id: 'GV_1_001',
-      node_id: 'GV_001',
-      node_name: '수문용 밸브 001',
-      target_code: '001',
-      data_logger_index: 0,
-      dl_real_id: 'R_GV_1_001',
-      dl_id: 'R_GV_001',
-      nd_target_prefix: 'GV',
-      nd_target_id: 'gateValve',
-      nd_target_name: '수문용 밸브',
-      nc_target_id: 'valve',
+      node_real_id: 'MRT_1_005',
+      node_id: 'MRT_005',
+      node_name: '수문용 밸브 005',
+      target_code: '005',
+      data_logger_index: 1,
+      dl_real_id: 'R_EP_1_001',
+      dl_id: 'R_EP_001',
+      nd_target_prefix: 'MRT',
+      nd_target_id: 'moduleRearTemperature',
+      nd_target_name: '모듈온도 005',
+      nc_target_id: 'temp',
       nc_target_name: '밸브',
       nc_is_sensor: 0,
       nc_data_unit: null,
@@ -59,18 +57,18 @@ const config = {
     },
     {
       node_seq: 29,
-      node_real_id: 'WL_1_001',
-      node_id: 'WL_001',
-      node_name: '수위 001',
-      target_code: '001',
+      node_real_id: 'MRT_1_006',
+      node_id: 'MRT_006',
+      node_name: '수문용 밸브 006',
+      target_code: '006',
       data_logger_index: 0,
-      dl_real_id: 'R_GV_1_001',
-      dl_id: 'R_GV_001',
-      nd_target_prefix: 'WL',
-      nd_target_id: 'waterLevel',
-      nd_target_name: null,
-      nc_target_id: 'waterLevel',
-      nc_target_name: '수위',
+      dl_real_id: 'R_EP_1_001',
+      dl_id: 'R_EP_001',
+      nd_target_prefix: 'MRT',
+      nd_target_id: 'moduleRearTemperature',
+      nd_target_name: '모듈온도 005',
+      nc_target_id: 'temp',
+      nc_target_name: '밸브',
       nc_data_unit: 'cm',
       nc_description: null,
       nc_is_sensor: 1,

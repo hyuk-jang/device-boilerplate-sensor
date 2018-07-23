@@ -4,7 +4,6 @@
   "rules": {
     "linebreak-style": "off",
     "quotes": "error",
-    "semi": "error",
     "no-console": "off",
     "max-len": "off",
     "no-param-reassign": "off",

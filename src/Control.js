@@ -1,22 +1,29 @@
+const EventEmitter = require('events');
 const uuidv4 = require('uuid/v4');
 const cron = require('cron');
 const _ = require('lodash');
+const eventToPromise = require('event-to-promise');
+
 const {BU} = require('base-util-jh');
-const bmjh = require('../../base-model-jh');
+const {BM} = require('../../base-model-jh');
+
 // const Model = require('./Model');
 
 const {
-  requestCommandType,
+  requestOrderCommandType,
   requestDeviceControlType,
 } = require('../../default-intelligence').dcmConfigModel;
 
 const DataLoggerController = require('../DataLoggerController');
 
+const Scenario = require('./Scenario');
+
 const Model = require('./Model');
 
-class Control {
+class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */
   constructor(config) {
+    super();
     this.config = config;
 
     /** @type {DataLoggerController[]} */
@@ -32,7 +39,8 @@ class Control {
     // Data Logger 상태 계측을 위한 Cron Scheduler 객체
     this.cronScheduler = null;
 
-    this.model = new Model(this);
+    // 시나리오 관련
+    this.scenario = new Scenario(this);
   }
 
   /**
@@ -42,13 +50,13 @@ class Control {
    * @param {{main_seq: number=}} where Logger Sequence
    */
   async getDataLoggerListByDB(dbInfo, where) {
-    const BM = new bmjh.BM(dbInfo);
+    const bM = new BM(dbInfo);
 
     /** @type {dataLoggerConfig[]} */
     const returnValue = [];
 
-    this.dataLoggerList = await BM.getTable('v_data_logger', where, true);
-    this.nodeList = await BM.getTable('v_node_profile', where, true);
+    this.dataLoggerList = await bM.getTable('v_data_logger', where, true);
+    this.nodeList = await bM.getTable('v_node_profile', where, true);
 
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.dataLoggerList.forEach(dataLoggerInfo => {
@@ -70,44 +78,13 @@ class Control {
       returnValue.push(loggerConfig);
     });
 
-    this.config.dataLoggerList = returnValue;
+    _.set(this, 'config.dataLoggerList', returnValue);
+
     // _.set(this.config, 'dataLoggerList', returnValue)
     // BU.CLI(returnValue);
 
     // BU.CLI(file);
     // BU.writeFile('out.json', file);
-  }
-
-  /**
-   * Data logger와 연결되어 있는 컨트롤러를 반환
-   * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
-   * @return {DataLoggerController}
-   */
-  findDataLoggerController(searchValue) {
-    // Node Id 일 경우
-    if (_.isString(searchValue)) {
-      // Data Logger List에서 찾아봄
-      const dataLoggerInfo = _.find(this.dataLoggerList, {
-        dl_id: searchValue,
-      });
-
-      if (dataLoggerInfo) {
-        searchValue = dataLoggerInfo;
-      } else {
-        // 없다면 노드에서 찾아봄
-        const nodeInfo = _.find(this.nodeList, {
-          node_id: searchValue,
-        });
-        // string 인데 못 찾았다면 존재하지 않음. 예외 발생
-        if (_.isEmpty(nodeInfo)) {
-          throw new Error(`Node ID: ${searchValue} is not exist`);
-        }
-        searchValue = nodeInfo.getDataLogger();
-      }
-    }
-    return _.find(this.dataLoggerControllerList, router =>
-      _.isEqual(router.dataLoggerInfo, searchValue),
-    );
   }
 
   /**
@@ -118,6 +95,9 @@ class Control {
    * 4. 생성 객체를 routerLists 에 삽입
    */
   init() {
+    this.model = new Model(this);
+
+    BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
       // 데이터 로거 객체 생성
       const dataLoggerController = new DataLoggerController(dataLoggerConfig);
@@ -158,89 +138,116 @@ class Control {
 
   /**
    * 외부에서 단일 명령을 내릴경우
-   * @param {requestOrderInfo} requestOrderInfo
+   * @param {requestSingleOrderInfo} requestSingleOrderInfo
    */
-  excuteSingleControl(requestOrderInfo) {
+  excuteSingleControl(requestSingleOrderInfo) {
     try {
-      // Data Logger ID가 존재한다면 해당 로거를 직접 호출
-      // if(requestOrderInfo.dlId) {
-      //   // Data Logger Controller 객체를 찾음
-      //   let foundIt = _.find(this.dataLoggerList, {dlId: requestOrderInfo.dlId});
-      //   if(_.isEmpty(foundIt)){
-      //     throw new Error(`DL ID: ${requestOrderInfo.dlId} is not exist`);
-      //   } else {
-      //     let foundDataLoggerController = this.findDataLoggerController(foundIt);
-      //     foundDataLoggerController.orderOperation(requestOrderInfo);
-      //   }
-      // } else {
+      /** @type {requestCombinedOrderInfo} */
+      const requestCombinedOrder = {
+        requestCommandId: '',
+        requestCommandName: '',
+        requestCommandType: requestSingleOrderInfo.requestCommandType,
+        requestElementList: [],
+      };
 
-      const foundDataLoggerController = this.findDataLoggerController(requestOrderInfo.nodeId);
-      foundDataLoggerController.orderOperation(requestOrderInfo);
-      // }
+      /** @type {requestOrderElementInfo} */
+      const requestOrderElement = {
+        controlValue: requestSingleOrderInfo.controlValue,
+        controlSetValue: requestSingleOrderInfo.controlSetValue,
+        nodeId: requestSingleOrderInfo.nodeId,
+        rank: _.get(requestSingleOrderInfo, 'rank'),
+      };
+
+      requestCombinedOrder.requestElementList.push(requestOrderElement);
+
+      return this.executeCombineOrder(requestCombinedOrder);
     } catch (error) {
       BU.errorLog('excuteControl', 'Error', error);
     }
   }
 
   /**
-   * FIXME: 임시로 해둠.
+   * 자동 명령 요청
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
    */
   executeAutomaticControl(controlInfo) {
     BU.CLI(controlInfo);
-    const orderList = [];
-    // 배열 병합
-    const commandList = {
-      0: controlInfo.falseList,
-      1: controlInfo.trueList,
-    };
-    // 명령 생성 및 요청
-    _.forEach(commandList, (modelId, key) => {
-      /** @type {requestOrderInfo} */
-      const orderInfo = {
-        requestCommandId: controlInfo.cmdName,
-        requestCommandType: CONTROL,
-        nodeId: modelId,
-        controlValue: key,
-        rank: 2,
-      };
-      const foundDataLoggerController = this.findDataLoggerController(modelId);
-      foundDataLoggerController.orderOperation(orderInfo);
-    });
 
-    return orderList;
+    /** @type {requestCombinedOrderInfo} */
+    const requestCombinedOrder = {
+      requestCommandId: controlInfo.cmdName,
+      requestCommandName: controlInfo.cmdName,
+      requestCommandType: requestOrderCommandType.CONTROL,
+      requestElementList: [],
+    };
+
+    // 장치 True 요청
+    const trueList = _.get(controlInfo, 'trueList', []);
+    if (trueList.length) {
+      requestCombinedOrder.requestElementList.push({
+        controlValue: requestDeviceControlType.TRUE,
+        nodeId: controlInfo.trueList,
+        rank: 2,
+      });
+    }
+
+    // 장치 False 요청
+    const falseList = _.get(controlInfo, 'falseList', []);
+    if (falseList.length) {
+      requestCombinedOrder.requestElementList.push({
+        controlValue: requestDeviceControlType.FALSE,
+        nodeId: controlInfo.falseList,
+        rank: 2,
+      });
+    }
+
+    return this.executeCombineOrder(requestCombinedOrder);
   }
 
   /**
-   * FIXME: 임시로 해둠
+   * 명령 취소 요청
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
    */
   cancelAutomaticControl(controlInfo) {
-    const orderList = [];
-    controlInfo.trueList = _.reverse(controlInfo.trueList);
-    // 동작 시켰던 장치들을 순회
-    controlInfo.trueList.forEach(modelId => {
-      // 명령 타입은 취소
-      const orderInfo = {
-        requestCommandId: controlInfo.cmdName,
-        requestCommandType: requestCommandType.CANCEL,
-        nodeId: modelId,
-        controlValue: 0,
-        rank: 2,
-      };
-      const foundDataLoggerController = this.findDataLoggerController(modelId);
-      foundDataLoggerController.orderOperation(orderInfo);
-    });
+    /** @type {requestCombinedOrderInfo} */
+    const requestCombinedOrder = {
+      requestCommandId: controlInfo.cmdName,
+      requestCommandName: controlInfo.cmdName,
+      requestCommandType: requestOrderCommandType.CANCEL,
+      requestElementList: [],
+    };
 
-    return orderList;
+    // 장치 False 요청 (켜져 있는 장치만 끔)
+    const trueList = _.get(controlInfo, 'trueList', []);
+    if (trueList.length) {
+      requestCombinedOrder.requestElementList.push({
+        controlValue: requestDeviceControlType.FALSE,
+        nodeId: _.reverse(trueList),
+        rank: 2,
+      });
+    }
+
+    // FIXME: 명령 취소에 대한 논리 정립이 안되어 있어 다시 동작 시키는 명령은 비활성
+    // 장치 True 요청
+    // const falseList = _.get(controlInfo, 'falseList', []);
+    // if (falseList.length) {
+    //   requestCombinedOrder.requestElementList.push({
+    //     controlValue: requestDeviceControlType.TRUE,
+    //     nodeId: _.reverse(falseList),
+    //     rank: 2,
+    //   });
+    // }
+
+    return this.executeCombineOrder(requestCombinedOrder);
   }
 
   /**
    * 복합 명령 실행 요청
-   * @param {requestCombinedOrder} requestCombinedOrder
+   * @param {requestCombinedOrderInfo} requestCombinedOrder
    * @memberof Control
    */
-  excuteCombineOrder(requestCombinedOrder) {
+  executeCombineOrder(requestCombinedOrder) {
+    BU.CLI('excuteCombineOrder', requestCombinedOrder);
     // TODO: requestCombinedOrder의 실행 가능 여부 체크 메소드 구현
 
     /** @type {combinedOrderWrapInfo} */
@@ -252,12 +259,12 @@ class Control {
     };
 
     // 요청 복합 명령 객체의 요청 리스트를 순회하면서 combinedOrderContainerInfo 객체를 만들고 삽입
-    requestCombinedOrder.requestOrderList.forEach(requestOrderInfo => {
+    requestCombinedOrder.requestElementList.forEach(requestElementInfo => {
       // controlValue가 없다면 기본 값 2(Stauts)를 입력
       const controlValue =
-        requestOrderInfo.controlValue === undefined
+        requestElementInfo.controlValue === undefined
           ? requestDeviceControlType.MEASURE
-          : requestOrderInfo.controlValue;
+          : requestElementInfo.controlValue;
       // 해당 controlValue가 orderElementList 기존재하는지 체크
       let foundRemainInfo = _.find(combinedWrapOrder.orderContainerList, {
         controlValue,
@@ -267,23 +274,23 @@ class Control {
         /** @type {combinedOrderContainerInfo} */
         const container = {
           controlValue,
-          controlSetValue: requestOrderInfo.controlSetValue,
+          controlSetValue: requestElementInfo.controlSetValue,
           orderElementList: [],
         };
         foundRemainInfo = container;
         combinedWrapOrder.orderContainerList.push(container);
       }
       // nodeId가 string이라면 배열생성 후 집어넣음
-      requestOrderInfo.nodeId = Array.isArray(requestOrderInfo.nodeId)
-        ? requestOrderInfo.nodeId
-        : [requestOrderInfo.nodeId];
+      requestElementInfo.nodeId = Array.isArray(requestElementInfo.nodeId)
+        ? requestElementInfo.nodeId
+        : [requestElementInfo.nodeId];
       // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
-      _.forEach(requestOrderInfo.nodeId, nodeId => {
+      _.forEach(requestElementInfo.nodeId, nodeId => {
         /** @type {combinedOrderElementInfo} */
         const elementInfo = {
           hasComplete: false,
           nodeId,
-          rank: _.get(requestOrderInfo, 'rank', 3),
+          rank: _.get(requestElementInfo, 'rank', 3),
           uuid: uuidv4(),
         };
 
@@ -311,11 +318,11 @@ class Control {
     combinedOrderWrapInfo.orderContainerList.forEach(combinedOrderContainerInfo => {
       const {controlValue, controlSetValue} = combinedOrderContainerInfo;
 
-      let hasFirst = true;
+      const hasFirst = true;
       combinedOrderContainerInfo.orderElementList.forEach(combinedOrderElementInfo => {
         if (hasFirst) {
-          /** @type {requestOrderInfo} */
-          const requestOrder = {
+          /** @type {executeOrderInfo} */
+          const executeOrder = {
             requestCommandId,
             requestCommandName,
             requestCommandType,
@@ -326,11 +333,11 @@ class Control {
             uuid: combinedOrderElementInfo.uuid,
           };
 
-          const dataLoggerController = this.findDataLoggerController(
+          const dataLoggerController = this.model.findDataLoggerController(
             combinedOrderElementInfo.nodeId,
           );
-          dataLoggerController.orderOperation(requestOrder);
-          hasFirst = false;
+          dataLoggerController.orderOperation(executeOrder);
+          // hasFirst = false;
         }
       });
     });
@@ -360,17 +367,21 @@ class Control {
   }
 
   /** 정기적인 Router Status 탐색 */
-  discoveryRegularDevice() {
-    /** @type {requestCombinedOrder} */
+  async discoveryRegularDevice() {
+    /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
       requestCommandId: 'discoveryRegularDevice',
       requestCommandName: '정기 장치 상태 계측',
-      requestCommandType: requestCommandType.MEASURE,
-      requestOrderList: [{nodeId: _.map(this.dataLoggerList, 'dl_id')}],
+      requestCommandType: requestOrderCommandType.MEASURE,
+      requestElementList: [{nodeId: _.map(this.dataLoggerList, 'dl_id')}],
     };
 
     // BU.CLI(requestCombinedOrder);
-    this.excuteCombineOrder(requestCombinedOrder);
+    // 명령 요청
+    this.executeCombineOrder(requestCombinedOrder);
+
+    // completeDiscovery 이벤트가 발생할때까지 대기
+    await eventToPromise.multi(this, ['completeDiscovery'], ['error', 'close']);
 
     // Data Logger 현재 상태 조회
     // this.dataLoggerControllerList.forEach(router => {
@@ -386,7 +397,7 @@ class Control {
 
   /**
    * Data Logger Controller 에서 명령을 처리하였을 경우
-   * @param {dataLoggerController} dataLoggerController
+   * @param {DataLoggerController} dataLoggerController
    * @param {commandSet} commandSet
    */
   notifyCompleteOrder(dataLoggerController, commandSet) {}

@@ -7,8 +7,9 @@ const DataLoggerController = require('../DataLoggerController');
 
 const {
   combinedOrderType,
-  requestCommandType,
+  requestOrderCommandType,
   requestDeviceControlType,
+  nodePickKey,
 } = require('../../default-intelligence').dcmConfigModel;
 
 class Model {
@@ -18,6 +19,7 @@ class Model {
    * @memberof Model
    */
   constructor(controller) {
+    this.controller = controller;
     this.dataLoggerControllerList = controller.dataLoggerControllerList;
     this.dataLoggerList = controller.dataLoggerList;
     this.nodeList = controller.nodeList;
@@ -156,13 +158,13 @@ class Model {
     // commandSet.
     let combinedOrder;
     switch (commandType) {
-      case requestCommandType.CONTROL:
+      case requestOrderCommandType.CONTROL:
         combinedOrder = this.combinedOrderStorage.controlStorage;
         break;
-      case requestCommandType.CANCEL:
+      case requestOrderCommandType.CANCEL:
         combinedOrder = this.combinedOrderStorage.cancelStorage;
         break;
-      case requestCommandType.MEASURE:
+      case requestOrderCommandType.MEASURE:
         combinedOrder = this.combinedOrderStorage.measureStorage;
         break;
       default:
@@ -171,6 +173,38 @@ class Model {
     }
 
     return combinedOrder;
+  }
+
+  /**
+   * Data logger와 연결되어 있는 컨트롤러를 반환
+   * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
+   * @return {DataLoggerController}
+   */
+  findDataLoggerController(searchValue) {
+    // Node Id 일 경우
+    if (_.isString(searchValue)) {
+      // Data Logger List에서 찾아봄
+      const dataLoggerInfo = _.find(this.dataLoggerList, {
+        dl_id: searchValue,
+      });
+
+      if (dataLoggerInfo) {
+        searchValue = dataLoggerInfo;
+      } else {
+        // 없다면 노드에서 찾아봄
+        const nodeInfo = _.find(this.nodeList, {
+          node_id: searchValue,
+        });
+        // string 인데 못 찾았다면 존재하지 않음. 예외 발생
+        if (_.isEmpty(nodeInfo)) {
+          throw new Error(`Node ID: ${searchValue} is not exist`);
+        }
+        searchValue = nodeInfo.getDataLogger();
+      }
+    }
+    return _.find(this.dataLoggerControllerList, router =>
+      _.isEqual(router.dataLoggerInfo, searchValue),
+    );
   }
 
   /**
@@ -189,9 +223,13 @@ class Model {
 
     const {commandSet} = dcMessage;
 
+    BU.CLIN(commandSet);
+
     // 명령 타입에 따라서 저장소를 가져옴(Control, Cancel, Measure)
 
     const resOrderInfo = this.findAllCombinedOrderByCommandId(commandSet.commandId);
+
+    BU.CLI(this.combinedOrderStorage);
 
     // requestCommandType에 맞는 저장소가 없는 경우
     if (!resOrderInfo.orderStorageKeyLV1.length) {
@@ -248,9 +286,35 @@ class Model {
       // 해당 명령이 모두 완료되었을 경우
       if (_.every(flatOrderElementList, 'hasComplete')) {
         BU.CLI('All Completed CommandId: ', dcMessage.commandSet.commandId);
-        // TODO: 명령이 완료되었다면 명령 이동 및 삭제
+        // proceedingList에서 제거
 
-        // NOTE: 명령이 모두 완료 되었을 때 하고 싶은 행동 이하 작성
+        const completeOrderInfo = _.head(
+          _.pullAt(
+            resOrderInfo.orderStorageLV1[resOrderInfo.orderInfoKeyLV2],
+            resOrderInfo.orderInfoIndexLV2,
+          ),
+        );
+        if (completeOrderInfo === undefined) {
+          throw new Error('해당 객체는 존재하지 않습니다.');
+        }
+
+        this.getAllNodeStatus(nodePickKey.FOR_DATA);
+
+        if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'discoveryRegularDevice') {
+          this.controller.emit('completeDiscovery');
+        } else {
+          this.controller.emit('completeOrder', dcMessage.commandSet.commandId);
+        }
+
+        // FIXME: 명령 제어에 대한 자세한 논리가 나오지 않았기 때문에 runningList로 이동하지 않음. (2018-07-23)
+        // 명령 제어 요청일 경우 runningList로 이동
+        // if (commandSet.commandType === requestCommandType.CONTROL) {
+        //   resOrderInfo.orderStorageLV1.runningList.push(completeOrderInfo);
+        // }
+
+        // BU.CLI(resOrderInfo.orderStorageLV1);
+
+        // TODO: 명령이 모두 완료 되었을 때 하고 싶은 행동 이하 작성
       }
 
       // TODO: DB 입력
@@ -278,17 +342,6 @@ class Model {
   }
 
   /**
-   * TODO: 구현
-   * 복합 명령을 저장소 호출
-   * @param {string} commandType 저장할 타입 ADD, CANCEL, ''
-   */
-  getCombineOrderInfo(commandType) {
-    const MEASURE = ['', undefined, null];
-    const CONTROL = ['ADD', 'CONTROL'];
-    const CANCEL = ['CANCEL'];
-  }
-
-  /**
    * 복합 명령을 저장
    * @param {string} commandType 저장할 타입 ADD, CANCEL, ''
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
@@ -296,8 +349,8 @@ class Model {
   saveCombinedOrder(commandType, combinedOrderWrapInfo) {
     // MEASURE DEFAULT
     // const MEASURE = [requestCommandType.MEASURE, '', undefined, null];
-    const CONTROL = [requestCommandType.CONTROL];
-    const CANCEL = [requestCommandType.CANCEL];
+    const CONTROL = [requestOrderCommandType.CONTROL];
+    const CANCEL = [requestOrderCommandType.CANCEL];
 
     // Measure
     if (_.includes(CONTROL, commandType)) {
@@ -309,6 +362,25 @@ class Model {
     }
 
     // BU.CLIN(this.combinedOrderStorage);
+  }
+
+  /**
+   * 모든 노드가 가지고 있는 정보 출력
+   * @param {nodePickKey} nodePickKeyList
+   */
+  getAllNodeStatus(nodePickKeyList) {
+    const statusList = _(this.nodeList)
+      .map(nodeInfo => {
+        if (nodePickKeyList) {
+          return _.pick(nodeInfo, nodePickKeyList);
+        }
+        return nodeInfo;
+      })
+      .orderBy('node_id')
+      .value();
+    BU.CLI(statusList);
+    return statusList;
+    // BU.CLI(this.nodeList);
   }
 
   checkValidateNodeData(nodeInfo, standardDate) {}

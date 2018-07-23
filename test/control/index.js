@@ -1,0 +1,124 @@
+require('dotenv').config();
+const _ = require('lodash');
+
+const Control = require('../../src/Control');
+
+const control = new Control();
+
+const testDumpCmd = {
+  cmdName: '증발지1 -> 저수지1',
+  trueList: ['WD_005', 'WD_006', 'WD_007', 'GV_001', 'P_005', 'V_002'],
+  falseList: ['WD_009', 'V_003', 'GV_004', 'P_002'],
+};
+
+const testDumpCmd2 = {
+  cmdName: '증발지1 -> 저수지1 취소',
+  trueList: ['WD_005', 'WD_006', 'WD_007', 'GV_001', 'P_005', 'V_002'],
+  falseList: ['WD_009', 'V_003', 'GV_004', 'P_002'],
+};
+
+// 명령 제어 요청 체크
+function checkDumpCmd() {
+  const nodeStatusList = control.model.getAllNodeStatus();
+
+  const trueList = _.filter(nodeStatusList, nodeInfo =>
+    _.includes(testDumpCmd.trueList, nodeInfo.node_id),
+  );
+
+  const hasAllTrue = _.every(
+    trueList,
+    nodeInfo => nodeInfo.data === 'OPEN' || nodeInfo.data === 'ON',
+  );
+
+  const falseList = _.filter(nodeStatusList, nodeInfo =>
+    _.includes(testDumpCmd.falseList, nodeInfo.node_id),
+  );
+
+  const hasAllFalse = _.every(
+    falseList,
+    nodeInfo => nodeInfo.data === 'CLOSE' || nodeInfo.data === 'OFF',
+  );
+
+  if (hasAllTrue && hasAllFalse) {
+    console.trace('모든 장비 제어 예상값과 동일');
+
+    // 명령 취소 요청
+    control.cancelAutomaticControl(testDumpCmd2);
+  } else {
+    throw new Error('장비 중에 제대로 동작 안한게 있음');
+  }
+}
+
+// 명령 취소 체크
+function checkDumpCmd2() {
+  const nodeStatusList = control.model.getAllNodeStatus();
+
+  const trueList = _.filter(nodeStatusList, nodeInfo =>
+    _.includes(testDumpCmd2.trueList, nodeInfo.node_id),
+  );
+
+  const hasAllTrue = _.every(
+    trueList,
+    nodeInfo => nodeInfo.data === 'CLOSE' || nodeInfo.data === 'OFF',
+  );
+
+  // 닫는거는 하지 않음
+  // const falseList = _.filter(nodeStatusList, nodeInfo =>
+  //   _.includes(testDumpCmd2.falseList, nodeInfo.node_id),
+  // );
+
+  // const hasAllFalse = _.every(
+  //   falseList,
+  //   nodeInfo => nodeInfo.data === 'CLOSE' || nodeInfo.data === 'OFF',
+  // );
+
+  if (hasAllTrue) {
+    console.trace('모든 장비 취소 예상값과 동일');
+    control.cancelAutomaticControl(testDumpCmd2);
+  } else {
+    throw new Error('장비 중에 취소 동작 안한게 있음');
+  }
+}
+
+control.on('completeOrder', commandId => {
+  if (commandId === testDumpCmd.cmdName) {
+    checkDumpCmd();
+  } else if (commandId === testDumpCmd.cmdName) {
+    checkDumpCmd2();
+  }
+});
+
+control
+  .getDataLoggerListByDB(
+    {
+      database: process.env.DB_UPSAS_DB,
+      host: process.env.DB_UPSAS_HOST,
+      password: process.env.DB_UPSAS_PW,
+      port: process.env.DB_UPSAS_PORT,
+      user: process.env.DB_UPSAS_USER,
+    },
+    {
+      main_seq: 1,
+    },
+  )
+  .then(() => {
+    control.init();
+    setTimeout(() => {
+      // 명령 제어 요청
+      control.executeAutomaticControl(testDumpCmd);
+    }, 2000);
+  });
+
+process.on('uncaughtException', err => {
+  // BU.debugConsole();
+  console.error(err.stack);
+  console.log(err.message);
+  console.log('Node NOT Exiting...');
+});
+
+process.on('unhandledRejection', err => {
+  // BU.debugConsole();
+  console.error(err.stack);
+  console.log(err.message);
+  console.log('Node NOT Exiting...');
+});
