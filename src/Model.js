@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const moment = require('moment');
 
 const {BU} = require('base-util-jh');
 
@@ -197,6 +198,7 @@ class Model {
         });
         // string 인데 못 찾았다면 존재하지 않음. 예외 발생
         if (_.isEmpty(nodeInfo)) {
+          BU.CLI(this.nodeList);
           throw new Error(`Node ID: ${searchValue} is not exist`);
         }
         searchValue = nodeInfo.getDataLogger();
@@ -265,7 +267,10 @@ class Model {
     const completeKeyList = [COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE];
     // 작업 완료로 교체
     if (completeKeyList.includes(dcMessage.msgCode)) {
-      BU.CLI('작업 완료', resOrderInfo.orderWrapInfoLV3.requestCommandId);
+      BU.CLI(
+        '작업 완료',
+        `${resOrderInfo.orderWrapInfoLV3.requestCommandId} ${dcMessage.commandSet.nodeId}`,
+      );
       // orderElement를 가져옴
 
       // controlValue에 상관없이 flatten 형태로 모두 가져옴
@@ -277,7 +282,7 @@ class Model {
       // 가져온 flatten 리스트에서 uuid가 동일한 객체 검색
       const orderElementInfo = _.find(flatOrderElementList, {uuid: commandSet.uuid});
 
-      BU.CLI('NodeID', orderElementInfo.nodeId);
+      // BU.CLI('NodeID', orderElementInfo.nodeId);
 
       // 완료 처리
       if (orderElementInfo) {
@@ -394,6 +399,43 @@ class Model {
     // BU.CLI(this.nodeList);
   }
 
-  checkValidateNodeData(nodeInfo, standardDate) {}
+  /**
+   * 노드 리스트 중 입력된 날짜를 기준으로 유효성을 가진 데이터만 반환
+   * @param {nodeInfo[]} nodeList
+   * @param {{diffType: string, permitValue: number}} permitTimeOption
+   * @return {nodeInfo[]}
+   */
+  checkValidateNodeData(nodeList, permitTimeOption) {
+    // 날짜 차이를 구할 키를 설정
+    const diffType = permitTimeOption.diffType || 'minutes';
+    // 날짜 차이를 허용할 수 설정
+    const permitValue = permitTimeOption.permitValue || 1;
+    // 기준이 될 현재 시간 설정
+    const now = moment();
+    // 입력된 노드 리스트를 돌면서 유효성 검증
+    return nodeList.filter(nodeInfo => {
+      // 날짜 차 계산
+      const diffNum = now.diff(moment(nodeInfo.writeDate), diffType);
+      // 날짜 차가 허용 범위를 넘어섰다면 유효하지 않는 데이터
+      if (diffNum > permitValue) {
+        BU.CLI(
+          `${
+            nodeInfo.node_id
+          }는 날짜(${diffType}) 차이가 허용 범위(${permitValue})를 넘어섰습니다. ${diffNum}`,
+        );
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   *
+   * @param {nodeInfo[]} nodeList
+   * @param {{diffType: string, permitValue: number}} permitTimeOption
+   * @example
+   * diffType: years, months, weeks, days, hours, minutes, and seconds
+   */
+  insertNodeDataToDB(nodeList, permitTimeOption) {}
 }
 module.exports = Model;

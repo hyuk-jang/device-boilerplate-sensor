@@ -17,6 +17,7 @@ const {
 const DataLoggerController = require('../DataLoggerController');
 
 const Scenario = require('./Scenario');
+const CommunicationMainControl = require('./CommunicationMainControl');
 
 const Model = require('./Model');
 
@@ -47,16 +48,30 @@ class Control extends EventEmitter {
    * @desc Step 1
    * DB에서 특정 데이터를 가져오고 싶을경우
    * @param {dbInfo} dbInfo
-   * @param {{main_seq: number=}} where Logger Sequence
+   * @param {string} mainUuid main UUID
    */
-  async getDataLoggerListByDB(dbInfo, where) {
+  async getDataLoggerListByDB(dbInfo, mainUuid) {
     const bM = new BM(dbInfo);
 
     /** @type {dataLoggerConfig[]} */
     const returnValue = [];
 
-    this.dataLoggerList = await bM.getTable('v_data_logger', where, true);
-    this.nodeList = await bM.getTable('v_node_profile', where, true);
+    // DB에서 UUID 가 동일한 main 정보를 가져옴
+    const mainList = await bM.getTable('main', {uuid: mainUuid});
+
+    // UUID가 동일한 정보가 없다면 종료
+    if (mainList.length === 0) {
+      throw new Error(`uuid: ${this.config.uuid}는 존재하지 않습니다.`);
+    }
+
+    // 가져온 Main 정보에서 main_seq를 구함
+    const where = {
+      main_seq: _.get(_.head(mainList), 'main_seq', ''),
+    };
+
+    // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
+    this.dataLoggerList = await bM.getTable('v_data_logger', where);
+    this.nodeList = await bM.getTable('v_node_profile', where);
 
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.dataLoggerList.forEach(dataLoggerInfo => {
@@ -96,6 +111,7 @@ class Control extends EventEmitter {
    */
   init() {
     this.model = new Model(this);
+    this.communicationMainControl = new CommunicationMainControl(this);
 
     BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
@@ -252,6 +268,7 @@ class Control extends EventEmitter {
 
     /** @type {combinedOrderWrapInfo} */
     const combinedWrapOrder = {
+      uuid: uuidv4(),
       requestCommandId: requestCombinedOrder.requestCommandId,
       requestCommandType: requestCombinedOrder.requestCommandType,
       requestCommandName: requestCombinedOrder.requestCommandName,
@@ -303,7 +320,7 @@ class Control extends EventEmitter {
     this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
 
     // 복합 명령 실행 요청
-    this.submitRequestOrder(combinedWrapOrder);
+    return this.submitRequestOrder(combinedWrapOrder);
   }
 
   /**

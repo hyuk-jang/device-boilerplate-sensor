@@ -2,8 +2,9 @@ require('dotenv').config();
 const _ = require('lodash');
 
 const Control = require('../../src/Control');
+const config = require('../../src/config');
 
-const control = new Control();
+const control = new Control(config);
 
 control.on('completeDiscovery', () => {
   if (_.every(control.nodeList, 'data')) {
@@ -22,9 +23,7 @@ control
       port: process.env.DB_UPSAS_PORT,
       user: process.env.DB_UPSAS_USER,
     },
-    {
-      main_seq: 1,
-    },
+    'aaaaa',
   )
   .then(() => {
     control.init();

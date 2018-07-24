@@ -12,30 +12,31 @@ if (require !== undefined && require.main === module) {
   const {BU} = require('base-util-jh');
 
   const control = new Control(config);
-  control
-    .getDataLoggerListByDB(
-      {
-        database: process.env.DB_UPSAS_DB,
-        host: process.env.DB_UPSAS_HOST,
-        password: process.env.DB_UPSAS_PW,
-        port: process.env.DB_UPSAS_PORT,
-        user: process.env.DB_UPSAS_USER,
-      },
-      {
-        main_seq: 1,
-      },
-    )
-    .then(() => {
-      control.init();
 
-      setTimeout(() => {
-        control.discoveryRegularDevice();
-      }, 2000);
+  control.init();
 
-      // setTimeout(() => {
-      //   control.runCronDiscoveryRegularDevice();
-      // }, 2000);
-    });
+  setTimeout(() => {
+    control.communicationMainControl.submitToMainServerData('hhh');
+  }, 1000);
+  // control
+  //   .getDataLoggerListByDB({
+  //     database: process.env.DB_UPSAS_DB,
+  //     host: process.env.DB_UPSAS_HOST,
+  //     password: process.env.DB_UPSAS_PW,
+  //     port: process.env.DB_UPSAS_PORT,
+  //     user: process.env.DB_UPSAS_USER,
+  //   })
+  //   .then(() => {
+  //     control.init();
+
+  //     setTimeout(() => {
+  //       control.discoveryRegularDevice();
+  //     }, 2000);
+
+  //     // setTimeout(() => {
+  //     //   control.runCronDiscoveryRegularDevice();
+  //     // }, 2000);
+  //   });
 
   process.on('uncaughtException', err => {
     // BU.debugConsole();
