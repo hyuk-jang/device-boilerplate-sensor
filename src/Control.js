@@ -93,6 +93,7 @@ class Control extends EventEmitter {
       returnValue.push(loggerConfig);
     });
 
+    _.set(this, 'config.dbInfo', dbInfo);
     _.set(this, 'config.dataLoggerList', returnValue);
 
     // _.set(this.config, 'dataLoggerList', returnValue)

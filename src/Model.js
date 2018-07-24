@@ -2,6 +2,7 @@ const _ = require('lodash');
 const moment = require('moment');
 
 const {BU} = require('base-util-jh');
+const {BM} = require('../../base-model-jh');
 
 const Control = require('./Control');
 const DataLoggerController = require('../DataLoggerController');
@@ -28,6 +29,8 @@ class Model {
     this.nodeStatusList = {};
 
     this.initCombinedOrderStorage();
+
+    this.BM = new BM(this.controller.config.dbInfo);
   }
 
   /**
@@ -432,10 +435,24 @@ class Model {
   /**
    *
    * @param {nodeInfo[]} nodeList
-   * @param {{diffType: string, permitValue: number}} permitTimeOption
-   * @example
-   * diffType: years, months, weeks, days, hours, minutes, and seconds
    */
-  insertNodeDataToDB(nodeList, permitTimeOption) {}
+  async insertNodeDataToDB(nodeList) {
+    // 센서류 삽입
+    const nodeSensorList = _(nodeList)
+      .filter(ele => ele.nc_is_sensor === 1)
+      .map(ele => _.pick(ele, ['node_seq', 'data', 'writeDate']))
+      .value();
+    BU.CLI(nodeSensorList);
+
+    // 센서류 삽입
+    const nodeDeviceList = _(nodeList)
+      .filter(ele => ele.nc_is_sensor === 0)
+      .map(ele => _.pick(ele, ['node_seq', 'data', 'writeDate']))
+      .value();
+
+    BU.CLI(nodeDeviceList);
+    // await this.BM.setTables('sensor_data', nodeSensorList, true);
+    // await this.BM.setTables('device_state_data', nodeDeviceList, true);
+  }
 }
 module.exports = Model;
