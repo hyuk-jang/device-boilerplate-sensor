@@ -84,41 +84,35 @@ class Model {
   /**
    * NodeList와 부합되는 곳에 데이터를 정의
    * @param {Object} receiveData
+   * @return {nodeInfo[]} 갱신된 노드
    */
   onData(receiveData) {
+    /** @type {nodeInfo[]} */
+    const renewalNodeList = [];
     // BU.CLI(receiveData);
-    if (this.hasAverageStorage) {
-      _.forEach(this.nodeList, nodeInfo => {
-        // Node Class와 매칭되는 데이터 리스트를 가져옴
-        const dataList = _.get(receiveData, nodeInfo.nd_target_id, []);
-        // Node에서 사용하는 Index와 매칭되는 dataList를 가져옴
-        // BU.CLI(nodeInfo.nd_target_id);
-        let data = _.nth(dataList, nodeInfo.data_logger_index);
-        // BU.CLI(data);
+    _.forEach(this.nodeList, nodeInfo => {
+      // Node Class와 매칭되는 데이터 리스트를 가져옴
+      const dataList = _.get(receiveData, nodeInfo.nd_target_id, []);
+      // Node에서 사용하는 Index와 매칭되는 dataList를 가져옴
+      // BU.CLI(nodeInfo.nd_target_id);
+      let data = _.nth(dataList, nodeInfo.data_logger_index);
+      // BU.CLI(data);
 
-        // 평균 값 추적 중인 데이터 일 경우 평균 값 도출 메소드 사용
-        if (_.find(this.averageNodeIdList, nodeId => nodeId === nodeInfo.node_id)) {
-          data = this.averageStorage.addData(nodeInfo.node_id, data).getAverage(nodeInfo.node_id);
-        }
-        // 해당 배열 인덱스에 값이 존재하지 않는다면 해당 Node와는 관련 없는 데이터
-        if (data !== undefined) _.set(nodeInfo, 'data', data);
-      });
-    } else {
-      // 데이터 로거에 붙어 있는 센서와 매칭되는 수신데이터를 삽입
-      _.forEach(this.nodeList, nodeInfo => {
-        // Node Class와 매칭되는 데이터 리스트를 가져옴
-        const dataList = _.get(receiveData, nodeInfo.nd_target_id, []);
-        // Node에서 사용하는 Index와 매칭되는 dataList를 가져옴
-        // BU.CLI(nodeInfo.nd_target_id);
-        const data = _.nth(dataList, nodeInfo.data_logger_index);
-        // BU.CLI(data);
-        // 해당 배열 인덱스에 값이 존재하지 않는다면 해당 Node와는 관련 없는 데이터
-        if (data !== undefined) {
-          _.set(nodeInfo, 'data', data);
-          _.set(nodeInfo, 'writeDate', new Date());
-        }
-      });
-    }
+      // 평균 값 추적 중인 데이터 일 경우 평균 값 도출 메소드 사용
+      if (this.hasAverageStorage && _.includes(this.averageNodeIdList, nodeInfo.node_id)) {
+        data = this.averageStorage.addData(nodeInfo.node_id, data).getAverage(nodeInfo.node_id);
+      }
+
+      // 데이터가 같지 않은 경우 갱신 데이터로 처리
+      if (!_.isEqual(nodeInfo.data, data)) {
+        _.set(nodeInfo, 'data', data);
+        // 갱신 리스트에 노드 삽입
+        renewalNodeList.push(nodeInfo);
+      }
+      // 날짜는 항상 갱신
+      _.set(nodeInfo, 'writeDate', new Date());
+    });
+    return renewalNodeList;
   }
 }
 

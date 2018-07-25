@@ -378,9 +378,20 @@ const DataLoggerController = class extends AbstDeviceClient {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
       }
 
+      // 데이터가 정상적이라면
       if (parsedData.eventCode === this.definedCommanderResponse.DONE) {
-        this.model.onData(parsedData.data);
+        const renewalNodeList = this.model.onData(parsedData.data);
+        // Observer가 해당 메소드를 가지고 있다면 전송
+        if (renewalNodeList.length) {
+          this.observerList.forEach(observer => {
+            if (_.get(observer, 'notifyDeviceData')) {
+              observer.notifyDeviceData(this, renewalNodeList);
+            }
+          });
+        }
       }
+
+      // TODO: 데이터가 갱신되면 즉시 알림.
 
       // BU.CLIN(this.getDeviceOperationInfo().nodeList);
       // Device Client로 해당 이벤트 Code를 보냄

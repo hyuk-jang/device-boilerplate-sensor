@@ -246,6 +246,34 @@ class Model {
       throw new Error(`requestCommandId: ${dcMessage.commandSet.commandId} is not exist.`);
     }
 
+    // 복합 명령 현황 저장소 key 형태를 보고 명령 타입을 정의
+    let orderStorageType = '';
+    switch (resOrderInfo.orderStorageKeyLV1) {
+      case 'controlStorage':
+        orderStorageType = requestOrderCommandType.CONTROL;
+        break;
+      case 'cancelStorage':
+        orderStorageType = requestOrderCommandType.CANCEL;
+        break;
+      case 'measureStorage':
+        orderStorageType = requestOrderCommandType.MEASURE;
+        break;
+      default:
+        break;
+    }
+
+    /**
+     * Socket Server로 전송하기 위한 명령 추가 객체 생성
+     * @type {simpleOrderInfo}
+     */
+    const simpleOrder = {
+      orderCommandType: orderStorageType,
+      orderStatus: resOrderInfo.orderInfoKeyLV2,
+      commandId: resOrderInfo.orderWrapInfoLV3.requestCommandId,
+      commandName: resOrderInfo.orderWrapInfoLV3.requestCommandName,
+      uuid: resOrderInfo.orderWrapInfoLV3.uuid,
+    };
+
     // 명령 코드가 COMMANDSET_EXECUTION_START 이고 아직 combinedOrderType.WAIT 상태라면 PROCEEDING 상태로 이동하고 종료
     if (
       dcMessage.msgCode === COMMANDSET_EXECUTION_START &&
@@ -264,6 +292,13 @@ class Model {
       }
 
       resOrderInfo.orderStorageLV1.proceedingList.push(newOrderInfo);
+
+      // 진행중 명령이라고 Socket Server로 알려줌
+      this.controller.socketClint.transferDataToServer({
+        commandType: 'command',
+        data: simpleOrder,
+      });
+
       return false;
     }
     // 명령 코드가 완료(COMMANDSET_EXECUTION_TERMINATE), 삭제(COMMANDSET_DELETE) 일 경우
@@ -319,11 +354,18 @@ class Model {
 
         this.getAllNodeStatus(nodePickKey.FOR_DATA);
 
+        // FIXME: emit 처리의 논리가 맞는지 체크
         if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'discoveryRegularDevice') {
           this.controller.emit('completeDiscovery');
         } else {
           this.controller.emit('completeOrder', dcMessage.commandSet.commandId);
         }
+
+        // 진행중 명령 완료했다고 Socket Server로 알려줌
+        this.controller.socketClint.transferDataToServer({
+          commandType: 'command',
+          data: simpleOrder,
+        });
 
         // FIXME: 명령 제어에 대한 자세한 논리가 나오지 않았기 때문에 runningList로 이동하지 않음. (2018-07-23)
         // 명령 제어 요청일 경우 runningList로 이동
@@ -366,6 +408,17 @@ class Model {
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
    */
   saveCombinedOrder(commandType, combinedOrderWrapInfo) {
+    /**
+     * Socket Server로 전송하기 위한 명령 추가 객체 생성
+     * @type {simpleOrderInfo}
+     */
+    const simpleOrder = {
+      orderCommandType: '',
+      orderStatus: combinedOrderType.WAIT,
+      commandId: combinedOrderWrapInfo.requestCommandId,
+      commandName: combinedOrderWrapInfo.requestCommandName,
+      uuid: combinedOrderWrapInfo.uuid,
+    };
     // MEASURE DEFAULT
     // const MEASURE = [requestCommandType.MEASURE, '', undefined, null];
     const CONTROL = [requestOrderCommandType.CONTROL];
@@ -373,12 +426,21 @@ class Model {
 
     // Measure
     if (_.includes(CONTROL, commandType)) {
+      simpleOrder.orderCommandType = requestOrderCommandType.CONTROL;
       this.combinedOrderStorage.controlStorage.waitingList.push(combinedOrderWrapInfo);
     } else if (_.includes(CANCEL, commandType)) {
+      simpleOrder.orderCommandType = requestOrderCommandType.CANCEL;
       this.combinedOrderStorage.cancelStorage.waitingList.push(combinedOrderWrapInfo);
     } else {
+      simpleOrder.orderCommandType = requestOrderCommandType.MEASURE;
       this.combinedOrderStorage.measureStorage.waitingList.push(combinedOrderWrapInfo);
     }
+
+    // Socket Server로 전송 요청
+    this.controller.socketClint.transferDataToServer({
+      commandType: 'command',
+      data: simpleOrder,
+    });
 
     // BU.CLIN(this.combinedOrderStorage);
   }

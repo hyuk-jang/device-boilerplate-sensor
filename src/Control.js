@@ -17,7 +17,7 @@ const {
 const DataLoggerController = require('../DataLoggerController');
 
 const Scenario = require('./Scenario');
-const CommunicationMainControl = require('./CommunicationMainControl');
+const SocketClint = require('./SocketClint');
 
 const Model = require('./Model');
 
@@ -112,7 +112,7 @@ class Control extends EventEmitter {
    */
   init() {
     this.model = new Model(this);
-    this.communicationMainControl = new CommunicationMainControl(this);
+    this.socketClint = new SocketClint(this);
 
     BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
@@ -321,7 +321,7 @@ class Control extends EventEmitter {
     this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
 
     // 복합 명령 실행 요청
-    return this.submitRequestOrder(combinedWrapOrder);
+    return this.transferRequestOrder(combinedWrapOrder);
   }
 
   /**
@@ -329,7 +329,7 @@ class Control extends EventEmitter {
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
    * @memberof Control
    */
-  submitRequestOrder(combinedOrderWrapInfo) {
+  transferRequestOrder(combinedOrderWrapInfo) {
     const {requestCommandId, requestCommandName, requestCommandType} = combinedOrderWrapInfo;
 
     // 아직 요청 전이므로 orderContainerList 순회하면서 명령 생성 및 요청
@@ -424,9 +424,16 @@ class Control extends EventEmitter {
    * TODO: 데이터 처리
    * Data Logger Controller 로 부터 데이터 갱신이 이루어 졌을때 자동 업데이트 됨.
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
-   * @param {dcData} dcData
+   * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
    */
-  notifyData(dataLoggerController, dcData) {}
+  notifyDeviceData(dataLoggerController, renewalNodeList) {
+    // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
+    // 서버로 데이터 전송 요청
+    this.socketClint.transferDataToServer({
+      commandType: 'node',
+      data: renewalNodeList,
+    });
+  }
 
   /**
    * TODO: 이벤트 처리

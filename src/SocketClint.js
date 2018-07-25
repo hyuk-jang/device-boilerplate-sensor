@@ -7,7 +7,7 @@ const Control = require('./Control');
 
 const {BaseModel} = require('../../device-protocol-converter-jh');
 
-class CommunicationMainControl extends AbstDeviceClient {
+class SocketClint extends AbstDeviceClient {
   /** @param {Control} controller */
   constructor(controller) {
     super();
@@ -19,7 +19,7 @@ class CommunicationMainControl extends AbstDeviceClient {
    * device client 설정 및 프로토콜 바인딩
    */
   init() {
-    this.converter = BaseModel.default;
+    this.converter = BaseModel.defaultModule;
     // /** 개발 버젼일 경우 Echo Server 구동 */
     // if (this.config.hasDev) {
     //   // const EchoServer = require('device-echo-server-jh');
@@ -35,18 +35,26 @@ class CommunicationMainControl extends AbstDeviceClient {
   /**
    * TODO: 데이터 전송 메소드 구현
    * DataLogger Default 명령을 내리기 위함
-   * @param {{requestCommandType: string=, requestCommandId: string}} executeOrder
+   * @param {transDataToServerInfo} transDataToServerInfo
    */
-  submitToMainServerData(data) {
+  transferDataToServer(transDataToServerInfo) {
     try {
-      const encodingData = this.converter.encodingDefaultRequestMsgForTransfer(data);
+      // 기본 전송규격 프레임에 넣음
+      const encodingData = this.converter.encodingDefaultRequestMsgForTransfer(
+        transDataToServerInfo,
+      );
 
+      BU.CLI(encodingData);
+      // 명령 요청 포맷으로 변경
       const commandSet = this.generationAutoCommand(encodingData);
 
       BU.CLIN(commandSet.cmdList);
+      // 명령 전송
       // this.executeCommand(commandSet);
+
       // hasOneAndOne 이기 때문에 명령 추가 후 다음 스텝으로 이동하라고 명령
       // this.requestTakeAction(this.definedCommanderResponse.NEXT);
+
       // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
@@ -147,4 +155,4 @@ class CommunicationMainControl extends AbstDeviceClient {
     }
   }
 }
-module.exports = CommunicationMainControl;
+module.exports = SocketClint;
