@@ -157,7 +157,7 @@ class Control extends EventEmitter {
    * 외부에서 단일 명령을 내릴경우
    * @param {requestSingleOrderInfo} requestSingleOrderInfo
    */
-  excuteSingleControl(requestSingleOrderInfo) {
+  executeSingleControl(requestSingleOrderInfo) {
     try {
       /** @type {requestCombinedOrderInfo} */
       const requestCombinedOrder = {

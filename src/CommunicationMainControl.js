@@ -33,6 +33,7 @@ class CommunicationMainControl extends AbstDeviceClient {
   }
 
   /**
+   * TODO: 데이터 전송 메소드 구현
    * DataLogger Default 명령을 내리기 위함
    * @param {{requestCommandType: string=, requestCommandId: string}} executeOrder
    */
@@ -44,6 +45,8 @@ class CommunicationMainControl extends AbstDeviceClient {
 
       BU.CLIN(commandSet.cmdList);
       // this.executeCommand(commandSet);
+      // hasOneAndOne 이기 때문에 명령 추가 후 다음 스텝으로 이동하라고 명령
+      // this.requestTakeAction(this.definedCommanderResponse.NEXT);
       // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
@@ -54,6 +57,7 @@ class CommunicationMainControl extends AbstDeviceClient {
   }
 
   /**
+   * TODO: 장치 접속 시 본 컨트롤러의 식별 코드 전송
    * @override
    * Device Controller 변화가 생겨 관련된 전체 Commander에게 뿌리는 Event
    * @param {dcEvent} dcEvent
@@ -63,6 +67,14 @@ class CommunicationMainControl extends AbstDeviceClient {
    */
   updatedDcEventOnDevice(dcEvent) {
     super.updatedDcEventOnDevice(dcEvent);
+
+    switch (dcEvent.eventName) {
+      // TODO: 연결 시 인증 코드전송
+      case this.definedControlEvent.CONNECT:
+        break;
+      default:
+        break;
+    }
 
     // Observer가 해당 메소드를 가지고 있다면 전송
     _.forEach(this.observerList, observer => {
@@ -115,6 +127,8 @@ class CommunicationMainControl extends AbstDeviceClient {
   }
 
   /**
+   * TODO: 서버 측에서의 전송 메시지 응답에 관한 처리
+   * TODO: 서버측에서의 명령 요청 수행 처리 메소드 구현
    * 장치로부터 데이터 수신
    * @override
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체

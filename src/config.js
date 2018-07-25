@@ -24,7 +24,7 @@ const config = {
     target_name: 'Main Socket Server',
     controlInfo: {
       hasErrorHandling: true,
-      hasOneAndOne: false,
+      hasOneAndOne: true,
       hasReconnect: true,
     },
     logOption: {
