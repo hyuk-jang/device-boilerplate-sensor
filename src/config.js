@@ -23,7 +23,7 @@ const config = {
     target_category: 'upsas',
     target_name: 'Main Socket Server',
     controlInfo: {
-      hasErrorHandling: true,
+      hasErrorHandling: false,
       hasOneAndOne: true,
       hasReconnect: true,
     },

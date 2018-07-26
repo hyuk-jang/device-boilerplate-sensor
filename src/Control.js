@@ -431,7 +431,7 @@ class Control extends EventEmitter {
     // BU.CLI(renewalNodeList);
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
-    this.socketClint.transferDataToServer({
+    this.socketClint.transmitDataToServer({
       commandType: 'node',
       data: renewalNodeList,
     });

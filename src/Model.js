@@ -76,7 +76,7 @@ class Model {
     this.simpleOrderList.push(simpleOrderInfo);
 
     // 신규 알림
-    this.controller.socketClint.transferDataToServer({
+    this.controller.socketClint.transmitDataToServer({
       commandType: 'command',
       data: simpleOrderInfo,
     });
@@ -107,7 +107,7 @@ class Model {
       ) {
         simpleOrderInfo.orderStatus = orderStatus;
         // 업데이트 알림
-        this.controller.socketClint.transferDataToServer({
+        this.controller.socketClint.transmitDataToServer({
           commandType: 'command',
           data: simpleOrderInfo,
         });

@@ -1,6 +1,15 @@
+/**
+ * 테스트를 하기 위한 절차
+ * 1. Boilerplate 용 DB가 구성되고 .env에 그 경로가 명시되어야 한다.
+ * 2. Main Socket Server가 구동되어야 한다.
+ * 3. 위의 절차가 완료되엇다면 테스트 수행
+ */
+
 require('dotenv').config();
 const _ = require('lodash');
 const {BU} = require('base-util-jh');
+
+const Promise = require('bluebird');
 
 const {
   requestOrderCommandType,
@@ -161,6 +170,36 @@ const dumpCommandList = [
   },
 ];
 
+// Case: 장치 정보가 변경되었을 때 Socket Server로의 데이터 전송
+// TODO: 서로 다른 노드 정보를 보내고 이를 Socket Server가 제대로 감지하는지 테스트
+async function transmitNodeScenario() {
+  const {socketClint} = control;
+
+  // 명령 1개 전송.
+  socketClint.transmitDataToServer(_.head(dumpNodeList));
+
+  await Promise.delay(1000);
+  // 같은 명령 1개 전송되면 서버측에는 이 데이터는 무시해야함
+  socketClint.transmitDataToServer(_.head(dumpNodeList));
+  await Promise.delay(1000);
+  // 같은 명령 1개 전송되면 서버측에는 이 데이터는 무시해야함
+  _.head(dumpNodeList).data[0].data = 'hi test';
+  socketClint.transmitDataToServer(_.head(dumpNodeList));
+  await Promise.delay(1000);
+
+  dumpNodeList.forEach(transDataToClientInfo =>
+    socketClint.transmitDataToServer(transDataToClientInfo),
+  );
+}
+
+// Case: 명령이 생성, 시작, 종료, 실행 등의 과정
+// TODO: 명령 정보를 보내고 이를  Socket Server가 제대로 감지하는지 테스트
+function transmitOrderScenario() {}
+
+// TODO: Socket Server에서 현재 모든 정보 조회 명령을 요청 처리하는 메소드가 제대로 동작하는지 테스트
+function callAllStatus() {}
+
+// 초기화
 control
   .getDataLoggerListByDB(
     {
@@ -175,8 +214,8 @@ control
   .then(() => {
     control.init();
     setTimeout(() => {
-      // 명령 제어 요청
-      control.executeAutomaticControl(testDumpCmd);
+      // 노드 정보 전송
+      transmitNodeScenario();
     }, 2000);
   });
 

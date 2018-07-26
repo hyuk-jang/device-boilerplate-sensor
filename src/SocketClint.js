@@ -38,23 +38,27 @@ class SocketClint extends AbstDeviceClient {
    * DataLogger Default 명령을 내리기 위함
    * @param {transDataToServerInfo} transDataToServerInfo
    */
-  transferDataToServer(transDataToServerInfo) {
+  transmitDataToServer(transDataToServerInfo) {
     try {
       // 기본 전송규격 프레임에 넣음
       // BU.CLIN(this.converter);
-      BU.CLI(transDataToServerInfo);
+      // BU.CLIF(transDataToServerInfo);
       const encodingData = this.converter.encodingMsg(transDataToServerInfo);
-
-      // BU.CLI(encodingData);
       // 명령 요청 포맷으로 변경
       const commandSet = this.generationAutoCommand(encodingData);
 
-      // BU.CLIN(commandSet.cmdList);
-      // 명령 전송
-      // this.executeCommand(commandSet);
+      // BU.CLI(commandSet.cmdList[0].data);
 
       // hasOneAndOne 이기 때문에 명령 추가 후 다음 스텝으로 이동하라고 명령
-      // this.requestTakeAction(this.definedCommanderResponse.NEXT);
+      // BU.CLIN(this.manager.commandStorage.currentCommandSet);
+      if (!_.isEmpty(this.manager.commandStorage.currentCommandSet)) {
+        this.requestTakeAction(this.definedCommanderResponse.NEXT);
+      }
+      // BU.CLIN(commandSet.cmdList);
+      // 명령 전송
+      this.executeCommand(commandSet);
+
+      // this.requestTakeAction(this.definedCommanderResponse.DONE);
 
       // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
 
@@ -121,15 +125,21 @@ class SocketClint extends AbstDeviceClient {
    */
   onDcData(dcData) {
     super.onDcData(dcData);
-    try {
-      const parsedData = this.converter.decodingDefaultRequestMsgForTransfer(dcData.data);
 
-      BU.CLI(parsedData);
-      // Device Client로 해당 이벤트 Code를 보냄
-      return this.requestTakeAction(this.definedCommanderResponse.DONE);
-    } catch (error) {
-      BU.logFile(error);
-      throw error;
+    if (_.isEqual(dcData.data, this.converter.protocolConverter.ACK)) {
+      this.requestTakeAction(this.definedCommanderResponse.DONE);
+      // this.requestTakeAction(this.definedCommanderResponse.NEXT);
+    } else {
+      try {
+        const parsedData = this.converter.decodingMsg(dcData.data);
+
+        BU.CLI(parsedData);
+        // Device Client로 해당 이벤트 Code를 보냄
+        return this.requestTakeAction(this.definedCommanderResponse.DONE);
+      } catch (error) {
+        BU.logFile(error);
+        throw error;
+      }
     }
   }
 }
