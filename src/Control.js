@@ -113,8 +113,9 @@ class Control extends EventEmitter {
   init() {
     this.model = new Model(this);
     this.socketClint = new SocketClint(this);
+    this.socketClint.init();
 
-    BU.CLI(this.config);
+    // BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
       // 데이터 로거 객체 생성
       const dataLoggerController = new DataLoggerController(dataLoggerConfig);
@@ -427,6 +428,7 @@ class Control extends EventEmitter {
    * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
    */
   notifyDeviceData(dataLoggerController, renewalNodeList) {
+    // BU.CLI(renewalNodeList);
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     this.socketClint.transferDataToServer({

@@ -33,7 +33,7 @@ const testDumpCmd2 = {
 // 명령 제어 요청 체크
 function checkDumpCmd() {
   const nodeStatusList = control.model.getAllNodeStatus(nodePickKey.FOR_DATA);
-  BU.CLI(nodeStatusList);
+  // BU.CLI(nodeStatusList);
 
   const trueList = _.filter(nodeStatusList, nodeInfo =>
     _.includes(testDumpCmd.trueList, nodeInfo.node_id),

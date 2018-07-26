@@ -29,6 +29,7 @@ class SocketClint extends AbstDeviceClient {
     //   echoServer.attachDevice(this.config.mainSocketInfo.protocol_info);
     // }
     // BU.CLI(this.config.deviceInfo);
+    BU.CLI('왓더 ?');
     this.setDeviceClient(this.config.mainSocketInfo);
   }
 
@@ -40,15 +41,15 @@ class SocketClint extends AbstDeviceClient {
   transferDataToServer(transDataToServerInfo) {
     try {
       // 기본 전송규격 프레임에 넣음
-      const encodingData = this.converter.encodingDefaultRequestMsgForTransfer(
-        transDataToServerInfo,
-      );
+      // BU.CLIN(this.converter);
+      BU.CLI(transDataToServerInfo);
+      const encodingData = this.converter.encodingMsg(transDataToServerInfo);
 
-      BU.CLI(encodingData);
+      // BU.CLI(encodingData);
       // 명령 요청 포맷으로 변경
       const commandSet = this.generationAutoCommand(encodingData);
 
-      BU.CLIN(commandSet.cmdList);
+      // BU.CLIN(commandSet.cmdList);
       // 명령 전송
       // this.executeCommand(commandSet);
 
@@ -83,13 +84,6 @@ class SocketClint extends AbstDeviceClient {
       default:
         break;
     }
-
-    // Observer가 해당 메소드를 가지고 있다면 전송
-    _.forEach(this.observerList, observer => {
-      if (_.get(observer, 'notifyDeviceEvent')) {
-        observer.notifyDeviceEvent(this, dcEvent);
-      }
-    });
   }
 
   /**
@@ -99,15 +93,6 @@ class SocketClint extends AbstDeviceClient {
    */
   onDcError(dcError) {
     super.onDcError(dcError);
-
-    // Error가 발생하면 추적 중인 데이터는 폐기 (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
-    this.converter.resetTrackingDataBuffer();
-    // Observer가 해당 메소드를 가지고 있다면 전송
-    _.forEach(this.observerList, observer => {
-      if (_.get(observer, 'notifyDeviceError')) {
-        observer.notifyDeviceError(this, dcError);
-      }
-    });
   }
 
   /**
@@ -125,13 +110,6 @@ class SocketClint extends AbstDeviceClient {
       default:
         break;
     }
-
-    // Observer가 해당 메소드를 가지고 있다면 전송
-    this.observerList.forEach(observer => {
-      if (_.get(observer, 'notifyDeviceMessage')) {
-        observer.notifyDeviceMessage(this, dcMessage);
-      }
-    });
   }
 
   /**

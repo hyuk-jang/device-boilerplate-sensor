@@ -11,6 +11,7 @@ const {
   combinedOrderType,
   requestOrderCommandType,
   requestDeviceControlType,
+  simpleOrderStatus,
   nodePickKey,
 } = require('../../default-intelligence').dcmConfigModel;
 
@@ -31,6 +32,9 @@ class Model {
     this.initCombinedOrderStorage();
 
     this.BM = new BM(this.controller.config.dbInfo);
+
+    /** @type {simpleOrderInfo[]} */
+    this.simpleOrderList = [];
   }
 
   /**
@@ -54,6 +58,65 @@ class Model {
       },
     };
     this.combinedOrderStorage = orderStorage;
+  }
+
+  /**
+   * simpleOrderInfo 를 새로이 입력하고자 할 경우
+   * @param {simpleOrderInfo} simpleOrderInfo
+   * @return {boolean} 정상적인 신규 데이터 삽입이 이루어지면 true, 아니면 false
+   */
+  setSimpleOrderInfo(simpleOrderInfo) {
+    BU.CLI(simpleOrderInfo);
+    const foundIt = _.find(this.simpleOrderList, {uuid: simpleOrderInfo.uuid});
+    // 기존에 존재한다면
+    if (foundIt) {
+      return false;
+    }
+    // 신규 삽입
+    this.simpleOrderList.push(simpleOrderInfo);
+
+    // 신규 알림
+    this.controller.socketClint.transferDataToServer({
+      commandType: 'command',
+      data: simpleOrderInfo,
+    });
+  }
+
+  /**
+   * 기존에 존재하던 명령의 수정이 이루어 질때
+   * @param {string} uuid
+   * @param {string} orderStatus combinedOrderType
+   * @return {boolean} 갱신이 이루어지면 true, 아니면 false
+   */
+  updateSimpleOrderInfo(uuid, orderStatus) {
+    const simpleOrderInfo = _.find(this.simpleOrderList, {uuid});
+    BU.CLIN(simpleOrderInfo);
+    // 데이터가 존재한다면 해당 명령의 변화가 생긴 것
+    if (simpleOrderInfo) {
+      BU.CLI(
+        _(simpleOrderStatus)
+          .values()
+          .includes(orderStatus),
+      );
+      // orderStatus 가 정상적인 데이터이고 기존 데이터와 다르다면
+      if (
+        _(simpleOrderStatus)
+          .values()
+          .includes(orderStatus) &&
+        !_.isEqual(simpleOrderInfo.orderStatus, orderStatus)
+      ) {
+        simpleOrderInfo.orderStatus = orderStatus;
+        // 업데이트 알림
+        this.controller.socketClint.transferDataToServer({
+          commandType: 'command',
+          data: simpleOrderInfo,
+        });
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
   }
 
   /**
@@ -247,6 +310,7 @@ class Model {
     }
 
     // 복합 명령 현황 저장소 key 형태를 보고 명령 타입을 정의
+    // TODO: orderStorageType에 따라 명령 요청, 취소 요청 처리 필요
     let orderStorageType = '';
     switch (resOrderInfo.orderStorageKeyLV1) {
       case 'controlStorage':
@@ -261,18 +325,9 @@ class Model {
       default:
         break;
     }
-
-    /**
-     * Socket Server로 전송하기 위한 명령 추가 객체 생성
-     * @type {simpleOrderInfo}
-     */
-    const simpleOrder = {
-      orderCommandType: orderStorageType,
-      orderStatus: resOrderInfo.orderInfoKeyLV2,
-      commandId: resOrderInfo.orderWrapInfoLV3.requestCommandId,
-      commandName: resOrderInfo.orderWrapInfoLV3.requestCommandName,
-      uuid: resOrderInfo.orderWrapInfoLV3.uuid,
-    };
+    
+    // BU.CLIN(commandSet);
+    // BU.CLIN(commandSet.commandId, commandSet.uuid);
 
     // 명령 코드가 COMMANDSET_EXECUTION_START 이고 아직 combinedOrderType.WAIT 상태라면 PROCEEDING 상태로 이동하고 종료
     if (
@@ -291,14 +346,10 @@ class Model {
         throw new Error('해당 객체는 존재하지 않습니다.');
       }
 
+      // 진행중 명령 저장소 목록에 삽입
       resOrderInfo.orderStorageLV1.proceedingList.push(newOrderInfo);
-
-      // 진행중 명령이라고 Socket Server로 알려줌
-      this.controller.socketClint.transferDataToServer({
-        commandType: 'command',
-        data: simpleOrder,
-      });
-
+      // simpleOrderList 갱신
+      this.updateSimpleOrderInfo(resOrderInfo.orderWrapInfoLV3.uuid, simpleOrderStatus.PROCEED);
       return false;
     }
     // 명령 코드가 완료(COMMANDSET_EXECUTION_TERMINATE), 삭제(COMMANDSET_DELETE) 일 경우
@@ -361,13 +412,10 @@ class Model {
           this.controller.emit('completeOrder', dcMessage.commandSet.commandId);
         }
 
-        // 진행중 명령 완료했다고 Socket Server로 알려줌
-        this.controller.socketClint.transferDataToServer({
-          commandType: 'command',
-          data: simpleOrder,
-        });
-
         // FIXME: 명령 제어에 대한 자세한 논리가 나오지 않았기 때문에 runningList로 이동하지 않음. (2018-07-23)
+        // FIXME: RUNNING 리스트 없이 무조건 완료 처리함. 실행 중인 명령을 추적하고자 할경우 추가적인 논리 필요
+        this.updateSimpleOrderInfo(resOrderInfo.orderWrapInfoLV3.uuid, simpleOrderStatus.COMPLETE);
+
         // 명령 제어 요청일 경우 runningList로 이동
         // if (commandSet.commandType === requestCommandType.CONTROL) {
         //   resOrderInfo.orderStorageLV1.runningList.push(completeOrderInfo);
@@ -408,13 +456,14 @@ class Model {
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
    */
   saveCombinedOrder(commandType, combinedOrderWrapInfo) {
+    BU.CLI('saveCombinedOrder');
     /**
      * Socket Server로 전송하기 위한 명령 추가 객체 생성
      * @type {simpleOrderInfo}
      */
     const simpleOrder = {
       orderCommandType: '',
-      orderStatus: combinedOrderType.WAIT,
+      orderStatus: simpleOrderStatus.NEW,
       commandId: combinedOrderWrapInfo.requestCommandId,
       commandName: combinedOrderWrapInfo.requestCommandName,
       uuid: combinedOrderWrapInfo.uuid,
@@ -436,12 +485,8 @@ class Model {
       this.combinedOrderStorage.measureStorage.waitingList.push(combinedOrderWrapInfo);
     }
 
-    // Socket Server로 전송 요청
-    this.controller.socketClint.transferDataToServer({
-      commandType: 'command',
-      data: simpleOrder,
-    });
-
+    // 새로 생성된 명령 추가
+    this.setSimpleOrderInfo(simpleOrder);
     // BU.CLIN(this.combinedOrderStorage);
   }
 
