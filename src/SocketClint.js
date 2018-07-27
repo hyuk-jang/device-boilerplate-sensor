@@ -13,24 +13,41 @@ class SocketClint extends AbstDeviceClient {
     super();
     this.controller = controller;
     this.config = controller.config;
+    this.converter = BaseModel.defaultModule;
   }
 
   /**
    * device client 설정 및 프로토콜 바인딩
    */
   init() {
-    this.converter = BaseModel.defaultModule;
-    // /** 개발 버젼일 경우 Echo Server 구동 */
-    // if (this.config.hasDev) {
-    //   // const EchoServer = require('device-echo-server-jh');
-    //   // 지정된 port로 생성
-    //   const echoServer = new EchoServer(this.config.mainSocketInfo.connect_info.port);
-    //   // 해당 protocol 파서에 나와있는 객체 생성
-    //   echoServer.attachDevice(this.config.mainSocketInfo.protocol_info);
-    // }
-    // BU.CLI(this.config.deviceInfo);
-    BU.CLI('왓더 ?');
-    this.setDeviceClient(this.config.mainSocketInfo);
+    BU.CLI('init');
+    // BU.CLI(this.config.mainSocketInfo);
+    this.setDeviceClient({
+      target_id: 'SocketClient',
+      target_category: 'socketClient',
+      target_name: '6kw TB',
+      controlInfo: {
+        hasErrorHandling: false,
+        hasOneAndOne: true,
+        hasReconnect: true,
+      },
+      logOption: {
+        hasCommanderResponse: true,
+        hasDcError: true,
+        hasDcEvent: true,
+        hasDcMessage: true,
+        hasReceiveData: true,
+        hasTransferCommand: true,
+      },
+      connect_info: {
+        host: 'localhost',
+        port: '7510',
+        type: 'socket',
+        subType: 'parser',
+        addConfigInfo: {parser: 'delimiterParser', option: this.converter.protocolConverter.EOT},
+      },
+    });
+    // this.setDeviceClient(this.config.mainSocketInfo);
   }
 
   /**
@@ -39,21 +56,35 @@ class SocketClint extends AbstDeviceClient {
    * @param {transDataToServerInfo} transDataToServerInfo
    */
   transmitDataToServer(transDataToServerInfo) {
+    this.index += 1;
     try {
       // 기본 전송규격 프레임에 넣음
       // BU.CLIN(this.converter);
       // BU.CLIF(transDataToServerInfo);
       const encodingData = this.converter.encodingMsg(transDataToServerInfo);
-      // 명령 요청 포맷으로 변경
-      const commandSet = this.generationAutoCommand(encodingData);
 
-      // BU.CLI(commandSet.cmdList[0].data);
+      // BU.CLI(encodingData.toString());
+      // 명령 요청 포맷으로 변경
+      const commandSet = this.generationManualCommand({
+        commandId: this.index,
+        // commandId: transDataToServerInfo.commandType,
+        cmdList: [
+          {
+            data: encodingData,
+            // data: Buffer.from([0x02, 0x03, 0x03, 0x30, 0x38, 0x04]),
+            commandExecutionTimeoutMs: 1000,
+          },
+        ],
+      });
+      // const commandSet = this.generationAutoCommand(encodingData);
+
+      // BU.CLIN(commandSet);
 
       // hasOneAndOne 이기 때문에 명령 추가 후 다음 스텝으로 이동하라고 명령
       // BU.CLIN(this.manager.commandStorage.currentCommandSet);
-      if (!_.isEmpty(this.manager.commandStorage.currentCommandSet)) {
-        this.requestTakeAction(this.definedCommanderResponse.NEXT);
-      }
+      // if (!_.isEmpty(this.manager.commandStorage.currentCommandSet)) {
+      //   this.requestTakeAction(this.definedCommanderResponse.NEXT);
+      // }
       // BU.CLIN(commandSet.cmdList);
       // 명령 전송
       this.executeCommand(commandSet);
@@ -126,20 +157,15 @@ class SocketClint extends AbstDeviceClient {
   onDcData(dcData) {
     super.onDcData(dcData);
 
-    if (_.isEqual(dcData.data, this.converter.protocolConverter.ACK)) {
-      this.requestTakeAction(this.definedCommanderResponse.DONE);
-      // this.requestTakeAction(this.definedCommanderResponse.NEXT);
-    } else {
-      try {
-        const parsedData = this.converter.decodingMsg(dcData.data);
-
-        BU.CLI(parsedData);
-        // Device Client로 해당 이벤트 Code를 보냄
-        return this.requestTakeAction(this.definedCommanderResponse.DONE);
-      } catch (error) {
-        BU.logFile(error);
-        throw error;
-      }
+    try {
+      const parsedData = this.converter.decodingMsg(dcData.data);
+      BU.CLI(parsedData);
+      // Device Client로 해당 이벤트 Code를 보냄
+      // this.requestTakeAction(this.definedCommanderResponse.DONE);
+      this.requestTakeAction(this.definedCommanderResponse.NEXT);
+    } catch (error) {
+      BU.logFile(error);
+      throw error;
     }
   }
 }

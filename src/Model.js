@@ -76,9 +76,9 @@ class Model {
     this.simpleOrderList.push(simpleOrderInfo);
 
     // 신규 알림
-    this.controller.socketClint.transmitDataToServer({
+    this.controller.socketClient.transmitDataToServer({
       commandType: 'command',
-      data: simpleOrderInfo,
+      data: [simpleOrderInfo],
     });
   }
 
@@ -107,9 +107,9 @@ class Model {
       ) {
         simpleOrderInfo.orderStatus = orderStatus;
         // 업데이트 알림
-        this.controller.socketClint.transmitDataToServer({
+        this.controller.socketClient.transmitDataToServer({
           commandType: 'command',
-          data: simpleOrderInfo,
+          data: [simpleOrderInfo],
         });
       } else {
         return false;
@@ -325,7 +325,7 @@ class Model {
       default:
         break;
     }
-    
+
     // BU.CLIN(commandSet);
     // BU.CLIN(commandSet.commandId, commandSet.uuid);
 

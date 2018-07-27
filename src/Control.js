@@ -112,8 +112,8 @@ class Control extends EventEmitter {
    */
   init() {
     this.model = new Model(this);
-    this.socketClint = new SocketClint(this);
-    this.socketClint.init();
+    this.socketClient = new SocketClint(this);
+    this.socketClient.init();
 
     // BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
@@ -431,7 +431,7 @@ class Control extends EventEmitter {
     // BU.CLI(renewalNodeList);
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
-    this.socketClint.transmitDataToServer({
+    this.socketClient.transmitDataToServer({
       commandType: 'node',
       data: renewalNodeList,
     });

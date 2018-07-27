@@ -13,6 +13,7 @@ const Promise = require('bluebird');
 
 const {
   requestOrderCommandType,
+  simpleOrderStatus,
   nodePickKey,
 } = require('../../../default-intelligence').dcmConfigModel;
 
@@ -20,7 +21,6 @@ const Control = require('../../src/Control');
 const config = require('../../src/config');
 
 const control = new Control(config);
-
 const dumpNodeList = [
   {
     commandType: 'node',
@@ -150,74 +150,166 @@ const dumpNodeList = [
 const dumpCommandList = [
   {
     commandType: 'command',
-    data: {
-      orderCommandType: 'CONTROL',
-      orderStatus: 'NEW',
-      commandId: '증발지1 -> 저수지1',
-      commandName: '증발지1 -> 저수지1',
-      uuid: 'b3a18526-93ec-46fc-a44d-1c0b5cc900c6',
-    },
+    data: [
+      {
+        orderCommandType: 'CONTROL',
+        orderStatus: 'NEW',
+        commandId: '증발지1 -> 저수지1',
+        commandName: '증발지1 -> 저수지1',
+        uuid: 'b3a18526-93ec-46fc-a44d-1c0b5cc900c6',
+      },
+    ],
   },
   {
     commandType: 'command',
-    data: {
-      orderCommandType: 'CANCEL',
-      orderStatus: 'NEW',
-      commandId: '증발지1 -> 저수지1 취소',
-      commandName: '증발지1 -> 저수지1 취소',
-      uuid: '0eb58502-cfb7-46d6-b42d-cc3e381a8efa',
-    },
+    data: [
+      {
+        orderCommandType: 'CANCEL',
+        orderStatus: 'NEW',
+        commandId: '증발지1 -> 저수지1 취소',
+        commandName: '증발지1 -> 저수지1 취소',
+        uuid: '0eb58502-cfb7-46d6-b42d-cc3e381a8efa',
+      },
+    ],
+  },
+  {
+    commandType: 'command',
+    data: [
+      {
+        orderCommandType: 'MEASURE',
+        orderStatus: 'NEW',
+        commandId: 'RegularDevice',
+        commandName: 'Regular',
+        uuid: 'aaaaaaa-cfb7-46d6-b42d-alksjfalskfj',
+      },
+    ],
   },
 ];
 
-// Case: 장치 정보가 변경되었을 때 Socket Server로의 데이터 전송
-// TODO: 서로 다른 노드 정보를 보내고 이를 Socket Server가 제대로 감지하는지 테스트
-async function transmitNodeScenario() {
-  const {socketClint} = control;
+const SocketClint = require('../../src/SocketClint');
 
-  // 명령 1개 전송.
-  socketClint.transmitDataToServer(_.head(dumpNodeList));
+const socketClient = new SocketClint(control);
+socketClient.init();
+
+// Case: 장치 정보가 변경되었을 때 Socket Server로의 데이터 전송
+async function transmitNodeScenario() {
+  // const {socketClient} = control;
+
+  socketClient.transmitDataToServer(_.head(dumpNodeList));
 
   await Promise.delay(1000);
   // 같은 명령 1개 전송되면 서버측에는 이 데이터는 무시해야함
-  socketClint.transmitDataToServer(_.head(dumpNodeList));
+  socketClient.transmitDataToServer(_.head(dumpNodeList));
   await Promise.delay(1000);
   // 같은 명령 1개 전송되면 서버측에는 이 데이터는 무시해야함
   _.head(dumpNodeList).data[0].data = 'hi test';
-  socketClint.transmitDataToServer(_.head(dumpNodeList));
+  socketClient.transmitDataToServer(_.head(dumpNodeList));
   await Promise.delay(1000);
 
-  dumpNodeList.forEach(transDataToClientInfo =>
-    socketClint.transmitDataToServer(transDataToClientInfo),
-  );
+  dumpNodeList.forEach(transDataToClientInfo => {
+    socketClient.transmitDataToServer(transDataToClientInfo);
+  });
 }
 
 // Case: 명령이 생성, 시작, 종료, 실행 등의 과정
 // TODO: 명령 정보를 보내고 이를  Socket Server가 제대로 감지하는지 테스트
-function transmitOrderScenario() {}
+async function transmitOrderScenario() {
+  // Control
+  const controlCmdNew = _.nth(dumpCommandList, 0);
+  const controlCmdProceed = _.set(
+    _.cloneDeep(controlCmdNew),
+    'data[0].orderStatus',
+    simpleOrderStatus.PROCEED,
+  );
+
+  const controlCmdComplete = _.set(
+    _.cloneDeep(controlCmdNew),
+    'data[0].orderStatus',
+    simpleOrderStatus.COMPLETE,
+  );
+
+  // Cancel
+  const cancelCmdNew = _.nth(dumpCommandList, 1);
+  const cancelCmdProceed = _.set(
+    _.cloneDeep(cancelCmdNew),
+    'data[0].orderStatus',
+    simpleOrderStatus.PROCEED,
+  );
+  const cancelCmdComplete = _.set(
+    _.cloneDeep(cancelCmdNew),
+    'data[0].orderStatus',
+    simpleOrderStatus.COMPLETE,
+  );
+
+  // Measure
+  const measureCmdNew = _.nth(dumpCommandList, 2);
+  const measureCmdProceed = _.set(
+    _.cloneDeep(measureCmdNew),
+    'data[0].orderStatus',
+    simpleOrderStatus.PROCEED,
+  );
+  const measureCmdComplete = _.set(
+    _.cloneDeep(measureCmdNew),
+    'data[0].orderStatus',
+    simpleOrderStatus.COMPLETE,
+  );
+
+  // New 명령 등록
+  socketClient.transmitDataToServer(controlCmdNew);
+  await Promise.delay(1);
+  // New 명령 동일 명령 재등록. <--- 무시되야 함
+  socketClient.transmitDataToServer(controlCmdNew);
+  await Promise.delay(1);
+
+  // Proceed 명령등록. <--- 기존 CONTROL이 삭제되어야함
+  socketClient.transmitDataToServer(controlCmdProceed);
+  await Promise.delay(1);
+  // Proceed 명령완료.
+  socketClient.transmitDataToServer(controlCmdComplete);
+  await Promise.delay(1);
+
+  // 명령 취소
+  socketClient.transmitDataToServer(cancelCmdNew);
+  await Promise.delay(1);
+  // 명령 삭제 진행중
+  socketClient.transmitDataToServer(cancelCmdProceed);
+  await Promise.delay(1);
+
+  // 계측 명령 등재
+  socketClient.transmitDataToServer(measureCmdNew);
+  await Promise.delay(1);
+}
+
+// setTimeout(() => {
+//   transmitNodeScenario();
+// }, 1000);
+
+setTimeout(() => {
+  transmitOrderScenario();
+}, 1000);
 
 // TODO: Socket Server에서 현재 모든 정보 조회 명령을 요청 처리하는 메소드가 제대로 동작하는지 테스트
 function callAllStatus() {}
 
 // 초기화
-control
-  .getDataLoggerListByDB(
-    {
-      database: process.env.DB_UPSAS_DB,
-      host: process.env.DB_UPSAS_HOST,
-      password: process.env.DB_UPSAS_PW,
-      port: process.env.DB_UPSAS_PORT,
-      user: process.env.DB_UPSAS_USER,
-    },
-    'aaaaa',
-  )
-  .then(() => {
-    control.init();
-    setTimeout(() => {
-      // 노드 정보 전송
-      transmitNodeScenario();
-    }, 2000);
-  });
+// control
+//   .getDataLoggerListByDB(
+//     {
+//       database: process.env.DB_UPSAS_DB,
+//       host: process.env.DB_UPSAS_HOST,
+//       password: process.env.DB_UPSAS_PW,
+//       port: process.env.DB_UPSAS_PORT,
+//       user: process.env.DB_UPSAS_USER,
+//     },
+//     'aaaaa',
+//   )
+//   .then(() => {
+//     control.init();
+//     setTimeout(() => {
+//       // 노드 정보 전송
+//       transmitNodeScenario();
+//     }, 2000);
+//   });
 
 process.on('uncaughtException', err => {
   // BU.debugConsole();
