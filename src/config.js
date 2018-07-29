@@ -20,9 +20,9 @@ const config = {
   },
   uuid: 'aaaaa',
   mainSocketInfo: {
-    target_id: '',
-    target_category: 'upsas',
-    target_name: 'Main Socket Server',
+    target_id: 'SocketClient',
+    target_category: 'socketClient',
+    target_name: '6kw TB',
     controlInfo: {
       hasErrorHandling: false,
       hasOneAndOne: true,
