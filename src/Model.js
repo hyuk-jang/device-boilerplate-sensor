@@ -15,6 +15,8 @@ const {
   nodePickKey,
 } = require('../../default-intelligence').dcmConfigModel;
 
+const map = require('../config/map');
+
 class Model {
   /**
    * Creates an instance of Model.
@@ -35,6 +37,9 @@ class Model {
 
     /** @type {simpleOrderInfo[]} */
     this.simpleOrderList = [];
+
+    // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
+    this.excuteControlList = map.controlList;
   }
 
   /**
@@ -369,7 +374,9 @@ class Model {
         .value();
 
       // 가져온 flatten 리스트에서 uuid가 동일한 객체 검색
-      const orderElementInfo = _.find(flatOrderElementList, {uuid: commandSet.uuid});
+      const orderElementInfo = _.find(flatOrderElementList, {
+        uuid: commandSet.uuid,
+      });
 
       // BU.CLI('NodeID', orderElementInfo.nodeId);
 

@@ -6,6 +6,8 @@ const Control = require('./Control');
 
 const map = require('../config/map');
 
+const {requestOrderCommandType} = require('../../default-intelligence').dcmConfigModel;
+
 class Scenario {
   /** @param {Control} controller */
   constructor(controller) {
@@ -13,6 +15,29 @@ class Scenario {
     this.hasOperationScenario1 = false;
 
     this.map = map;
+  }
+
+  /**
+   * 시나리오를 수행하고자 할 경우
+   * @param {string} scenarioId 시나리오 ID
+   * @param {string} requestCommandType  'ADD', 'CANCEL' --> 명령 추가, 명령 삭제
+   */
+  interpretScenario(scenarioId, requestCommandType) {
+    // 명령 타입 체크. MEASURE 까지 포함되어 있지만... webServer 측에서 보내지 말 것
+    if (_.values(requestOrderCommandType).includes(requestCommandType)) {
+      throw new Error(`requestCommandType: ${requestCommandType} does not exist.`);
+    }
+    // 제어 요청일 경우에는 true, 아닐 경우에는 false로 설정
+    const hasExecute = requestCommandType === requestOrderCommandType.CONTROL;
+
+    switch (scenarioId) {
+      case 'scenario1':
+        this.scenarioMode1(hasExecute);
+        break;
+      default:
+        throw new Error(`scenarioId: ${scenarioId} does not exist.`);
+    }
+    return true;
   }
 
   /**

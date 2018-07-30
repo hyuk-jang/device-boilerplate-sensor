@@ -1,117 +1,102 @@
-
-
 /**
  * @typedef {Object} deviceMap
- * @prop {drawInfo} drawInfo
- * @prop {setInfo} setInfo
- * @prop {Object} realtionInfo
- * @prop {Array.<control>} controlList   // TEST
- * @prop {Array.<control>} simpleList   // TEST
+ * @property {drawInfo} drawInfo
+ * @property {setInfo} setInfo
+ * @property {Array.<mapControl>} controlList
+ * @property {Object} realtionInfo
+ */
+
+/**
+ * @typedef {Object} mapControl
+ * @property {string} cmdName 명령 이름
+ * @property {string[]} trueList
+ * @property {string[]} falseList
  */
 
 /**
  * @typedef {Object} drawInfo
- * @prop {frame} frame
- * @prop {position} positionList
+ * @property {frame} frame
+ * @property {position} positionList
  */
-
 
 /**
  * @typedef {Object} frame
- * @prop {{width: number, height: number}} mapSize
- * @prop {Array.<svgModelResource>} svgModelResourceList
+ * @property {{width: number, height: number}} mapSize
+ * @property {Array.<svgModelResource>} svgModelResourceList
  */
 
- 
 /**
  * @typedef {Object} svgModelResource
- * @prop {string} id
- * @prop {string} type 'rect', 'line', 'circle', 'squares'
- * @prop {Object} elementDrawInfo
+ * @property {string} id
+ * @property {string} type 'rect', 'line', 'circle', 'squares'
+ * @property {Object} elementDrawInfo
  */
- 
+
 /**
  * @typedef {Object} elementDrawInfo
- * @prop {number=} width
- * @prop {number=} height
- * @prop {number=} radius
- * @prop {number=} strokeWidth
- * @prop {string} color
+ * @property {number=} width
+ * @property {number=} height
+ * @property {number=} radius
+ * @property {number=} strokeWidth
+ * @property {string} color
  */
-
- 
- 
-
 
 /**
  * @typedef {Object} setInfo
- * @prop {modelInfo} modelInfo
- * @prop {Array.<connectInfo>} connectInfoList
+ * @property {modelInfo} modelInfo
+ * @property {Array.<connectInfo>} connectInfoList
  */
 
 /**
  * @typedef {Object} modelInfo
- * @prop {Array.<deviceModel>} waterDoor
- * @prop {Array.<deviceModel>} valve
- * @prop {Array.<deviceModel>} pump
- * @prop {Array.<deviceModel>} salinity
- * @prop {Array.<deviceModel>} waterLevel
- * @prop {Array.<deviceModel>} waterTemperature
- * @prop {Array.<deviceModel>} moduleFrontTemperature
- * @prop {Array.<deviceModel>} moduleRearTemperature
+ * @property {Array.<deviceModel>} waterDoor
+ * @property {Array.<deviceModel>} valve
+ * @property {Array.<deviceModel>} pump
+ * @property {Array.<deviceModel>} salinity
+ * @property {Array.<deviceModel>} waterLevel
+ * @property {Array.<deviceModel>} waterTemperature
+ * @property {Array.<deviceModel>} moduleFrontTemperature
+ * @property {Array.<deviceModel>} moduleRearTemperature
  */
 
-
-
- 
 /**
  * @typedef {Object} connectInfo 장치와의 접속 정보
- * @property {bollean} hasOneAndOne 
+ * @property {bollean} hasOneAndOne
  * @property {string} type 'socket', 'serial', 'zigbee', ...
  * @property {string=} subType 'parser', 'xbee', ....
- * @property {number=} baudRate 
- * @property {string=|number=} port 
+ * @property {number=} baudRate
+ * @property {string=|number=} port
  * @property {string=} host 접속 경로(socket 일 경우 사용)
  * @property {Object=} addConfigInfo type, subType의 Contoller에서 요구하는 추가 접속 정보
  * @property {Array.<deviceRouter>} deviceRouterList type, subType의 Contoller에서 요구하는 추가 접속 정보
- */ 
-
+ */
 
 /**
  * @typedef {Object} deviceModel
- * @prop {string} targetId
- * @prop {string} targetName
- * @prop {number|string} targetData
+ * @property {string} targetId
+ * @property {string} targetName
+ * @property {number|string} targetData
  */
-//  * @prop {SalternDevice} salternRouter
+//  * @property {SalternDevice} salternRouter
 
 /**
  * @typedef {Object} deviceRouter
- * @prop {string} targetId
- * @prop {string} targetCategory
- * @prop {string} targetProtocol
- * @prop {string} deviceId
- * @prop {string[]} nodeModelList
+ * @property {string} targetId
+ * @property {string} targetCategory
+ * @property {string} targetProtocol
+ * @property {string} deviceId
+ * @property {string[]} nodeModelList
  */
- 
 
 /**
  * @typedef {Object} connectInfo 장치와의 접속 정보
- * @property {bollean} hasOneAndOne 
+ * @property {bollean} hasOneAndOne
  * @property {string} type 'socket', 'serial', 'zigbee', ...
  * @property {string=} subType 'parser', 'xbee', ....
- * @property {number=} baudRate 
- * @property {string=|number=} port 
+ * @property {number=} baudRate
+ * @property {string=|number=} port
  * @property {string=} host 접속 경로(socket 일 경우 사용)
  * @property {Object=} addConfigInfo type, subType의 Contoller에서 요구하는 추가 접속 정보
- */ 
-
-
-
-
-/**
- * @typedef {Object} control
- * @prop {string} cmdName 명령 이름
- * @prop {string[]} trueList
- * @prop {string[]} falseList
  */
+
+module;
