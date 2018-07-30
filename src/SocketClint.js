@@ -7,6 +7,8 @@ const Control = require('./Control');
 
 const {BaseModel} = require('../../device-protocol-converter-jh');
 
+const {transmitCommandType} = require('../../default-intelligence').dcmWsModel;
+
 class SocketClint extends AbstDeviceClient {
   /** @param {Control} controller */
   constructor(controller) {
@@ -14,6 +16,9 @@ class SocketClint extends AbstDeviceClient {
     this.controller = controller;
     this.config = controller.config;
     this.converter = BaseModel.defaultModule;
+
+    // socket Client의 인증 여부
+    this.hasCertification = false;
   }
 
   /**
@@ -56,6 +61,15 @@ class SocketClint extends AbstDeviceClient {
    */
   transmitDataToServer(transDataToServerInfo) {
     try {
+      // 인증이 되지 않았는데 별도의 데이터를 보낼 수는 없음
+      BU.CLI(transDataToServerInfo);
+      if (
+        transDataToServerInfo.commandType !== transmitCommandType.CERTIFICATION &&
+        !this.hasCertification
+      ) {
+        // BU.CLI('Authentication must be performed first');
+        return false;
+      }
       // 기본 전송규격 프레임에 넣음
       // BU.CLIF(transDataToServerInfo);
       const encodingData = this.converter.encodingMsg(transDataToServerInfo);
@@ -81,7 +95,7 @@ class SocketClint extends AbstDeviceClient {
   }
 
   /**
-   * TODO: 장치 접속 시 본 컨트롤러의 식별 코드 전송
+   * FIXME: UUID를 통한 식별 처리. RSA 인증이 필요할 듯 (2018-07-30)
    * @override
    * Device Controller 변화가 생겨 관련된 전체 Commander에게 뿌리는 Event
    * @param {dcEvent} dcEvent
@@ -94,6 +108,14 @@ class SocketClint extends AbstDeviceClient {
 
     switch (dcEvent.eventName) {
       case this.definedControlEvent.CONNECT:
+        this.transmitDataToServer({
+          commandType: transmitCommandType.CERTIFICATION,
+          data: this.config.uuid,
+        });
+        break;
+      // 장치와의 접속이 해제되었다면 인증여부를 false로 바꿈
+      case this.definedControlEvent.DISCONNECT:
+        this.hasCertification = false;
         break;
       default:
         break;
@@ -119,6 +141,37 @@ class SocketClint extends AbstDeviceClient {
   }
 
   /**
+   *
+   * @param {dcData} dcData
+   * @param {Buffer} parsedData
+   */
+  checkCertification(dcData, parsedData) {
+    const requestData = _.get(_.head(dcData.commandSet.cmdList), 'data');
+
+    const strData = this.converter.decodingMsg(requestData).toString();
+    // BU.CLI(strData);
+
+    // 전송은 JSON 형태로 하였기 때문에
+    if (!BU.IsJsonString(strData)) {
+      return false;
+    }
+
+    // JSON 객체로 변환
+    /** @type {transDataToServerInfo} */
+    const parseData = JSON.parse(strData);
+
+    // 보낸 명령이 CERTIFICATION 타입이라면 체크
+    if (parseData.commandType === transmitCommandType.CERTIFICATION) {
+      // 응답 코드가 ACK 라면 인증됨
+      if (_.isEqual(parsedData, this.converter.protocolConverter.ACK)) {
+        this.hasCertification = true;
+      } else {
+        this.hasCertification = false;
+      }
+    }
+  }
+
+  /**
    * TODO: 서버 측에서의 전송 메시지 응답에 관한 처리
    * TODO: 서버측에서의 명령 요청 수행 처리 메소드 구현
    * 장치로부터 데이터 수신
@@ -127,9 +180,14 @@ class SocketClint extends AbstDeviceClient {
    */
   onDcData(dcData) {
     super.onDcData(dcData);
-
     try {
       const parsedData = this.converter.decodingMsg(dcData.data);
+
+      // 인증이 되지 않은 상태라면 보낸 명령 체크
+      if (!this.hasCertification) {
+        this.checkCertification(dcData, parsedData);
+      }
+
       BU.CLI(parsedData);
       this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
