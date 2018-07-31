@@ -180,36 +180,63 @@ class SocketClint extends AbstDeviceClient {
    * @param {Buffer} bufData
    */
   interpretReceiveData(bufData) {
+    // string 으로 변환
+    const strData = JSON.parse(bufData.toString());
+
+    // 전송은 JSON 형태로 하였기 때문에 (ClientToServer 메시지의 경우 ACK, CAN 응답이 옴))
+    if (!BU.IsJsonString(strData)) {
+      return false;
+    }
+
+    // JSON 객체로 변환
+    /** @type {defaultFormatToRequest} */
+    const parseData = JSON.parse(strData);
+
     try {
-      // string 으로 변환
-      const strData = JSON.parse(bufData.toString());
-
-      // 전송은 JSON 형태로 하였기 때문에 (ClientToServer 메시지의 경우 ACK, CAN 응답이 옴))
-      if (!BU.IsJsonString(strData)) {
-        return false;
-      }
-
-      // JSON 객체로 변환
-      /** @type {transCommandToClient} */
-      const parseData = JSON.parse(strData);
-
       // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
-      if (_.values(transmitToClientCommandType).includes(_.get(parseData, 'commandType'))) {
-        switch (parseData.commandType) {
+      if (_.values(transmitToClientCommandType).includes(_.get(parseData, 'commandId'))) {
+        switch (parseData.commandId) {
           case transmitToClientCommandType.SINGLE: // 단일 제어
-            this.controller.executeSingleControl(parseData.data);
+            this.controller.executeSingleControl(parseData.contents);
             break;
           case transmitToClientCommandType.AUTOMATIC: // 명령 제어
-            this.controller.executeSavedCommand(parseData.data);
+            this.controller.executeSavedCommand(parseData.contents);
             break;
           case transmitToClientCommandType.SCENARIO: // 시나리오
-            this.controller.scenario.interpretScenario(parseData.data);
+            this.controller.scenario.interpretScenario(parseData.contents);
             break;
           default:
-            throw new Error(`commandType: ${parseData.commandType} does not exist.`);
+            throw new Error(`commandId: ${parseData.commandId} does not exist.`);
         }
       }
-    } catch (error) {}
+      /** @type {defaultFormatToResponse} */
+      const responseMsg = {
+        commandId: parseData.commandId,
+        uuid: parseData.uuid,
+        hasError: false,
+        errorStack: '',
+        contents: {},
+      };
+      // 기본 전송 프레임으로 감쌈.
+      const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
+
+      // DCC에 전송 명령
+      return this.executeCommand(this.generationAutoCommand(encodingMsg));
+    } catch (error) {
+      /** @type {defaultFormatToResponse} */
+      const responseMsg = {
+        commandId: parseData.commandId,
+        uuid: parseData.uuid,
+        hasError: true,
+        errorStack: _.get(error, 'stack'),
+        contents: {},
+      };
+      // 기본 전송 프레임으로 감쌈.
+      const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
+
+      // DCC에 전송 명령
+      return this.executeCommand(this.generationAutoCommand(encodingMsg));
+    }
   }
 
   /**
