@@ -7,7 +7,10 @@ const Control = require('./Control');
 
 const {BaseModel} = require('../../device-protocol-converter-jh');
 
-const {transmitCommandType} = require('../../default-intelligence').dcmWsModel;
+const {
+  transmitToServerCommandType,
+  transmitToClientCommandType,
+} = require('../../default-intelligence').dcmWsModel;
 
 class SocketClint extends AbstDeviceClient {
   /** @param {Control} controller */
@@ -15,7 +18,7 @@ class SocketClint extends AbstDeviceClient {
     super();
     this.controller = controller;
     this.config = controller.config;
-    this.converter = BaseModel.defaultModule;
+    this.defaultConverter = BaseModel.defaultModule;
 
     // socket Client의 인증 여부
     this.hasCertification = false;
@@ -64,7 +67,7 @@ class SocketClint extends AbstDeviceClient {
       // 인증이 되지 않았는데 별도의 데이터를 보낼 수는 없음
       BU.CLI(transDataToServerInfo);
       if (
-        transDataToServerInfo.commandType !== transmitCommandType.CERTIFICATION &&
+        transDataToServerInfo.commandType !== transmitToServerCommandType.CERTIFICATION &&
         !this.hasCertification
       ) {
         // BU.CLI('Authentication must be performed first');
@@ -72,7 +75,7 @@ class SocketClint extends AbstDeviceClient {
       }
       // 기본 전송규격 프레임에 넣음
       // BU.CLIF(transDataToServerInfo);
-      const encodingData = this.converter.encodingMsg(transDataToServerInfo);
+      const encodingData = this.defaultConverter.encodingMsg(transDataToServerInfo);
 
       // BU.CLI(encodingData.toString());
       // 명령 요청 포맷으로 변경
@@ -109,7 +112,7 @@ class SocketClint extends AbstDeviceClient {
     switch (dcEvent.eventName) {
       case this.definedControlEvent.CONNECT:
         this.transmitDataToServer({
-          commandType: transmitCommandType.CERTIFICATION,
+          commandType: transmitToServerCommandType.CERTIFICATION,
           data: this.config.uuid,
         });
         break;
@@ -141,14 +144,14 @@ class SocketClint extends AbstDeviceClient {
   }
 
   /**
-   *
-   * @param {dcData} dcData
-   * @param {Buffer} parsedData
+   * 전송한 데이터가 인증 요청 객체였다면 수신받은 데이터에 따라 인증 결과를 반영
+   * @param {dcData} dcData 전송한 데이터 객체
+   * @param {Buffer} bufData 디코딩 처리한 수신받은 데이터
    */
-  checkCertification(dcData, parsedData) {
-    const requestData = _.get(_.head(dcData.commandSet.cmdList), 'data');
-
-    const strData = this.converter.decodingMsg(requestData).toString();
+  checkCertifyServer(dcData, bufData) {
+    // 전송한 데이터가 인증 체크였는지 확인
+    const transmitData = _.get(_.head(dcData.commandSet.cmdList), 'data');
+    const strData = this.defaultConverter.decodingMsg(transmitData).toString();
     // BU.CLI(strData);
 
     // 전송은 JSON 형태로 하였기 때문에
@@ -161,14 +164,52 @@ class SocketClint extends AbstDeviceClient {
     const parseData = JSON.parse(strData);
 
     // 보낸 명령이 CERTIFICATION 타입이라면 체크
-    if (parseData.commandType === transmitCommandType.CERTIFICATION) {
+    if (parseData.commandType === transmitToServerCommandType.CERTIFICATION) {
       // 응답 코드가 ACK 라면 인증됨
-      if (_.isEqual(parsedData, this.converter.protocolConverter.ACK)) {
+      if (_.isEqual(bufData, this.defaultConverter.protocolConverter.ACK)) {
         this.hasCertification = true;
       } else {
         this.hasCertification = false;
       }
+      return this.hasCertification;
     }
+  }
+
+  /**
+   * 수신받은 데이터가 명령 요청인지 체크하고 맞다면 명령을 수행
+   * @param {Buffer} bufData
+   */
+  interpretReceiveData(bufData) {
+    try {
+      // string 으로 변환
+      const strData = JSON.parse(bufData.toString());
+
+      // 전송은 JSON 형태로 하였기 때문에 (ClientToServer 메시지의 경우 ACK, CAN 응답이 옴))
+      if (!BU.IsJsonString(strData)) {
+        return false;
+      }
+
+      // JSON 객체로 변환
+      /** @type {transCommandToClient} */
+      const parseData = JSON.parse(strData);
+
+      // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
+      if (_.values(transmitToClientCommandType).includes(_.get(parseData, 'commandType'))) {
+        switch (parseData.commandType) {
+          case transmitToClientCommandType.SINGLE: // 단일 제어
+            this.controller.executeSingleControl(parseData.data);
+            break;
+          case transmitToClientCommandType.AUTOMATIC: // 명령 제어
+            this.controller.executeSavedCommand(parseData.data);
+            break;
+          case transmitToClientCommandType.SCENARIO: // 시나리오
+            this.controller.scenario.interpretScenario(parseData.data);
+            break;
+          default:
+            throw new Error(`commandType: ${parseData.commandType} does not exist.`);
+        }
+      }
+    } catch (error) {}
   }
 
   /**
@@ -181,14 +222,14 @@ class SocketClint extends AbstDeviceClient {
   onDcData(dcData) {
     super.onDcData(dcData);
     try {
-      const parsedData = this.converter.decodingMsg(dcData.data);
+      const decodingData = this.defaultConverter.decodingMsg(dcData.data);
 
       // 인증이 되지 않은 상태라면 보낸 명령 체크
       if (!this.hasCertification) {
-        this.checkCertification(dcData, parsedData);
+        this.checkCertifyServer(dcData, decodingData);
       }
 
-      BU.CLI(parsedData);
+      BU.CLI(decodingData);
       this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
       BU.logFile(error);

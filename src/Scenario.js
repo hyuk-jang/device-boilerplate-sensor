@@ -19,10 +19,10 @@ class Scenario {
 
   /**
    * 시나리오를 수행하고자 할 경우
-   * @param {string} scenarioId 시나리오 ID
-   * @param {string} requestCommandType  'ADD', 'CANCEL' --> 명령 추가, 명령 삭제
+   * @param {{scenarioId: string, requestCommandType: string}} scenarioInfo 시나리오 ID
    */
-  interpretScenario(scenarioId, requestCommandType) {
+  interpretScenario(scenarioInfo) {
+    const {scenarioId, requestCommandType} = scenarioInfo;
     // 명령 타입 체크. MEASURE 까지 포함되어 있지만... webServer 측에서 보내지 말 것
     if (_.values(requestOrderCommandType).includes(requestCommandType)) {
       throw new Error(`requestCommandType: ${requestCommandType} does not exist.`);

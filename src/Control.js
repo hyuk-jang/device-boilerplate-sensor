@@ -261,40 +261,35 @@ class Control extends EventEmitter {
 
   /**
    * 저장된 명령 요청 수행
-   * @param {string} savedCommandId 저장된 명령 ID
-   * @param {string} requestCommandType  'CONTROL', 'CANCEL' --> 명령 추가, 명령 삭제
+   * @param {{savedCommandId: string, requestCommandType: string }} savedCommandInfo 저장된 명령 ID
    */
-  executeSavedCommand(savedCommandId, requestCommandType) {
-    const foundIt = _.find(this.model.excuteControlList, {cmdName: savedCommandId});
-    if (foundIt) {
-      // 명령 제어 요청 일 경우
-      if (requestCommandType === requestOrderCommandType.CONTROL) {
-        return this.executeAutomaticControl({
-          cmdName: savedCommandId,
-          trueList: foundIt.trueList,
-          falseList: foundIt.falseList,
-        });
+  executeSavedCommand(savedCommandInfo) {
+    try {
+      const {savedCommandId, requestCommandType} = savedCommandInfo;
+      const foundIt = _.find(this.model.excuteControlList, {cmdName: savedCommandId});
+      if (foundIt) {
+        // 명령 제어 요청 일 경우
+        if (requestCommandType === requestOrderCommandType.CONTROL) {
+          return this.executeAutomaticControl({
+            cmdName: savedCommandId,
+            trueList: foundIt.trueList,
+            falseList: foundIt.falseList,
+          });
+        }
+        if (requestCommandType === requestOrderCommandType.CANCEL) {
+          // 명령 취소 일 경우
+          return this.cancelAutomaticControl({
+            cmdName: savedCommandId,
+            trueList: foundIt.trueList,
+            falseList: foundIt.falseList,
+          });
+        }
+        throw new Error(`commandType: ${requestCommandType} can not be identified. `);
       }
-      if (requestCommandType === requestOrderCommandType.CANCEL) {
-        // 명령 취소 일 경우
-        return this.cancelAutomaticControl({
-          cmdName: savedCommandId,
-          trueList: foundIt.trueList,
-          falseList: foundIt.falseList,
-        });
-      }
-      throw new Error(`commandType: ${requestCommandType} can not be identified. `);
+      throw new Error(`commandId: ${savedCommandId} does not exist.`);
+    } catch (error) {
+      throw error;
     }
-    throw new Error(`commandId: ${savedCommandId} does not exist.`);
-  }
-
-  /**
-   * 시나리오를 수행하고자 할 경우
-   * @param {string} scenarioId 시나리오 ID
-   * @param {string} requestCommandType  'CONTROL', 'CANCEL' --> 명령 추가, 명령 삭제
-   */
-  executeScenario(scenarioId, requestCommandType) {
-    return this.scenario.interpretScenario(scenarioId, requestCommandType);
   }
 
   /**
