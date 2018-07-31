@@ -167,6 +167,7 @@ class SocketClint extends AbstDeviceClient {
     if (parseData.commandType === transmitToServerCommandType.CERTIFICATION) {
       // 응답 코드가 ACK 라면 인증됨
       if (_.isEqual(bufData, this.defaultConverter.protocolConverter.ACK)) {
+        BU.CLI('@@@ Authentication is completed from the Socket Server.')
         this.hasCertification = true;
       } else {
         this.hasCertification = false;

@@ -14,10 +14,6 @@ if (require !== undefined && require.main === module) {
   const control = new Control(config);
 
   control.init();
-
-  setTimeout(() => {
-    control.communicationMainControl.submitToMainServerData('hhh');
-  }, 1000);
   // control
   //   .getDataLoggerListByDB({
   //     database: process.env.DB_UPSAS_DB,
