@@ -9,10 +9,10 @@ const {BM} = require('../../base-model-jh');
 
 // const Model = require('./Model');
 
-const {
-  requestOrderCommandType,
-  requestDeviceControlType,
-} = require('../../default-intelligence').dcmConfigModel;
+const {dcmConfigModel, dccFlagModel} = require('../../default-intelligence');
+
+const {requestOrderCommandType, requestDeviceControlType} = dcmConfigModel;
+const {definedCommandSetRank} = dccFlagModel;
 
 const DataLoggerController = require('../DataLoggerController');
 
@@ -173,7 +173,7 @@ class Control extends EventEmitter {
         controlValue: requestSingleOrderInfo.controlValue,
         controlSetValue: requestSingleOrderInfo.controlSetValue,
         nodeId: requestSingleOrderInfo.nodeId,
-        rank: _.get(requestSingleOrderInfo, 'rank'),
+        rank: _.get(requestSingleOrderInfo, 'rank', 2),
       };
 
       requestCombinedOrder.requestElementList.push(requestOrderElement);
@@ -205,7 +205,7 @@ class Control extends EventEmitter {
       requestCombinedOrder.requestElementList.push({
         controlValue: requestDeviceControlType.TRUE,
         nodeId: controlInfo.trueList,
-        rank: 2,
+        rank: definedCommandSetRank.SECOND,
       });
     }
 
@@ -215,7 +215,7 @@ class Control extends EventEmitter {
       requestCombinedOrder.requestElementList.push({
         controlValue: requestDeviceControlType.FALSE,
         nodeId: controlInfo.falseList,
-        rank: 2,
+        rank: definedCommandSetRank.SECOND,
       });
     }
 
@@ -241,7 +241,7 @@ class Control extends EventEmitter {
       requestCombinedOrder.requestElementList.push({
         controlValue: requestDeviceControlType.FALSE,
         nodeId: _.reverse(trueList),
-        rank: 2,
+        rank: definedCommandSetRank.SECOND,
       });
     }
 
@@ -342,7 +342,7 @@ class Control extends EventEmitter {
         const elementInfo = {
           hasComplete: false,
           nodeId,
-          rank: _.get(requestElementInfo, 'rank', 3),
+          rank: _.get(requestElementInfo, 'rank', definedCommandSetRank.THIRD),
           uuid: uuidv4(),
         };
 

@@ -59,6 +59,7 @@ class SocketClint extends AbstDeviceClient {
   }
 
   /**
+   * @desc DataLogger --> Server 데이터 보고. (보고에 관한 추적은 하지 않으므로 onData 메소드에서 별도의 처리는 하지 않음)
    * DataLogger Default 명령을 내리기 위함
    * @param {transDataToServerInfo} transDataToServerInfo
    */
@@ -75,7 +76,14 @@ class SocketClint extends AbstDeviceClient {
       }
       // 기본 전송규격 프레임에 넣음
       // BU.CLIF(transDataToServerInfo);
-      const encodingData = this.defaultConverter.encodingMsg(transDataToServerInfo);
+
+      /** @type {defaultFormatToRequest} */
+      const transmitDataToServer = {
+        commandId: transDataToServerInfo.commandType,
+        contents: transDataToServerInfo.data,
+      };
+
+      const encodingData = this.defaultConverter.encodingMsg(transmitDataToServer);
 
       // BU.CLI(encodingData.toString());
       // 명령 요청 포맷으로 변경
@@ -144,77 +152,33 @@ class SocketClint extends AbstDeviceClient {
   }
 
   /**
-   * 전송한 데이터가 인증 요청 객체였다면 수신받은 데이터에 따라 인증 결과를 반영
-   * @param {dcData} dcData 전송한 데이터 객체
-   * @param {Buffer} bufData 디코딩 처리한 수신받은 데이터
-   */
-  checkCertifyServer(dcData, bufData) {
-    // 전송한 데이터가 인증 체크였는지 확인
-    const transmitData = _.get(_.head(dcData.commandSet.cmdList), 'data');
-    const strData = this.defaultConverter.decodingMsg(transmitData).toString();
-    // BU.CLI(strData);
-
-    // 전송은 JSON 형태로 하였기 때문에
-    if (!BU.IsJsonString(strData)) {
-      return false;
-    }
-
-    // JSON 객체로 변환
-    /** @type {transDataToServerInfo} */
-    const parseData = JSON.parse(strData);
-
-    // 보낸 명령이 CERTIFICATION 타입이라면 체크
-    if (parseData.commandType === transmitToServerCommandType.CERTIFICATION) {
-      // 응답 코드가 ACK 라면 인증됨
-      if (_.isEqual(bufData, this.defaultConverter.protocolConverter.ACK)) {
-        BU.CLI('@@@ Authentication is completed from the Socket Server.')
-        this.hasCertification = true;
-      } else {
-        this.hasCertification = false;
-      }
-      return this.hasCertification;
-    }
-  }
-
-  /**
+   * @desc Server --> DataLogger 명령 수행 요청 처리
    * 수신받은 데이터가 명령 요청인지 체크하고 맞다면 명령을 수행
-   * @param {Buffer} bufData
+   * @param {defaultFormatToRequest} dataInfo
    */
-  interpretReceiveData(bufData) {
-    // string 으로 변환
-    const strData = JSON.parse(bufData.toString());
-
-    // 전송은 JSON 형태로 하였기 때문에 (ClientToServer 메시지의 경우 ACK, CAN 응답이 옴))
-    if (!BU.IsJsonString(strData)) {
-      return false;
-    }
-
-    // JSON 객체로 변환
-    /** @type {defaultFormatToRequest} */
-    const parseData = JSON.parse(strData);
-
+  interpretRequestedCommand(dataInfo) {
     try {
       // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
-      if (_.values(transmitToClientCommandType).includes(_.get(parseData, 'commandId'))) {
-        switch (parseData.commandId) {
+      if (_.values(transmitToClientCommandType).includes(_.get(dataInfo, 'commandId'))) {
+        switch (dataInfo.commandId) {
           case transmitToClientCommandType.SINGLE: // 단일 제어
-            this.controller.executeSingleControl(parseData.contents);
+            this.controller.executeSingleControl(dataInfo.contents);
             break;
           case transmitToClientCommandType.AUTOMATIC: // 명령 제어
-            this.controller.executeSavedCommand(parseData.contents);
+            this.controller.executeSavedCommand(dataInfo.contents);
             break;
           case transmitToClientCommandType.SCENARIO: // 시나리오
-            this.controller.scenario.interpretScenario(parseData.contents);
+            this.controller.scenario.interpretScenario(dataInfo.contents);
             break;
           default:
-            throw new Error(`commandId: ${parseData.commandId} does not exist.`);
+            throw new Error(`commandId: ${dataInfo.commandId} does not exist.`);
         }
       }
       /** @type {defaultFormatToResponse} */
       const responseMsg = {
-        commandId: parseData.commandId,
-        uuid: parseData.uuid,
-        hasError: false,
+        commandId: dataInfo.commandId,
+        uuid: dataInfo.uuid,
+        isError: 0,
         errorStack: '',
         contents: {},
       };
@@ -226,9 +190,9 @@ class SocketClint extends AbstDeviceClient {
     } catch (error) {
       /** @type {defaultFormatToResponse} */
       const responseMsg = {
-        commandId: parseData.commandId,
-        uuid: parseData.uuid,
-        hasError: true,
+        commandId: dataInfo.commandId,
+        uuid: dataInfo.uuid,
+        isError: 1,
         errorStack: _.get(error, 'stack'),
         contents: {},
       };
@@ -241,8 +205,6 @@ class SocketClint extends AbstDeviceClient {
   }
 
   /**
-   * TODO: 서버 측에서의 전송 메시지 응답에 관한 처리
-   * TODO: 서버측에서의 명령 요청 수행 처리 메소드 구현
    * 장치로부터 데이터 수신
    * @override
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
@@ -251,13 +213,28 @@ class SocketClint extends AbstDeviceClient {
     super.onDcData(dcData);
     try {
       const decodingData = this.defaultConverter.decodingMsg(dcData.data);
+      const strData = decodingData.toString();
 
-      // 인증이 되지 않은 상태라면 보낸 명령 체크
-      if (!this.hasCertification) {
-        this.checkCertifyServer(dcData, decodingData);
+      // 형식을 지켜서 보낸 명령만 대응
+      if (BU.IsJsonString(strData)) {
+        const parseData = JSON.parse(strData);
+        // Error가 있다면 Client에서 보낸 명령에 대한 Response
+        if (_.has(parseData, 'isError')) {
+          /** @type {defaultFormatToResponse} */
+          const responsedDataByServer = parseData;
+          // 보낸 명령이 CERTIFICATION 타입이라면 체크
+          if (responsedDataByServer.commandId === transmitToServerCommandType.CERTIFICATION) {
+            // 에러가 아니라면 인증된것으로 정의
+            BU.CLI('@@@ Authentication is completed from the Socket Server.');
+            this.hasCertification = responsedDataByServer.isError === 0;
+          }
+        } else {
+          // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
+          return this.interpretRequestedCommand(parseData);
+        }
       }
 
-      BU.CLI(decodingData);
+      // 어찌됐든 수신을 받으면
       this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
       BU.logFile(error);
