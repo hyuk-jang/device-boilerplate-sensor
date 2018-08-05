@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "node_modules/.bin/mocha -w",
-    "start": "nodemon index.js",
+    "start": "nodemon --trace-warnings index",
     "generate-docs": "node_modules/.bin/jsdoc -c jsdoc.json"
   },
   "keywords": [],
@@ -37,6 +37,7 @@
     "event-to-promise": "^0.8.0",
     "lodash": "^4.17.10",
     "moment": "^2.22.2",
+    "split": "^1.0.1",
     "uuid": "^3.3.2"
   }
 }

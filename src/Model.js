@@ -7,13 +7,17 @@ const {BM} = require('../../base-model-jh');
 const Control = require('./Control');
 const DataLoggerController = require('../DataLoggerController');
 
+const {dcmWsModel, dcmConfigModel} = require('../../default-intelligence');
+
 const {
   combinedOrderType,
   requestOrderCommandType,
   requestDeviceControlType,
   simpleOrderStatus,
   nodePickKey,
-} = require('../../default-intelligence').dcmConfigModel;
+} = dcmConfigModel;
+
+const {transmitToServerCommandType} = dcmWsModel;
 
 const map = require('../config/map');
 
@@ -28,8 +32,6 @@ class Model {
     this.dataLoggerControllerList = controller.dataLoggerControllerList;
     this.dataLoggerList = controller.dataLoggerList;
     this.nodeList = controller.nodeList;
-
-    this.nodeStatusList = {};
 
     this.initCombinedOrderStorage();
 
@@ -82,7 +84,7 @@ class Model {
 
     // 신규 알림
     this.controller.socketClient.transmitDataToServer({
-      commandType: 'command',
+      commandType: transmitToServerCommandType.COMMAND,
       data: [simpleOrderInfo],
     });
   }
@@ -95,14 +97,9 @@ class Model {
    */
   updateSimpleOrderInfo(uuid, orderStatus) {
     const simpleOrderInfo = _.find(this.simpleOrderList, {uuid});
-    BU.CLIN(simpleOrderInfo);
+    // BU.CLI(orderStatus, simpleOrderInfo);
     // 데이터가 존재한다면 해당 명령의 변화가 생긴 것
     if (simpleOrderInfo) {
-      BU.CLI(
-        _(simpleOrderStatus)
-          .values()
-          .includes(orderStatus),
-      );
       // orderStatus 가 정상적인 데이터이고 기존 데이터와 다르다면
       if (
         _(simpleOrderStatus)
@@ -111,10 +108,18 @@ class Model {
         !_.isEqual(simpleOrderInfo.orderStatus, orderStatus)
       ) {
         simpleOrderInfo.orderStatus = orderStatus;
-        // 업데이트 알림
+
+        // 명령이 완료됐다면 Simple Order List에서 삭제
+        if (orderStatus === simpleOrderStatus.COMPLETE) {
+          _.pullAllWith(this.simpleOrderList, [simpleOrderInfo], _.isEqual);
+        }
+
+        BU.CLI(this.simpleOrderList);
+
+        // 업데이트 알림 (통째로 보내버림)
         this.controller.socketClient.transmitDataToServer({
-          commandType: 'command',
-          data: [simpleOrderInfo],
+          commandType: transmitToServerCommandType.COMMAND,
+          data: this.simpleOrderList,
         });
       } else {
         return false;
@@ -126,9 +131,9 @@ class Model {
 
   /**
    * 명령을 기반으로 Order Storage 내용 반환
-   * @param {string} requestCommandId 명령을 내릴 때 해당 명령의 고유 ID(mode5, mode3, ...)
+   * @param {string} integratedUUID 명령을 내릴 때 해당 명령의 고유 ID(mode5, mode3, ...)
    */
-  findAllCombinedOrderByCommandId(requestCommandId) {
+  findAllCombinedOrderByUUID(integratedUUID) {
     const returnValue = {
       orderStorageKeyLV1: '',
       /** @type {combinedOrderInfo} */
@@ -150,7 +155,7 @@ class Model {
         if (hasFined) return false;
         // 해당 명령을 가진 combinedOrderWrapInfo 검색
         const foundIndex = _.findIndex(combinedOrderWrapList, {
-          requestCommandId,
+          uuid: integratedUUID,
         });
         // 0 이상이면 해당 배열에 존재한다는 것
         if (foundIndex >= 0) {
@@ -297,12 +302,9 @@ class Model {
     const {commandSet} = dcMessage;
 
     // BU.CLIN(commandSet);
-
     // 명령 타입에 따라서 저장소를 가져옴(Control, Cancel, Measure)
 
-    const resOrderInfo = this.findAllCombinedOrderByCommandId(commandSet.commandId);
-
-    // BU.CLI(this.combinedOrderStorage);
+    const resOrderInfo = this.findAllCombinedOrderByUUID(commandSet.integratedUUID);
 
     // requestCommandType에 맞는 저장소가 없는 경우
     if (!resOrderInfo.orderStorageKeyLV1.length) {
@@ -374,32 +376,34 @@ class Model {
         .value();
 
       // 가져온 flatten 리스트에서 uuid가 동일한 객체 검색
-      const orderElementInfo = _.find(flatOrderElementList, {
-        uuid: commandSet.uuid,
-      });
+      // const orderElementInfo = _.find(flatOrderElementList, {
+      //   uuid: commandSet.uuid,
+      // });
+
+      _.set(
+        _.find(flatOrderElementList, {
+          uuid: commandSet.uuid,
+        }),
+        'hasComplete',
+        true,
+      );
 
       // BU.CLI('NodeID', orderElementInfo.nodeId);
 
       // 완료 처리
-      if (orderElementInfo) {
-        orderElementInfo.hasComplete = true;
-        // NOTE: 한개의 동작이 완료 됐을 때 특별한 동작을 하고 싶을 경우 이하 작성
-      }
+      // if (orderElementInfo) {
+      //   orderElementInfo.hasComplete = true;
+      //   // NOTE: 한개의 동작이 완료 됐을 때 특별한 동작을 하고 싶을 경우 이하 작성
+      // }
 
-      // 해당 명령이 모두 완료되었을 경우
-      // BU.CLI(flatOrderElementList);
-      // const hasComLen = _(flatOrderElementList)
-      //   .map(ele => ele.hasComplete === true)
-      //   .value().length;
-
+      // TEST: 작업 세부 과정의 최종 완료 여부를 콘솔에서 확인하기 위해 간단히 가져옴
       const flatSimpleList = _.map(flatOrderElementList, ele =>
         _.pick(ele, ['hasComplete', 'nodeId']),
       );
-      BU.CLI(flatSimpleList);
+      BU.CLI(resOrderInfo.orderWrapInfoLV3.requestCommandId, flatSimpleList);
       if (_.every(flatOrderElementList, 'hasComplete')) {
         BU.CLI('All Completed CommandId: ', dcMessage.commandSet.commandId);
         // proceedingList에서 제거
-
         const completeOrderInfo = _.head(
           _.pullAt(
             resOrderInfo.orderStorageLV1[resOrderInfo.orderInfoKeyLV2],
@@ -407,6 +411,7 @@ class Model {
           ),
         );
         if (completeOrderInfo === undefined) {
+          BU.CLI('해당 객체는 존재하지 않습니다.');
           throw new Error('해당 객체는 존재하지 않습니다.');
         }
 

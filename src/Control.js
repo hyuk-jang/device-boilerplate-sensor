@@ -9,7 +9,7 @@ const {BM} = require('../../base-model-jh');
 
 // const Model = require('./Model');
 
-const {dcmConfigModel, dccFlagModel} = require('../../default-intelligence');
+const {dcmConfigModel, dccFlagModel, dcmWsModel} = require('../../default-intelligence');
 
 const {requestOrderCommandType, requestDeviceControlType} = dcmConfigModel;
 const {definedCommandSetRank} = dccFlagModel;
@@ -113,7 +113,7 @@ class Control extends EventEmitter {
   init() {
     this.model = new Model(this);
     this.socketClient = new SocketClint(this);
-    this.socketClient.init();
+    this.socketClient.connect();
 
     // BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
@@ -155,14 +155,56 @@ class Control extends EventEmitter {
   }
 
   /**
+   * @param {nodeInfo} nodeInfo
+   * @param {string} controlValue
+   */
+  convertControlValueToString(nodeInfo, controlValue) {
+    controlValue = Number(controlValue);
+    let strControlValue = '';
+    const onOffList = ['pump'];
+    const openCloseList = ['valve', 'waterDoor'];
+
+    let strTrue = '';
+    let strFalse = '';
+
+    if (_.includes(onOffList, nodeInfo.nc_target_id)) {
+      strTrue = 'On';
+      strFalse = 'Off';
+    } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
+      strTrue = 'Open';
+      strFalse = 'Close';
+    }
+
+    switch (controlValue) {
+      case requestDeviceControlType.FALSE:
+        strControlValue = strFalse;
+        break;
+      case requestDeviceControlType.TRUE:
+        strControlValue = strTrue;
+        break;
+      case requestDeviceControlType.MEASURE:
+        strControlValue = 'Measure';
+        break;
+      case requestDeviceControlType.SET:
+        strControlValue = 'Set';
+        break;
+      default:
+        break;
+    }
+    return strControlValue;
+  }
+
+  /**
    * 외부에서 단일 명령을 내릴경우
    * @param {requestSingleOrderInfo} requestSingleOrderInfo
    */
   executeSingleControl(requestSingleOrderInfo) {
+    const {nodeId, controlValue} = requestSingleOrderInfo;
+    const nodeInfo = _.find(this.nodeList, {node_id: nodeId});
     try {
       /** @type {requestCombinedOrderInfo} */
       const requestCombinedOrder = {
-        requestCommandId: '',
+        requestCommandId: `S_${nodeId}_${this.convertControlValueToString(nodeInfo, controlValue)}`,
         requestCommandName: '',
         requestCommandType: requestSingleOrderInfo.requestCommandType,
         requestElementList: [],
@@ -175,6 +217,8 @@ class Control extends EventEmitter {
         nodeId: requestSingleOrderInfo.nodeId,
         rank: _.get(requestSingleOrderInfo, 'rank', 2),
       };
+
+      BU.CLI(requestOrderElement);
 
       requestCombinedOrder.requestElementList.push(requestOrderElement);
 
@@ -194,7 +238,7 @@ class Control extends EventEmitter {
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
       requestCommandId: controlInfo.cmdName,
-      requestCommandName: controlInfo.cmdName,
+      requestCommandName: `${controlInfo.cmdName} ${requestOrderCommandType.CONTROL}`,
       requestCommandType: requestOrderCommandType.CONTROL,
       requestElementList: [],
     };
@@ -230,7 +274,7 @@ class Control extends EventEmitter {
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
       requestCommandId: controlInfo.cmdName,
-      requestCommandName: controlInfo.cmdName,
+      requestCommandName: `${controlInfo.cmdName} ${requestOrderCommandType.CANCEL}`,
       requestCommandType: requestOrderCommandType.CANCEL,
       requestElementList: [],
     };
@@ -350,7 +394,7 @@ class Control extends EventEmitter {
       });
     });
 
-    // BU.CLIN(combinedWrapOrder, 4);
+    BU.CLIN(combinedWrapOrder, 4);
     // 복합 명령 저장
     this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
 
@@ -364,7 +408,7 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   transferRequestOrder(combinedOrderWrapInfo) {
-    const {requestCommandId, requestCommandName, requestCommandType} = combinedOrderWrapInfo;
+    const {uuid, requestCommandId, requestCommandName, requestCommandType} = combinedOrderWrapInfo;
 
     // 아직 요청 전이므로 orderContainerList 순회하면서 명령 생성 및 요청
     combinedOrderWrapInfo.orderContainerList.forEach(combinedOrderContainerInfo => {
@@ -375,6 +419,7 @@ class Control extends EventEmitter {
         if (hasFirst) {
           /** @type {executeOrderInfo} */
           const executeOrder = {
+            integratedUUID: uuid,
             requestCommandId,
             requestCommandName,
             requestCommandType,
@@ -420,6 +465,7 @@ class Control extends EventEmitter {
 
   /** 정기적인 Router Status 탐색 */
   async discoveryRegularDevice() {
+    BU.CLI('discoveryRegularDevice');
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
       requestCommandId: 'discoveryRegularDevice',
@@ -465,7 +511,7 @@ class Control extends EventEmitter {
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     this.socketClient.transmitDataToServer({
-      commandType: 'node',
+      commandType: dcmWsModel.transmitToServerCommandType.NODE,
       data: renewalNodeList,
     });
   }

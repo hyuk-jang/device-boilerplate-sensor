@@ -20,30 +20,12 @@ const config = {
   },
   uuid: 'aaaaa',
   mainSocketInfo: {
-    target_id: 'SocketClient',
-    target_category: 'socketClient',
-    target_name: '6kw TB',
-    controlInfo: {
-      hasErrorHandling: false,
-      hasOneAndOne: true,
-      hasReconnect: true,
-    },
-    logOption: {
-      hasCommanderResponse: true,
-      hasDcError: true,
-      hasDcEvent: true,
-      hasDcMessage: true,
-      hasReceiveData: true,
-      hasTransferCommand: true,
-    },
-    connect_info: {
-      host: process.env.DB_UPSAS_HOST,
-      port: process.env.SOCKET_UPSAS_PORT,
-      type: 'socket',
-      addConfigInfo: {
-        parser: controllerParserType.socket.DELIMITER,
-        option: Buffer.from([0x04]),
-      },
+    host: process.env.DB_UPSAS_HOST,
+    port: process.env.SOCKET_UPSAS_PORT,
+    type: 'socket',
+    addConfigInfo: {
+      parser: controllerParserType.socket.DELIMITER,
+      option: Buffer.from([0x04]),
     },
   },
   dataLoggerList: [],

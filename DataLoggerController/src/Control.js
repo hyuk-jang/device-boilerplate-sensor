@@ -9,7 +9,10 @@ const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
 const {MainConverter, BaseModel} = require('../../../device-protocol-converter-jh');
 
-const {requestOrderCommandType} = require('../../../default-intelligence').dcmConfigModel;
+const {
+  requestOrderCommandType,
+  requestDeviceControlType,
+} = require('../../../default-intelligence').dcmConfigModel;
 // require('../../../default-intelligence');
 // const {AbstConverter} = require('device-protocol-converter-jh');
 
@@ -204,7 +207,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {executeOrderInfo} executeOrderInfo
    */
   orderOperation(executeOrderInfo) {
-    // BU.CLIN(executeOrderInfo);
+    BU.CLIN(executeOrderInfo);
     try {
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
       const nodeId = _.get(executeOrderInfo, 'nodeId', '');
@@ -224,16 +227,17 @@ const DataLoggerController = class extends AbstDeviceClient {
         value: _.get(executeOrderInfo, 'controlValue'),
       });
 
+      // BU.CLI(cmdList);
       const cmdName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${
         executeOrderInfo.controlValue
       }`;
-      // 장치를 열거나
-      const rank =
-        executeOrderInfo.controlValue === 1 || executeOrderInfo.controlValue === 0
-          ? this.definedCommandSetRank.SECOND
-          : this.definedCommandSetRank.THIRD;
 
+      // 장치를 열거나
+      const rank = _.isNumber(_.get(executeOrderInfo, 'rank'))
+        ? _.get(executeOrderInfo, 'rank')
+        : this.definedCommandSetRank.THIRD;
       const commandSet = this.generationManualCommand({
+        integratedUUID: executeOrderInfo.integratedUUID,
         cmdList,
         commandId: executeOrderInfo.requestCommandId,
         commandName: cmdName,
@@ -242,11 +246,14 @@ const DataLoggerController = class extends AbstDeviceClient {
         nodeId: executeOrderInfo.nodeId,
         rank,
       });
+
+      // BU.CLIN(commandSet);
       // 장치로 명령 요청
       this.executeCommand(commandSet);
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
       return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
+      BU.CLI(error);
       throw error;
     }
   }
@@ -260,12 +267,13 @@ const DataLoggerController = class extends AbstDeviceClient {
     executeOrder = {
       requestCommandType: requestOrderCommandType.MEASURE,
       requestCommandId: 'RegularMeasure',
-      rank: 3,
+      rank: this.definedCommandSetRank.THIRD,
     },
   ) {
     try {
       const cmdList = this.converter.generationCommand({
         key: 'DEFAULT',
+        value: requestDeviceControlType.MEASURE,
       });
       const cmdName = `${this.config.dataLoggerInfo.target_alias} ${
         this.config.dataLoggerInfo.target_code
@@ -274,6 +282,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       const rank = this.definedCommandSetRank.THIRD;
 
       const commandSet = this.generationManualCommand({
+        integratedUUID: executeOrder.integratedUUID,
         cmdList,
         commandId: executeOrder.requestCommandId,
         commandName: cmdName,
@@ -301,7 +310,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    * dcDisconnect --> 장치 연결 해제
    */
   updatedDcEventOnDevice(dcEvent) {
-    super.updatedDcEventOnDevice(dcEvent);
+    // super.updatedDcEventOnDevice(dcEvent);
 
     // Observer가 해당 메소드를 가지고 있다면 전송
     _.forEach(this.observerList, observer => {
@@ -335,7 +344,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {dcMessage} dcMessage
    */
   onDcMessage(dcMessage) {
-    super.onDcMessage(dcMessage);
+    // super.onDcMessage(dcMessage);
 
     switch (dcMessage.msgCode) {
       case this.definedCommandSetMessage.COMMANDSET_EXECUTION_TERMINATE:

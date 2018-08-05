@@ -1,7 +1,9 @@
 const _ = require('lodash');
-const {BU} = require('base-util-jh');
+const split = require('split');
+const net = require('net');
+const eventToPromise = require('event-to-promise');
 
-const AbstDeviceClient = require('../../device-client-controller-jh');
+const {BU} = require('base-util-jh');
 
 const Control = require('./Control');
 
@@ -12,50 +14,67 @@ const {
   transmitToClientCommandType,
 } = require('../../default-intelligence').dcmWsModel;
 
-class SocketClint extends AbstDeviceClient {
+/** Class Socket 접속 클라이언트 클래스 */
+class SocketClient {
   /** @param {Control} controller */
   constructor(controller) {
-    super();
     this.controller = controller;
-    this.config = controller.config;
-    this.defaultConverter = BaseModel.defaultModule;
 
+    // Main Socket Server로 접속하기 위한 정보 설정
+    const connectInfo = controller.config.mainSocketInfo;
+    this.mainSocketServerInfo = {
+      uuid: controller.config.uuid,
+      port: connectInfo.port,
+      host: connectInfo.host,
+      addConfigInfo: connectInfo.addConfigInfo,
+    };
+
+    /**
+     * Socket Client 연결 객체
+     * @type {net.Socket}
+     */
+    this.client = {};
+
+    /** 기본 Encoding, Decondig 처리를 할 라이브러리 */
+    this.defaultConverter = BaseModel.defaultModule;
     // socket Client의 인증 여부
     this.hasCertification = false;
   }
 
   /**
-   * device client 설정 및 프로토콜 바인딩
+   * Parser Pipe 를 붙임
+   * @param {Object} client SerialPort Client
    */
-  init() {
-    BU.CLI('init');
-    // BU.CLI(this.config.mainSocketInfo);
-    // this.setDeviceClient({
-    //   target_id: 'SocketClient',
-    //   target_category: 'socketClient',
-    //   target_name: '6kw TB',
-    //   controlInfo: {
-    //     hasErrorHandling: false,
-    //     hasOneAndOne: true,
-    //     hasReconnect: true,
-    //   },
-    //   logOption: {
-    //     hasCommanderResponse: true,
-    //     hasDcError: true,
-    //     hasDcEvent: true,
-    //     hasDcMessage: true,
-    //     hasReceiveData: true,
-    //     hasTransferCommand: true,
-    //   },
-    //   connect_info: {
-    //     host: 'localhost',
-    //     port: '7510',
-    //     type: 'socket',
-    //     subType: 'parser',
-    //     addConfigInfo: {parser: 'delimiterParser', option: this.converter.protocolConverter.EOT},
-    //   },
-    // });
-    this.setDeviceClient(this.config.mainSocketInfo);
+  settingParser(client) {
+    // BU.CLI('settingParser');
+
+    const parserInfo = this.mainSocketServerInfo.addConfigInfo;
+    let stream = null;
+    switch (parserInfo.parser) {
+      case 'delimiterParser':
+        stream = client.pipe(split(parserInfo.option));
+        stream.on('data', data => {
+          data += parserInfo.option;
+          this.onDcData(data);
+        });
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Socket Server로 메시지 전송
+   * @param {Buffer|String} 전송 데이터
+   * @return {Promise} Promise 반환 객체
+   */
+  write(msg) {
+    // BU.CLI(msg);
+    const res = this.client.write(msg);
+    if (res) {
+      return Promise.resolve();
+    }
+    return Promise.reject(res);
   }
 
   /**
@@ -65,14 +84,19 @@ class SocketClint extends AbstDeviceClient {
    */
   transmitDataToServer(transDataToServerInfo) {
     try {
+      // BU.CLI(transDataToServerInfo);
+      // 소켓 연결이 되지 않으면 명령 전송 불가
+      if (_.isEmpty(this.client)) {
+        throw new Error('The socket is not connected yet.');
+      }
       // 인증이 되지 않았는데 별도의 데이터를 보낼 수는 없음
-      BU.CLI(transDataToServerInfo);
       if (
         transDataToServerInfo.commandType !== transmitToServerCommandType.CERTIFICATION &&
         !this.hasCertification
       ) {
         // BU.CLI('Authentication must be performed first');
-        return false;
+        // return false;
+        throw new Error('Authentication must be performed first');
       }
       // 기본 전송규격 프레임에 넣음
       // BU.CLIF(transDataToServerInfo);
@@ -83,22 +107,16 @@ class SocketClint extends AbstDeviceClient {
         contents: transDataToServerInfo.data,
       };
 
+      // BU.CLI(transmitDataToServer);
+
       const encodingData = this.defaultConverter.encodingMsg(transmitDataToServer);
 
       // BU.CLI(encodingData.toString());
-      // 명령 요청 포맷으로 변경
-      const commandSet = this.generationManualCommand({
-        // commandId: this.index,
-        commandId: transDataToServerInfo.commandType,
-        cmdList: [
-          {
-            data: encodingData,
-            commandExecutionTimeoutMs: 1000,
-          },
-        ],
-      });
-      // 명령 전송
-      this.executeCommand(commandSet);
+      // 명령 전송 성공 유무 반환
+      return this.write(encodingData)
+        .then(() => true)
+        .catch(err => err);
+      // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
       BU.CLI(error);
       throw error;
@@ -106,49 +124,39 @@ class SocketClint extends AbstDeviceClient {
   }
 
   /**
-   * FIXME: UUID를 통한 식별 처리. RSA 인증이 필요할 듯 (2018-07-30)
+   * 장치로부터 데이터 수신
    * @override
-   * Device Controller 변화가 생겨 관련된 전체 Commander에게 뿌리는 Event
-   * @param {dcEvent} dcEvent
-   * @example 보통 장치 연결, 해제에서 발생
-   * dcConnect --> 장치 연결,
-   * dcDisconnect --> 장치 연결 해제
+   * @param {bufData} bufData 현재 장비에서 실행되고 있는 명령 객체
    */
-  updatedDcEventOnDevice(dcEvent) {
-    super.updatedDcEventOnDevice(dcEvent);
+  onDcData(bufData) {
+    // BU.CLI(bufData);
+    try {
+      const decodingData = this.defaultConverter.decodingMsg(bufData);
+      const strData = decodingData.toString();
+      // BU.CLI(strData);
 
-    switch (dcEvent.eventName) {
-      case this.definedControlEvent.CONNECT:
-        this.transmitDataToServer({
-          commandType: transmitToServerCommandType.CERTIFICATION,
-          data: this.config.uuid,
-        });
-        break;
-      // 장치와의 접속이 해제되었다면 인증여부를 false로 바꿈
-      case this.definedControlEvent.DISCONNECT:
-        this.hasCertification = false;
-        break;
-      default:
-        break;
+      // 형식을 지켜서 보낸 명령만 대응
+      if (BU.IsJsonString(strData)) {
+        const parseData = JSON.parse(strData);
+        // Error가 있다면 Client에서 보낸 명령에 대한 Response
+        if (_.has(parseData, 'isError')) {
+          /** @type {defaultFormatToResponse} */
+          const responsedDataByServer = parseData;
+          // 보낸 명령이 CERTIFICATION 타입이라면 체크
+          if (responsedDataByServer.commandId === transmitToServerCommandType.CERTIFICATION) {
+            // 에러가 아니라면 인증된것으로 정의
+            BU.CLI('@@@ Authentication is completed from the Socket Server.');
+            this.hasCertification = responsedDataByServer.isError === 0;
+          }
+        } else {
+          // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
+          return this.interpretRequestedCommand(parseData);
+        }
+      }
+    } catch (error) {
+      BU.logFile(error);
+      throw error;
     }
-  }
-
-  /**
-   * @override
-   * 장치에서 명령을 수행하는 과정에서 생기는 1:1 이벤트
-   * @param {dcError} dcError 현재 장비에서 실행되고 있는 명령 객체
-   */
-  onDcError(dcError) {
-    super.onDcError(dcError);
-  }
-
-  /**
-   * @override
-   * 메시지 발생 핸들러
-   * @param {dcMessage} dcMessage
-   */
-  onDcMessage(dcMessage) {
-    super.onDcMessage(dcMessage);
   }
 
   /**
@@ -157,6 +165,7 @@ class SocketClint extends AbstDeviceClient {
    * @param {defaultFormatToRequest} dataInfo
    */
   interpretRequestedCommand(dataInfo) {
+    BU.CLI('interpretRequestedCommand', dataInfo);
     try {
       // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
       if (_.values(transmitToClientCommandType).includes(_.get(dataInfo, 'commandId'))) {
@@ -186,7 +195,7 @@ class SocketClint extends AbstDeviceClient {
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
       // DCC에 전송 명령
-      return this.executeCommand(this.generationAutoCommand(encodingMsg));
+      return this.write(encodingMsg);
     } catch (error) {
       /** @type {defaultFormatToResponse} */
       const responseMsg = {
@@ -200,46 +209,67 @@ class SocketClint extends AbstDeviceClient {
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
       // DCC에 전송 명령
-      return this.executeCommand(this.generationAutoCommand(encodingMsg));
+      return this.write(encodingMsg);
     }
+  }
+
+  /** 장치 접속 시도 */
+  async connect() {
+    BU.log('Try Connect : ', this.mainSocketServerInfo.port);
+    /** 접속 중인 상태라면 접속 시도하지 않음 */
+    if (!_.isEmpty(this.client)) {
+      throw new Error(`Already connected. ${this.mainSocketServerInfo.port}`);
+    }
+
+    const client = net.createConnection(
+      this.mainSocketServerInfo.port,
+      this.mainSocketServerInfo.host,
+    );
+
+    this.settingParser(client);
+
+    // client.on('data', bufferData => {
+    //   this.notifyData(bufferData);
+    // });
+
+    client.on('close', err => {
+      this.hasCertification = false;
+      this.client = {};
+      // 장치 접속이 끊겼을 경우 재접속
+      setTimeout(() => {
+        this.connect();
+      }, 1000 * 20);
+    });
+
+    client.on('end', () => {
+      // console.log('Client disconnected');
+    });
+
+    client.on('error', error => {
+      client.emit('close', error);
+    });
+    await eventToPromise.multi(client, ['connect', 'connection', 'open'], ['close', 'error']);
+    this.client = client;
+
+    // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
+    this.transmitDataToServer({
+      commandType: transmitToServerCommandType.CERTIFICATION,
+      data: this.mainSocketServerInfo.uuid,
+    });
+
+    return this.client;
   }
 
   /**
-   * 장치로부터 데이터 수신
-   * @override
-   * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
+   * Close Connect
    */
-  onDcData(dcData) {
-    super.onDcData(dcData);
-    try {
-      const decodingData = this.defaultConverter.decodingMsg(dcData.data);
-      const strData = decodingData.toString();
-
-      // 형식을 지켜서 보낸 명령만 대응
-      if (BU.IsJsonString(strData)) {
-        const parseData = JSON.parse(strData);
-        // Error가 있다면 Client에서 보낸 명령에 대한 Response
-        if (_.has(parseData, 'isError')) {
-          /** @type {defaultFormatToResponse} */
-          const responsedDataByServer = parseData;
-          // 보낸 명령이 CERTIFICATION 타입이라면 체크
-          if (responsedDataByServer.commandId === transmitToServerCommandType.CERTIFICATION) {
-            // 에러가 아니라면 인증된것으로 정의
-            BU.CLI('@@@ Authentication is completed from the Socket Server.');
-            this.hasCertification = responsedDataByServer.isError === 0;
-          }
-        } else {
-          // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
-          return this.interpretRequestedCommand(parseData);
-        }
-      }
-
-      // 어찌됐든 수신을 받으면
-      this.requestTakeAction(this.definedCommanderResponse.NEXT);
-    } catch (error) {
-      BU.logFile(error);
-      throw error;
+  async disconnect() {
+    if (!_.isEmpty(this.client)) {
+      this.client.destroy(() => this.client);
+    } else {
+      return this.client;
     }
   }
 }
-module.exports = SocketClint;
+
+module.exports = SocketClient;

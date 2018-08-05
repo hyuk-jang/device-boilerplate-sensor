@@ -16,6 +16,7 @@ const {
   simpleOrderStatus,
   nodePickKey,
 } = require('../../../default-intelligence').dcmConfigModel;
+const {transmitToServerCommandType} = require('../../../default-intelligence').dcmWsModel;
 
 const Control = require('../../src/Control');
 const config = require('../../src/config');
@@ -23,7 +24,7 @@ const config = require('../../src/config');
 const control = new Control(config);
 const dumpNodeList = [
   {
-    commandType: 'node',
+    commandType: transmitToServerCommandType.NODE,
     data: [
       {
         node_seq: 1,
@@ -55,7 +56,7 @@ const dumpNodeList = [
     ],
   },
   {
-    commandType: 'node',
+    commandType: transmitToServerCommandType.NODE,
     data: [
       {
         node_seq: 25,
@@ -87,7 +88,7 @@ const dumpNodeList = [
     ],
   },
   {
-    commandType: 'node',
+    commandType: transmitToServerCommandType.NODE,
     data: [
       {
         node_seq: 15,
@@ -149,7 +150,7 @@ const dumpNodeList = [
 
 const dumpCommandList = [
   {
-    commandType: 'command',
+    commandType: transmitToServerCommandType.COMMAND,
     data: [
       {
         orderCommandType: 'CONTROL',
@@ -161,7 +162,7 @@ const dumpCommandList = [
     ],
   },
   {
-    commandType: 'command',
+    commandType: transmitToServerCommandType.COMMAND,
     data: [
       {
         orderCommandType: 'CANCEL',
@@ -173,7 +174,7 @@ const dumpCommandList = [
     ],
   },
   {
-    commandType: 'command',
+    commandType: transmitToServerCommandType.COMMAND,
     data: [
       {
         orderCommandType: 'MEASURE',

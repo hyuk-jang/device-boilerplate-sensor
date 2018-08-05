@@ -22,16 +22,20 @@ class Scenario {
    * @param {{scenarioId: string, requestCommandType: string}} scenarioInfo 시나리오 ID
    */
   interpretScenario(scenarioInfo) {
+    BU.CLI(scenarioInfo);
     const {scenarioId, requestCommandType} = scenarioInfo;
     // 명령 타입 체크. MEASURE 까지 포함되어 있지만... webServer 측에서 보내지 말 것
-    if (_.values(requestOrderCommandType).includes(requestCommandType)) {
+    if (!_.values(requestOrderCommandType).includes(requestCommandType)) {
       throw new Error(`requestCommandType: ${requestCommandType} does not exist.`);
     }
+    BU.CLI(scenarioInfo);
     // 제어 요청일 경우에는 true, 아닐 경우에는 false로 설정
     const hasExecute = requestCommandType === requestOrderCommandType.CONTROL;
+    BU.CLI(scenarioInfo);
 
     switch (scenarioId) {
       case 'scenario1':
+        BU.CLI(scenarioInfo);
         this.scenarioMode1(hasExecute);
         break;
       default:
@@ -45,6 +49,7 @@ class Scenario {
    * @param {boolean} hasRequestExecute 시나리오 모드 실행 / 정지
    */
   async scenarioMode1(hasRequestExecute) {
+    BU.CLI('scenarioMode1', hasRequestExecute);
     if (hasRequestExecute === false) {
       this.hasOperationScenario1 = false;
       return false;
