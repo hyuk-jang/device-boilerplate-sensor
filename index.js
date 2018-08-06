@@ -28,12 +28,16 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       control.init();
 
-      setTimeout(() => {
-        control.discoveryRegularDevice();
-      }, 2000);
+      // setTimeout(() => {
+      //   control.discoveryRegularDevice();
+      // }, 2000);
 
       // setTimeout(() => {
       //   control.runCronDiscoveryRegularDevice();
+      // }, 2000);
+
+      // setTimeout(() => {
+      //   control.requestPowerStatusBoardInfo();
       // }, 2000);
     })
     .catch(err => {
@@ -49,8 +53,7 @@ if (require !== undefined && require.main === module) {
 
   process.on('unhandledRejection', err => {
     // BU.debugConsole();
-    console.error(err.stack);
-    console.log(err.message);
+    BU.CLI(err);
     console.log('Node NOT Exiting...');
   });
 }

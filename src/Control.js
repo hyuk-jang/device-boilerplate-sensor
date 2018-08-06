@@ -4,6 +4,8 @@ const cron = require('cron');
 const _ = require('lodash');
 const eventToPromise = require('event-to-promise');
 
+const moment = require('moment');
+
 const {BU} = require('base-util-jh');
 const {BM} = require('../../base-model-jh');
 
@@ -17,7 +19,8 @@ const {definedCommandSetRank} = dccFlagModel;
 const DataLoggerController = require('../DataLoggerController');
 
 const Scenario = require('./Scenario');
-const SocketClint = require('./SocketClint');
+const SocketClint = require('./outsideCommunication/SocketClint');
+const PowerStatusBoard = require('./outsideCommunication/PowerStatusBoard');
 
 const Model = require('./Model');
 
@@ -112,8 +115,14 @@ class Control extends EventEmitter {
    */
   init() {
     this.model = new Model(this);
+
+    // Main Socket Server와 통신을 수립할 Socket Client 객체 생성
     this.socketClient = new SocketClint(this);
-    this.socketClient.connect();
+    this.socketClient.tryConnect();
+
+    // 현황판 보여줄 객체 생성
+    this.powerStatusBoard = new PowerStatusBoard(this);
+    this.powerStatusBoard.tryConnect();
 
     // BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
@@ -433,6 +442,7 @@ class Control extends EventEmitter {
           const dataLoggerController = this.model.findDataLoggerController(
             combinedOrderElementInfo.nodeId,
           );
+
           dataLoggerController.orderOperation(executeOrder);
           // hasFirst = false;
         }
@@ -453,7 +463,11 @@ class Control extends EventEmitter {
       this.cronScheduler = new cron.CronJob({
         cronTime: '0 */1 * * * *',
         onTick: () => {
-          this.discoveryRegularDevice();
+          this.discoveryRegularDevice(moment())
+            .then()
+            .catch(err => {
+              BU.errorLog('command', 'runCronDiscoveryRegularDevice', err);
+            });
         },
         start: true,
       });
@@ -463,8 +477,11 @@ class Control extends EventEmitter {
     }
   }
 
-  /** 정기적인 Router Status 탐색 */
-  async discoveryRegularDevice() {
+  /** 정기적인 Router Status 탐색
+   * @param {moment} momentDate
+   *
+   */
+  async discoveryRegularDevice(momentDate) {
     BU.CLI('discoveryRegularDevice');
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
@@ -481,6 +498,23 @@ class Control extends EventEmitter {
     // completeDiscovery 이벤트가 발생할때까지 대기
     await eventToPromise.multi(this, ['completeDiscovery'], ['error', 'close']);
 
+    // 데이터의 유효성을 인정받는 Node List
+    const validNodeList = this.model.checkValidateNodeData(
+      this.nodeList,
+      {
+        diffType: 'minutes',
+        duration: 2, // 2분을 벗어나면 데이터 가치가 없음
+      },
+      momentDate,
+    );
+
+    const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
+      hasSensor: true,
+      hasDevice: false,
+    });
+
+    return returnValue;
+
     // Data Logger 현재 상태 조회
     // this.dataLoggerControllerList.forEach(router => {
     //   /** @type {requestOrderInfo} */
@@ -494,11 +528,22 @@ class Control extends EventEmitter {
   }
 
   /**
-   * Data Logger Controller 에서 명령을 처리하였을 경우
-   * @param {DataLoggerController} dataLoggerController
-   * @param {commandSet} commandSet
+   * 현황판 객체에서 Socket Server로 현황판 데이터를 요청하고 응답받은 데이터를 현황판으로 전송하는 메소드
    */
-  notifyCompleteOrder(dataLoggerController, commandSet) {}
+  async requestPowerStatusBoardInfo() {
+    try {
+      this.socketClient.transmitDataToServer({
+        commandType: dcmWsModel.transmitToServerCommandType.POWER_BOARD,
+      });
+
+      const powerStatusBoardData = await eventToPromise.multi(this, ['done'], ['error']);
+
+      // 수신 받은 현황판 데이터 전송
+      this.powerStatusBoard.write(powerStatusBoardData);
+    } catch (error) {
+      BU.errorLog('communication', error);
+    }
+  }
 
   /**
    * TODO: 데이터 처리

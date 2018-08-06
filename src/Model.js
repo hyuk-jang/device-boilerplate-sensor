@@ -5,17 +5,10 @@ const {BU} = require('base-util-jh');
 const {BM} = require('../../base-model-jh');
 
 const Control = require('./Control');
-const DataLoggerController = require('../DataLoggerController');
 
 const {dcmWsModel, dcmConfigModel} = require('../../default-intelligence');
 
-const {
-  combinedOrderType,
-  requestOrderCommandType,
-  requestDeviceControlType,
-  simpleOrderStatus,
-  nodePickKey,
-} = dcmConfigModel;
+const {combinedOrderType, requestOrderCommandType, simpleOrderStatus, nodePickKey} = dcmConfigModel;
 
 const {transmitToServerCommandType} = dcmWsModel;
 
@@ -255,7 +248,6 @@ class Model {
   /**
    * Data logger와 연결되어 있는 컨트롤러를 반환
    * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
-   * @return {DataLoggerController}
    */
   findDataLoggerController(searchValue) {
     // Node Id 일 경우
@@ -318,20 +310,20 @@ class Model {
 
     // 복합 명령 현황 저장소 key 형태를 보고 명령 타입을 정의
     // TODO: orderStorageType에 따라 명령 요청, 취소 요청 처리 필요
-    let orderStorageType = '';
-    switch (resOrderInfo.orderStorageKeyLV1) {
-      case 'controlStorage':
-        orderStorageType = requestOrderCommandType.CONTROL;
-        break;
-      case 'cancelStorage':
-        orderStorageType = requestOrderCommandType.CANCEL;
-        break;
-      case 'measureStorage':
-        orderStorageType = requestOrderCommandType.MEASURE;
-        break;
-      default:
-        break;
-    }
+    // let orderStorageType = '';
+    // switch (resOrderInfo.orderStorageKeyLV1) {
+    //   case 'controlStorage':
+    //     orderStorageType = requestOrderCommandType.CONTROL;
+    //     break;
+    //   case 'cancelStorage':
+    //     orderStorageType = requestOrderCommandType.CANCEL;
+    //     break;
+    //   case 'measureStorage':
+    //     orderStorageType = requestOrderCommandType.MEASURE;
+    //     break;
+    //   default:
+    //     break;
+    // }
 
     // BU.CLIN(commandSet);
     // BU.CLIN(commandSet.commandId, commandSet.uuid);
@@ -524,27 +516,28 @@ class Model {
   /**
    * 노드 리스트 중 입력된 날짜를 기준으로 유효성을 가진 데이터만 반환
    * @param {nodeInfo[]} nodeList
-   * @param {{diffType: string, permitValue: number}} permitTimeOption
+   * @param {timeIntervalToValidateInfo} diffInfo
+   * @param {moment} momentDate
    * @return {nodeInfo[]}
    */
-  checkValidateNodeData(nodeList, permitTimeOption) {
+  checkValidateNodeData(nodeList, diffInfo, momentDate) {
     // 날짜 차이를 구할 키를 설정
-    const diffType = permitTimeOption.diffType || 'minutes';
+    const diffType = diffInfo.diffType || 'minutes';
     // 날짜 차이를 허용할 수 설정
-    const permitValue = permitTimeOption.permitValue || 1;
+    const durationNumber = diffInfo.duration || 1;
     // 기준이 될 현재 시간 설정
-    const now = moment();
+    const now = momentDate || moment();
     // 입력된 노드 리스트를 돌면서 유효성 검증
     return nodeList.filter(nodeInfo => {
       // 날짜 차 계산
       const diffNum = now.diff(moment(nodeInfo.writeDate), diffType);
       // 날짜 차가 허용 범위를 넘어섰다면 유효하지 않는 데이터
-      if (diffNum > permitValue) {
-        BU.CLI(
-          `${
-            nodeInfo.node_id
-          }는 날짜(${diffType}) 차이가 허용 범위(${permitValue})를 넘어섰습니다. ${diffNum}`,
-        );
+      if (diffNum > durationNumber) {
+        // BU.CLI(
+        //   `${
+        //     nodeInfo.node_id
+        //   }는 날짜(${diffType}) 차이가 허용 범위(${permitValue})를 넘어섰습니다. ${diffNum}`,
+        // );
         return false;
       }
       return true;
@@ -552,26 +545,35 @@ class Model {
   }
 
   /**
-   *
-   * @param {nodeInfo[]} nodeList
+   * DB에 데이터 삽입
+   * @param {nodeInfo[]} nodeList 노드 리스트
+   * @param {{hasSensor: boolean, hasDevice: boolean}} insertOption DB에 입력 처리 체크
    */
-  async insertNodeDataToDB(nodeList) {
+  async insertNodeDataToDB(nodeList, insertOption) {
+    const returnValue = [];
     // 센서류 삽입
-    const nodeSensorList = _(nodeList)
-      .filter(ele => ele.nc_is_sensor === 1)
-      .map(ele => _.pick(ele, ['node_seq', 'data', 'writeDate']))
-      .value();
-    BU.CLI(nodeSensorList);
+    if (insertOption.hasSensor) {
+      const nodeSensorList = _(nodeList)
+        .filter(ele => ele.nc_is_sensor === 1)
+        .map(ele => _.pick(ele, ['node_seq', 'data', 'writeDate']))
+        .value();
+      BU.CLI(nodeSensorList);
+      const result = await this.BM.setTables('sensor_data', nodeSensorList, true);
+      returnValue.push(result);
+    }
 
-    // 센서류 삽입
-    const nodeDeviceList = _(nodeList)
-      .filter(ele => ele.nc_is_sensor === 0)
-      .map(ele => _.pick(ele, ['node_seq', 'data', 'writeDate']))
-      .value();
+    // 장치류 삽입
+    if (insertOption.hasDevice) {
+      const nodeDeviceList = _(nodeList)
+        .filter(ele => ele.nc_is_sensor === 0)
+        .map(ele => _.pick(ele, ['node_seq', 'data', 'writeDate']))
+        .value();
 
-    BU.CLI(nodeDeviceList);
-    // await this.BM.setTables('sensor_data', nodeSensorList, true);
-    // await this.BM.setTables('device_state_data', nodeDeviceList, true);
+      BU.CLI(nodeDeviceList);
+      const result = await this.BM.setTables('device_state_data', nodeDeviceList, true);
+      returnValue.push(result);
+    }
+    return returnValue;
   }
 }
 module.exports = Model;

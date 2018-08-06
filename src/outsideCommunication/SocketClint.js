@@ -3,26 +3,29 @@ const split = require('split');
 const net = require('net');
 const eventToPromise = require('event-to-promise');
 
-const {BU} = require('base-util-jh');
+const {BU, CU} = require('base-util-jh');
 
-const Control = require('./Control');
+const Control = require('../Control');
+const AbstController = require('./AbstController');
 
-const {BaseModel} = require('../../device-protocol-converter-jh');
+const {BaseModel} = require('../../../device-protocol-converter-jh');
 
 const {
   transmitToServerCommandType,
   transmitToClientCommandType,
-} = require('../../default-intelligence').dcmWsModel;
+} = require('../../../default-intelligence').dcmWsModel;
 
 /** Class Socket 접속 클라이언트 클래스 */
-class SocketClient {
+class SocketClient extends AbstController {
   /** @param {Control} controller */
   constructor(controller) {
+    super();
     this.controller = controller;
 
     // Main Socket Server로 접속하기 위한 정보 설정
     const connectInfo = controller.config.mainSocketInfo;
-    this.mainSocketServerInfo = {
+    this.configInfo = {
+      name: 'SocketClient',
       uuid: controller.config.uuid,
       port: connectInfo.port,
       host: connectInfo.host,
@@ -41,6 +44,11 @@ class SocketClient {
     this.hasCertification = false;
   }
 
+  /** AbstController 에서 접속 타이머 시작 요청 */
+  tryConnect() {
+    this.setInit();
+  }
+
   /**
    * Parser Pipe 를 붙임
    * @param {Object} client SerialPort Client
@@ -48,14 +56,14 @@ class SocketClient {
   settingParser(client) {
     // BU.CLI('settingParser');
 
-    const parserInfo = this.mainSocketServerInfo.addConfigInfo;
+    const parserInfo = this.configInfo.addConfigInfo;
     let stream = null;
     switch (parserInfo.parser) {
       case 'delimiterParser':
         stream = client.pipe(split(parserInfo.option));
         stream.on('data', data => {
           data += parserInfo.option;
-          this.onDcData(data);
+          this.onData(data);
         });
         break;
       default:
@@ -71,6 +79,13 @@ class SocketClient {
   write(msg) {
     // BU.CLI(msg);
     const res = this.client.write(msg);
+
+    if (_.isEmpty(this.client)) {
+      throw new Error(
+        `${this.configInfo.host} ${this.configInfo.port} The device is not connected yet.`,
+      );
+    }
+
     if (res) {
       return Promise.resolve();
     }
@@ -128,7 +143,7 @@ class SocketClient {
    * @override
    * @param {bufData} bufData 현재 장비에서 실행되고 있는 명령 객체
    */
-  onDcData(bufData) {
+  onData(bufData) {
     // BU.CLI(bufData);
     try {
       const decodingData = this.defaultConverter.decodingMsg(bufData);
@@ -142,11 +157,21 @@ class SocketClient {
         if (_.has(parseData, 'isError')) {
           /** @type {defaultFormatToResponse} */
           const responsedDataByServer = parseData;
-          // 보낸 명령이 CERTIFICATION 타입이라면 체크
-          if (responsedDataByServer.commandId === transmitToServerCommandType.CERTIFICATION) {
-            // 에러가 아니라면 인증된것으로 정의
-            BU.CLI('@@@ Authentication is completed from the Socket Server.');
-            this.hasCertification = responsedDataByServer.isError === 0;
+
+          switch (responsedDataByServer.commandId) {
+            // 보낸 명령이 CERTIFICATION 타입이라면 체크
+            case transmitToServerCommandType.CERTIFICATION:
+              BU.CLI('@@@ Authentication is completed from the Socket Server.');
+              this.hasCertification = responsedDataByServer.isError === 0;
+              break;
+            // 수신 받은 현황판 데이터 전송
+            case transmitToServerCommandType.POWER_BOARD:
+              responsedDataByServer.isError === 0
+                ? this.controller.emit('done', responsedDataByServer.contents)
+                : this.controller.emit('error');
+              break;
+            default:
+              break;
           }
         } else {
           // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
@@ -215,38 +240,25 @@ class SocketClient {
 
   /** 장치 접속 시도 */
   async connect() {
-    BU.log('Try Connect : ', this.mainSocketServerInfo.port);
+    // BU.CLI('Try SocketClient Connect : ', this.configInfo);
     /** 접속 중인 상태라면 접속 시도하지 않음 */
     if (!_.isEmpty(this.client)) {
-      throw new Error(`Already connected. ${this.mainSocketServerInfo.port}`);
+      throw new Error(`Already connected. ${this.configInfo.port}`);
     }
 
-    const client = net.createConnection(
-      this.mainSocketServerInfo.port,
-      this.mainSocketServerInfo.host,
-    );
+    const client = net.createConnection(this.configInfo.port, this.configInfo.host);
 
     this.settingParser(client);
-
-    // client.on('data', bufferData => {
-    //   this.notifyData(bufferData);
-    // });
 
     client.on('close', err => {
       this.hasCertification = false;
       this.client = {};
-      // 장치 접속이 끊겼을 경우 재접속
-      setTimeout(() => {
-        this.connect();
-      }, 1000 * 20);
+      this.notifyDisconnect(err);
     });
 
-    client.on('end', () => {
-      // console.log('Client disconnected');
-    });
-
+    // 에러가 나면 일단 close 이벤트 발생 시킴
     client.on('error', error => {
-      client.emit('close', error);
+      this.notifyError(error);
     });
     await eventToPromise.multi(client, ['connect', 'connection', 'open'], ['close', 'error']);
     this.client = client;
@@ -254,7 +266,7 @@ class SocketClient {
     // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
     this.transmitDataToServer({
       commandType: transmitToServerCommandType.CERTIFICATION,
-      data: this.mainSocketServerInfo.uuid,
+      data: this.configInfo.uuid,
     });
 
     return this.client;

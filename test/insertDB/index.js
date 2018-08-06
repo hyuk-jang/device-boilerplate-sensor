@@ -31,7 +31,7 @@ function testInsertDB(nodeList) {
   // 날짜 차이를 통한 List Filter
   const remainList = control.model.checkValidateNodeData(dumpList, {
     diffType: 'minutes',
-    permitValue: 2,
+    duration: 2,
   });
   if (remainList.length !== 3) {
     throw new Error(`날짜 유효성 검증 실패 expect: 3, result: ${remainList.length}`);

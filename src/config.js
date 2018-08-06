@@ -28,6 +28,20 @@ const config = {
       option: Buffer.from([0x04]),
     },
   },
+  powerStatusBoardInfo: {
+    /**
+     * @type {number=} Serial baud_rate
+     * @defaultvalue 9600
+     */
+    baudRate: 9600,
+    /**
+     * @type {string|number=} 대분류가 serial, socket, zigbee일 경우에 사용
+     * @example
+     * serial, zigbee --> windows(COM1~), linux(...)
+     * socket --> socket port
+     */
+    port: 'COM17',
+  },
   dataLoggerList: [],
 };
 module.exports = config;

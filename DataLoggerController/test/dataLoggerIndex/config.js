@@ -2,7 +2,7 @@
 
 // /** @type {{current: {hasDev: boolean, deviceInfo: deviceInfo}}} */
 
-require('../../../../default-intelligence').dcmConfigModel;
+// require('../../../../default-intelligence').dcmConfigModel;
 
 /** @type {dataLoggerConfig} */
 const config = {

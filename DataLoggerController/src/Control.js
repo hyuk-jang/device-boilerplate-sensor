@@ -212,7 +212,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
       const nodeId = _.get(executeOrderInfo, 'nodeId', '');
       if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
-        return this.orderOperationDefault(executeOrderInfo);
+        return this.orderOperationToDataLogger(executeOrderInfo);
       }
       const nodeInfo = _.find(this.nodeList, {
         node_id: executeOrderInfo.nodeId,
@@ -260,13 +260,13 @@ const DataLoggerController = class extends AbstDeviceClient {
 
   /**
    * DataLogger Default 명령을 내리기 위함
-   * @param {{requestCommandType: string=, requestCommandId: string}} executeOrder
+   * @param {executeOrderInfo} executeOrder
    */
-  orderOperationDefault(
+  orderOperationToDataLogger(
     /** @type {executeOrderInfo} */
     executeOrder = {
+      requestCommandId: `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
       requestCommandType: requestOrderCommandType.MEASURE,
-      requestCommandId: 'RegularMeasure',
       rank: this.definedCommandSetRank.THIRD,
     },
   ) {
@@ -295,7 +295,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
-      this.model.addRequestCommandSet(commandSet);
+      return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
       BU.CLI(error);
     }
@@ -345,19 +345,12 @@ const DataLoggerController = class extends AbstDeviceClient {
    */
   onDcMessage(dcMessage) {
     // super.onDcMessage(dcMessage);
-
     switch (dcMessage.msgCode) {
+      // 명령 수행이 완료되었다고 판단이 되면 현재 진행중인 명령 완료로 처리
       case this.definedCommandSetMessage.COMMANDSET_EXECUTION_TERMINATE:
       case this.definedCommandSetMessage.COMMANDSET_DELETE:
         // BU.CLIN(this.model.requestCommandSetList);
         this.model.completeRequestCommandSet(dcMessage.commandSet);
-        // Observer가 해당 메소드를 가지고 있다면 전송
-        // this.observerList.forEach(observer => {
-        //   if (_.get(observer, 'notifyCompleteOrder')) {
-        //     observer.notifyCompleteOrder(this, dcMessage.commandSet);
-        //   }
-        // });
-        // BU.CLIN(this.model.requestCommandSetList);
         break;
       default:
         break;
@@ -390,7 +383,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       // 데이터가 정상적이라면
       if (parsedData.eventCode === this.definedCommanderResponse.DONE) {
         const renewalNodeList = this.model.onData(parsedData.data);
-        // Observer가 해당 메소드를 가지고 있다면 전송
+        // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
           this.observerList.forEach(observer => {
             if (_.get(observer, 'notifyDeviceData')) {
@@ -399,10 +392,6 @@ const DataLoggerController = class extends AbstDeviceClient {
           });
         }
       }
-
-      // TODO: 데이터가 갱신되면 즉시 알림.
-
-      // BU.CLIN(this.getDeviceOperationInfo().nodeList);
       // Device Client로 해당 이벤트 Code를 보냄
       return this.requestTakeAction(parsedData.eventCode);
     } catch (error) {
