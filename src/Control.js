@@ -73,8 +73,8 @@ class Control extends EventEmitter {
     };
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
-    this.dataLoggerList = await bM.getTable('v_data_logger', where);
-    this.nodeList = await bM.getTable('v_node_profile', where);
+    this.dataLoggerList = await bM.getTable('v_dv_data_logger', where);
+    this.nodeList = await bM.getTable('v_dv_node', where);
 
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.dataLoggerList.forEach(dataLoggerInfo => {
@@ -121,8 +121,8 @@ class Control extends EventEmitter {
     this.socketClient.tryConnect();
 
     // 현황판 보여줄 객체 생성
-    this.powerStatusBoard = new PowerStatusBoard(this);
-    this.powerStatusBoard.tryConnect();
+    // this.powerStatusBoard = new PowerStatusBoard(this);
+    // this.powerStatusBoard.tryConnect();
 
     // BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {

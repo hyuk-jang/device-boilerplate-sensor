@@ -1,5 +1,3 @@
-
-
 // require('./define.js');
 
 // /** @type {{current: {hasDev: boolean, deviceInfo: deviceInfo}}} */
@@ -13,13 +11,13 @@ const config = {
   dataLoggerInfo: {
     dl_real_id: 'R_GV_1_001',
     dl_id: 'R_GV_001',
-    target_alias: 'Gate형 밸브',
+    dld_target_name: 'Gate형 밸브',
     m_name: '6kW 급 TB',
     data_logger_seq: 1,
     main_seq: 1,
     data_logger_def_seq: 4,
-    target_id: '0013A20040F7AB81',
-    target_code: '001',
+    serial_number: '0013A20040F7AB81',
+    dl_target_code: '001',
     connect_info: {
       type: 'socket',
       subType: '',
@@ -38,7 +36,7 @@ const config = {
       node_real_id: 'GV_1_001',
       node_id: 'GV_001',
       node_name: '수문용 밸브 001',
-      target_code: '001',
+      n_target_code: '001',
       data_logger_index: 0,
       dl_real_id: 'R_GV_1_001',
       dl_id: 'R_GV_001',
@@ -62,7 +60,7 @@ const config = {
       node_real_id: 'WL_1_001',
       node_id: 'WL_001',
       node_name: '수위 001',
-      target_code: '001',
+      n_target_code: '001',
       data_logger_index: 0,
       dl_real_id: 'R_GV_1_001',
       dl_id: 'R_GV_001',

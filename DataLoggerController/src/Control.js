@@ -69,7 +69,7 @@ const DataLoggerController = class extends AbstDeviceClient {
   async s0SetDataLoggerDeviceByDB(dbInfo, where) {
     try {
       const BM = new bmjh.BM(dbInfo);
-      let dataLoggerInfo = await BM.getTable('v_data_logger', where, false);
+      let dataLoggerInfo = await BM.getTable('v_dv_data_logger', where, false);
 
       if (dataLoggerInfo.length > 1) {
         throw new Error('조건에 맞는 데이터 로거가 1개를 초과하였습니다.');
@@ -133,7 +133,7 @@ const DataLoggerController = class extends AbstDeviceClient {
     this.config.deviceInfo = {
       target_id: this.dataLoggerInfo.dl_id,
       // target_category: 'Saltern',
-      target_name: this.dataLoggerInfo.target_alias,
+      target_name: this.dataLoggerInfo.dld_target_name,
       connect_info: this.dataLoggerInfo.connect_info,
       protocol_info: this.dataLoggerInfo.protocol_info,
       controlInfo: {
@@ -275,8 +275,8 @@ const DataLoggerController = class extends AbstDeviceClient {
         key: 'DEFAULT',
         value: requestDeviceControlType.MEASURE,
       });
-      const cmdName = `${this.config.dataLoggerInfo.target_alias} ${
-        this.config.dataLoggerInfo.target_code
+      const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${
+        this.config.dataLoggerInfo.dl_target_code
       } Type: ${executeOrder.requestCommandType}`;
       // 장치를 열거나
       const rank = this.definedCommandSetRank.THIRD;

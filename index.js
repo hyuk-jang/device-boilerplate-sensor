@@ -28,9 +28,9 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       control.init();
 
-      // setTimeout(() => {
-      //   control.discoveryRegularDevice();
-      // }, 2000);
+      setTimeout(() => {
+        control.discoveryRegularDevice();
+      }, 2000);
 
       // setTimeout(() => {
       //   control.runCronDiscoveryRegularDevice();
