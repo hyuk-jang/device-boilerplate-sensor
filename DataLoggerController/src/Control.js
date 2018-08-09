@@ -330,6 +330,7 @@ const DataLoggerController = class extends AbstDeviceClient {
 
     // Error가 발생하면 추적 중인 데이터는 폐기 (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
     this.converter.resetTrackingDataBuffer();
+    this.requestTakeAction(this.definedCommanderResponse.NEXT)
     // Observer가 해당 메소드를 가지고 있다면 전송
     _.forEach(this.observerList, observer => {
       if (_.get(observer, 'notifyDeviceError')) {
@@ -374,7 +375,7 @@ const DataLoggerController = class extends AbstDeviceClient {
     try {
       const parsedData = this.converter.parsingUpdateData(dcData);
 
-      // BU.CLI(parsedData);
+      BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);

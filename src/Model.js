@@ -411,6 +411,7 @@ class Model {
 
         // FIXME: emit 처리의 논리가 맞는지 체크
         if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'discoveryRegularDevice') {
+          BU.CLI('Comlete discoveryRegularDevice');
           this.controller.emit('completeDiscovery');
         } else {
           this.controller.emit('completeOrder', dcMessage.commandSet.commandId);
@@ -551,26 +552,32 @@ class Model {
    */
   async insertNodeDataToDB(nodeList, insertOption) {
     const returnValue = [];
+
+    BU.CLIN(nodeList);
     // 센서류 삽입
     if (insertOption.hasSensor) {
       const nodeSensorList = _(nodeList)
-        .filter(ele => ele.nc_is_sensor === 1)
-        .map(ele => _.pick(ele, ['node_seq', 'data', 'writeDate']))
+        .filter(ele => ele.is_sensor === 1)
+        .map(ele =>
+          BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
+        )
         .value();
       BU.CLI(nodeSensorList);
-      const result = await this.BM.setTables('sensor_data', nodeSensorList, true);
+      const result = await this.BM.setTables('dv_sensor_data', nodeSensorList, true);
       returnValue.push(result);
     }
 
     // 장치류 삽입
     if (insertOption.hasDevice) {
       const nodeDeviceList = _(nodeList)
-        .filter(ele => ele.nc_is_sensor === 0)
-        .map(ele => _.pick(ele, ['node_seq', 'data', 'writeDate']))
+        .filter(ele => ele.is_sensor === 0)
+        .map(ele =>
+          BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'str_data'),
+        )
         .value();
 
       BU.CLI(nodeDeviceList);
-      const result = await this.BM.setTables('device_state_data', nodeDeviceList, true);
+      const result = await this.BM.setTables('dv_device_data', nodeDeviceList, true);
       returnValue.push(result);
     }
     return returnValue;

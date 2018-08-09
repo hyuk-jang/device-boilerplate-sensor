@@ -19,15 +19,15 @@ const config = {
     serial_number: '0013A20040F7AB81',
     dl_target_code: '001',
     connect_info: {
-      type: 'socket',
-      subType: '',
+      type: 'zigbee',
+      subType: 'xbee',
       baudRate: 9600,
-      port: 9000,
+      port: 'COM2',
     },
     protocol_info: {
       mainCategory: 'UPSAS',
       subCategory: 'xbee',
-      deviceId: '0013A20040F7AB81',
+      deviceId: '0013A20040F7ACC8',
     },
   },
   nodeList: [

@@ -42,7 +42,7 @@ if (require !== undefined && require.main === module) {
     // Node 조회
     control.orderOperation({
       nodeId: 'GV_001',
-      hasTrue: undefined,
+      controlValue: 2,
       requestCommandId: 'TEST',
     });
   }, 1000);

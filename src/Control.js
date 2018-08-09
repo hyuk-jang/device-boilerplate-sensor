@@ -54,6 +54,7 @@ class Control extends EventEmitter {
    * @param {string} mainUuid main UUID
    */
   async getDataLoggerListByDB(dbInfo, mainUuid) {
+    BU.CLI(dbInfo);
     const bM = new BM(dbInfo);
 
     /** @type {dataLoggerConfig[]} */
@@ -497,6 +498,7 @@ class Control extends EventEmitter {
 
     // completeDiscovery 이벤트가 발생할때까지 대기
     await eventToPromise.multi(this, ['completeDiscovery'], ['error', 'close']);
+    BU.CLI('Comlete discoveryRegularDevice');
 
     // 데이터의 유효성을 인정받는 Node List
     const validNodeList = this.model.checkValidateNodeData(
@@ -508,12 +510,13 @@ class Control extends EventEmitter {
       momentDate,
     );
 
-    const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
-      hasSensor: true,
-      hasDevice: false,
-    });
+    // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
+    // const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
+    //   hasSensor: true,
+    //   hasDevice: false,
+    // });
 
-    return returnValue;
+    // return returnValue;
 
     // Data Logger 현재 상태 조회
     // this.dataLoggerControllerList.forEach(router => {
