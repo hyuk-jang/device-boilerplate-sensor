@@ -133,8 +133,8 @@ class SocketClient extends AbstController {
         .catch(err => err);
       // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
-      BU.CLI(error.name);
-      
+      BU.CLI(error.stack);
+
       // throw error;
     }
   }

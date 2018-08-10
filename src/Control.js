@@ -122,8 +122,8 @@ class Control extends EventEmitter {
     this.socketClient.tryConnect();
 
     // 현황판 보여줄 객체 생성
-    // this.powerStatusBoard = new PowerStatusBoard(this);
-    // this.powerStatusBoard.tryConnect();
+    this.powerStatusBoard = new PowerStatusBoard(this);
+    this.powerStatusBoard.tryConnect();
 
     // BU.CLI(this.config);
     this.config.dataLoggerList.forEach(dataLoggerConfig => {
@@ -566,7 +566,7 @@ class Control extends EventEmitter {
         data: renewalNodeList,
       });
     } catch (error) {
-      BU.CLI(error)      
+      BU.CLI(error);
     }
   }
 

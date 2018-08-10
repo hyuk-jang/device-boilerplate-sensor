@@ -32,9 +32,9 @@ if (require !== undefined && require.main === module) {
         control.discoveryRegularDevice();
       }, 1000);
 
-      // setTimeout(() => {
-      //   control.runCronDiscoveryRegularDevice();
-      // }, 2000);
+      setTimeout(() => {
+        control.runCronDiscoveryRegularDevice();
+      }, 2000);
 
       // setTimeout(() => {
       //   control.requestPowerStatusBoardInfo();
