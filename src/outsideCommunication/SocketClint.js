@@ -133,9 +133,30 @@ class SocketClient extends AbstController {
         .catch(err => err);
       // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
-      BU.CLI(error);
-      throw error;
+      BU.CLI(error.name);
+      
+      // throw error;
     }
+  }
+
+  /**
+   * 서버로 현재 진행중인 데이터(노드, 명령)를 보내줌
+   */
+  transmitStorageDataToServer() {
+    if (this.hasCertification === false) {
+      return;
+    }
+    this.controller.notifyDeviceData(null, this.controller.nodeList);
+
+    this.transmitDataToServer({
+      commandType: transmitToServerCommandType.NODE,
+      data: this.controller.nodeList,
+    });
+
+    this.transmitDataToServer({
+      commandType: transmitToServerCommandType.COMMAND,
+      data: this.controller.model.simpleOrderList,
+    });
   }
 
   /**
@@ -163,6 +184,8 @@ class SocketClient extends AbstController {
             case transmitToServerCommandType.CERTIFICATION:
               BU.CLI('@@@ Authentication is completed from the Socket Server.');
               this.hasCertification = responsedDataByServer.isError === 0;
+              // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
+              this.transmitStorageDataToServer();
               break;
             // 수신 받은 현황판 데이터 전송
             case transmitToServerCommandType.POWER_BOARD:

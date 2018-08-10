@@ -510,6 +510,8 @@ class Control extends EventEmitter {
       momentDate,
     );
 
+    // BU.CLIN(validNodeList)
+
     // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
     // const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
     //   hasSensor: true,
@@ -558,10 +560,14 @@ class Control extends EventEmitter {
     // BU.CLI(renewalNodeList);
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
-    this.socketClient.transmitDataToServer({
-      commandType: dcmWsModel.transmitToServerCommandType.NODE,
-      data: renewalNodeList,
-    });
+    try {
+      this.socketClient.transmitDataToServer({
+        commandType: dcmWsModel.transmitToServerCommandType.NODE,
+        data: renewalNodeList,
+      });
+    } catch (error) {
+      BU.CLI(error)      
+    }
   }
 
   /**

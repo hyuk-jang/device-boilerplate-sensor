@@ -28,13 +28,13 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       control.init();
 
-      // setTimeout(() => {
-      //   control.discoveryRegularDevice();
-      // }, 2000);
-
       setTimeout(() => {
-        control.runCronDiscoveryRegularDevice();
-      }, 2000);
+        control.discoveryRegularDevice();
+      }, 1000);
+
+      // setTimeout(() => {
+      //   control.runCronDiscoveryRegularDevice();
+      // }, 2000);
 
       // setTimeout(() => {
       //   control.requestPowerStatusBoardInfo();

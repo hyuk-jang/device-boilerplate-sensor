@@ -371,16 +371,16 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcData(dcData) {
-    super.onDcData(dcData);
+    // super.onDcData(dcData);
     try {
       const parsedData = this.converter.parsingUpdateData(dcData);
 
-      BU.CLI(parsedData);
+      // BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
       }
-
+      // BU.CLI(this.id, parsedData.data)
       // 데이터가 정상적이라면
       if (parsedData.eventCode === this.definedCommanderResponse.DONE) {
         const renewalNodeList = this.model.onData(parsedData.data);
