@@ -72,6 +72,17 @@ class SocketClient extends AbstController {
   }
 
   /**
+   * 초기 구동 개시
+   */
+  startOperation() {
+    // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
+    this.transmitDataToServer({
+      commandType: transmitToServerCommandType.CERTIFICATION,
+      data: this.configInfo.uuid,
+    });
+  }
+
+  /**
    * Socket Server로 메시지 전송
    * @param {Buffer|String} 전송 데이터
    * @return {Promise} Promise 반환 객체
@@ -186,9 +197,12 @@ class SocketClient extends AbstController {
               this.hasCertification = responsedDataByServer.isError === 0;
               // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
               this.transmitStorageDataToServer();
+
+              this.controller.nofityAuthentication();
               break;
             // 수신 받은 현황판 데이터 전송
             case transmitToServerCommandType.POWER_BOARD:
+              // BU.CLI(responsedDataByServer);
               responsedDataByServer.isError === 0
                 ? this.controller.emit('done', responsedDataByServer.contents)
                 : this.controller.emit('error');
@@ -285,12 +299,6 @@ class SocketClient extends AbstController {
     });
     await eventToPromise.multi(client, ['connect', 'connection', 'open'], ['close', 'error']);
     this.client = client;
-
-    // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
-    this.transmitDataToServer({
-      commandType: transmitToServerCommandType.CERTIFICATION,
-      data: this.configInfo.uuid,
-    });
 
     return this.client;
   }

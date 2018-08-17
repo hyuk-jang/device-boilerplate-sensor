@@ -107,7 +107,10 @@ class Model {
           _.pullAllWith(this.simpleOrderList, [simpleOrderInfo], _.isEqual);
         }
 
-        BU.CLI(this.simpleOrderList);
+        // BU.CLI(this.simpleOrderList);
+
+        const dlc = this.findDataLoggerController('V_001');
+        // BU.CLIN(dlc.nodeList);
 
         // 업데이트 알림 (통째로 보내버림)
         this.controller.socketClient.transmitDataToServer({
@@ -355,10 +358,10 @@ class Model {
     const completeKeyList = [COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE];
     // 작업 완료로 교체
     if (completeKeyList.includes(dcMessage.msgCode)) {
-      BU.CLI(
-        '작업 완료',
-        `${resOrderInfo.orderWrapInfoLV3.requestCommandId} ${dcMessage.commandSet.nodeId}`,
-      );
+      // BU.CLI(
+      //   '작업 완료',
+      //   `${resOrderInfo.orderWrapInfoLV3.requestCommandId} ${dcMessage.commandSet.nodeId}`,
+      // );
       // orderElement를 가져옴
 
       // controlValue에 상관없이 flatten 형태로 모두 가져옴
@@ -392,7 +395,7 @@ class Model {
       const flatSimpleList = _.map(flatOrderElementList, ele =>
         _.pick(ele, ['hasComplete', 'nodeId']),
       );
-      BU.CLI(resOrderInfo.orderWrapInfoLV3.requestCommandId, flatSimpleList);
+      // BU.CLI(resOrderInfo.orderWrapInfoLV3.requestCommandId, flatSimpleList);
       if (_.every(flatOrderElementList, 'hasComplete')) {
         BU.CLI('All Completed CommandId: ', dcMessage.commandSet.commandId);
         // proceedingList에서 제거
@@ -518,7 +521,7 @@ class Model {
    * 노드 리스트 중 입력된 날짜를 기준으로 유효성을 가진 데이터만 반환
    * @param {nodeInfo[]} nodeList
    * @param {timeIntervalToValidateInfo} diffInfo
-   * @param {moment} momentDate
+   * @param {moment.Moment} momentDate
    * @return {nodeInfo[]}
    */
   checkValidateNodeData(nodeList, diffInfo, momentDate) {
@@ -541,6 +544,7 @@ class Model {
         // );
         return false;
       }
+      // momentDate.format('YYYY-MM-DD HH:mm:ss'),
       return true;
     });
   }
@@ -553,7 +557,7 @@ class Model {
   async insertNodeDataToDB(nodeList, insertOption) {
     const returnValue = [];
 
-    BU.CLIN(nodeList);
+    // BU.CLIN(nodeList);
     // 센서류 삽입
     if (insertOption.hasSensor) {
       const nodeSensorList = _(nodeList)
@@ -562,8 +566,8 @@ class Model {
           BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
         )
         .value();
-      BU.CLI(nodeSensorList);
-      const result = await this.BM.setTables('dv_sensor_data', nodeSensorList, true);
+      // BU.CLI(nodeSensorList);
+      const result = await this.BM.setTables('dv_sensor_data', nodeSensorList, false);
       returnValue.push(result);
     }
 
@@ -576,8 +580,8 @@ class Model {
         )
         .value();
 
-      BU.CLI(nodeDeviceList);
-      const result = await this.BM.setTables('dv_device_data', nodeDeviceList, true);
+      // BU.CLI(nodeDeviceList);
+      const result = await this.BM.setTables('dv_device_data', nodeDeviceList, false);
       returnValue.push(result);
     }
     return returnValue;

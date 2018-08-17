@@ -8,11 +8,11 @@ if (require !== undefined && require.main === module) {
   process.env.NODE_ENV = 'development';
   require('dotenv').config();
   const _ = require('lodash');
+  const moment = require('moment');
   const config = require('./src/config');
   const {BU} = require('base-util-jh');
 
   const control = new Control(config);
-
   // control.init();
   control
     .getDataLoggerListByDB(
@@ -28,9 +28,16 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       control.init();
 
-      setTimeout(() => {
-        control.discoveryRegularDevice();
-      }, 1000);
+      // setTimeout(() => {
+      //   control.executeSingleControl({
+      //     nodeId: 'V_001',
+      //     controlValue: 2,
+      //   });
+      // }, 1000);
+
+      // setTimeout(() => {
+      //   control.discoveryRegularDevice(moment());
+      // }, 1000);
 
       setTimeout(() => {
         control.runCronDiscoveryRegularDevice();

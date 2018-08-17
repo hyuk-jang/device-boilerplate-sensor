@@ -207,7 +207,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {executeOrderInfo} executeOrderInfo
    */
   orderOperation(executeOrderInfo) {
-    BU.CLIN(executeOrderInfo);
+    // BU.CLIN(executeOrderInfo);
     try {
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
       const nodeId = _.get(executeOrderInfo, 'nodeId', '');

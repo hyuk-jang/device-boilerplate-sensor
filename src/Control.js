@@ -209,6 +209,7 @@ class Control extends EventEmitter {
    * @param {requestSingleOrderInfo} requestSingleOrderInfo
    */
   executeSingleControl(requestSingleOrderInfo) {
+    // BU.CLI('executeSingleControl')
     const {nodeId, controlValue} = requestSingleOrderInfo;
     const nodeInfo = _.find(this.nodeList, {node_id: nodeId});
     try {
@@ -228,7 +229,7 @@ class Control extends EventEmitter {
         rank: _.get(requestSingleOrderInfo, 'rank', 2),
       };
 
-      BU.CLI(requestOrderElement);
+      // BU.CLI(requestOrderElement);
 
       requestCombinedOrder.requestElementList.push(requestOrderElement);
 
@@ -243,7 +244,7 @@ class Control extends EventEmitter {
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
    */
   executeAutomaticControl(controlInfo) {
-    BU.CLI(controlInfo);
+    // BU.CLI(controlInfo);
 
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
@@ -352,7 +353,7 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   executeCombineOrder(requestCombinedOrder) {
-    BU.CLI('excuteCombineOrder', requestCombinedOrder);
+    // BU.CLI('excuteCombineOrder', requestCombinedOrder);
     // TODO: requestCombinedOrder의 실행 가능 여부 체크 메소드 구현
 
     /** @type {combinedOrderWrapInfo} */
@@ -404,7 +405,7 @@ class Control extends EventEmitter {
       });
     });
 
-    BU.CLIN(combinedWrapOrder, 4);
+    // BU.CLIN(combinedWrapOrder, 4);
     // 복합 명령 저장
     this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
 
@@ -479,11 +480,11 @@ class Control extends EventEmitter {
   }
 
   /** 정기적인 Router Status 탐색
-   * @param {moment} momentDate
+   * @param {moment.Moment} momentDate
    *
    */
   async discoveryRegularDevice(momentDate) {
-    BU.CLI('discoveryRegularDevice');
+    BU.CLI('discoveryRegularDevice', momentDate.format('MM-DD HH:mm:ss'));
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
       requestCommandId: 'discoveryRegularDevice',
@@ -498,7 +499,7 @@ class Control extends EventEmitter {
 
     // completeDiscovery 이벤트가 발생할때까지 대기
     await eventToPromise.multi(this, ['completeDiscovery'], ['error', 'close']);
-    BU.CLI('Comlete discoveryRegularDevice');
+    BU.CLI('Comlete discoveryRegularDevice', momentDate.format('MM-DD HH:mm:ss'));
 
     // 데이터의 유효성을 인정받는 Node List
     const validNodeList = this.model.checkValidateNodeData(
@@ -508,17 +509,18 @@ class Control extends EventEmitter {
         duration: 2, // 2분을 벗어나면 데이터 가치가 없음
       },
       momentDate,
+      // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
-    // BU.CLIN(validNodeList)
+    // BU.CLIN(validNodeList);
 
     // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
-    // const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
-    //   hasSensor: true,
-    //   hasDevice: false,
-    // });
+    const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
+      hasSensor: true,
+      hasDevice: false,
+    });
 
-    // return returnValue;
+    return returnValue;
 
     // Data Logger 현재 상태 조회
     // this.dataLoggerControllerList.forEach(router => {
@@ -532,6 +534,14 @@ class Control extends EventEmitter {
     // });
   }
 
+  /** 인증이 되었음을 알림 */
+  nofityAuthentication() {
+    BU.CLI('nofityAuthentication');
+    // 현황판 데이터 요청
+    this.requestPowerStatusBoardInfo();
+    this.powerStatusBoard.runCronRequestPowerStatusBoard();
+  }
+
   /**
    * 현황판 객체에서 Socket Server로 현황판 데이터를 요청하고 응답받은 데이터를 현황판으로 전송하는 메소드
    */
@@ -542,9 +552,14 @@ class Control extends EventEmitter {
       });
 
       const powerStatusBoardData = await eventToPromise.multi(this, ['done'], ['error']);
+      const powerStatusBoardInfo = _.head(powerStatusBoardData);
+      const bufData = this.powerStatusBoard.defaultConverter.protocolConverter.makeMsg2Buffer(
+        powerStatusBoardInfo,
+      );
 
+      // BU.CLI(powerStatusBoardData);
       // 수신 받은 현황판 데이터 전송
-      this.powerStatusBoard.write(powerStatusBoardData);
+      this.powerStatusBoard.write(bufData);
     } catch (error) {
       BU.errorLog('communication', error);
     }

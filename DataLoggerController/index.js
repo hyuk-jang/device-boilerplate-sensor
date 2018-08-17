@@ -26,22 +26,22 @@ if (require !== undefined && require.main === module) {
   control.s2SetDeviceInfo();
 
   control.init();
-  control.model.hasAverageStorage = true;
-  control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
+  // control.model.hasAverageStorage = true;
+  // control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
 
   // BU.CLI(config)
 
   // cloneConfig.dataLoggerInfo.protocol_info.deviceId = '0013a20040f7ab81';
   // cloneConfig.dataLoggerInfo.dl_id = 'Direct';
-  const {UPSAS} = require('../../../module/device-protocol-converter-jh').BaseModel;
+  // const {UPSAS} = require('../../../module/device-protocol-converter-jh').BaseModel;
 
-  const baseModel = new UPSAS(config.deviceInfo.protocol_info);
+  // const baseModel = new UPSAS(config.deviceInfo.protocol_info);
 
   // setTimeout, setInterval
   setTimeout(() => {
     // Node 조회
     control.orderOperation({
-      nodeId: 'GV_001',
+      nodeId: 'V_001',
       controlValue: 2,
       requestCommandId: 'TEST',
     });

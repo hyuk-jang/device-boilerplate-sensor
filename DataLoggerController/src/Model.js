@@ -87,6 +87,7 @@ class Model {
    * @return {nodeInfo[]} 갱신된 노드
    */
   onData(receiveData) {
+    // BU.CLI(receiveData);
     /** @type {nodeInfo[]} */
     const renewalNodeList = [];
     // BU.CLI(receiveData);
@@ -112,6 +113,7 @@ class Model {
       // 날짜는 항상 갱신
       _.set(nodeInfo, 'writeDate', new Date());
     });
+    // BU.CLI(renewalNodeList);
     return renewalNodeList;
   }
 }

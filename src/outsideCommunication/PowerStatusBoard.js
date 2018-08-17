@@ -40,8 +40,14 @@ const PowerStatusBoard = class extends AbstController {
 
   /** AbstController 에서 접속 타이머 시작 요청 */
   tryConnect() {
+    BU.CLI('tryConnect PowerStatusBoard');
     this.setInit();
   }
+
+  /**
+   * 초기 구동 개시
+   */
+  startOperation() {}
 
   /**
    * 현황판 데이터 요청 스케줄러
@@ -68,19 +74,18 @@ const PowerStatusBoard = class extends AbstController {
 
   /**
    * Serial Device로 메시지 전송
-   * @param {Buffer|string} 전송 데이터
+   * @param {Buffer} 전송 데이터
    * @return {Promise} Promise 반환 객체
    */
-  write(msg) {
-    const realMsg = this.defaultConverter.encodingMsg(msg);
-    console.log('realMsg', realMsg);
+  write(bufMsg) {
+    const writeMsg = Buffer.concat([Buffer.from([0x02]), bufMsg, Buffer.from([0x03])]);
 
     if (_.isEmpty(this.client)) {
       throw new Error(`${this.port} ${this.baud_rate} The device is not connected yet.`);
     }
 
     return new Promise((resolve, reject) => {
-      this.client.write(realMsg, err => {
+      this.client.write(writeMsg, err => {
         reject(err);
       });
       resolve();
@@ -111,8 +116,6 @@ const PowerStatusBoard = class extends AbstController {
     await eventToPromise.multi(client, ['open'], ['error', 'close']);
     this.client = client;
 
-    // 연결되면 즉시 현황판 데이터 요청
-    this.controller.requestPowerStatusBoardInfo();
     return this.client;
   }
 

@@ -2,21 +2,21 @@
 
 // /** @type {{current: {hasDev: boolean, deviceInfo: deviceInfo}}} */
 
-require('../../../default-intelligence').dcmConfigModel;
+// require('../../../default-intelligence').dcmConfigModel;
 
 /** @type {dataLoggerConfig} */
 const config = {
   hasDev: false,
   deviceInfo: {},
   dataLoggerInfo: {
-    dl_real_id: 'R_GV_1_001',
-    dl_id: 'R_GV_001',
-    dld_target_name: 'Gate형 밸브',
+    dl_real_id: 'D_V_1_001',
+    dl_id: 'D_V_001',
+    dld_target_name: '밸브',
     m_name: '6kW 급 TB',
     data_logger_seq: 1,
     main_seq: 1,
     data_logger_def_seq: 4,
-    serial_number: '0013A20040F7AB81',
+    serial_number: '0013A20040F7B47F',
     dl_target_code: '001',
     connect_info: {
       type: 'zigbee',
@@ -27,19 +27,19 @@ const config = {
     protocol_info: {
       mainCategory: 'UPSAS',
       subCategory: 'xbee',
-      deviceId: '0013A20040F7ACC8',
+      deviceId: '0013A20040F7B47F',
     },
   },
   nodeList: [
     {
       node_seq: 20,
-      node_real_id: 'GV_1_001',
-      node_id: 'GV_001',
+      node_real_id: 'V_1_001',
+      node_id: 'V_001',
       node_name: '수문용 밸브 001',
       n_target_code: '001',
       data_logger_index: 0,
-      dl_real_id: 'R_GV_1_001',
-      dl_id: 'R_GV_001',
+      dl_real_id: 'D_V_1_001',
+      dl_id: 'D_V_001',
       nd_target_prefix: 'GV',
       nd_target_id: 'gateValve',
       nd_target_name: '수문용 밸브',
@@ -62,8 +62,8 @@ const config = {
       node_name: '수위 001',
       n_target_code: '001',
       data_logger_index: 0,
-      dl_real_id: 'R_GV_1_001',
-      dl_id: 'R_GV_001',
+      dl_real_id: 'D_V_1_001',
+      dl_id: 'D_V_001',
       nd_target_prefix: 'WL',
       nd_target_id: 'waterLevel',
       nd_target_name: null,

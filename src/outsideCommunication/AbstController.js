@@ -91,6 +91,16 @@ class AbstController {
 
   notifyEvent(eventName) {
     // BU.CLI('notifyEvent', eventName);
+    switch (eventName) {
+      case definedControlEvent.CONNECT:
+        this.startOperation();
+        break;
+      case definedControlEvent.DISCONNECT:
+        break;
+
+      default:
+        break;
+    }
     this.observers.forEach(observer => {
       observer.onEvent(eventName);
     });
