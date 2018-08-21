@@ -6,15 +6,15 @@ const eventToPromise = require('event-to-promise');
 
 const moment = require('moment');
 
-const {BU} = require('base-util-jh');
-const {BM} = require('../../base-model-jh');
+const { BU } = require('base-util-jh');
+const { BM } = require('../../base-model-jh');
 
 // const Model = require('./Model');
 
-const {dcmConfigModel, dccFlagModel, dcmWsModel} = require('../../default-intelligence');
+const { dcmConfigModel, dccFlagModel, dcmWsModel } = require('../../default-intelligence');
 
-const {requestOrderCommandType, requestDeviceControlType} = dcmConfigModel;
-const {definedCommandSetRank} = dccFlagModel;
+const { requestOrderCommandType, requestDeviceControlType } = dcmConfigModel;
+const { definedCommandSetRank } = dccFlagModel;
 
 const DataLoggerController = require('../DataLoggerController');
 
@@ -37,8 +37,8 @@ class Control extends EventEmitter {
     /** @type {nodeInfo[]} */
     this.nodeList = [];
 
-    /** @type {DataLoggerController[]} */
-    this.preparingDataLoggerControllerList = [];
+    // /** @type {DataLoggerController[]} */
+    // this.preparingDataLoggerControllerList = [];
 
     // Data Logger 상태 계측을 위한 Cron Scheduler 객체
     this.cronScheduler = null;
@@ -61,7 +61,7 @@ class Control extends EventEmitter {
     const returnValue = [];
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
-    const mainList = await bM.getTable('main', {uuid: mainUuid});
+    const mainList = await bM.getTable('main', { uuid: mainUuid });
 
     // UUID가 동일한 정보가 없다면 종료
     if (mainList.length === 0) {
@@ -84,7 +84,7 @@ class Control extends EventEmitter {
 
       const foundNodeList = _.filter(
         this.nodeList,
-        nodeInfo => nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq,
+        nodeInfo => nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq
       );
       dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
       dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
@@ -114,7 +114,7 @@ class Control extends EventEmitter {
    * 3. Commander 를 Observer로 등록
    * 4. 생성 객체를 routerLists 에 삽입
    */
-  init() {
+  async init() {
     this.model = new Model(this);
 
     // Main Socket Server와 통신을 수립할 Socket Client 객체 생성
@@ -125,43 +125,33 @@ class Control extends EventEmitter {
     this.powerStatusBoard = new PowerStatusBoard(this);
     this.powerStatusBoard.tryConnect();
 
-    // BU.CLI(this.config);
-    this.config.dataLoggerList.forEach(dataLoggerConfig => {
-      // 데이터 로거 객체 생성
-      const dataLoggerController = new DataLoggerController(dataLoggerConfig);
+    try {
+      // 하부 Data Logger 순회
+      const resultInitDataLoggerList = await Promise.map(
+        this.config.dataLoggerList,
+        dataLoggerConfig => {
+          // 데이터 로거 객체 생성
+          const dataLoggerController = new DataLoggerController(dataLoggerConfig);
 
-      // DataLogger, NodeList 설정
-      dataLoggerController.s1SetLoggerAndNodeByConfig();
+          // DataLogger, NodeList 설정
+          dataLoggerController.s1SetLoggerAndNodeByConfig();
 
-      // deviceInfo 설정
-      dataLoggerController.s2SetDeviceInfo();
-      // DeviceClientController, ProtocolConverter, Model 초기화
-      dataLoggerController.attach(this);
-
-      // 하부 DataLogger Controller을 router라고 부르고 리스트에 삽입
-      this.dataLoggerControllerList.push(dataLoggerController);
-    });
-    this.preparingDataLoggerControllerList = this.dataLoggerControllerList;
-    this.preparingDataLoggerControllerList.forEach(dataLoggerController => {
-      // 장치 연결, 프로토콜 컨버터 바인딩
-      dataLoggerController.init();
-    });
-  }
-
-  /**
-   * 준비 완료 체크
-   * @param {DataLoggerController} dataLoggerController
-   * @param {dcEvent} dcEvent
-   * @return {DataLoggerController[]}
-   */
-  checkReadyDataControllerList(dataLoggerController, dcEvent) {
-    if (dcEvent.eventName === dataLoggerController.definedControlEvent.CONNECT) {
-      _.remove(this.preparingDataLoggerControllerList, preDataLogger =>
-        _.isEqual(preDataLogger, dataLoggerController),
+          // deviceInfo 설정
+          dataLoggerController.s2SetDeviceInfo();
+          // DeviceClientController, ProtocolConverter, Model 초기화
+          // 컨트롤러에 현 객체 Observer 등록
+          dataLoggerController.attach(this);
+          return dataLoggerController.init();
+        }
       );
-    }
 
-    return this.preparingDataLoggerControllerList;
+      // 하부 PCS 객체 리스트 정의
+      this.dataLoggerControllerList = resultInitDataLoggerList;
+
+      return this.dataLoggerControllerList;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -210,8 +200,8 @@ class Control extends EventEmitter {
    */
   executeSingleControl(requestSingleOrderInfo) {
     // BU.CLI('executeSingleControl')
-    const {nodeId, controlValue} = requestSingleOrderInfo;
-    const nodeInfo = _.find(this.nodeList, {node_id: nodeId});
+    const { nodeId, controlValue } = requestSingleOrderInfo;
+    const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
     try {
       /** @type {requestCombinedOrderInfo} */
       const requestCombinedOrder = {
@@ -320,8 +310,8 @@ class Control extends EventEmitter {
    */
   executeSavedCommand(savedCommandInfo) {
     try {
-      const {savedCommandId, requestCommandType} = savedCommandInfo;
-      const foundIt = _.find(this.model.excuteControlList, {cmdName: savedCommandId});
+      const { savedCommandId, requestCommandType } = savedCommandInfo;
+      const foundIt = _.find(this.model.excuteControlList, { cmdName: savedCommandId });
       if (foundIt) {
         // 명령 제어 요청 일 경우
         if (requestCommandType === requestOrderCommandType.CONTROL) {
@@ -419,11 +409,16 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   transferRequestOrder(combinedOrderWrapInfo) {
-    const {uuid, requestCommandId, requestCommandName, requestCommandType} = combinedOrderWrapInfo;
+    const {
+      uuid,
+      requestCommandId,
+      requestCommandName,
+      requestCommandType,
+    } = combinedOrderWrapInfo;
 
     // 아직 요청 전이므로 orderContainerList 순회하면서 명령 생성 및 요청
     combinedOrderWrapInfo.orderContainerList.forEach(combinedOrderContainerInfo => {
-      const {controlValue, controlSetValue} = combinedOrderContainerInfo;
+      const { controlValue, controlSetValue } = combinedOrderContainerInfo;
 
       const hasFirst = true;
       combinedOrderContainerInfo.orderElementList.forEach(combinedOrderElementInfo => {
@@ -442,7 +437,7 @@ class Control extends EventEmitter {
           };
 
           const dataLoggerController = this.model.findDataLoggerController(
-            combinedOrderElementInfo.nodeId,
+            combinedOrderElementInfo.nodeId
           );
 
           dataLoggerController.orderOperation(executeOrder);
@@ -490,7 +485,7 @@ class Control extends EventEmitter {
       requestCommandId: 'discoveryRegularDevice',
       requestCommandName: '정기 장치 상태 계측',
       requestCommandType: requestOrderCommandType.MEASURE,
-      requestElementList: [{nodeId: _.map(this.dataLoggerList, 'dl_id')}],
+      requestElementList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
     };
 
     // BU.CLI(requestCombinedOrder);
@@ -508,7 +503,7 @@ class Control extends EventEmitter {
         diffType: 'minutes',
         duration: 2, // 2분을 벗어나면 데이터 가치가 없음
       },
-      momentDate,
+      momentDate
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
@@ -554,7 +549,7 @@ class Control extends EventEmitter {
       const powerStatusBoardData = await eventToPromise.multi(this, ['done'], ['error']);
       const powerStatusBoardInfo = _.head(powerStatusBoardData);
       const bufData = this.powerStatusBoard.defaultConverter.protocolConverter.makeMsg2Buffer(
-        powerStatusBoardInfo,
+        powerStatusBoardInfo
       );
 
       // BU.CLI(powerStatusBoardData);

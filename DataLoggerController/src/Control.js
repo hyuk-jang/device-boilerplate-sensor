@@ -1,5 +1,7 @@
 const _ = require('lodash');
-const {BU} = require('base-util-jh');
+const { BU } = require('base-util-jh');
+const eventToPromise = require('event-to-promise');
+
 const bmjh = require('../../../base-model-jh');
 const EchoServer = require('../../../device-echo-server-jh');
 // const AbstDeviceClient = require('device-client-controller-jh');
@@ -7,7 +9,7 @@ const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
-const {MainConverter, BaseModel} = require('../../../device-protocol-converter-jh');
+const { MainConverter, BaseModel } = require('../../../device-protocol-converter-jh');
 
 const {
   requestOrderCommandType,
@@ -56,7 +58,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    */
   findNodeList(nodeInfo) {
     return _.filter(this.nodeList, node =>
-      _.every(nodeInfo, (value, key) => _.isEqual(node[key], value)),
+      _.every(nodeInfo, (value, key) => _.isEqual(node[key], value))
     );
   }
 
@@ -155,11 +157,14 @@ const DataLoggerController = class extends AbstDeviceClient {
   /**
    * @desc Step 3
    * device client 설정 및 프로토콜 바인딩
+   * @return {Promise.<Control>} 생성된 현 객체 반환
    */
-  init() {
-    const protocolInfo = _.get(this.config, 'deviceInfo.protocol_info');
-    this.converter = new MainConverter(protocolInfo);
-    this.baseModel = new BaseModel.UPSAS(protocolInfo);
+  async init() {
+    this.connectInfo = this.config.deviceInfo.connect_info;
+    this.protocolInfo = this.config.deviceInfo.protocol_info;
+
+    this.converter = new MainConverter(this.protocolInfo);
+    this.baseModel = new BaseModel.UPSAS(this.protocolInfo);
     this.deviceModel = this.baseModel.device;
 
     // 모델 선언
@@ -169,13 +174,27 @@ const DataLoggerController = class extends AbstDeviceClient {
     if (this.config.hasDev) {
       // const EchoServer = require('device-echo-server-jh');
       // 지정된 port로 생성
-      const echoServer = new EchoServer(this.config.deviceInfo.connect_info.port);
-      // 해당 protocol 파서에 나와있는 객체 생성
-      echoServer.attachDevice(this.config.deviceInfo.protocol_info);
+      const echoServer = new EchoServer(this.connectInfo.port);
+      echoServer.attachDevice(this.protocolInfo);
     }
-    // BU.CLI(this.config.deviceInfo);
-    this.setDeviceClient(this.config.deviceInfo);
-    this.converter.setProtocolConverter();
+
+    try {
+      // 프로토콜 컨버터 바인딩
+      this.converter.setProtocolConverter();
+      // DCC 초기화 및 장치 접속 진행
+      this.setDeviceClient(this.config.deviceInfo);
+      // 장치 접속 결과를 기다림
+      await eventToPromise.multi(
+        this,
+        [this.definedControlEvent.CONNECT],
+        [this.definedControlEvent.DISCONNECT]
+      );
+      // Controller 반환
+      return this;
+    } catch (error) {
+      // Controller 반환
+      return this;
+    }
   }
 
   /**
@@ -209,6 +228,10 @@ const DataLoggerController = class extends AbstDeviceClient {
   orderOperation(executeOrderInfo) {
     // BU.CLIN(executeOrderInfo);
     try {
+      if (!this.hasConnectedDevice) {
+        throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
+      }
+
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
       const nodeId = _.get(executeOrderInfo, 'nodeId', '');
       if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
@@ -268,9 +291,12 @@ const DataLoggerController = class extends AbstDeviceClient {
       requestCommandId: `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
       requestCommandType: requestOrderCommandType.MEASURE,
       rank: this.definedCommandSetRank.THIRD,
-    },
+    }
   ) {
     try {
+      if (!this.hasConnectedDevice) {
+        throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
+      }
       const cmdList = this.converter.generationCommand({
         key: 'DEFAULT',
         value: requestDeviceControlType.MEASURE,
@@ -298,6 +324,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
       BU.CLI(error);
+      throw error;
     }
   }
 
@@ -311,6 +338,16 @@ const DataLoggerController = class extends AbstDeviceClient {
    */
   updatedDcEventOnDevice(dcEvent) {
     // super.updatedDcEventOnDevice(dcEvent);
+    switch (dcEvent.eventName) {
+      case this.definedControlEvent.CONNECT:
+        this.emit(this.definedControlEvent.CONNECT);
+        break;
+      case this.definedControlEvent.DISCONNECT:
+        this.emit(this.definedControlEvent.DISCONNECT);
+        break;
+      default:
+        break;
+    }
 
     // Observer가 해당 메소드를 가지고 있다면 전송
     _.forEach(this.observerList, observer => {
@@ -330,7 +367,7 @@ const DataLoggerController = class extends AbstDeviceClient {
 
     // Error가 발생하면 추적 중인 데이터는 폐기 (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
     this.converter.resetTrackingDataBuffer();
-    this.requestTakeAction(this.definedCommanderResponse.NEXT)
+    this.requestTakeAction(this.definedCommanderResponse.NEXT);
     // Observer가 해당 메소드를 가지고 있다면 전송
     _.forEach(this.observerList, observer => {
       if (_.get(observer, 'notifyDeviceError')) {

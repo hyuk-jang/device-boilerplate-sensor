@@ -25,7 +25,18 @@ if (require !== undefined && require.main === module) {
   control.s1AddNodeList(config.nodeList);
   control.s2SetDeviceInfo();
 
-  control.init();
+  control
+    .init()
+    .then(() => {
+      control.orderOperation({
+        nodeId: 'V_001',
+        controlValue: 2,
+        requestCommandId: 'TEST',
+      });
+    })
+    .catch(err => {
+      BU.CLI(err);
+    });
   // control.model.hasAverageStorage = true;
   // control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
 
@@ -37,27 +48,25 @@ if (require !== undefined && require.main === module) {
 
   // const baseModel = new UPSAS(config.deviceInfo.protocol_info);
 
-  // setTimeout, setInterval
-  setTimeout(() => {
-    // Node 조회
-    control.orderOperation({
-      nodeId: 'V_001',
-      controlValue: 2,
-      requestCommandId: 'TEST',
-    });
-  }, 1000);
+  // // setTimeout, setInterval
+  // setTimeout(() => {
+  //   // Node 조회
+  //   control.orderOperation({
+  //     nodeId: 'V_001',
+  //     controlValue: 2,
+  //     requestCommandId: 'TEST',
+  //   });
+  // }, 1000);
 
   process.on('uncaughtException', err => {
     // BU.debugConsole();
-    console.error(err.stack);
-    console.log(err.message);
+    BU.CLI(err);
     console.log('Node NOT Exiting...');
   });
 
   process.on('unhandledRejection', err => {
     // BU.debugConsole();
-    console.error(err.stack);
-    console.log(err.message);
+    BU.CLI(err);
     console.log('Node NOT Exiting...');
   });
 }
