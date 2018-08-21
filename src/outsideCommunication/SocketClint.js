@@ -157,7 +157,7 @@ class SocketClient extends AbstController {
     if (this.hasCertification === false) {
       return;
     }
-    this.controller.notifyDeviceData(null, this.controller.nodeList);
+    // this.controller.notifyDeviceData(null, this.controller.nodeList);
 
     this.transmitDataToServer({
       commandType: transmitToServerCommandType.NODE,

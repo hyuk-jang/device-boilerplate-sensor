@@ -10,7 +10,7 @@ if (require !== undefined && require.main === module) {
   const _ = require('lodash');
   const moment = require('moment');
   const config = require('./src/config');
-  const { BU } = require('base-util-jh');
+  const {BU} = require('base-util-jh');
 
   const control = new Control(config);
   // control.init();
@@ -23,10 +23,10 @@ if (require !== undefined && require.main === module) {
         port: process.env.DB_UPSAS_PORT,
         user: process.env.DB_UPSAS_USER,
       },
-      config.uuid
+      config.uuid,
     )
-    .then(() => {
-      return control.init();
+    .then(
+      () => control.init(),
 
       // setTimeout(() => {
       //   control.executeSingleControl({
@@ -41,10 +41,17 @@ if (require !== undefined && require.main === module) {
       // setTimeout(() => {
       //   control.requestPowerStatusBoardInfo();
       // }, 2000);
-    })
-    .then(() => {
-      return control.runCronDiscoveryRegularDevice();
-    })
+    )
+    .then(dataLoggerControllerList =>
+      // BU.CLIN(dataLoggerControllerList);
+      // const dataLogger = control.model.findDataLoggerController('WL_001');
+      // control.executeSingleControl({
+      //   controlValue: 2,
+      //   nodeId: 'V_001',
+      // });
+      // control.discoveryRegularDevice(moment());
+      control.runCronDiscoveryRegularDevice(),
+    )
     .catch(err => {
       BU.CLI(err);
     });

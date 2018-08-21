@@ -253,9 +253,11 @@ class Model {
    * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
    */
   findDataLoggerController(searchValue) {
+    // BU.CLI(searchValue);
     // Node Id 일 경우
     if (_.isString(searchValue)) {
       // Data Logger List에서 찾아봄
+      // BU.CLIN(this.dataLoggerList);
       const dataLoggerInfo = _.find(this.dataLoggerList, {
         dl_id: searchValue,
       });
@@ -269,12 +271,13 @@ class Model {
         });
         // string 인데 못 찾았다면 존재하지 않음. 예외 발생
         if (_.isEmpty(nodeInfo)) {
-          BU.CLI(this.nodeList);
           throw new Error(`Node ID: ${searchValue} is not exist`);
         }
         searchValue = nodeInfo.getDataLogger();
       }
     }
+
+    // BU.CLIN(this.dataLoggerControllerList);
     return _.find(this.dataLoggerControllerList, router =>
       _.isEqual(router.dataLoggerInfo, searchValue),
     );

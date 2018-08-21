@@ -28,11 +28,12 @@ if (require !== undefined && require.main === module) {
   control
     .init()
     .then(() => {
-      control.orderOperation({
-        nodeId: 'V_001',
-        controlValue: 2,
-        requestCommandId: 'TEST',
-      });
+      // control.orderOperation({
+      //   nodeId: 'GV_001',
+      //   controlValue: 2,
+      //   requestCommandId: 'TEST',
+      // });
+      // control.orderOperationToDataLogger({});
     })
     .catch(err => {
       BU.CLI(err);

@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { BU } = require('base-util-jh');
+const {BU} = require('base-util-jh');
 const eventToPromise = require('event-to-promise');
 
 const bmjh = require('../../../base-model-jh');
@@ -9,7 +9,7 @@ const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
-const { MainConverter, BaseModel } = require('../../../device-protocol-converter-jh');
+const {MainConverter, BaseModel} = require('../../../device-protocol-converter-jh');
 
 const {
   requestOrderCommandType,
@@ -58,7 +58,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    */
   findNodeList(nodeInfo) {
     return _.filter(this.nodeList, node =>
-      _.every(nodeInfo, (value, key) => _.isEqual(node[key], value))
+      _.every(nodeInfo, (value, key) => _.isEqual(node[key], value)),
     );
   }
 
@@ -157,13 +157,14 @@ const DataLoggerController = class extends AbstDeviceClient {
   /**
    * @desc Step 3
    * device client 설정 및 프로토콜 바인딩
-   * @return {Promise.<Control>} 생성된 현 객체 반환
+   * @return {Promise.<DataLoggerController>} 생성된 현 객체 반환
    */
   async init() {
     this.connectInfo = this.config.deviceInfo.connect_info;
     this.protocolInfo = this.config.deviceInfo.protocol_info;
 
     this.converter = new MainConverter(this.protocolInfo);
+    _.set(this.converter, 'test', this.config.dataLoggerInfo.dl_id);
     this.baseModel = new BaseModel.UPSAS(this.protocolInfo);
     this.deviceModel = this.baseModel.device;
 
@@ -183,11 +184,15 @@ const DataLoggerController = class extends AbstDeviceClient {
       this.converter.setProtocolConverter();
       // DCC 초기화 및 장치 접속 진행
       this.setDeviceClient(this.config.deviceInfo);
-      // 장치 접속 결과를 기다림
+      // 만약 장치가 접속된 상태라면
+      if (this.hasConnectedDevice) {
+        return this;
+      }
+      // 장치와의 접속 수립이 아직 안되었을 경우 장치 접속 결과를 기다림
       await eventToPromise.multi(
         this,
         [this.definedControlEvent.CONNECT],
-        [this.definedControlEvent.DISCONNECT]
+        [this.definedControlEvent.DISCONNECT],
       );
       // Controller 반환
       return this;
@@ -291,7 +296,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       requestCommandId: `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
       requestCommandType: requestOrderCommandType.MEASURE,
       rank: this.definedCommandSetRank.THIRD,
-    }
+    },
   ) {
     try {
       if (!this.hasConnectedDevice) {
@@ -337,7 +342,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    * dcDisconnect --> 장치 연결 해제
    */
   updatedDcEventOnDevice(dcEvent) {
-    // super.updatedDcEventOnDevice(dcEvent);
+    super.updatedDcEventOnDevice(dcEvent);
     switch (dcEvent.eventName) {
       case this.definedControlEvent.CONNECT:
         this.emit(this.definedControlEvent.CONNECT);
@@ -417,12 +422,17 @@ const DataLoggerController = class extends AbstDeviceClient {
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
       }
-      // BU.CLI(this.id, parsedData.data)
+      // BU.CLI(this.id, parsedData.data);
       // 데이터가 정상적이라면
       if (parsedData.eventCode === this.definedCommanderResponse.DONE) {
         const renewalNodeList = this.model.onData(parsedData.data);
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
+          // BU.CLI(
+          //   _(renewalNodeList)
+          //     .map(node => _.pick(node, ['node_id', 'data']))
+          //     .value(),
+          // );
           this.observerList.forEach(observer => {
             if (_.get(observer, 'notifyDeviceData')) {
               observer.notifyDeviceData(this, renewalNodeList);
