@@ -30,13 +30,13 @@
     "prettier": "^1.14.2"
   },
   "dependencies": {
-    "base-model-jh": "^1.2.1",
-    "base-util-jh": "^1.1.13",
+    "base-model-jh": "^1.2.2",
+    "base-util-jh": "^1.1.14",
     "bluebird": "^3.5.1",
-    "cron": "^1.4.0",
     "event-to-promise": "^0.8.0",
     "lodash": "^4.17.10",
     "moment": "^2.22.2",
+    "node-cron": "^1.2.1",
     "serialport": "^6.2.2",
     "split": "^1.0.1",
     "uuid": "^3.3.2"

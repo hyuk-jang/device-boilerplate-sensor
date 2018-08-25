@@ -1,6 +1,6 @@
 const EventEmitter = require('events');
 const uuidv4 = require('uuid/v4');
-const cron = require('cron');
+const cron = require('node-cron');
 const _ = require('lodash');
 const eventToPromise = require('event-to-promise');
 
@@ -455,23 +455,37 @@ class Control extends EventEmitter {
    * 데이터 로거의 현 상태를 조회하는 스케줄러
    */
   runCronDiscoveryRegularDevice() {
+    BU.CLI('runCronDiscoveryRegularDevice');
     try {
       if (this.cronScheduler !== null) {
         // BU.CLI('Stop')
         this.cronScheduler.stop();
       }
       // 1분마다 요청
-      this.cronScheduler = new cron.CronJob({
-        cronTime: '0 */1 * * * *',
-        onTick: () => {
-          this.discoveryRegularDevice(moment())
-            .then()
-            .catch(err => {
-              BU.errorLog('command', 'runCronDiscoveryRegularDevice', err);
-            });
-        },
-        start: true,
+
+      this.cronScheduler = cron.schedule('* * * * *', () => {
+        this.discoveryRegularDevice(moment())
+          .then()
+          .catch(err => {
+            BU.errorLog('command', 'runCronDiscoveryRegularDevice', err);
+          });
       });
+
+      this.cronScheduler.start();
+
+      // this.cronScheduler = new cron.CronJob({
+      //   cronTime: '* * * * * *',
+      //   start: true,
+      //   onTick: () => {
+      //     BU.CLI('runCronDiscoveryRegularDevice');
+      //     this.discoveryRegularDevice(moment())
+      //       .then()
+      //       .catch(err => {
+      //         BU.errorLog('command', 'runCronDiscoveryRegularDevice', err);
+      //       });
+      //   },
+      //   timeZone: 'Asia/Seoul',
+      // });
       return true;
     } catch (error) {
       throw error;

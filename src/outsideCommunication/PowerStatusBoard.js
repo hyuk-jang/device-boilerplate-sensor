@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const cron = require('cron');
+const cron = require('node-cron');
 const Serialport = require('serialport');
 const eventToPromise = require('event-to-promise');
 
@@ -59,13 +59,19 @@ const PowerStatusBoard = class extends AbstController {
         this.cronScheduler.stop();
       }
       // 1분마다 요청
-      this.cronScheduler = new cron.CronJob({
-        cronTime: '0 */1 * * * *',
-        onTick: () => {
-          this.controller.requestPowerStatusBoardInfo();
-        },
-        start: true,
+      this.cronScheduler = cron.schedule('* * * * *', () => {
+        this.controller.requestPowerStatusBoardInfo();
       });
+
+      this.cronScheduler.start();
+
+      // this.cronScheduler = new cron.CronJob({
+      //   cronTime: '0 */1 * * * *',
+      //   onTick: () => {
+      //     this.controller.requestPowerStatusBoardInfo();
+      //   },
+      //   start: true,
+      // });
       return true;
     } catch (error) {
       throw error;

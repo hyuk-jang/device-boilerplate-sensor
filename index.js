@@ -42,7 +42,8 @@ if (require !== undefined && require.main === module) {
       //   control.requestPowerStatusBoardInfo();
       // }, 2000);
     )
-    .then(dataLoggerControllerList =>
+    .then(dataLoggerControllerList => {
+      BU.CLI('start Program');
       // BU.CLIN(dataLoggerControllerList);
       // const dataLogger = control.model.findDataLoggerController('WL_001');
       // control.executeSingleControl({
@@ -50,8 +51,8 @@ if (require !== undefined && require.main === module) {
       //   nodeId: 'V_001',
       // });
       // control.discoveryRegularDevice(moment());
-      control.runCronDiscoveryRegularDevice(),
-    )
+      control.runCronDiscoveryRegularDevice();
+    })
     .catch(err => {
       BU.CLI(err);
     });
