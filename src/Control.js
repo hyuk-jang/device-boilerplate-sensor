@@ -1,16 +1,15 @@
+const _ = require('lodash');
+const cron = require('node-cron');
+const eventToPromise = require('event-to-promise');
 const EventEmitter = require('events');
 const uuidv4 = require('uuid/v4');
-const cron = require('node-cron');
-const _ = require('lodash');
-const eventToPromise = require('event-to-promise');
-
-const Promise = require('bluebird');
 const moment = require('moment');
+const Promise = require('bluebird');
 
 const {BU} = require('base-util-jh');
 const {BM} = require('../../base-model-jh');
 
-// const Model = require('./Model');
+const mainConfig = require('./config');
 
 const {dcmConfigModel, dccFlagModel, dcmWsModel} = require('../../default-intelligence');
 
@@ -38,6 +37,9 @@ class Control extends EventEmitter {
     /** @type {nodeInfo[]} */
     this.nodeList = [];
 
+    /** @type {string} 데이터 지점 ID */
+    this.mainUUID = null;
+
     // /** @type {DataLoggerController[]} */
     // this.preparingDataLoggerControllerList = [];
 
@@ -49,24 +51,51 @@ class Control extends EventEmitter {
   }
 
   /**
+   * Passive Client를 수동으로 붙여줄 경우
+   * @param {string} mainUUID Site ID
+   * @param {*} passiveClient
+   * @return {boolean} 성공 유무
+   */
+  setPassiveClient(mainUUID, passiveClient) {
+    if (this.mainUUID !== mainUUID) {
+      throw new Error(
+        `The ${
+          this.mainUUID
+        } of this site is different from the ${mainUUID} of the site you received.`,
+      );
+    }
+    const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
+      _.isEqual(dataLoggerController.siteUUID, mainUUID),
+    );
+
+    // 해당 지점이 없다면 실패
+    if (_.isEmpty(fountIt)) return false;
+    // client를 binding 처리
+    fountIt.bindingPassiveClient(mainUUID, passiveClient);
+    return true;
+  }
+
+  /**
    * @desc Step 1
    * DB에서 특정 데이터를 가져오고 싶을경우
    * @param {dbInfo} dbInfo
-   * @param {string} mainUuid main UUID
+   * @param {string} mainUUID main UUID
+   * @return {Promise.<mainConfig>}
    */
-  async getDataLoggerListByDB(dbInfo, mainUuid) {
+  async getDataLoggerListByDB(dbInfo, mainUUID) {
+    this.mainUUID = mainUUID;
     BU.CLI(dbInfo);
-    const bM = new BM(dbInfo);
+    const biModule = new BM(dbInfo);
 
     /** @type {dataLoggerConfig[]} */
     const returnValue = [];
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
-    const mainList = await bM.getTable('main', {uuid: mainUuid});
+    const mainList = await biModule.getTable('main', {uuid: mainUUID});
 
     // UUID가 동일한 정보가 없다면 종료
     if (mainList.length === 0) {
-      throw new Error(`uuid: ${this.config.uuid}는 존재하지 않습니다.`);
+      throw new Error(`uuid: ${mainUUID}는 존재하지 않습니다.`);
     }
 
     // 가져온 Main 정보에서 main_seq를 구함
@@ -75,8 +104,8 @@ class Control extends EventEmitter {
     };
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
-    this.dataLoggerList = await bM.getTable('v_dv_data_logger', where);
-    this.nodeList = await bM.getTable('v_dv_node', where);
+    this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
+    this.nodeList = await biModule.getTable('v_dv_node', where);
 
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.dataLoggerList.forEach(dataLoggerInfo => {
@@ -100,6 +129,8 @@ class Control extends EventEmitter {
 
     _.set(this, 'config.dbInfo', dbInfo);
     _.set(this, 'config.dataLoggerList', returnValue);
+
+    return this.config;
 
     // _.set(this.config, 'dataLoggerList', returnValue)
     // BU.CLI(returnValue);
@@ -462,7 +493,6 @@ class Control extends EventEmitter {
         this.cronScheduler.stop();
       }
       // 1분마다 요청
-
       this.cronScheduler = cron.schedule('* * * * *', () => {
         this.discoveryRegularDevice(moment())
           .then()
@@ -473,19 +503,6 @@ class Control extends EventEmitter {
 
       this.cronScheduler.start();
 
-      // this.cronScheduler = new cron.CronJob({
-      //   cronTime: '* * * * * *',
-      //   start: true,
-      //   onTick: () => {
-      //     BU.CLI('runCronDiscoveryRegularDevice');
-      //     this.discoveryRegularDevice(moment())
-      //       .then()
-      //       .catch(err => {
-      //         BU.errorLog('command', 'runCronDiscoveryRegularDevice', err);
-      //       });
-      //   },
-      //   timeZone: 'Asia/Seoul',
-      // });
       return true;
     } catch (error) {
       throw error;

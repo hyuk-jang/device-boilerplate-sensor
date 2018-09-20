@@ -34,6 +34,9 @@ const DataLoggerController = class extends AbstDeviceClient {
 
     /** @type {nodeInfo[]} */
     this.nodeList = [];
+
+    /** @type {string} 사이트 지점 ID */
+    this.siteUUID = null;
   }
 
   /**
@@ -157,14 +160,15 @@ const DataLoggerController = class extends AbstDeviceClient {
   /**
    * @desc Step 3
    * device client 설정 및 프로토콜 바인딩
+   * @param {string=} siteUUID 장치가 연결된 지점을 특정지을 or 개소, setPassiveClient에 사용
    * @return {Promise.<DataLoggerController>} 생성된 현 객체 반환
    */
-  async init() {
+  async init(siteUUID) {
     this.connectInfo = this.config.deviceInfo.connect_info;
     this.protocolInfo = this.config.deviceInfo.protocol_info;
 
     this.converter = new MainConverter(this.protocolInfo);
-    _.set(this.converter, 'test', this.config.dataLoggerInfo.dl_id);
+    // _.set(this.converter, 'test', this.config.dataLoggerInfo.dl_id);
     this.baseModel = new BaseModel.UPSAS(this.protocolInfo);
     this.deviceModel = this.baseModel.device;
 
@@ -182,8 +186,22 @@ const DataLoggerController = class extends AbstDeviceClient {
     try {
       // 프로토콜 컨버터 바인딩
       this.converter.setProtocolConverter();
-      // DCC 초기화 및 장치 접속 진행
+
+      // DCC 초기화 시작
+      if (_.isEmpty(this.config.deviceInfo.connect_info)) {
+        // 장치 접속 경로가 존재하지 않을 경우 수동 클라이언트 설정
+        if (_.isString(siteUUID)) {
+          // 해당 사이트 고유 ID
+          this.siteUUID = siteUUID;
+          this.setPassiveClient(this.config.deviceInfo, siteUUID);
+          return this;
+        }
+        throw new ReferenceError('Initialization failed.');
+      }
+
+      // 접속 경로가 존재시 선언 및 자동 접속을 수행
       this.setDeviceClient(this.config.deviceInfo);
+
       // 만약 장치가 접속된 상태라면
       if (this.hasConnectedDevice) {
         return this;
@@ -197,6 +215,10 @@ const DataLoggerController = class extends AbstDeviceClient {
       // Controller 반환
       return this;
     } catch (error) {
+      // 초기화에 실패할 경우에는 에러 처리
+      if (error instanceof ReferenceError) {
+        throw error;
+      }
       // Controller 반환
       return this;
     }
