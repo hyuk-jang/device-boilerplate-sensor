@@ -67,6 +67,10 @@ class Model {
    */
   setSimpleOrderInfo(simpleOrderInfo) {
     BU.CLI(simpleOrderInfo);
+    // 아직 접속이 이루어져있지 않을 경우 보내지 않음
+    if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
+      return false;
+    }
     const foundIt = _.find(this.simpleOrderList, {uuid: simpleOrderInfo.uuid});
     // 기존에 존재한다면
     if (foundIt) {
@@ -89,6 +93,10 @@ class Model {
    * @return {boolean} 갱신이 이루어지면 true, 아니면 false
    */
   updateSimpleOrderInfo(uuid, orderStatus) {
+    // 아직 접속이 이루어져있지 않을 경우 보내지 않음
+    if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
+      return false;
+    }
     const simpleOrderInfo = _.find(this.simpleOrderList, {uuid});
     // BU.CLI(orderStatus, simpleOrderInfo);
     // 데이터가 존재한다면 해당 명령의 변화가 생긴 것
@@ -109,7 +117,7 @@ class Model {
 
         // BU.CLI(this.simpleOrderList);
 
-        const dlc = this.findDataLoggerController('V_001');
+        // const dlc = this.findDataLoggerController('V_001');
         // BU.CLIN(dlc.nodeList);
 
         // 업데이트 알림 (통째로 보내버림)

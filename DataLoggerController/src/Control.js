@@ -253,7 +253,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {executeOrderInfo} executeOrderInfo
    */
   orderOperation(executeOrderInfo) {
-    // BU.CLIN(executeOrderInfo);
+    BU.CLIN(executeOrderInfo);
     try {
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
@@ -450,11 +450,11 @@ const DataLoggerController = class extends AbstDeviceClient {
         const renewalNodeList = this.model.onData(parsedData.data);
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
-          // BU.CLI(
-          //   _(renewalNodeList)
-          //     .map(node => _.pick(node, ['node_id', 'data']))
-          //     .value(),
-          // );
+          BU.CLI(
+            _(renewalNodeList)
+              .map(node => _.pick(node, ['node_id', 'data']))
+              .value(),
+          );
           this.observerList.forEach(observer => {
             if (_.get(observer, 'notifyDeviceData')) {
               observer.notifyDeviceData(this, renewalNodeList);

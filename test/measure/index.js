@@ -1,15 +1,17 @@
 require('dotenv').config();
 const _ = require('lodash');
-
+const {BU} = require('base-util-jh');
 const Control = require('../../src/Control');
 const config = require('../../src/config');
 
 const control = new Control(config);
 
 control.on('completeDiscovery', () => {
-  if (_.every(control.nodeList, 'data')) {
+  if (_.every(control.nodeList, nodeInfo => !_.isNil(nodeInfo.data))) {
     console.trace('모든 장치 데이터 입력 검증 완료');
   } else {
+    const result = _.map(control.nodeList, node => _.pick(node, ['node_id', 'data']));
+    BU.CLI(result);
     throw new Error('장치에 데이터가 없는게 있음');
   }
 });
@@ -29,11 +31,11 @@ control
     control.init();
     setTimeout(() => {
       // 장치 전체 탐색
-      // control.discoveryRegularDevice();
+      control.discoveryRegularDevice();
 
-      control.executeSingleControl({
-        nodeId: control.nodeList[0].node_id,
-      });
+      // control.executeSingleControl({
+      //   nodeId: control.nodeList[0].node_id,
+      // });
     }, 2000);
   });
 

@@ -39,6 +39,8 @@ function checkDumpCmd() {
     _.includes(testDumpCmd.trueList, nodeInfo.node_id),
   );
 
+  // BU.CLI(trueList);
+
   const hasAllTrue = _.every(
     trueList,
     nodeInfo => nodeInfo.data === 'OPEN' || nodeInfo.data === 'ON',
@@ -48,14 +50,15 @@ function checkDumpCmd() {
     _.includes(testDumpCmd.falseList, nodeInfo.node_id),
   );
 
+  // BU.CLI(falseList);
+
   const hasAllFalse = _.every(
     falseList,
     nodeInfo => nodeInfo.data === 'CLOSE' || nodeInfo.data === 'OFF',
   );
 
-  BU.CLI(control.model.getAllNodeStatus(nodePickKey.FOR_DATA));
   if (hasAllTrue && hasAllFalse) {
-    console.trace('모든 장비 제어 예상값과 동일');
+    BU.CLI('모든 장비 제어 예상값과 동일');
 
     // 명령 취소 요청
     // setTimeout(() => {
@@ -93,7 +96,7 @@ function checkDumpCmd2() {
   // );
 
   if (hasAllTrue) {
-    console.trace('모든 장비 취소 예상값과 동일');
+    BU.CLI('모든 장비 취소 예상값과 동일');
   } else {
     throw new Error('장비 중에 취소 동작 안한게 있음');
   }

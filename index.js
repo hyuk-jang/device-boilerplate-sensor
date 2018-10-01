@@ -26,7 +26,11 @@ if (require !== undefined && require.main === module) {
       config.uuid,
     )
     .then(
-      () => control.init(),
+      () => {
+        control.init();
+        control.setSocketClient();
+        control.setPowerStatusBoard();
+      },
 
       // setTimeout(() => {
       //   control.executeSingleControl({

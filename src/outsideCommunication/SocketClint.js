@@ -144,7 +144,7 @@ class SocketClient extends AbstController {
         .catch(err => err);
       // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
-      BU.CLI(error.stack);
+      // BU.CLI(error.stack);
 
       // throw error;
     }

@@ -12,11 +12,11 @@ if (require !== undefined && require.main === module) {
 
   const control = new Control(config);
   // control.getDataLoggerInfoByDB({
-  //   database: process.env.DB_UPSAS_DB,
-  //   host: process.env.DB_UPSAS_HOST,
-  //   password: process.env.DB_UPSAS_PW,
-  //   port: process.env.DB_UPSAS_PORT,
-  //   user: process.env.DB_UPSAS_USER
+  //   database: process.env.DB_DB,
+  //   host: process.env.DB_HOST,
+  //   password: process.env.DB_PW,
+  //   port: process.env.DB_PORT,
+  //   user: process.env.DB_USER
   // }, {
   //   data_logger_seq: [1],
   //   main_seq: [1]

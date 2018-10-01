@@ -48,6 +48,9 @@ class Control extends EventEmitter {
 
     // 시나리오 관련
     this.scenario = new Scenario(this);
+
+    // this.socketClient = {};
+    // this.powerStatusBoard = {}
   }
 
   /**
@@ -179,18 +182,22 @@ class Control extends EventEmitter {
 
       this.model = new Model(this);
 
-      // Main Socket Server와 통신을 수립할 Socket Client 객체 생성
-      this.socketClient = new SocketClint(this);
-      this.socketClient.tryConnect();
-
-      // 현황판 보여줄 객체 생성
-      this.powerStatusBoard = new PowerStatusBoard(this);
-      this.powerStatusBoard.tryConnect();
-
       return this.dataLoggerControllerList;
     } catch (error) {
       throw error;
     }
+  }
+
+  /** Main Socket Server와 통신을 수립할 Socket Client 객체 생성 */
+  setSocketClient() {
+    this.socketClient = new SocketClint(this);
+    this.socketClient.tryConnect();
+  }
+
+  /** 현황판 보여줄 객체 생성 */
+  setPowerStatusBoard() {
+    this.powerStatusBoard = new PowerStatusBoard(this);
+    this.powerStatusBoard.tryConnect();
   }
 
   /**
@@ -514,6 +521,7 @@ class Control extends EventEmitter {
    *
    */
   async discoveryRegularDevice(momentDate) {
+    momentDate = _.isNil(momentDate) && moment();
     BU.CLI('discoveryRegularDevice', momentDate.format('MM-DD HH:mm:ss'));
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
@@ -611,6 +619,10 @@ class Control extends EventEmitter {
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
+      // 아직 접속이 이루어져있지 않을 경우 보내지 않음
+      if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
+        return false;
+      }
       this.socketClient.transmitDataToServer({
         commandType: dcmWsModel.transmitToServerCommandType.NODE,
         data: renewalNodeList,
