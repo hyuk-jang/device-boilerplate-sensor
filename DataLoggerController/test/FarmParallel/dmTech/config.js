@@ -21,14 +21,21 @@ const config = {
     dld_target_prefix: 'D_SB',
     serial_number: '1',
     connect_info: {
-      type: 'modbus',
-      subType: 'rtu',
+      type: 'socket',
+      // subType: 'rtu',
       baudRate: 9600,
       port: 9000,
     },
+    // connect_info: {
+    //   type: 'modbus',
+    //   subType: 'rtu',
+    //   baudRate: 9600,
+    //   port: 9000,
+    // },
     protocol_info: {
       mainCategory: 'FarmParallel',
       subCategory: 'dmTech',
+      wrapperCategory: 'default',
       deviceId: '001',
     },
   },
