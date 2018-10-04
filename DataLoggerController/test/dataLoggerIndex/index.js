@@ -1,7 +1,7 @@
 require('dotenv').config();
 const _ = require('lodash');
-const config = require('./config');
 const {BU} = require('base-util-jh');
+const config = require('./config');
 
 const Control = require('../../src/Control');
 
