@@ -10,7 +10,7 @@ if (require !== undefined && require.main === module) {
   const _ = require('lodash');
   const moment = require('moment');
   const config = require('./src/config');
-  const {BU} = require('base-util-jh');
+  const { BU } = require('base-util-jh');
 
   const control = new Control(config);
   // control.init();
@@ -23,14 +23,10 @@ if (require !== undefined && require.main === module) {
         port: process.env.DB_UPSAS_PORT,
         user: process.env.DB_UPSAS_USER,
       },
-      config.uuid,
+      config.uuid
     )
     .then(
-      () => {
-        control.init();
-        control.setSocketClient();
-        control.setPowerStatusBoard();
-      },
+      () => control.init()
 
       // setTimeout(() => {
       //   control.executeSingleControl({
@@ -54,8 +50,10 @@ if (require !== undefined && require.main === module) {
       //   controlValue: 2,
       //   nodeId: 'V_001',
       // });
-      // control.discoveryRegularDevice(moment());
+      // control.inquiryAllDeviceStatus(moment());
       control.runDeviceInquiryScheduler();
+      control.setSocketClient();
+      control.setPowerStatusBoard();
     })
     .catch(err => {
       BU.CLI(err);

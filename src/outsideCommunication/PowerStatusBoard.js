@@ -84,6 +84,7 @@ const PowerStatusBoard = class extends AbstController {
    * @return {Promise} Promise 반환 객체
    */
   write(bufMsg) {
+    BU.CLI('현황판 데이터 계측 수신', bufMsg)
     const writeMsg = Buffer.concat([Buffer.from([0x02]), bufMsg, Buffer.from([0x03])]);
 
     if (_.isEmpty(this.client)) {

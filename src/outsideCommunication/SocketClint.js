@@ -3,12 +3,12 @@ const split = require('split');
 const net = require('net');
 const eventToPromise = require('event-to-promise');
 
-const {BU, CU} = require('base-util-jh');
+const { BU, CU } = require('base-util-jh');
 
 const Control = require('../Control');
 const AbstController = require('./AbstController');
 
-const {BaseModel} = require('../../../device-protocol-converter-jh');
+const { BaseModel } = require('../../../device-protocol-converter-jh');
 
 const {
   transmitToServerCommandType,
@@ -93,7 +93,7 @@ class SocketClient extends AbstController {
 
     if (_.isEmpty(this.client)) {
       throw new Error(
-        `${this.configInfo.host} ${this.configInfo.port} The device is not connected yet.`,
+        `${this.configInfo.host} ${this.configInfo.port} The device is not connected yet.`
       );
     }
 
@@ -145,8 +145,7 @@ class SocketClient extends AbstController {
       // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
       // BU.CLI(error.stack);
-
-      // throw error;
+      throw error;
     }
   }
 
@@ -154,6 +153,7 @@ class SocketClient extends AbstController {
    * 서버로 현재 진행중인 데이터(노드, 명령)를 보내줌
    */
   transmitStorageDataToServer() {
+    BU.CLI('transmitStorageDataToServer');
     if (this.hasCertification === false) {
       return;
     }

@@ -6,15 +6,15 @@ const uuidv4 = require('uuid/v4');
 const moment = require('moment');
 const Promise = require('bluebird');
 
-const {BU, CU} = require('base-util-jh');
-const {BM} = require('base-model-jh');
+const { BU, CU } = require('base-util-jh');
+const { BM } = require('base-model-jh');
 
 const mainConfig = require('./config');
 
-const {dcmConfigModel, dccFlagModel, dcmWsModel} = require('../../default-intelligence');
+const { dcmConfigModel, dccFlagModel, dcmWsModel } = require('../../default-intelligence');
 
-const {requestOrderCommandType, requestDeviceControlType} = dcmConfigModel;
-const {definedCommandSetRank} = dccFlagModel;
+const { requestOrderCommandType, requestDeviceControlType } = dcmConfigModel;
+const { definedCommandSetRank } = dccFlagModel;
 
 const DataLoggerController = require('../DataLoggerController');
 
@@ -67,11 +67,11 @@ class Control extends EventEmitter {
       throw new Error(
         `The ${
           this.mainUUID
-        } of this site is different from the ${mainUUID} of the site you received.`,
+        } of this site is different from the ${mainUUID} of the site you received.`
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
-      _.isEqual(dataLoggerController.siteUUID, mainUUID),
+      _.isEqual(dataLoggerController.siteUUID, mainUUID)
     );
 
     // 해당 지점이 없다면 실패
@@ -97,7 +97,7 @@ class Control extends EventEmitter {
     const returnValue = [];
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
-    const mainList = await biModule.getTable('main', {uuid: mainUUID});
+    const mainList = await biModule.getTable('main', { uuid: mainUUID });
 
     // UUID가 동일한 정보가 없다면 종료
     if (mainList.length === 0) {
@@ -120,7 +120,7 @@ class Control extends EventEmitter {
 
       const foundNodeList = _.filter(
         this.nodeList,
-        nodeInfo => nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq,
+        nodeInfo => nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq
       );
       dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
       dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
@@ -170,7 +170,7 @@ class Control extends EventEmitter {
           dataLoggerController.attach(this);
 
           return dataLoggerController.init();
-        },
+        }
       );
       // BU.CLI(
       //   _(resultInitDataLoggerList)
@@ -248,8 +248,8 @@ class Control extends EventEmitter {
    */
   executeSingleControl(requestSingleOrderInfo) {
     // BU.CLI('executeSingleControl')
-    const {nodeId, controlValue} = requestSingleOrderInfo;
-    const nodeInfo = _.find(this.nodeList, {node_id: nodeId});
+    const { nodeId, controlValue } = requestSingleOrderInfo;
+    const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
     try {
       /** @type {requestCombinedOrderInfo} */
       const requestCombinedOrder = {
@@ -358,8 +358,8 @@ class Control extends EventEmitter {
    */
   executeSavedCommand(savedCommandInfo) {
     try {
-      const {savedCommandId, requestCommandType} = savedCommandInfo;
-      const foundIt = _.find(this.model.excuteControlList, {cmdName: savedCommandId});
+      const { savedCommandId, requestCommandType } = savedCommandInfo;
+      const foundIt = _.find(this.model.excuteControlList, { cmdName: savedCommandId });
       if (foundIt) {
         // 명령 제어 요청 일 경우
         if (requestCommandType === requestOrderCommandType.CONTROL) {
@@ -457,11 +457,16 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   transferRequestOrder(combinedOrderWrapInfo) {
-    const {uuid, requestCommandId, requestCommandName, requestCommandType} = combinedOrderWrapInfo;
+    const {
+      uuid,
+      requestCommandId,
+      requestCommandName,
+      requestCommandType,
+    } = combinedOrderWrapInfo;
 
     // 아직 요청 전이므로 orderContainerList 순회하면서 명령 생성 및 요청
     combinedOrderWrapInfo.orderContainerList.forEach(combinedOrderContainerInfo => {
-      const {controlValue, controlSetValue} = combinedOrderContainerInfo;
+      const { controlValue, controlSetValue } = combinedOrderContainerInfo;
 
       const hasFirst = true;
       combinedOrderContainerInfo.orderElementList.forEach(combinedOrderElementInfo => {
@@ -480,7 +485,7 @@ class Control extends EventEmitter {
           };
 
           const dataLoggerController = this.model.findDataLoggerController(
-            combinedOrderElementInfo.nodeId,
+            combinedOrderElementInfo.nodeId
           );
 
           // BU.CLIN(dataLoggerController);
@@ -534,7 +539,7 @@ class Control extends EventEmitter {
       ) {
         this.inquiryAllDeviceStatusTimer = new CU.Timer(() => {
           this.inquiryAllDeviceStatusTimer.pause();
-        }, 1000 * this.config.inquiryIntervalSecond);
+        }, _.subtract(_.multiply(1000, this.config.inquiryIntervalSecond), 100));
       } else {
         // Timer가 존재하다면 추가 조회는 하지 않음.
         return false;
@@ -551,7 +556,7 @@ class Control extends EventEmitter {
       requestCommandId: 'discoveryRegularDevice',
       requestCommandName: '정기 장치 상태 계측',
       requestCommandType: requestOrderCommandType.MEASURE,
-      requestElementList: [{nodeId: _.map(this.dataLoggerList, 'dl_id')}],
+      requestElementList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
     };
 
     // BU.CLI(requestCombinedOrder);
@@ -570,7 +575,7 @@ class Control extends EventEmitter {
         diffType: 'minutes',
         duration: 2, // 2분을 벗어나면 데이터 가치가 없음
       },
-      momentDate,
+      momentDate
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
@@ -579,7 +584,7 @@ class Control extends EventEmitter {
 
     // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
     const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
-      hasSensor: true,
+      hasSensor: false,
       hasDevice: false,
     });
 
@@ -617,7 +622,7 @@ class Control extends EventEmitter {
       const powerStatusBoardData = await eventToPromise.multi(this, ['done'], ['error']);
       const powerStatusBoardInfo = _.head(powerStatusBoardData);
       const bufData = this.powerStatusBoard.defaultConverter.protocolConverter.makeMsg2Buffer(
-        powerStatusBoardInfo,
+        powerStatusBoardInfo
       );
 
       // BU.CLI(powerStatusBoardData);
@@ -638,13 +643,13 @@ class Control extends EventEmitter {
     // BU.CLI(
     //   _(renewalNodeList)
     //     .map(node => _.pick(node, ['node_id', 'data']))
-    //     .value(),
+    //     .value()
     // );
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
       // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-      if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
+      if (_.isEmpty(_.get(this, 'socketClient.client'))) {
         return false;
       }
       this.socketClient.transmitDataToServer({

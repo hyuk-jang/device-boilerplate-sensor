@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const {BU, CU} = require('base-util-jh');
+const { BU, CU } = require('base-util-jh');
 
 const Control = require('./Control');
 
@@ -77,7 +77,7 @@ class Model {
     return _.remove(this.requestCommandSetList, requestCommand =>
       _(requestCommand)
         .pick(_.keys(compareInfo))
-        .isEqual(compareInfo),
+        .isEqual(compareInfo)
     );
   }
 
@@ -113,6 +113,14 @@ class Model {
       // 날짜는 항상 갱신
       _.set(nodeInfo, 'writeDate', new Date());
     });
+    // if (_.some(renewalNodeList, nodeInfo => _.isUndefined(nodeInfo.data))) {
+    //   BU.CLI(receiveData);
+    //   BU.CLI(
+    //     _(renewalNodeList)
+    //       .map(node => _.pick(node, ['node_id', 'data']))
+    //       .value()
+    //   );
+    // }
     // BU.CLI(renewalNodeList);
     return renewalNodeList;
   }

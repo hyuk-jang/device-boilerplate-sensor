@@ -1,15 +1,15 @@
 const _ = require('lodash');
-const {BU} = require('base-util-jh');
+const { BU } = require('base-util-jh');
 const eventToPromise = require('event-to-promise');
 
-const bmjh = require('../../../base-model-jh');
+const { BM } = require('../../../base-model-jh');
 const EchoServer = require('../../../device-echo-server-jh');
 // const AbstDeviceClient = require('device-client-controller-jh');
 const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
-const {MainConverter, BaseModel} = require('../../../device-protocol-converter-jh');
+const { MainConverter, BaseModel } = require('../../../device-protocol-converter-jh');
 
 const {
   requestOrderCommandType,
@@ -18,7 +18,7 @@ const {
 // require('../../../default-intelligence');
 // const {AbstConverter} = require('device-protocol-converter-jh');
 
-const DataLoggerController = class extends AbstDeviceClient {
+class DataLoggerController extends AbstDeviceClient {
   /** @param {dataLoggerConfig} config */
   constructor(config) {
     super();
@@ -61,7 +61,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    */
   findNodeList(nodeInfo) {
     return _.filter(this.nodeList, node =>
-      _.every(nodeInfo, (value, key) => _.isEqual(node[key], value)),
+      _.every(nodeInfo, (value, key) => _.isEqual(node[key], value))
     );
   }
 
@@ -73,8 +73,8 @@ const DataLoggerController = class extends AbstDeviceClient {
    */
   async s0SetDataLoggerDeviceByDB(dbInfo, where) {
     try {
-      const BM = new bmjh.BM(dbInfo);
-      let dataLoggerInfo = await BM.getTable('v_dv_data_logger', where, false);
+      const biModule = new BM(dbInfo);
+      let dataLoggerInfo = await biModule.getTable('v_dv_data_logger', where, false);
 
       if (dataLoggerInfo.length > 1) {
         throw new Error('조건에 맞는 데이터 로거가 1개를 초과하였습니다.');
@@ -82,7 +82,7 @@ const DataLoggerController = class extends AbstDeviceClient {
         throw new Error('조건에 맞는 데이터 로거가 검색되지 않았습니다.');
       }
 
-      this.nodeList = await BM.getTable('v_node_profile', where, false);
+      this.nodeList = await biModule.getTable('v_node_profile', where, false);
       dataLoggerInfo = _.head(dataLoggerInfo);
       dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
       dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
@@ -210,7 +210,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       await eventToPromise.multi(
         this,
         [this.definedControlEvent.CONNECT],
-        [this.definedControlEvent.DISCONNECT],
+        [this.definedControlEvent.DISCONNECT]
       );
       // Controller 반환
       return this;
@@ -318,7 +318,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       requestCommandId: `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
       requestCommandType: requestOrderCommandType.MEASURE,
       rank: this.definedCommandSetRank.THIRD,
-    },
+    }
   ) {
     try {
       if (!this.hasConnectedDevice) {
@@ -444,6 +444,7 @@ const DataLoggerController = class extends AbstDeviceClient {
       // BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
+        // BU.CLI(parsedData);
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
       }
       // 데이터가 정상적이라면
@@ -454,7 +455,7 @@ const DataLoggerController = class extends AbstDeviceClient {
           BU.CLI(
             _(renewalNodeList)
               .map(node => _.pick(node, ['node_id', 'data']))
-              .value(),
+              .value()
           );
           this.observerList.forEach(observer => {
             if (_.get(observer, 'notifyDeviceData')) {
@@ -470,5 +471,5 @@ const DataLoggerController = class extends AbstDeviceClient {
       throw error;
     }
   }
-};
+}
 module.exports = DataLoggerController;
