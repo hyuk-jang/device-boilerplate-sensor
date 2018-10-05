@@ -253,7 +253,7 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {executeOrderInfo} executeOrderInfo
    */
   orderOperation(executeOrderInfo) {
-    BU.CLIN(executeOrderInfo);
+    // BU.CLIN(executeOrderInfo);
     try {
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
@@ -328,7 +328,6 @@ const DataLoggerController = class extends AbstDeviceClient {
         key: 'DEFAULT',
         value: requestDeviceControlType.MEASURE,
       });
-      BU.CLI(cmdList)
       const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${
         this.config.dataLoggerInfo.dl_target_code
       } Type: ${executeOrder.requestCommandType}`;
@@ -347,7 +346,7 @@ const DataLoggerController = class extends AbstDeviceClient {
 
       this.executeCommand(commandSet);
 
-      BU.CLI(commandSet.cmdList)
+      // BU.CLI(commandSet.cmdList)
       // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
@@ -438,16 +437,15 @@ const DataLoggerController = class extends AbstDeviceClient {
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcData(dcData) {
-    super.onDcData(dcData);
+    // super.onDcData(dcData);
     try {
       const parsedData = this.converter.parsingUpdateData(dcData);
 
-      BU.CLI(parsedData);
+      // BU.CLI(parsedData);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
         return this.requestTakeAction(this.definedCommanderResponse.RETRY);
       }
-      // BU.CLI(this.id, parsedData.data);
       // 데이터가 정상적이라면
       if (parsedData.eventCode === this.definedCommanderResponse.DONE) {
         const renewalNodeList = this.model.onData(parsedData.data);

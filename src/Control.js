@@ -6,8 +6,8 @@ const uuidv4 = require('uuid/v4');
 const moment = require('moment');
 const Promise = require('bluebird');
 
-const {BU} = require('base-util-jh');
-const {BM} = require('../../base-model-jh');
+const {BU, CU} = require('base-util-jh');
+const {BM} = require('base-model-jh');
 
 const mainConfig = require('./config');
 
@@ -48,6 +48,9 @@ class Control extends EventEmitter {
 
     // 시나리오 관련
     this.scenario = new Scenario(this);
+
+    // 정기 장치 조회 수행 여부
+    this.inquiryAllDeviceStatusTimer;
 
     // this.socketClient = {};
     // this.powerStatusBoard = {}
@@ -169,7 +172,6 @@ class Control extends EventEmitter {
           return dataLoggerController.init();
         },
       );
-      // BU.CLI('?');
       // BU.CLI(
       //   _(resultInitDataLoggerList)
       //     .map(node => _.pick(node, ['converter.test']))
@@ -492,8 +494,8 @@ class Control extends EventEmitter {
   /**
    * 데이터 로거의 현 상태를 조회하는 스케줄러
    */
-  runCronDiscoveryRegularDevice() {
-    BU.CLI('runCronDiscoveryRegularDevice');
+  runDeviceInquiryScheduler() {
+    BU.CLI('runDeviceInquiryScheduler');
     try {
       if (this.cronScheduler !== null) {
         // BU.CLI('Stop')
@@ -501,10 +503,10 @@ class Control extends EventEmitter {
       }
       // 1분마다 요청
       this.cronScheduler = cron.schedule('* * * * *', () => {
-        this.discoveryRegularDevice(moment())
+        this.inquiryAllDeviceStatus(moment())
           .then()
           .catch(err => {
-            BU.errorLog('command', 'runCronDiscoveryRegularDevice', err);
+            BU.errorLog('command', 'runDeviceInquiryScheduler', err);
           });
       });
 
@@ -520,8 +522,29 @@ class Control extends EventEmitter {
    * @param {moment.Moment} momentDate
    *
    */
-  async discoveryRegularDevice(momentDate) {
-    momentDate = _.isNil(momentDate) && moment();
+  async inquiryAllDeviceStatus(momentDate) {
+    BU.CLI('inquiryAllDeviceStatus');
+    // 정기 장치 상태 조회 명령일 경우
+    if (!_.isNil(momentDate)) {
+      // FIXME: cron 스케줄러가 중복 실행되는 버그가 해결되기 전까지 사용
+      // Timer가 존재하지 않거나(초기) 종료되었다면 새로이 명령을 내릴 수 있음
+      if (
+        _.isNil(this.inquiryAllDeviceStatusTimer) ||
+        !this.inquiryAllDeviceStatusTimer.getStateRunning()
+      ) {
+        this.inquiryAllDeviceStatusTimer = new CU.Timer(() => {
+          this.inquiryAllDeviceStatusTimer.pause();
+        }, 1000 * this.config.inquiryIntervalSecond);
+      } else {
+        // Timer가 존재하다면 추가 조회는 하지 않음.
+        return false;
+      }
+    } else {
+      // momentDate가 없는 경우 현재 메소드 테스트를 한다고 판단하고 수행하도록 함.
+      momentDate = moment();
+    }
+
+    // momentDate = _.isNil(momentDate) && moment();
     BU.CLI('discoveryRegularDevice', momentDate.format('MM-DD HH:mm:ss'));
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
@@ -552,6 +575,7 @@ class Control extends EventEmitter {
     );
 
     // BU.CLIN(validNodeList);
+    // BU.CLI(this.model.getAllNodeStatus(['node_id', 'data']));
 
     // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
     const returnValue = await this.model.insertNodeDataToDB(validNodeList, {

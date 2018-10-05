@@ -22,7 +22,6 @@ const config = {
     serial_number: '1',
     connect_info: {
       type: 'socket',
-      // subType: 'rtu',
       baudRate: 9600,
       port: 9000,
     },
@@ -30,11 +29,11 @@ const config = {
     //   type: 'modbus',
     //   subType: 'rtu',
     //   baudRate: 9600,
-    //   port: 9000,
+    //   port: 'COM3',
     // },
     protocol_info: {
       mainCategory: 'FarmParallel',
-      subCategory: 'yungSanPo',
+      subCategory: 'YeongSanPo',
       // wrapperCategory: 'default',
       deviceId: 1,
     },

@@ -55,7 +55,7 @@ if (require !== undefined && require.main === module) {
       //   nodeId: 'V_001',
       // });
       // control.discoveryRegularDevice(moment());
-      control.runCronDiscoveryRegularDevice();
+      control.runDeviceInquiryScheduler();
     })
     .catch(err => {
       BU.CLI(err);

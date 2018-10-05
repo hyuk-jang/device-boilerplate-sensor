@@ -19,6 +19,7 @@ const config = {
     database: '',
   },
   uuid: 'aaaaa',
+  inquiryIntervalSecond: 60,
   mainSocketInfo: {
     host: process.env.DB_UPSAS_HOST,
     port: process.env.SOCKET_UPSAS_PORT,

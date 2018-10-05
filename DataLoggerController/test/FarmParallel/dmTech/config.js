@@ -34,7 +34,7 @@ const config = {
     // },
     protocol_info: {
       mainCategory: 'FarmParallel',
-      subCategory: 'yungSanPo',
+      subCategory: 'YeongSanPo',
       // wrapperCategory: 'default',
       deviceId: 1,
     },
