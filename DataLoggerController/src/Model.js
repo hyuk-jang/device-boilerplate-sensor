@@ -77,7 +77,7 @@ class Model {
     return _.remove(this.requestCommandSetList, requestCommand =>
       _(requestCommand)
         .pick(_.keys(compareInfo))
-        .isEqual(compareInfo)
+        .isEqual(compareInfo),
     );
   }
 

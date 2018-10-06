@@ -61,7 +61,7 @@ class DataLoggerController extends AbstDeviceClient {
    */
   findNodeList(nodeInfo) {
     return _.filter(this.nodeList, node =>
-      _.every(nodeInfo, (value, key) => _.isEqual(node[key], value))
+      _.every(nodeInfo, (value, key) => _.isEqual(node[key], value)),
     );
   }
 
@@ -210,7 +210,7 @@ class DataLoggerController extends AbstDeviceClient {
       await eventToPromise.multi(
         this,
         [this.definedControlEvent.CONNECT],
-        [this.definedControlEvent.DISCONNECT]
+        [this.definedControlEvent.DISCONNECT],
       );
       // Controller 반환
       return this;
@@ -318,7 +318,7 @@ class DataLoggerController extends AbstDeviceClient {
       requestCommandId: `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
       requestCommandType: requestOrderCommandType.MEASURE,
       rank: this.definedCommandSetRank.THIRD,
-    }
+    },
   ) {
     try {
       if (!this.hasConnectedDevice) {
@@ -455,7 +455,7 @@ class DataLoggerController extends AbstDeviceClient {
           BU.CLI(
             _(renewalNodeList)
               .map(node => _.pick(node, ['node_id', 'data']))
-              .value()
+              .value(),
           );
           this.observerList.forEach(observer => {
             if (_.get(observer, 'notifyDeviceData')) {

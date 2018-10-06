@@ -28,7 +28,7 @@ class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */
   constructor(config) {
     super();
-    this.config = config;
+    this.config = config || mainConfig;
 
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
@@ -67,11 +67,11 @@ class Control extends EventEmitter {
       throw new Error(
         `The ${
           this.mainUUID
-        } of this site is different from the ${mainUUID} of the site you received.`
+        } of this site is different from the ${mainUUID} of the site you received.`,
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
-      _.isEqual(dataLoggerController.siteUUID, mainUUID)
+      _.isEqual(dataLoggerController.siteUUID, mainUUID),
     );
 
     // 해당 지점이 없다면 실패
@@ -120,7 +120,7 @@ class Control extends EventEmitter {
 
       const foundNodeList = _.filter(
         this.nodeList,
-        nodeInfo => nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq
+        nodeInfo => nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq,
       );
       dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
       dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
@@ -170,7 +170,7 @@ class Control extends EventEmitter {
           dataLoggerController.attach(this);
 
           return dataLoggerController.init();
-        }
+        },
       );
       // BU.CLI(
       //   _(resultInitDataLoggerList)
@@ -485,7 +485,7 @@ class Control extends EventEmitter {
           };
 
           const dataLoggerController = this.model.findDataLoggerController(
-            combinedOrderElementInfo.nodeId
+            combinedOrderElementInfo.nodeId,
           );
 
           // BU.CLIN(dataLoggerController);
@@ -575,7 +575,7 @@ class Control extends EventEmitter {
         diffType: 'minutes',
         duration: 2, // 2분을 벗어나면 데이터 가치가 없음
       },
-      momentDate
+      momentDate,
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
@@ -622,7 +622,7 @@ class Control extends EventEmitter {
       const powerStatusBoardData = await eventToPromise.multi(this, ['done'], ['error']);
       const powerStatusBoardInfo = _.head(powerStatusBoardData);
       const bufData = this.powerStatusBoard.defaultConverter.protocolConverter.makeMsg2Buffer(
-        powerStatusBoardInfo
+        powerStatusBoardInfo,
       );
 
       // BU.CLI(powerStatusBoardData);

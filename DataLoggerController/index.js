@@ -8,7 +8,7 @@ if (require !== undefined && require.main === module) {
   require('dotenv').config();
   const _ = require('lodash');
   const config = require('./src/config');
-  const {BU} = require('base-util-jh');
+  const { BU } = require('base-util-jh');
 
   const control = new Control(config);
   // control.getDataLoggerInfoByDB({

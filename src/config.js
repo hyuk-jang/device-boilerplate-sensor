@@ -1,7 +1,7 @@
 require('dotenv').config();
 // const {integratedDataLoggerConfig} = require('../../default-intelligence').dcmConfigModel;
 
-const {controllerParserType} = require('../../default-intelligence').dccFlagModel;
+const { controllerParserType } = require('../../default-intelligence').dccFlagModel;
 
 /** @type {integratedDataLoggerConfig} */
 const config = {

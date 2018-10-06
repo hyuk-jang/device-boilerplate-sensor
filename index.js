@@ -23,10 +23,10 @@ if (require !== undefined && require.main === module) {
         port: process.env.DB_UPSAS_PORT,
         user: process.env.DB_UPSAS_USER,
       },
-      config.uuid
+      config.uuid,
     )
     .then(
-      () => control.init()
+      () => control.init(),
 
       // setTimeout(() => {
       //   control.executeSingleControl({

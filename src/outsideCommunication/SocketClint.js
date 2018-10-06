@@ -93,7 +93,7 @@ class SocketClient extends AbstController {
 
     if (_.isEmpty(this.client)) {
       throw new Error(
-        `${this.configInfo.host} ${this.configInfo.port} The device is not connected yet.`
+        `${this.configInfo.host} ${this.configInfo.port} The device is not connected yet.`,
       );
     }
 

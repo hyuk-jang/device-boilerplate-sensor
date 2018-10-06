@@ -1,16 +1,21 @@
 const _ = require('lodash');
 const moment = require('moment');
 
-const {BU} = require('base-util-jh');
-const {BM} = require('../../base-model-jh');
+const { BU } = require('base-util-jh');
+const { BM } = require('../../base-model-jh');
 
 const Control = require('./Control');
 
-const {dcmWsModel, dcmConfigModel} = require('../../default-intelligence');
+const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
-const {combinedOrderType, requestOrderCommandType, simpleOrderStatus, nodePickKey} = dcmConfigModel;
+const {
+  combinedOrderType,
+  requestOrderCommandType,
+  simpleOrderStatus,
+  nodePickKey,
+} = dcmConfigModel;
 
-const {transmitToServerCommandType} = dcmWsModel;
+const { transmitToServerCommandType } = dcmWsModel;
 
 const map = require('../config/map');
 
@@ -71,7 +76,7 @@ class Model {
     if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
       return false;
     }
-    const foundIt = _.find(this.simpleOrderList, {uuid: simpleOrderInfo.uuid});
+    const foundIt = _.find(this.simpleOrderList, { uuid: simpleOrderInfo.uuid });
     // 기존에 존재한다면
     if (foundIt) {
       return false;
@@ -97,7 +102,7 @@ class Model {
     if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
       return false;
     }
-    const simpleOrderInfo = _.find(this.simpleOrderList, {uuid});
+    const simpleOrderInfo = _.find(this.simpleOrderList, { uuid });
     // BU.CLI(orderStatus, simpleOrderInfo);
     // 데이터가 존재한다면 해당 명령의 변화가 생긴 것
     if (simpleOrderInfo) {
@@ -210,7 +215,7 @@ class Model {
           _.forEach(orderWrapInfo.orderContainerList, containerInfo => {
             if (hasFined) return false;
             // 해당 ID를 가진 combinedOrderWrapInfo 검색
-            const foundIt = _.find(containerInfo.orderElementList, {uuid});
+            const foundIt = _.find(containerInfo.orderElementList, { uuid });
             if (foundIt) {
               hasFined = true;
               returnValue.orderStorageKeyLV1 = orderStorageType;
@@ -305,7 +310,7 @@ class Model {
       COMMANDSET_DELETE,
     } = dataLoggerController.definedCommandSetMessage;
 
-    const {commandSet} = dcMessage;
+    const { commandSet } = dcMessage;
 
     // BU.CLIN(commandSet);
     // 명령 타입에 따라서 저장소를 가져옴(Control, Cancel, Measure)

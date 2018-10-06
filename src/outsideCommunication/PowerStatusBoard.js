@@ -3,11 +3,11 @@ const cron = require('node-cron');
 const Serialport = require('serialport');
 const eventToPromise = require('event-to-promise');
 
-const {BU, CU} = require('base-util-jh');
+const { BU, CU } = require('base-util-jh');
 
 const Control = require('../Control');
 const AbstController = require('./AbstController');
-const {BaseModel} = require('../../../device-protocol-converter-jh');
+const { BaseModel } = require('../../../device-protocol-converter-jh');
 
 const PowerStatusBoard = class extends AbstController {
   /** @param {Control} controller */
@@ -84,7 +84,7 @@ const PowerStatusBoard = class extends AbstController {
    * @return {Promise} Promise 반환 객체
    */
   write(bufMsg) {
-    BU.CLI('현황판 데이터 계측 수신', bufMsg)
+    BU.CLI('현황판 데이터 계측 수신', bufMsg);
     const writeMsg = Buffer.concat([Buffer.from([0x02]), bufMsg, Buffer.from([0x03])]);
 
     if (_.isEmpty(this.client)) {

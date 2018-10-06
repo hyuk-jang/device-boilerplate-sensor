@@ -1,6 +1,6 @@
 require('dotenv').config();
 const _ = require('lodash');
-const {BU} = require('base-util-jh');
+const { BU } = require('base-util-jh');
 
 const config = require('./config');
 const Control = require('../../../src/Control');
@@ -18,7 +18,7 @@ control.model.hasAverageStorage = true;
 setTimeout(() => {
   // DataLogger 조회
   // BU.CLIN(control.manager.deviceController);
-  control.orderOperationToDataLogger({requestCommandId: 'test'});
+  control.orderOperationToDataLogger({ requestCommandId: 'test' });
 }, 1000);
 
 // setTimeout(() => {
