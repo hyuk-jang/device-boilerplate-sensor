@@ -136,7 +136,7 @@ class DataLoggerController extends AbstDeviceClient {
    */
   s2SetDeviceInfo() {
     this.config.deviceInfo = {
-      target_id: this.dataLoggerInfo.dl_id,
+      target_id: this.dataLoggerInfo.dl_real_id,
       // target_category: 'Saltern',
       target_name: this.dataLoggerInfo.dld_target_name,
       connect_info: this.dataLoggerInfo.connect_info,
@@ -164,17 +164,17 @@ class DataLoggerController extends AbstDeviceClient {
    * @return {Promise.<DataLoggerController>} 생성된 현 객체 반환
    */
   async init(siteUUID) {
+    // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
     this.connectInfo = this.config.deviceInfo.connect_info;
     this.protocolInfo = this.config.deviceInfo.protocol_info;
 
     this.converter = new MainConverter(this.protocolInfo);
     // _.set(this.converter, 'test', this.config.dataLoggerInfo.dl_id);
-    this.baseModel = new BaseModel.UPSAS(this.protocolInfo);
-    this.deviceModel = this.baseModel.device;
+    // this.baseModel = new BaseModel.UPSAS(this.protocolInfo);
+    // this.deviceModel = this.baseModel.device;
 
     // 모델 선언
     this.model = new Model(this);
-
     /** 개발 버젼일 경우 Echo Server 구동 */
     if (this.config.hasDev) {
       // const EchoServer = require('device-echo-server-jh');
@@ -182,7 +182,6 @@ class DataLoggerController extends AbstDeviceClient {
       const echoServer = new EchoServer(this.connectInfo.port);
       echoServer.attachDevice(this.protocolInfo);
     }
-
     try {
       // 프로토콜 컨버터 바인딩
       this.converter.setProtocolConverter();
@@ -198,20 +197,24 @@ class DataLoggerController extends AbstDeviceClient {
         }
         throw new ReferenceError('Initialization failed.');
       }
-
+      // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
       // 접속 경로가 존재시 선언 및 자동 접속을 수행
+
       this.setDeviceClient(this.config.deviceInfo);
 
       // 만약 장치가 접속된 상태라면
       if (this.hasConnectedDevice) {
+        BU.CLI('Connected', this.config.dataLoggerInfo.dl_real_id);
         return this;
       }
+      // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
       // 장치와의 접속 수립이 아직 안되었을 경우 장치 접속 결과를 기다림
       await eventToPromise.multi(
         this,
         [this.definedControlEvent.CONNECT],
         [this.definedControlEvent.DISCONNECT],
       );
+      // BU.CLI('Connected', this.config.dataLoggerInfo.dl_real_id)
       // Controller 반환
       return this;
     } catch (error) {
@@ -255,6 +258,7 @@ class DataLoggerController extends AbstDeviceClient {
   orderOperation(executeOrderInfo) {
     // BU.CLIN(executeOrderInfo);
     try {
+      BU.CLI(this.siteUUID);
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
       }
@@ -303,7 +307,7 @@ class DataLoggerController extends AbstDeviceClient {
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
       return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
-      BU.CLI(error);
+      // BU.CLI(error);
       throw error;
     }
   }
@@ -453,6 +457,7 @@ class DataLoggerController extends AbstDeviceClient {
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
           BU.CLI(
+            this.id,
             _(renewalNodeList)
               .map(node => _.pick(node, ['node_id', 'data']))
               .value(),

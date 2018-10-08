@@ -1,6 +1,6 @@
 require('dotenv').config();
 const _ = require('lodash');
-const {BU} = require('base-util-jh');
+const { BU } = require('base-util-jh');
 const Control = require('../../src/Control');
 const config = require('../../src/config');
 
@@ -31,7 +31,7 @@ control
     control.init();
     setTimeout(() => {
       // 장치 전체 탐색
-      control.inquiryCurrentStatusDevice();
+      control.runDeviceInquiryScheduler();
 
       // control.executeSingleControl({
       //   nodeId: control.nodeList[0].node_id,

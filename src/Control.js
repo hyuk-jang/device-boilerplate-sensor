@@ -38,7 +38,7 @@ class Control extends EventEmitter {
     this.nodeList = [];
 
     /** @type {string} 데이터 지점 ID */
-    this.mainUUID = null;
+    this.mainUUID = this.config.uuid;
 
     // /** @type {DataLoggerController[]} */
     // this.preparingDataLoggerControllerList = [];
@@ -88,10 +88,11 @@ class Control extends EventEmitter {
    * @param {string} mainUUID main UUID
    * @return {Promise.<mainConfig>}
    */
-  async getDataLoggerListByDB(dbInfo, mainUUID) {
+  async getDataLoggerListByDB(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
     this.mainUUID = mainUUID;
-    BU.CLI(dbInfo);
     const biModule = new BM(dbInfo);
+    // BU.CLI(dbInfo);
+    BU.CLI(mainUUID);
 
     /** @type {dataLoggerConfig[]} */
     const returnValue = [];
@@ -154,6 +155,7 @@ class Control extends EventEmitter {
    */
   async init() {
     try {
+      BU.CLI(this.mainUUID, this.config.dataLoggerList.length);
       // 하부 Data Logger 순회
       const resultInitDataLoggerList = await Promise.map(
         this.config.dataLoggerList,
@@ -169,20 +171,21 @@ class Control extends EventEmitter {
           // 컨트롤러에 현 객체 Observer 등록
           dataLoggerController.attach(this);
 
-          return dataLoggerController.init();
+          BU.CLI(`DBS Init  ${this.mainUUID}`, dataLoggerConfig.dataLoggerInfo.dl_real_id);
+          return dataLoggerController.init(this.mainUUID);
         },
       );
-      // BU.CLI(
-      //   _(resultInitDataLoggerList)
-      //     .map(node => _.pick(node, ['converter.test']))
-      //     .value(),
-      // );
+
+      BU.CLI(`what the ?  ${this.mainUUID}`, resultInitDataLoggerList.length);
+
       // 하부 PCS 객체 리스트 정의
       // BU.CLIN(resultInitDataLoggerList);
       this.dataLoggerControllerList = resultInitDataLoggerList;
       // BU.CLIN(this.dataLoggerControllerList);
 
       this.model = new Model(this);
+      // DBS 사용 Map 설정
+      await this.model.setMap();
 
       return this.dataLoggerControllerList;
     } catch (error) {

@@ -5,7 +5,7 @@ const eventToPromise = require('event-to-promise');
 
 const { BU, CU } = require('base-util-jh');
 
-const Control = require('../Control');
+const ControlDBS = require('../Control');
 const AbstController = require('./AbstController');
 
 const { BaseModel } = require('../../../device-protocol-converter-jh');
@@ -17,7 +17,7 @@ const {
 
 /** Class Socket 접속 클라이언트 클래스 */
 class SocketClient extends AbstController {
-  /** @param {Control} controller */
+  /** @param {ControlDBS} controller */
   constructor(controller) {
     super();
     this.controller = controller;

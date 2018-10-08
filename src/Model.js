@@ -4,7 +4,7 @@ const moment = require('moment');
 const { BU } = require('base-util-jh');
 const { BM } = require('../../base-model-jh');
 
-const Control = require('./Control');
+const ControlDBS = require('./Control');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
@@ -17,12 +17,12 @@ const {
 
 const { transmitToServerCommandType } = dcmWsModel;
 
-const map = require('../config/map');
+// const map = require('../config/map');
 
 class Model {
   /**
    * Creates an instance of Model.
-   * @param {Control} controller
+   * @param {ControlDBS} controller
    * @memberof Model
    */
   constructor(controller) {
@@ -39,7 +39,29 @@ class Model {
     this.simpleOrderList = [];
 
     // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
-    this.excuteControlList = map.controlList;
+    // this.excuteControlList = map.controlList;
+  }
+
+  /**
+   * DBS가 사용하는 Device Map을 설정
+   */
+  async setMap() {
+    const { uuid } = this.controller.config;
+    /** @type {MAIN[]} */
+    const mainList = await this.BM.getTable('main', { uuid });
+    if (_.isEmpty(mainList)) {
+      throw new Error(`Main UUID: ${uuid}는 존재하지 않습니다.`);
+    }
+    const mainInfo = _.head(mainList);
+
+    /** @type {MAIN_MAP[]} */
+    const mapList = await this.BM.getTable('main_map', { main_seq: mainInfo.main_seq });
+    if (_.isEmpty(mapList)) {
+      throw new Error(`Map UUID: ${uuid}는 존재하지 않습니다.`);
+    }
+    /** @type {mDeviceMap} */
+    this.deviceMap = JSON.parse(_.head(mapList).contents);
+    this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', [])
   }
 
   /**
@@ -71,7 +93,7 @@ class Model {
    * @return {boolean} 정상적인 신규 데이터 삽입이 이루어지면 true, 아니면 false
    */
   setSimpleOrderInfo(simpleOrderInfo) {
-    BU.CLI(simpleOrderInfo);
+    BU.CLI(this.controller.mainUUID, simpleOrderInfo);
     // 아직 접속이 이루어져있지 않을 경우 보내지 않음
     if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
       return false;

@@ -20,6 +20,7 @@ const config = {
   },
   uuid: 'aaaaa',
   inquiryIntervalSecond: 60,
+  hasPassiveClient: true,
   mainSocketInfo: {
     host: process.env.DB_UPSAS_HOST,
     port: process.env.SOCKET_UPSAS_PORT,
