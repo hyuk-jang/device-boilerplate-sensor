@@ -19,11 +19,11 @@ control.on('completeDiscovery', () => {
 control
   .getDataLoggerListByDB(
     {
-      database: process.env.DB_FP_DB,
-      host: process.env.DB_FP_HOST,
-      password: process.env.DB_FP_PW,
-      port: process.env.DB_FP_PORT,
-      user: process.env.DB_FP_USER,
+      database: process.env.WEB_DB_DB,
+      host: process.env.WEB_DB_HOST,
+      password: process.env.WEB_DB_PW,
+      port: process.env.WEB_DB_PORT,
+      user: process.env.WEB_DB_USER,
     },
     'aaaaa',
   )

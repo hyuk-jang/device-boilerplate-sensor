@@ -9,7 +9,11 @@ const ControlDBS = require('../Control');
 const AbstController = require('./AbstController');
 const { BaseModel } = require('../../../device-protocol-converter-jh');
 
-const PowerStatusBoard = class extends AbstController {
+/**
+ * 수중태양광 용 현황판을 보여주기 위함
+ * 본래 Boilerplate와는 거리가 있음.
+ */
+class PowerStatusBoard extends AbstController {
   /** @param {ControlDBS} controller */
   constructor(controller) {
     super();
@@ -137,5 +141,5 @@ const PowerStatusBoard = class extends AbstController {
     }
     return this.client;
   }
-};
+}
 module.exports = PowerStatusBoard;

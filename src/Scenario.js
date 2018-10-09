@@ -8,6 +8,10 @@ const map = require('../config/map');
 
 const { requestOrderCommandType } = require('../../default-intelligence').dcmConfigModel;
 
+/**
+ * 수중태양광 용으로 만들어진 시나리오 모드.
+ * 본래 Boilerplate와는 거리가 있음.
+ */
 class Scenario {
   /** @param {ControlDBS} controller */
   constructor(controller) {

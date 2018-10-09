@@ -258,7 +258,7 @@ class DataLoggerController extends AbstDeviceClient {
   orderOperation(executeOrderInfo) {
     // BU.CLIN(executeOrderInfo);
     try {
-      BU.CLI(this.siteUUID);
+      // BU.CLI(this.siteUUID);
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
       }

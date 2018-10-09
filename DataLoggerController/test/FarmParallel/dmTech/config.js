@@ -34,7 +34,7 @@ const config = {
     // },
     protocol_info: {
       mainCategory: 'FarmParallel',
-      subCategory: 'YeongSanPo',
+      subCategory: 'dmTech',
       // wrapperCategory: 'default',
       deviceId: 1,
     },

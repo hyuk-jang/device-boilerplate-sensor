@@ -176,7 +176,7 @@ class Control extends EventEmitter {
         },
       );
 
-      BU.CLI(`what the ?  ${this.mainUUID}`, resultInitDataLoggerList.length);
+      // BU.CLI(`what the ?  ${this.mainUUID}`, resultInitDataLoggerList.length);
 
       // 하부 PCS 객체 리스트 정의
       // BU.CLIN(resultInitDataLoggerList);
@@ -218,6 +218,7 @@ class Control extends EventEmitter {
     let strTrue = '';
     let strFalse = '';
 
+    // Node Class ID를 가져옴. 장치 명에 따라 True, False 개체 명명 변경
     if (_.includes(onOffList, nodeInfo.nc_target_id)) {
       strTrue = 'On';
       strFalse = 'Off';
@@ -391,54 +392,81 @@ class Control extends EventEmitter {
   /**
    * 복합 명령 실행 요청
    * @param {requestCombinedOrderInfo} requestCombinedOrder
-   * @memberof Control
    */
   executeCombineOrder(requestCombinedOrder) {
     // BU.CLI('excuteCombineOrder', requestCombinedOrder);
-    // TODO: requestCombinedOrder의 실행 가능 여부 체크 메소드 구현
+
+    // 복합 명령을 해체하여 정의
+    const {
+      requestCommandId,
+      requestCommandType,
+      requestCommandName,
+      requestElementList,
+    } = requestCombinedOrder;
 
     /** @type {combinedOrderWrapInfo} */
     const combinedWrapOrder = {
       uuid: uuidv4(),
-      requestCommandId: requestCombinedOrder.requestCommandId,
-      requestCommandType: requestCombinedOrder.requestCommandType,
-      requestCommandName: requestCombinedOrder.requestCommandName,
+      requestCommandId,
+      requestCommandType,
+      requestCommandName,
       orderContainerList: [],
     };
 
+    const controlTypeList = _.values(requestDeviceControlType);
+    const commandSetRankList = _.values(definedCommandSetRank);
+
     // 요청 복합 명령 객체의 요청 리스트를 순회하면서 combinedOrderContainerInfo 객체를 만들고 삽입
-    requestCombinedOrder.requestElementList.forEach(requestElementInfo => {
-      // controlValue가 없다면 기본 값 2(Stauts)를 입력
-      const controlValue =
-        requestElementInfo.controlValue === undefined
-          ? requestDeviceControlType.MEASURE
-          : requestElementInfo.controlValue;
+    requestElementList.forEach(requestElementInfo => {
+      const { nodeId } = requestElementInfo;
+      let { controlValue, controlSetValue, rank } = requestElementInfo;
+      // nodeId가 string이라면 배열생성 후 집어넣음
+      const nodeList = _.isArray(nodeId) ? nodeId : [nodeId];
+      // controlValue가 없다면 기본 값 MEASURE(2)
+      controlValue = _.includes(controlTypeList, controlValue)
+        ? controlValue
+        : requestDeviceControlType.MEASURE;
+      // 설정 값이 존재하지 않는다면 undefined
+      controlSetValue = _.isNil(controlSetValue) ? undefined : controlSetValue;
+      // rank가 존재하지 않는다면 기본값은 THID(3)
+      rank = _.includes(commandSetRankList, rank) ? rank : definedCommandSetRank.THIRD;
+
       // 해당 controlValue가 orderElementList 기존재하는지 체크
       let foundRemainInfo = _.find(combinedWrapOrder.orderContainerList, {
         controlValue,
       });
       // 없다면
       if (!foundRemainInfo) {
-        /** @type {combinedOrderContainerInfo} */
-        const container = {
+        foundRemainInfo = {
           controlValue,
-          controlSetValue: requestElementInfo.controlSetValue,
+          controlSetValue,
           orderElementList: [],
         };
-        foundRemainInfo = container;
-        combinedWrapOrder.orderContainerList.push(container);
+        combinedWrapOrder.orderContainerList.push(foundRemainInfo);
       }
-      // nodeId가 string이라면 배열생성 후 집어넣음
-      requestElementInfo.nodeId = Array.isArray(requestElementInfo.nodeId)
-        ? requestElementInfo.nodeId
-        : [requestElementInfo.nodeId];
+
       // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
-      _.forEach(requestElementInfo.nodeId, nodeId => {
+      _.forEach(nodeList, currNodeId => {
+        // 장치와 연결되어 있는 DLC 불러옴
+        const dataLoggerController = this.model.findDataLoggerController(currNodeId);
+        // 해당하는 DLC가 없거나 장치가 비접속이라면 명령을 수행하지 않음
+        // TODO: requestCombinedOrder의 실행 가능 여부를 판단하고 명령에서 제외하는 것이 맞는지 검증 필요
+        if (_.isUndefined(dataLoggerController) || !dataLoggerController.hasConnectedDevice) {
+          const msg = _.isUndefined(dataLoggerController)
+            ? 'DLC가 존재하지 않습니다.'
+            : '장치와 연결되지 않았습니다.';
+          BU.errorLog(
+            'executeCombineOrder',
+            `nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${msg}`,
+          );
+          return false;
+        }
+
         /** @type {combinedOrderElementInfo} */
         const elementInfo = {
           hasComplete: false,
-          nodeId,
-          rank: _.get(requestElementInfo, 'rank', definedCommandSetRank.THIRD),
+          nodeId: currNodeId,
+          rank,
           uuid: uuidv4(),
         };
 
@@ -451,6 +479,7 @@ class Control extends EventEmitter {
     this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
 
     // 복합 명령 실행 요청
+    // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
     return this.transferRequestOrder(combinedWrapOrder);
   }
 
@@ -460,12 +489,7 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   transferRequestOrder(combinedOrderWrapInfo) {
-    const {
-      uuid,
-      requestCommandId,
-      requestCommandName,
-      requestCommandType,
-    } = combinedOrderWrapInfo;
+    const { requestCommandId, requestCommandName, requestCommandType } = combinedOrderWrapInfo;
 
     // 아직 요청 전이므로 orderContainerList 순회하면서 명령 생성 및 요청
     combinedOrderWrapInfo.orderContainerList.forEach(combinedOrderContainerInfo => {
@@ -473,23 +497,22 @@ class Control extends EventEmitter {
 
       const hasFirst = true;
       combinedOrderContainerInfo.orderElementList.forEach(combinedOrderElementInfo => {
+        const { nodeId, rank } = combinedOrderElementInfo;
         if (hasFirst) {
           /** @type {executeOrderInfo} */
           const executeOrder = {
-            integratedUUID: uuid,
+            integratedUUID: combinedOrderWrapInfo.uuid,
             requestCommandId,
             requestCommandName,
             requestCommandType,
             controlValue,
             controlSetValue,
-            nodeId: combinedOrderElementInfo.nodeId,
-            rank: combinedOrderElementInfo.rank,
+            nodeId,
+            rank,
             uuid: combinedOrderElementInfo.uuid,
           };
 
-          const dataLoggerController = this.model.findDataLoggerController(
-            combinedOrderElementInfo.nodeId,
-          );
+          const dataLoggerController = this.model.findDataLoggerController(nodeId);
 
           // BU.CLIN(dataLoggerController);
           dataLoggerController.orderOperation(executeOrder);
@@ -561,6 +584,8 @@ class Control extends EventEmitter {
       requestCommandType: requestOrderCommandType.MEASURE,
       requestElementList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
     };
+
+    // BU.CLIN(requestCombinedOrder, 4);
 
     // BU.CLI(requestCombinedOrder);
     // 명령 요청

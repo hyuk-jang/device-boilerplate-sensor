@@ -61,7 +61,7 @@ class Model {
     }
     /** @type {mDeviceMap} */
     this.deviceMap = JSON.parse(_.head(mapList).contents);
-    this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', [])
+    this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
   }
 
   /**
