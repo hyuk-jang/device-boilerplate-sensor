@@ -164,9 +164,10 @@ class DataLoggerController extends AbstDeviceClient {
    * @return {Promise.<DataLoggerController>} 생성된 현 객체 반환
    */
   async init(siteUUID) {
+    const { deviceInfo } = this.config;
     // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
-    this.connectInfo = this.config.deviceInfo.connect_info;
-    this.protocolInfo = this.config.deviceInfo.protocol_info;
+    this.connectInfo = deviceInfo.connect_info;
+    this.protocolInfo = deviceInfo.protocol_info;
 
     this.converter = new MainConverter(this.protocolInfo);
     // _.set(this.converter, 'test', this.config.dataLoggerInfo.dl_id);
@@ -186,25 +187,30 @@ class DataLoggerController extends AbstDeviceClient {
       // 프로토콜 컨버터 바인딩
       this.converter.setProtocolConverter();
 
+      
       // DCC 초기화 시작
-      if (_.isEmpty(this.config.deviceInfo.connect_info)) {
-        // 장치 접속 경로가 존재하지 않을 경우 수동 클라이언트 설정
+      // connectInfo가 없거나 수동 Client를 사용할 경우
+      if (_.isEmpty(deviceInfo.connect_info) || deviceInfo.connect_info.hasPassive) {
+        BU.CLI('setPassiveClient', this.id);
+        // 수동 클라이언트를 사용할 경우에는 반드시 사이트 UUID가 필요함
         if (_.isString(siteUUID)) {
+          BU.CLI('setPassiveClient', this.id);
           // 해당 사이트 고유 ID
           this.siteUUID = siteUUID;
-          this.setPassiveClient(this.config.deviceInfo, siteUUID);
+          this.setPassiveClient(deviceInfo, siteUUID);
           return this;
         }
         throw new ReferenceError('Initialization failed.');
       }
-      // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
+      BU.CLI('setDeviceClient', this.id);
+      BU.CLI('setDeviceClient', this.id);
       // 접속 경로가 존재시 선언 및 자동 접속을 수행
 
-      this.setDeviceClient(this.config.deviceInfo);
+      this.setDeviceClient(deviceInfo);
 
       // 만약 장치가 접속된 상태라면
       if (this.hasConnectedDevice) {
-        BU.CLI('Connected', this.config.dataLoggerInfo.dl_real_id);
+        BU.CLI('Connected', this.id);
         return this;
       }
       // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
@@ -214,7 +220,7 @@ class DataLoggerController extends AbstDeviceClient {
         [this.definedControlEvent.CONNECT],
         [this.definedControlEvent.DISCONNECT],
       );
-      // BU.CLI('Connected', this.config.dataLoggerInfo.dl_real_id)
+      BU.CLI('Connected', this.id);
       // Controller 반환
       return this;
     } catch (error) {

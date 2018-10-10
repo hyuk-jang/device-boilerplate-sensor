@@ -92,7 +92,7 @@ class Control extends EventEmitter {
     this.mainUUID = mainUUID;
     const biModule = new BM(dbInfo);
     // BU.CLI(dbInfo);
-    BU.CLI(mainUUID);
+    // BU.CLI(mainUUID);
 
     /** @type {dataLoggerConfig[]} */
     const returnValue = [];
@@ -176,10 +176,9 @@ class Control extends EventEmitter {
         },
       );
 
-      // BU.CLI(`what the ?  ${this.mainUUID}`, resultInitDataLoggerList.length);
+      BU.CLI(`what the ?  ${this.mainUUID}`, resultInitDataLoggerList.length);
 
       // 하부 PCS 객체 리스트 정의
-      // BU.CLIN(resultInitDataLoggerList);
       this.dataLoggerControllerList = resultInitDataLoggerList;
       // BU.CLIN(this.dataLoggerControllerList);
 
@@ -394,7 +393,7 @@ class Control extends EventEmitter {
    * @param {requestCombinedOrderInfo} requestCombinedOrder
    */
   executeCombineOrder(requestCombinedOrder) {
-    // BU.CLI('excuteCombineOrder', requestCombinedOrder);
+    BU.CLI('excuteCombineOrder', requestCombinedOrder);
 
     // 복합 명령을 해체하여 정의
     const {
@@ -489,6 +488,7 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   transferRequestOrder(combinedOrderWrapInfo) {
+    // BU.CLI('transferRequestOrder', combinedOrderWrapInfo);
     const { requestCommandId, requestCommandName, requestCommandType } = combinedOrderWrapInfo;
 
     // 아직 요청 전이므로 orderContainerList 순회하면서 명령 생성 및 요청
@@ -514,7 +514,6 @@ class Control extends EventEmitter {
 
           const dataLoggerController = this.model.findDataLoggerController(nodeId);
 
-          // BU.CLIN(dataLoggerController);
           dataLoggerController.orderOperation(executeOrder);
           // hasFirst = false;
         }
@@ -554,20 +553,20 @@ class Control extends EventEmitter {
    *
    */
   async inquiryAllDeviceStatus(momentDate) {
-    BU.CLI('inquiryAllDeviceStatus');
+    BU.CLI('inquiryAllDeviceStatus', momentDate);
     // 정기 장치 상태 조회 명령일 경우
     if (!_.isNil(momentDate)) {
       // FIXME: cron 스케줄러가 중복 실행되는 버그가 해결되기 전까지 사용
+      /** @type {Timer} */
+      const timer = this.inquiryAllDeviceStatusTimer;
       // Timer가 존재하지 않거나(초기) 종료되었다면 새로이 명령을 내릴 수 있음
-      if (
-        _.isNil(this.inquiryAllDeviceStatusTimer) ||
-        !this.inquiryAllDeviceStatusTimer.getStateRunning()
-      ) {
+      if (_.isNil(timer) || !timer.getStateRunning()) {
         this.inquiryAllDeviceStatusTimer = new CU.Timer(() => {
           this.inquiryAllDeviceStatusTimer.pause();
         }, _.subtract(_.multiply(1000, this.config.inquiryIntervalSecond), 100));
       } else {
         // Timer가 존재하다면 추가 조회는 하지 않음.
+        BU.CLIS('Timer 존재', this.inquiryAllDeviceStatusTimer.getTimeLeft());
         return false;
       }
     } else {

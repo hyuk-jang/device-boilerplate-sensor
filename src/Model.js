@@ -288,7 +288,7 @@ class Model {
    * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
    */
   findDataLoggerController(searchValue) {
-    // BU.CLI(searchValue);
+    BU.CLI(searchValue);
     // Node Id 일 경우
     if (_.isString(searchValue)) {
       // Data Logger List에서 찾아봄

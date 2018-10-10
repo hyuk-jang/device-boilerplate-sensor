@@ -110,7 +110,7 @@ class SocketClient extends AbstController {
    */
   transmitDataToServer(transDataToServerInfo) {
     try {
-      // BU.CLI(transDataToServerInfo);
+      // BU.CLI('transDataToServerInfo');
       // 소켓 연결이 되지 않으면 명령 전송 불가
       if (_.isEmpty(this.client)) {
         throw new Error('The socket is not connected yet.');
