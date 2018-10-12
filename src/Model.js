@@ -17,6 +17,8 @@ const {
 
 const { transmitToServerCommandType } = dcmWsModel;
 
+const NODE_DATA = ['node_seq', 'data', 'writeDate'];
+
 // const map = require('../config/map');
 
 class Model {
@@ -599,7 +601,7 @@ class Model {
     // 센서류 삽입
     if (insertOption.hasSensor) {
       const nodeSensorList = _(nodeList)
-        .filter(ele => ele.is_sensor === 1)
+        .filter(ele => ele.is_sensor === 1 && _.isNumber(ele.node_seq) && _.isNumber(ele.data))
         .map(ele =>
           BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
         )
@@ -612,7 +614,7 @@ class Model {
     // 장치류 삽입
     if (insertOption.hasDevice) {
       const nodeDeviceList = _(nodeList)
-        .filter(ele => ele.is_sensor === 0)
+        .filter(ele => ele.is_sensor === 0 && _.isNumber(ele.node_seq) && _.isString(ele.data))
         .map(ele =>
           BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'str_data'),
         )
