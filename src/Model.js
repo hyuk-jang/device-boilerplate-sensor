@@ -56,13 +56,14 @@ class Model {
     }
     const mainInfo = _.head(mainList);
 
-    /** @type {MAIN_MAP[]} */
-    const mapList = await this.BM.getTable('main_map', { main_seq: mainInfo.main_seq });
-    if (_.isEmpty(mapList)) {
-      throw new Error(`Map UUID: ${uuid}는 존재하지 않습니다.`);
-    }
+    // /** @type {MAIN_MAP[]} */
+    // const mapList = await this.BM.getTable('main_map', { main_seq: mainInfo.main_seq });
+    // if (_.isEmpty(mapList)) {
+    //   throw new Error(`Map UUID: ${uuid}는 존재하지 않습니다.`);
+    // }
     /** @type {mDeviceMap} */
-    this.deviceMap = JSON.parse(_.head(mapList).contents);
+    this.deviceMap = JSON.parse(mainInfo.map);
+    // BU.CLI(this.deviceMap);
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
   }
 
@@ -290,7 +291,7 @@ class Model {
    * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
    */
   findDataLoggerController(searchValue) {
-    BU.CLI(searchValue);
+    // BU.CLI(searchValue);
     // Node Id 일 경우
     if (_.isString(searchValue)) {
       // Data Logger List에서 찾아봄
