@@ -176,7 +176,7 @@ class Control extends EventEmitter {
         },
       );
 
-      BU.CLI(`what the ?  ${this.mainUUID}`, resultInitDataLoggerList.length);
+      // BU.CLI(`what the ?  ${this.mainUUID}`, resultInitDataLoggerList.length);
 
       // 하부 PCS 객체 리스트 정의
       this.dataLoggerControllerList = resultInitDataLoggerList;
@@ -250,7 +250,7 @@ class Control extends EventEmitter {
    * @param {requestSingleOrderInfo} requestSingleOrderInfo
    */
   executeSingleControl(requestSingleOrderInfo) {
-    // BU.CLI('executeSingleControl')
+    BU.CLI('executeSingleControl');
     const { nodeId, controlValue } = requestSingleOrderInfo;
     const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
     try {
@@ -419,6 +419,8 @@ class Control extends EventEmitter {
     requestElementList.forEach(requestElementInfo => {
       const { nodeId } = requestElementInfo;
       let { controlValue, controlSetValue, rank } = requestElementInfo;
+      controlValue = BU.isNumberic(controlValue) ? Number(controlValue) : controlValue;
+      rank = BU.isNumberic(rank) ? Number(rank) : rank;
       // nodeId가 string이라면 배열생성 후 집어넣음
       const nodeList = _.isArray(nodeId) ? nodeId : [nodeId];
       // controlValue가 없다면 기본 값 MEASURE(2)
@@ -611,7 +613,7 @@ class Control extends EventEmitter {
 
     // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
     const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
-      hasSensor: false,
+      hasSensor: true,
       hasDevice: false,
     });
 
