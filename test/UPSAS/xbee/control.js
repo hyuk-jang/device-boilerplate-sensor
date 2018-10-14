@@ -14,14 +14,14 @@ const control = new Control(config);
 
 const testDumpCmd = {
   cmdName: '증발지1 -> 저수지1',
-  trueList: ['WD_005', 'V_002'],
+  trueList: ['WD_005', 'V_002', 'GV_001'],
   falseList: ['WD_009', 'V_003', 'P_002'],
 };
 
 const testDumpCmd2 = {
   cmdName: '증발지1 -> 저수지1 취소',
   trueList: ['WD_005', 'V_002'],
-  falseList: ['WD_009', 'V_003', 'P_002'],
+  falseList: ['WD_009', 'V_003', 'P_002', 'GV_001'],
 };
 
 // const testDumpCmd2 = {

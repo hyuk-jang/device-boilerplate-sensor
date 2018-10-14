@@ -609,7 +609,7 @@ class Model {
           BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
         )
         .value();
-      BU.CLI(nodeSensorList);
+      // BU.CLI(nodeSensorList);
       const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
       returnValue.push(result);
     }

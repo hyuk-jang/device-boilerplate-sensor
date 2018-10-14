@@ -4,6 +4,7 @@ const { BU } = require('base-util-jh');
 const Control = require('../../../src/Control');
 const config = require('../../../src/config');
 
+config.uuid = '001';
 const control = new Control(config);
 
 control.on('completeDiscovery', () => {
@@ -25,7 +26,7 @@ control
       port: process.env.WEB_DB_PORT,
       user: process.env.WEB_DB_USER,
     },
-    'aaaaa',
+    '001',
   )
   .then(() => control.init())
   .then(

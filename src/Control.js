@@ -253,9 +253,15 @@ class Control extends EventEmitter {
    * 외부에서 단일 명령을 내릴경우
    * @param {requestSingleOrderInfo} requestSingleOrderInfo
    */
-  executeSingleControl(requestSingleOrderInfo = { rank: definedCommandSetRank.SECOND }) {
+  executeSingleControl(requestSingleOrderInfo) {
     BU.CLI('executeSingleControl');
-    const { nodeId, controlValue, requestCommandType } = requestSingleOrderInfo;
+    const {
+      requestCommandType,
+      nodeId,
+      controlValue,
+      controlSetValue,
+      rank = definedCommandSetRank.SECOND,
+    } = requestSingleOrderInfo;
     const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
     try {
       /** @type {requestCombinedOrderInfo} */
@@ -267,8 +273,7 @@ class Control extends EventEmitter {
       };
 
       /** @type {requestOrderElementInfo} */
-      const requestOrderElement = _.omit(requestSingleOrderInfo, 'requestCommandType');
-      // BU.CLI(requestOrderElement);
+      const requestOrderElement = { nodeId, controlValue, controlSetValue, rank };
 
       requestCombinedOrder.requestElementList.push(requestOrderElement);
 
@@ -390,7 +395,7 @@ class Control extends EventEmitter {
    * @param {requestCombinedOrderInfo} requestCombinedOrder
    */
   executeCombineOrder(requestCombinedOrder) {
-    BU.CLI('excuteCombineOrder', requestCombinedOrder);
+    // BU.CLI('excuteCombineOrder', requestCombinedOrder);
 
     // 복합 명령을 해체하여 정의
     const {
@@ -563,7 +568,7 @@ class Control extends EventEmitter {
         // Timer가 존재하다면 추가 조회는 하지 않음.
         const remainTime = this.inquiryAllDeviceStatusTimer.getTimeLeft();
         if (remainTime < 0) this.inquiryAllDeviceStatusTimer.pause();
-        BU.CLIS('Timer 존재', this.inquiryAllDeviceStatusTimer.getTimeLeft());
+        BU.logFile(`Timer 존재: ${this.inquiryAllDeviceStatusTimer.getTimeLeft()}`);
         return false;
       }
     } else {
@@ -572,10 +577,10 @@ class Control extends EventEmitter {
     }
 
     // momentDate = _.isNil(momentDate) && moment();
-    BU.CLI('discoveryRegularDevice', momentDate.format('MM-DD HH:mm:ss'));
+    BU.CLI('inquiryAllDeviceStatus', momentDate.format('MM-DD HH:mm:ss'));
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
-      requestCommandId: 'discoveryRegularDevice',
+      requestCommandId: 'inquiryAllDeviceStatus',
       requestCommandName: '정기 장치 상태 계측',
       requestCommandType: requestOrderCommandType.MEASURE,
       requestElementList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
@@ -589,7 +594,7 @@ class Control extends EventEmitter {
 
     // completeDiscovery 이벤트가 발생할때까지 대기
     await eventToPromise.multi(this, ['completeDiscovery'], ['error', 'close']);
-    BU.CLI('Comlete discoveryRegularDevice', momentDate.format('MM-DD HH:mm:ss'));
+    BU.CLI('Comlete inquiryAllDeviceStatus', momentDate.format('MM-DD HH:mm:ss'));
 
     // BU.CLI(this.nodeList);
     // 데이터의 유효성을 인정받는 Node List

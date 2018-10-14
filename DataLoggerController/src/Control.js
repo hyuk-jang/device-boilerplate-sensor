@@ -24,6 +24,14 @@ class DataLoggerController extends AbstDeviceClient {
     super();
 
     this.config = config;
+
+    /** @type {deviceInfo} Controller 객체의 생성 정보를 담고 있는 설정 정보 */
+    this.deviceInfo = this.config.deviceInfo;
+    /** @type {connect_info} DCC를 생성하기 위한 설정 정보 */
+    this.connectInfo = this.deviceInfo.connect_info;
+    /** @type {protocol_info} DPC를 생성하기 위한 설정 정보  */
+    this.protocolInfo = this.deviceInfo.protocol_info;
+
     this.BaseModel = BaseModel;
 
     // Model deviceData Prop 정의
@@ -44,7 +52,7 @@ class DataLoggerController extends AbstDeviceClient {
    * @return {string} Device Controller를 대표하는 ID
    */
   get id() {
-    return this.config.deviceInfo.target_id;
+    return this.deviceInfo.target_id;
   }
 
   /**
@@ -52,7 +60,7 @@ class DataLoggerController extends AbstDeviceClient {
    * @return {string}
    */
   get category() {
-    return this.config.deviceInfo.target_category;
+    return this.deviceInfo.target_category;
   }
 
   /**
@@ -135,7 +143,7 @@ class DataLoggerController extends AbstDeviceClient {
    * dataLoggerInfo 를 deviceInfo로 변환하여 저장
    */
   s2SetDeviceInfo() {
-    this.config.deviceInfo = {
+    this.deviceInfo = {
       target_id: this.dataLoggerInfo.dl_real_id,
       // target_category: 'Saltern',
       target_name: this.dataLoggerInfo.dld_target_name,
@@ -155,6 +163,9 @@ class DataLoggerController extends AbstDeviceClient {
         hasTransferCommand: true,
       },
     };
+
+    this.connectInfo = this.deviceInfo.connect_info;
+    this.protocolInfo = this.deviceInfo.protocol_info;
   }
 
   /**
@@ -164,11 +175,6 @@ class DataLoggerController extends AbstDeviceClient {
    * @return {Promise.<DataLoggerController>} 생성된 현 객체 반환
    */
   async init(siteUUID) {
-    const { deviceInfo } = this.config;
-    // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
-    this.connectInfo = deviceInfo.connect_info;
-    this.protocolInfo = deviceInfo.protocol_info;
-
     this.converter = new MainConverter(this.protocolInfo);
     // _.set(this.converter, 'test', this.config.dataLoggerInfo.dl_id);
     // this.baseModel = new BaseModel.UPSAS(this.protocolInfo);
@@ -189,23 +195,21 @@ class DataLoggerController extends AbstDeviceClient {
 
       // DCC 초기화 시작
       // connectInfo가 없거나 수동 Client를 사용할 경우
-      if (_.isEmpty(deviceInfo.connect_info) || deviceInfo.connect_info.hasPassive) {
+      if (_.isEmpty(this.connectInfo) || this.connectInfo.hasPassive) {
         BU.CLI('setPassiveClient', this.id);
         // 수동 클라이언트를 사용할 경우에는 반드시 사이트 UUID가 필요함
         if (_.isString(siteUUID)) {
           BU.CLI('setPassiveClient', this.id);
           // 해당 사이트 고유 ID
           this.siteUUID = siteUUID;
-          this.setPassiveClient(deviceInfo, siteUUID);
+          this.setPassiveClient(this.deviceInfo, siteUUID);
           return this;
         }
         throw new ReferenceError('Initialization failed.');
       }
-      BU.CLI('setDeviceClient', this.id);
-      BU.CLI('setDeviceClient', this.id);
       // 접속 경로가 존재시 선언 및 자동 접속을 수행
 
-      this.setDeviceClient(deviceInfo);
+      this.setDeviceClient(this.deviceInfo);
 
       // 만약 장치가 접속된 상태라면
       if (this.hasConnectedDevice) {
@@ -246,8 +250,8 @@ class DataLoggerController extends AbstDeviceClient {
    */
   getDeviceOperationInfo() {
     return {
-      id: this.config.deviceInfo.target_id,
-      config: this.config.deviceInfo,
+      id: this.deviceInfo.target_id,
+      config: this.deviceInfo,
       nodeList: this.nodeList,
       // systemErrorList: [{code: 'new Code2222', msg: '에러 테스트 메시지22', occur_date: new Date() }],
       systemErrorList: this.systemErrorList,
@@ -263,18 +267,26 @@ class DataLoggerController extends AbstDeviceClient {
   orderOperation(executeOrderInfo) {
     // BU.CLIN(executeOrderInfo);
     try {
+      const {
+        integratedUUID,
+        requestCommandId,
+        requestCommandType,
+        uuid,
+        controlValue,
+        nodeId = '',
+        rank = this.definedCommandSetRank.THIRD,
+      } = executeOrderInfo;
       // BU.CLI(this.siteUUID);
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
       }
 
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
-      const nodeId = _.get(executeOrderInfo, 'nodeId', '');
       if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
         return this.orderOperationToDataLogger(executeOrderInfo);
       }
       const nodeInfo = _.find(this.nodeList, {
-        node_id: executeOrderInfo.nodeId,
+        node_id: nodeId,
       });
       // let modelId = orderInfo.modelId;
       if (_.isEmpty(nodeInfo)) {
@@ -282,27 +294,24 @@ class DataLoggerController extends AbstDeviceClient {
       }
 
       const cmdList = this.converter.generationCommand({
-        key: nodeInfo.nc_target_id,
-        value: _.get(executeOrderInfo, 'controlValue'),
+        key: nodeInfo.nd_target_id,
+        value: controlValue,
       });
 
-      // BU.CLI(cmdList);
-      const cmdName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${
-        executeOrderInfo.controlValue
-      }`;
+      BU.CLI(nodeInfo);
+      BU.CLI(cmdList);
 
-      // 장치를 열거나
-      const rank = _.isNumber(_.get(executeOrderInfo, 'rank'))
-        ? _.get(executeOrderInfo, 'rank')
-        : this.definedCommandSetRank.THIRD;
+      // BU.CLI(cmdList);
+      const commandName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${controlValue}`;
+
       const commandSet = this.generationManualCommand({
-        integratedUUID: executeOrderInfo.integratedUUID,
+        integratedUUID,
         cmdList,
-        commandId: executeOrderInfo.requestCommandId,
-        commandName: cmdName,
-        commandType: executeOrderInfo.requestCommandType,
-        uuid: executeOrderInfo.uuid,
-        nodeId: executeOrderInfo.nodeId,
+        commandId: requestCommandId,
+        commandName,
+        commandType: requestCommandType,
+        uuid,
+        nodeId,
         rank,
       });
 
@@ -340,8 +349,6 @@ class DataLoggerController extends AbstDeviceClient {
       const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${
         this.config.dataLoggerInfo.dl_target_code
       } Type: ${executeOrder.requestCommandType}`;
-      // 장치를 열거나
-      const rank = this.definedCommandSetRank.THIRD;
 
       const commandSet = this.generationManualCommand({
         integratedUUID: executeOrder.integratedUUID,
@@ -350,7 +357,7 @@ class DataLoggerController extends AbstDeviceClient {
         commandName: cmdName,
         uuid: executeOrder.uuid,
         commandType: executeOrder.requestCommandType,
-        rank,
+        rank: this.definedCommandSetRank.THIRD,
       });
 
       this.executeCommand(commandSet);
@@ -376,12 +383,15 @@ class DataLoggerController extends AbstDeviceClient {
    */
   updatedDcEventOnDevice(dcEvent) {
     super.updatedDcEventOnDevice(dcEvent);
+
+    const { CONNECT, DISCONNECT } = this.definedControlEvent;
+
     switch (dcEvent.eventName) {
-      case this.definedControlEvent.CONNECT:
-        this.emit(this.definedControlEvent.CONNECT);
+      case CONNECT:
+        this.emit(CONNECT);
         break;
-      case this.definedControlEvent.DISCONNECT:
-        this.emit(this.definedControlEvent.DISCONNECT);
+      case DISCONNECT:
+        this.emit(DISCONNECT);
         break;
       default:
         break;
@@ -403,9 +413,11 @@ class DataLoggerController extends AbstDeviceClient {
   onDcError(dcError) {
     // super.onDcError(dcError);
 
+    const { NEXT } = this.definedCommanderResponse;
+
     // Error가 발생하면 추적 중인 데이터는 폐기 (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
     this.converter.resetTrackingDataBuffer();
-    this.requestTakeAction(this.definedCommanderResponse.NEXT);
+    this.requestTakeAction(NEXT);
     // Observer가 해당 메소드를 가지고 있다면 전송
     _.forEach(this.observerList, observer => {
       if (_.get(observer, 'notifyDeviceError')) {
@@ -421,10 +433,13 @@ class DataLoggerController extends AbstDeviceClient {
    */
   onDcMessage(dcMessage) {
     // super.onDcMessage(dcMessage);
+    // 명령 완료, 명령 삭제
+    const { COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE } = this.definedCommandSetMessage;
+
     switch (dcMessage.msgCode) {
       // 명령 수행이 완료되었다고 판단이 되면 현재 진행중인 명령 완료로 처리
-      case this.definedCommandSetMessage.COMMANDSET_EXECUTION_TERMINATE:
-      case this.definedCommandSetMessage.COMMANDSET_DELETE:
+      case COMMANDSET_EXECUTION_TERMINATE:
+      case COMMANDSET_DELETE:
         // BU.CLIN(this.model.requestCommandSetList);
         this.model.completeRequestCommandSet(dcMessage.commandSet);
         break;
@@ -446,19 +461,20 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcData(dcData) {
-    // super.onDcData(dcData);
+    super.onDcData(dcData);
     try {
-      const parsedData = this.converter.parsingUpdateData(dcData);
+      const { DONE, ERROR, RETRY } = this.definedCommanderResponse;
+      const { eventCode, data } = this.converter.parsingUpdateData(dcData);
 
-      // BU.CLI(parsedData);
+      // BU.CLI(data);
       // 만약 파싱 에러가 발생한다면 명령 재 요청
-      if (parsedData.eventCode === this.definedCommanderResponse.ERROR) {
+      if (eventCode === ERROR) {
         // BU.CLI(parsedData);
-        return this.requestTakeAction(this.definedCommanderResponse.RETRY);
+        return this.requestTakeAction(RETRY);
       }
       // 데이터가 정상적이라면
-      if (parsedData.eventCode === this.definedCommanderResponse.DONE) {
-        const renewalNodeList = this.model.onData(parsedData.data);
+      if (eventCode === DONE) {
+        const renewalNodeList = this.model.onData(data);
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
           BU.CLI(
@@ -475,7 +491,7 @@ class DataLoggerController extends AbstDeviceClient {
         }
       }
       // Device Client로 해당 이벤트 Code를 보냄
-      return this.requestTakeAction(parsedData.eventCode);
+      return this.requestTakeAction(eventCode);
     } catch (error) {
       BU.logFile(error);
       throw error;
