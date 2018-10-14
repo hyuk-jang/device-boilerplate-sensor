@@ -199,7 +199,6 @@ class DataLoggerController extends AbstDeviceClient {
         BU.CLI('setPassiveClient', this.id);
         // 수동 클라이언트를 사용할 경우에는 반드시 사이트 UUID가 필요함
         if (_.isString(siteUUID)) {
-          BU.CLI('setPassiveClient', this.id);
           // 해당 사이트 고유 ID
           this.siteUUID = siteUUID;
           this.setPassiveClient(this.deviceInfo, siteUUID);
@@ -213,7 +212,6 @@ class DataLoggerController extends AbstDeviceClient {
 
       // 만약 장치가 접속된 상태라면
       if (this.hasConnectedDevice) {
-        BU.CLI('Connected', this.id);
         return this;
       }
       // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
@@ -223,7 +221,7 @@ class DataLoggerController extends AbstDeviceClient {
         [this.definedControlEvent.CONNECT],
         [this.definedControlEvent.DISCONNECT],
       );
-      BU.CLI('Connected', this.id);
+      // BU.CLI('Connected', this.id);
       // Controller 반환
       return this;
     } catch (error) {

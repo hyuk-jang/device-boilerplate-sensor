@@ -175,7 +175,7 @@ class Control extends EventEmitter {
           // 컨트롤러에 현 객체 Observer 등록
           dataLoggerController.attach(this);
 
-          BU.CLI(`DBS Init  ${this.mainUUID}`, dataLoggerConfig.dataLoggerInfo.dl_real_id);
+          // BU.CLI(`DBS Init  ${this.mainUUID}`, dataLoggerConfig.dataLoggerInfo.dl_real_id);
           return dataLoggerController.init(this.mainUUID);
         },
       );

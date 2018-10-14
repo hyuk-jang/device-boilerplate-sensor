@@ -22,8 +22,8 @@ const config = {
   inquiryIntervalSecond: 60,
   hasPassiveClient: true,
   mainSocketInfo: {
-    host: process.env.DB_UPSAS_HOST,
-    port: process.env.SOCKET_UPSAS_PORT,
+    host: process.env.WEB_SOCKET_HOST,
+    port: process.env.WEB_SOCKET_PORT,
     type: 'socket',
     addConfigInfo: {
       parser: controllerParserType.socket.DELIMITER,
