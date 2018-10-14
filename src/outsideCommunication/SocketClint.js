@@ -3,7 +3,7 @@ const split = require('split');
 const net = require('net');
 const eventToPromise = require('event-to-promise');
 
-const { BU, CU } = require('base-util-jh');
+const { BU } = require('base-util-jh');
 
 const ControlDBS = require('../Control');
 const AbstController = require('./AbstController');
@@ -26,7 +26,7 @@ class SocketClient extends AbstController {
     const connectInfo = controller.config.mainSocketInfo;
     this.configInfo = {
       name: 'SocketClient',
-      uuid: controller.config.uuid,
+      uuid: controller.mainUUID,
       port: connectInfo.port,
       host: connectInfo.host,
       addConfigInfo: connectInfo.addConfigInfo,
@@ -228,45 +228,40 @@ class SocketClient extends AbstController {
    */
   interpretRequestedCommand(dataInfo) {
     BU.CLI('interpretRequestedCommand', dataInfo);
+    const { commandId, contents, uuid } = dataInfo;
+    /** @type {defaultFormatToResponse} */
+    const responseMsg = {
+      commandId,
+      uuid,
+      isError: 0,
+      errorStack: '',
+      contents: {},
+    };
     try {
       // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
       if (_.values(transmitToClientCommandType).includes(_.get(dataInfo, 'commandId'))) {
-        switch (dataInfo.commandId) {
+        switch (commandId) {
           case transmitToClientCommandType.SINGLE: // 단일 제어
-            this.controller.executeSingleControl(dataInfo.contents);
+            this.controller.executeSingleControl(contents);
             break;
           case transmitToClientCommandType.AUTOMATIC: // 명령 제어
-            this.controller.executeSavedCommand(dataInfo.contents);
+            this.controller.executeSavedCommand(contents);
             break;
           case transmitToClientCommandType.SCENARIO: // 시나리오
-            this.controller.scenario.interpretScenario(dataInfo.contents);
+            this.controller.scenario.interpretScenario(contents);
             break;
           default:
-            throw new Error(`commandId: ${dataInfo.commandId} does not exist.`);
+            throw new Error(`commandId: ${commandId} does not exist.`);
         }
       }
-      /** @type {defaultFormatToResponse} */
-      const responseMsg = {
-        commandId: dataInfo.commandId,
-        uuid: dataInfo.uuid,
-        isError: 0,
-        errorStack: '',
-        contents: {},
-      };
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
       // DCC에 전송 명령
       return this.write(encodingMsg);
     } catch (error) {
-      /** @type {defaultFormatToResponse} */
-      const responseMsg = {
-        commandId: dataInfo.commandId,
-        uuid: dataInfo.uuid,
-        isError: 1,
-        errorStack: _.get(error, 'stack'),
-        contents: {},
-      };
+      responseMsg.isError = 1;
+      responseMsg.errorStack = _.get(error, 'stack');
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 

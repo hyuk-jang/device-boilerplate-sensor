@@ -3,7 +3,12 @@ const _ = require('lodash');
 
 const { BU, CU } = require('base-util-jh');
 
-const { definedControlEvent } = require('../../../default-intelligence').dccFlagModel;
+const {
+  CONNECT,
+  DATA,
+  DEVICE_ERROR,
+  DISCONNECT,
+} = require('../../../default-intelligence').dccFlagModel.definedControlEvent;
 
 class AbstController {
   constructor() {
@@ -62,7 +67,7 @@ class AbstController {
   /** @return {Promise} 접속 성공시 Resolve, 실패시 Reject  */
   async connect() {
     this.requestConnectCount += 1;
-    BU.CLI('?', this.requestConnectCount);
+    // BU.CLI('?', this.requestConnectCount);
   }
 
   // TODO 장치와의 연결 접속 해제 필요시 작성
@@ -92,10 +97,10 @@ class AbstController {
   notifyEvent(eventName) {
     // BU.CLI('notifyEvent', eventName);
     switch (eventName) {
-      case definedControlEvent.CONNECT:
+      case CONNECT:
         this.startOperation();
         break;
-      case definedControlEvent.DISCONNECT:
+      case DISCONNECT:
         break;
 
       default:
@@ -111,7 +116,7 @@ class AbstController {
     // BU.CLI('notifyConnect');
     if (!this.hasConnect && !_.isEmpty(this.client)) {
       this.hasConnect = true;
-      this.notifyEvent(definedControlEvent.CONNECT);
+      this.notifyEvent(CONNECT);
 
       // 타이머가 살아있다면 정지
       this.connectTimer.getStateRunning() && this.connectTimer.pause();
@@ -124,7 +129,7 @@ class AbstController {
     // 장치와의 연결이 계속해제된 상태였다면 이벤트를 보내지 않음
     if (this.hasConnect !== false && _.isEmpty(this.client)) {
       this.hasConnect = false;
-      this.notifyEvent(definedControlEvent.DISCONNECT);
+      this.notifyEvent(DISCONNECT);
       // 이벤트 발송 및 약간의 장치와의 접속 딜레이를 1초 줌
       // 재접속 옵션이 있을 경우에만 자동 재접속 수행
       Promise.delay(1000).then(() => {

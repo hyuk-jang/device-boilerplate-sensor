@@ -17,7 +17,7 @@ const {
 
 const { transmitToServerCommandType } = dcmWsModel;
 
-const NODE_DATA = ['node_seq', 'data', 'writeDate'];
+// const NODE_DATA = ['node_seq', 'data', 'writeDate'];
 
 // const map = require('../config/map');
 
@@ -35,7 +35,7 @@ class Model {
 
     this.initCombinedOrderStorage();
 
-    this.BM = new BM(this.controller.config.dbInfo);
+    this.biModule = new BM(this.controller.config.dbInfo);
 
     /** @type {simpleOrderInfo[]} */
     this.simpleOrderList = [];
@@ -50,7 +50,7 @@ class Model {
   async setMap() {
     const { uuid } = this.controller.config;
     /** @type {MAIN[]} */
-    const mainList = await this.BM.getTable('main', { uuid });
+    const mainList = await this.biModule.getTable('main', { uuid });
     if (_.isEmpty(mainList)) {
       throw new Error(`Main UUID: ${uuid}는 존재하지 않습니다.`);
     }
@@ -267,19 +267,20 @@ class Model {
    */
   findCombinedOrderLV1(commandType) {
     // commandSet.
+    const { controlStorage, cancelStorage, measureStorage } = this.combinedOrderStorage;
     let combinedOrder;
     switch (commandType) {
       case requestOrderCommandType.CONTROL:
-        combinedOrder = this.combinedOrderStorage.controlStorage;
+        combinedOrder = controlStorage;
         break;
       case requestOrderCommandType.CANCEL:
-        combinedOrder = this.combinedOrderStorage.cancelStorage;
+        combinedOrder = cancelStorage;
         break;
       case requestOrderCommandType.MEASURE:
-        combinedOrder = this.combinedOrderStorage.measureStorage;
+        combinedOrder = measureStorage;
         break;
       default:
-        combinedOrder = this.combinedOrderStorage.measureStorage;
+        combinedOrder = measureStorage;
         break;
     }
 
@@ -504,36 +505,38 @@ class Model {
    * @param {string} commandType 저장할 타입 ADD, CANCEL, ''
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
    */
-  saveCombinedOrder(commandType, combinedOrderWrapInfo) {
+  saveCombinedOrder(commandType = requestOrderCommandType.MEASURE, combinedOrderWrapInfo) {
     BU.CLI('saveCombinedOrder');
+
     /**
      * Socket Server로 전송하기 위한 명령 추가 객체 생성
      * @type {simpleOrderInfo}
      */
     const simpleOrder = {
-      orderCommandType: '',
+      orderCommandType: commandType,
       orderStatus: simpleOrderStatus.NEW,
       commandId: combinedOrderWrapInfo.requestCommandId,
       commandName: combinedOrderWrapInfo.requestCommandName,
       uuid: combinedOrderWrapInfo.uuid,
     };
-    // MEASURE DEFAULT
-    // const MEASURE = [requestCommandType.MEASURE, '', undefined, null];
-    const CONTROL = [requestOrderCommandType.CONTROL];
-    const CANCEL = [requestOrderCommandType.CANCEL];
 
-    // Measure
-    if (_.includes(CONTROL, commandType)) {
-      simpleOrder.orderCommandType = requestOrderCommandType.CONTROL;
-      this.combinedOrderStorage.controlStorage.waitingList.push(combinedOrderWrapInfo);
-    } else if (_.includes(CANCEL, commandType)) {
-      simpleOrder.orderCommandType = requestOrderCommandType.CANCEL;
-      this.combinedOrderStorage.cancelStorage.waitingList.push(combinedOrderWrapInfo);
-    } else {
-      simpleOrder.orderCommandType = requestOrderCommandType.MEASURE;
-      this.combinedOrderStorage.measureStorage.waitingList.push(combinedOrderWrapInfo);
+    const { CONTROL, CANCEL, MEASURE } = requestOrderCommandType;
+
+    let storage;
+    switch (commandType) {
+      case CONTROL:
+        storage = this.combinedOrderStorage.controlStorage;
+        break;
+      case CANCEL:
+        storage = this.combinedOrderStorage.cancelStorage;
+        break;
+      case MEASURE:
+      default:
+        storage = this.combinedOrderStorage.measureStorage;
+        break;
     }
 
+    storage.waitingList.push(combinedOrderWrapInfo);
     // 새로 생성된 명령 추가
     this.setSimpleOrderInfo(simpleOrder);
     // BU.CLIN(this.combinedOrderStorage);
@@ -565,19 +568,17 @@ class Model {
    * @param {moment.Moment} momentDate
    * @return {nodeInfo[]}
    */
-  checkValidateNodeData(nodeList, diffInfo, momentDate) {
-    // 날짜 차이를 구할 키를 설정
-    const diffType = diffInfo.diffType || 'minutes';
-    // 날짜 차이를 허용할 수 설정
-    const durationNumber = diffInfo.duration || 1;
-    // 기준이 될 현재 시간 설정
-    const now = momentDate || moment();
+  checkValidateNodeData(
+    nodeList,
+    diffInfo = { diffType: 'minutes', duration: 1 },
+    momentDate = moment(),
+  ) {
     // 입력된 노드 리스트를 돌면서 유효성 검증
     return nodeList.filter(nodeInfo => {
       // 날짜 차 계산
-      const diffNum = now.diff(moment(nodeInfo.writeDate), diffType);
+      const diffNum = momentDate.diff(moment(nodeInfo.writeDate), diffInfo.diffType);
       // 날짜 차가 허용 범위를 넘어섰다면 유효하지 않는 데이터
-      if (diffNum > durationNumber) {
+      if (diffNum > diffInfo.duration) {
         // BU.CLI(
         //   `${
         //     nodeInfo.node_id
@@ -595,10 +596,11 @@ class Model {
    * @param {nodeInfo[]} nodeList 노드 리스트
    * @param {{hasSensor: boolean, hasDevice: boolean}} insertOption DB에 입력 처리 체크
    */
-  async insertNodeDataToDB(nodeList, insertOption) {
+  async insertNodeDataToDB(nodeList, insertOption = { hasSensor: false, hasDevice: false }) {
     const returnValue = [];
 
     // BU.CLIN(nodeList);
+    // BU.CLIS(insertOption, insertOption.hasSensor, insertOption.hasDevice);
     // 센서류 삽입
     if (insertOption.hasSensor) {
       const nodeSensorList = _(nodeList)
@@ -607,8 +609,8 @@ class Model {
           BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
         )
         .value();
-      // BU.CLI(nodeSensorList);
-      const result = await this.BM.setTables('dv_sensor_data', nodeSensorList, false);
+      BU.CLI(nodeSensorList);
+      const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
       returnValue.push(result);
     }
 
@@ -622,7 +624,7 @@ class Model {
         .value();
 
       // BU.CLI(nodeDeviceList);
-      const result = await this.BM.setTables('dv_device_data', nodeDeviceList, false);
+      const result = await this.biModule.setTables('dv_device_data', nodeDeviceList, false);
       returnValue.push(result);
     }
     return returnValue;

@@ -26,9 +26,9 @@ const Model = require('./Model');
 
 class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */
-  constructor(config) {
+  constructor(config = mainConfig) {
     super();
-    this.config = config || mainConfig;
+    this.config = config;
 
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
@@ -115,21 +115,25 @@ class Control extends EventEmitter {
     this.nodeList = await biModule.getTable('v_dv_node', where);
 
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
-    this.dataLoggerList.forEach(dataLoggerInfo => {
+    this.dataLoggerList.forEach((dataLoggerInfo = { protocol_info: {}, connect_info: {} }) => {
+      const { data_logger_seq: seqDL, connect_info = {}, protocol_info = {} } = dataLoggerInfo;
+
+      const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
+
+      // 환경 정보가 strJson이라면 변환하여 저장
+      BU.IsJsonString(connect_info) &&
+        _.set(dataLoggerInfo, 'connect_info', JSON.parse(connect_info));
+
+      BU.IsJsonString(protocol_info) &&
+        _.set(dataLoggerInfo, 'protocol_info', JSON.parse(protocol_info));
+
       /** @type {dataLoggerConfig} */
-      const loggerConfig = {};
-
-      const foundNodeList = _.filter(
-        this.nodeList,
-        nodeInfo => nodeInfo.data_logger_seq === dataLoggerInfo.data_logger_seq,
-      );
-      dataLoggerInfo.protocol_info = JSON.parse(_.get(dataLoggerInfo, 'protocol_info'));
-      dataLoggerInfo.connect_info = JSON.parse(_.get(dataLoggerInfo, 'connect_info'));
-
-      loggerConfig.dataLoggerInfo = dataLoggerInfo;
-      loggerConfig.nodeList = foundNodeList;
-      loggerConfig.hasDev = false;
-      loggerConfig.deviceInfo = {};
+      const loggerConfig = {
+        hasDev: false,
+        dataLoggerInfo,
+        nodeList: foundNodeList,
+        deviceInfo: {},
+      };
 
       returnValue.push(loggerConfig);
     });
@@ -249,27 +253,21 @@ class Control extends EventEmitter {
    * 외부에서 단일 명령을 내릴경우
    * @param {requestSingleOrderInfo} requestSingleOrderInfo
    */
-  executeSingleControl(requestSingleOrderInfo) {
+  executeSingleControl(requestSingleOrderInfo = { rank: definedCommandSetRank.SECOND }) {
     BU.CLI('executeSingleControl');
-    const { nodeId, controlValue } = requestSingleOrderInfo;
+    const { nodeId, controlValue, requestCommandType } = requestSingleOrderInfo;
     const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
     try {
       /** @type {requestCombinedOrderInfo} */
       const requestCombinedOrder = {
         requestCommandId: `S_${nodeId}_${this.convertControlValueToString(nodeInfo, controlValue)}`,
         requestCommandName: '',
-        requestCommandType: requestSingleOrderInfo.requestCommandType,
+        requestCommandType,
         requestElementList: [],
       };
 
       /** @type {requestOrderElementInfo} */
-      const requestOrderElement = {
-        controlValue: requestSingleOrderInfo.controlValue,
-        controlSetValue: requestSingleOrderInfo.controlSetValue,
-        nodeId: requestSingleOrderInfo.nodeId,
-        rank: _.get(requestSingleOrderInfo, 'rank', 2),
-      };
-
+      const requestOrderElement = _.omit(requestSingleOrderInfo, 'requestCommandType');
       // BU.CLI(requestOrderElement);
 
       requestCombinedOrder.requestElementList.push(requestOrderElement);
@@ -286,31 +284,30 @@ class Control extends EventEmitter {
    */
   executeAutomaticControl(controlInfo) {
     // BU.CLI(controlInfo);
+    const { cmdName, trueList = [], falseList = [] } = controlInfo;
 
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
-      requestCommandId: controlInfo.cmdName,
-      requestCommandName: `${controlInfo.cmdName} ${requestOrderCommandType.CONTROL}`,
+      requestCommandId: cmdName,
+      requestCommandName: `${cmdName} ${requestOrderCommandType.CONTROL}`,
       requestCommandType: requestOrderCommandType.CONTROL,
       requestElementList: [],
     };
 
     // 장치 True 요청
-    const trueList = _.get(controlInfo, 'trueList', []);
     if (trueList.length) {
       requestCombinedOrder.requestElementList.push({
         controlValue: requestDeviceControlType.TRUE,
-        nodeId: controlInfo.trueList,
+        nodeId: trueList,
         rank: definedCommandSetRank.SECOND,
       });
     }
 
     // 장치 False 요청
-    const falseList = _.get(controlInfo, 'falseList', []);
     if (falseList.length) {
       requestCombinedOrder.requestElementList.push({
         controlValue: requestDeviceControlType.FALSE,
-        nodeId: controlInfo.falseList,
+        nodeId: falseList,
         rank: definedCommandSetRank.SECOND,
       });
     }
@@ -323,16 +320,16 @@ class Control extends EventEmitter {
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
    */
   cancelAutomaticControl(controlInfo) {
+    const { cmdName, trueList = [], falseList = [] } = controlInfo;
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
-      requestCommandId: controlInfo.cmdName,
-      requestCommandName: `${controlInfo.cmdName} ${requestOrderCommandType.CANCEL}`,
+      requestCommandId: cmdName,
+      requestCommandName: `${cmdName} ${requestOrderCommandType.CANCEL}`,
       requestCommandType: requestOrderCommandType.CANCEL,
       requestElementList: [],
     };
 
     // 장치 False 요청 (켜져 있는 장치만 끔)
-    const trueList = _.get(controlInfo, 'trueList', []);
     if (trueList.length) {
       requestCombinedOrder.requestElementList.push({
         controlValue: requestDeviceControlType.FALSE,
@@ -343,7 +340,6 @@ class Control extends EventEmitter {
 
     // FIXME: 명령 취소에 대한 논리 정립이 안되어 있어 다시 동작 시키는 명령은 비활성
     // 장치 True 요청
-    // const falseList = _.get(controlInfo, 'falseList', []);
     // if (falseList.length) {
     //   requestCombinedOrder.requestElementList.push({
     //     controlValue: requestDeviceControlType.TRUE,
@@ -364,20 +360,21 @@ class Control extends EventEmitter {
       const { savedCommandId, requestCommandType } = savedCommandInfo;
       const foundIt = _.find(this.model.excuteControlList, { cmdName: savedCommandId });
       if (foundIt) {
+        const { trueList = [], falseList = [] } = foundIt;
         // 명령 제어 요청 일 경우
         if (requestCommandType === requestOrderCommandType.CONTROL) {
           return this.executeAutomaticControl({
             cmdName: savedCommandId,
-            trueList: foundIt.trueList,
-            falseList: foundIt.falseList,
+            trueList,
+            falseList,
           });
         }
         if (requestCommandType === requestOrderCommandType.CANCEL) {
           // 명령 취소 일 경우
           return this.cancelAutomaticControl({
             cmdName: savedCommandId,
-            trueList: foundIt.trueList,
-            falseList: foundIt.falseList,
+            trueList,
+            falseList,
           });
         }
         throw new Error(`commandType: ${requestCommandType} can not be identified. `);
@@ -412,25 +409,16 @@ class Control extends EventEmitter {
       orderContainerList: [],
     };
 
-    const controlTypeList = _.values(requestDeviceControlType);
-    const commandSetRankList = _.values(definedCommandSetRank);
-
     // 요청 복합 명령 객체의 요청 리스트를 순회하면서 combinedOrderContainerInfo 객체를 만들고 삽입
     requestElementList.forEach(requestElementInfo => {
-      const { nodeId } = requestElementInfo;
-      let { controlValue, controlSetValue, rank } = requestElementInfo;
-      controlValue = BU.isNumberic(controlValue) ? Number(controlValue) : controlValue;
-      rank = BU.isNumberic(rank) ? Number(rank) : rank;
+      const {
+        nodeId,
+        controlValue = requestDeviceControlType.MEASURE,
+        controlSetValue,
+        rank = definedCommandSetRank.THIRD,
+      } = requestElementInfo;
       // nodeId가 string이라면 배열생성 후 집어넣음
       const nodeList = _.isArray(nodeId) ? nodeId : [nodeId];
-      // controlValue가 없다면 기본 값 MEASURE(2)
-      controlValue = _.includes(controlTypeList, controlValue)
-        ? controlValue
-        : requestDeviceControlType.MEASURE;
-      // 설정 값이 존재하지 않는다면 undefined
-      controlSetValue = _.isNil(controlSetValue) ? undefined : controlSetValue;
-      // rank가 존재하지 않는다면 기본값은 THID(3)
-      rank = _.includes(commandSetRankList, rank) ? rank : definedCommandSetRank.THIRD;
 
       // 해당 controlValue가 orderElementList 기존재하는지 체크
       let foundRemainInfo = _.find(combinedWrapOrder.orderContainerList, {
@@ -491,34 +479,39 @@ class Control extends EventEmitter {
    */
   transferRequestOrder(combinedOrderWrapInfo) {
     // BU.CLI('transferRequestOrder', combinedOrderWrapInfo);
-    const { requestCommandId, requestCommandName, requestCommandType } = combinedOrderWrapInfo;
+    const {
+      uuid: integratedUUID,
+      requestCommandId,
+      requestCommandName,
+      requestCommandType,
+    } = combinedOrderWrapInfo;
 
     // 아직 요청 전이므로 orderContainerList 순회하면서 명령 생성 및 요청
     combinedOrderWrapInfo.orderContainerList.forEach(combinedOrderContainerInfo => {
       const { controlValue, controlSetValue } = combinedOrderContainerInfo;
 
-      const hasFirst = true;
+      // const hasFirst = true;
       combinedOrderContainerInfo.orderElementList.forEach(combinedOrderElementInfo => {
-        const { nodeId, rank } = combinedOrderElementInfo;
-        if (hasFirst) {
-          /** @type {executeOrderInfo} */
-          const executeOrder = {
-            integratedUUID: combinedOrderWrapInfo.uuid,
-            requestCommandId,
-            requestCommandName,
-            requestCommandType,
-            controlValue,
-            controlSetValue,
-            nodeId,
-            rank,
-            uuid: combinedOrderElementInfo.uuid,
-          };
+        const { nodeId, rank, uuid } = combinedOrderElementInfo;
+        // if (hasFirst) {
+        /** @type {executeOrderInfo} */
+        const executeOrder = {
+          integratedUUID,
+          requestCommandId,
+          requestCommandName,
+          requestCommandType,
+          controlValue,
+          controlSetValue,
+          nodeId,
+          rank,
+          uuid,
+        };
 
-          const dataLoggerController = this.model.findDataLoggerController(nodeId);
+        const dataLoggerController = this.model.findDataLoggerController(nodeId);
 
-          dataLoggerController.orderOperation(executeOrder);
-          // hasFirst = false;
-        }
+        dataLoggerController.orderOperation(executeOrder);
+        // hasFirst = false;
+        // }
       });
     });
   }
@@ -568,6 +561,8 @@ class Control extends EventEmitter {
         }, _.subtract(_.multiply(1000, this.config.inquiryIntervalSecond), 100));
       } else {
         // Timer가 존재하다면 추가 조회는 하지 않음.
+        const remainTime = this.inquiryAllDeviceStatusTimer.getTimeLeft();
+        if (remainTime < 0) this.inquiryAllDeviceStatusTimer.pause();
         BU.CLIS('Timer 존재', this.inquiryAllDeviceStatusTimer.getTimeLeft());
         return false;
       }

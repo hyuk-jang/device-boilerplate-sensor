@@ -51,7 +51,7 @@ if (require !== undefined && require.main === module) {
       //   nodeId: 'V_001',
       // });
       // control.inquiryAllDeviceStatus(moment());
-      // control.runDeviceInquiryScheduler();
+      control.runDeviceInquiryScheduler();
       control.setSocketClient();
       control.setPowerStatusBoard();
     })

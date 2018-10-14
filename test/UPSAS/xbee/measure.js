@@ -1,6 +1,6 @@
 require('dotenv').config();
 const _ = require('lodash');
-const {BU} = require('base-util-jh');
+const { BU } = require('base-util-jh');
 const Control = require('../../../src/Control');
 const config = require('../../../src/config');
 
@@ -19,11 +19,11 @@ control.on('completeDiscovery', () => {
 control
   .getDataLoggerListByDB(
     {
-      database: process.env.DB_UPSAS_DB,
-      host: process.env.DB_UPSAS_HOST,
-      password: process.env.DB_UPSAS_PW,
-      port: process.env.DB_UPSAS_PORT,
-      user: process.env.DB_UPSAS_USER,
+      host: process.env.WEB_DB_HOST,
+      port: process.env.WEB_DB_PORT,
+      user: process.env.WEB_DB_USER,
+      password: process.env.WEB_DB_PW,
+      database: process.env.WEB_DB_DB,
     },
     'aaaaa',
   )

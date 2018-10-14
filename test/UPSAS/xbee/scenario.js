@@ -1,9 +1,11 @@
 require('dotenv').config();
 const _ = require('lodash');
 
-const Control = require('../../src/Control');
+const Control = require('../../../src/Control');
 
-const control = new Control();
+const config = require('../../../src/config');
+
+const control = new Control(config);
 
 // control.on('completeDiscovery', () => {
 //   if (_.every(control.nodeList, 'data')) {
@@ -16,21 +18,19 @@ const control = new Control();
 control
   .getDataLoggerListByDB(
     {
-      database: process.env.DB_UPSAS_DB,
-      host: process.env.DB_UPSAS_HOST,
-      password: process.env.DB_UPSAS_PW,
-      port: process.env.DB_UPSAS_PORT,
-      user: process.env.DB_UPSAS_USER,
+      host: process.env.WEB_DB_HOST,
+      port: process.env.WEB_DB_PORT,
+      user: process.env.WEB_DB_USER,
+      password: process.env.WEB_DB_PW,
+      database: process.env.WEB_DB_DB,
     },
-    {
-      main_seq: 1,
-    },
+    'aaaaa',
   )
-  .then(() => {
-    control.init();
-    setTimeout(() => {
-      control.scenario.scenarioMode1(true);
-    }, 2000);
+  .then(() => control.init())
+  .then(DLCs => {
+    // setTimeout(() => {
+    control.scenario.scenarioMode1(true);
+    // }, 2000);
   });
 
 // process.on('uncaughtException', err => {

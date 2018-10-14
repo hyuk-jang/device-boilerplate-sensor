@@ -187,7 +187,6 @@ class DataLoggerController extends AbstDeviceClient {
       // 프로토콜 컨버터 바인딩
       this.converter.setProtocolConverter();
 
-      
       // DCC 초기화 시작
       // connectInfo가 없거나 수동 Client를 사용할 경우
       if (_.isEmpty(deviceInfo.connect_info) || deviceInfo.connect_info.hasPassive) {
@@ -402,7 +401,7 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcError} dcError 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcError(dcError) {
-    super.onDcError(dcError);
+    // super.onDcError(dcError);
 
     // Error가 발생하면 추적 중인 데이터는 폐기 (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
     this.converter.resetTrackingDataBuffer();

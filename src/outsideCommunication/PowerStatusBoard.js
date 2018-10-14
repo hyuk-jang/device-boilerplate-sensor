@@ -3,7 +3,7 @@ const cron = require('node-cron');
 const Serialport = require('serialport');
 const eventToPromise = require('event-to-promise');
 
-const { BU, CU } = require('base-util-jh');
+const { BU } = require('base-util-jh');
 
 const ControlDBS = require('../Control');
 const AbstController = require('./AbstController');
