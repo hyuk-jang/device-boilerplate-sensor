@@ -196,7 +196,7 @@ class DataLoggerController extends AbstDeviceClient {
       // DCC 초기화 시작
       // connectInfo가 없거나 수동 Client를 사용할 경우
       if (_.isEmpty(this.connectInfo) || this.connectInfo.hasPassive) {
-        BU.CLI('setPassiveClient', this.id);
+        // BU.CLI('setPassiveClient', this.id);
         // 수동 클라이언트를 사용할 경우에는 반드시 사이트 UUID가 필요함
         if (_.isString(siteUUID)) {
           // 해당 사이트 고유 ID
@@ -475,12 +475,12 @@ class DataLoggerController extends AbstDeviceClient {
         const renewalNodeList = this.model.onData(data);
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
-          BU.CLI(
-            this.id,
-            _(renewalNodeList)
-              .map(node => _.pick(node, ['node_id', 'data']))
-              .value(),
-          );
+          // BU.CLI(
+          //   this.id,
+          //   _(renewalNodeList)
+          //     .map(node => _.pick(node, ['node_id', 'data']))
+          //     .value(),
+          // );
           this.observerList.forEach(observer => {
             if (_.get(observer, 'notifyDeviceData')) {
               observer.notifyDeviceData(this, renewalNodeList);

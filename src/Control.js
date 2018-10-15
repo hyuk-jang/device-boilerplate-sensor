@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const cron = require('node-cron');
+const cron = require('cron');
 const eventToPromise = require('event-to-promise');
 const EventEmitter = require('events');
 const uuidv4 = require('uuid/v4');
@@ -159,7 +159,7 @@ class Control extends EventEmitter {
    */
   async init() {
     try {
-      BU.CLI(this.mainUUID, this.config.dataLoggerList.length);
+      // BU.CLI(this.mainUUID, this.config.dataLoggerList.length);
       // 하부 Data Logger 순회
       const resultInitDataLoggerList = await Promise.map(
         this.config.dataLoggerList,
@@ -445,7 +445,10 @@ class Control extends EventEmitter {
         const dataLoggerController = this.model.findDataLoggerController(currNodeId);
         // 해당하는 DLC가 없거나 장치가 비접속이라면 명령을 수행하지 않음
         // TODO: requestCombinedOrder의 실행 가능 여부를 판단하고 명령에서 제외하는 것이 맞는지 검증 필요
-        if (_.isUndefined(dataLoggerController) || !dataLoggerController.hasConnectedDevice) {
+        if (
+          _.isUndefined(dataLoggerController) ||
+          !_.get(dataLoggerController, 'hasConnectedDevice')
+        ) {
           const msg = _.isUndefined(dataLoggerController)
             ? 'DLC가 존재하지 않습니다.'
             : '장치와 연결되지 않았습니다.';
@@ -468,7 +471,7 @@ class Control extends EventEmitter {
       });
     });
 
-    // BU.CLIN(combinedWrapOrder, 4);
+    BU.CLIN(combinedWrapOrder, 4);
     // 복합 명령 저장
     this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
 
@@ -531,16 +534,29 @@ class Control extends EventEmitter {
         // BU.CLI('Stop')
         this.cronScheduler.stop();
       }
+      // BU.CLI(this.config.inquiryIntervalSecond)
       // 1분마다 요청
-      this.cronScheduler = cron.schedule('* * * * *', () => {
-        this.inquiryAllDeviceStatus(moment())
-          .then()
-          .catch(err => {
-            BU.errorLog('command', 'runDeviceInquiryScheduler', err);
-          });
-      });
+      this.cronScheduler = new cron.CronJob(
+        `*/${this.config.inquiryIntervalSecond} * * * * *`,
+        () => {
+          this.inquiryAllDeviceStatus(moment())
+            .then()
+            .catch(err => {
+              BU.errorLog('command', 'runDeviceInquiryScheduler', err);
+            });
+        },
+        null,
+        true,
+      );
+      // this.cronScheduler = cron.schedule('*/30 * * * * *', () => {
+      //   this.inquiryAllDeviceStatus(moment())
+      //     .then()
+      //     .catch(err => {
+      //       BU.errorLog('command', 'runDeviceInquiryScheduler', err);
+      //     });
+      // });
 
-      this.cronScheduler.start();
+      // this.cronScheduler.start();
 
       return true;
     } catch (error) {
@@ -552,32 +568,34 @@ class Control extends EventEmitter {
    * @param {moment.Moment} momentDate
    *
    */
-  async inquiryAllDeviceStatus(momentDate) {
-    BU.CLI('inquiryAllDeviceStatus', momentDate);
+  async inquiryAllDeviceStatus(momentDate = moment()) {
+    BU.CLI(`inquiryAllDeviceStatus: ${this.mainUUID}`, momentDate);
     // 정기 장치 상태 조회 명령일 경우
-    if (!_.isNil(momentDate)) {
-      // FIXME: cron 스케줄러가 중복 실행되는 버그가 해결되기 전까지 사용
-      /** @type {Timer} */
-      const timer = this.inquiryAllDeviceStatusTimer;
-      // Timer가 존재하지 않거나(초기) 종료되었다면 새로이 명령을 내릴 수 있음
-      if (_.isNil(timer) || !timer.getStateRunning()) {
-        this.inquiryAllDeviceStatusTimer = new CU.Timer(() => {
-          this.inquiryAllDeviceStatusTimer.pause();
-        }, _.subtract(_.multiply(1000, this.config.inquiryIntervalSecond), 100));
-      } else {
-        // Timer가 존재하다면 추가 조회는 하지 않음.
-        const remainTime = this.inquiryAllDeviceStatusTimer.getTimeLeft();
-        if (remainTime < 0) this.inquiryAllDeviceStatusTimer.pause();
-        BU.logFile(`Timer 존재: ${this.inquiryAllDeviceStatusTimer.getTimeLeft()}`);
-        return false;
-      }
-    } else {
-      // momentDate가 없는 경우 현재 메소드 테스트를 한다고 판단하고 수행하도록 함.
-      momentDate = moment();
-    }
+    // if (!_.isNil(momentDate)) {
+    //   // FIXME: cron 스케줄러가 중복 실행되는 버그가 해결되기 전까지 사용
+    //   /** @type {Timer} */
+    //   const timer = this.inquiryAllDeviceStatusTimer;
+    //   // Timer가 존재하지 않거나(초기) 종료되었다면 새로이 명령을 내릴 수 있음
+    //   if (_.isNil(timer) || !timer.getStateRunning()) {
+    //     BU.CLI('what?');
+    //     this.inquiryAllDeviceStatusTimer = new CU.Timer(() => {
+    //       this.inquiryAllDeviceStatusTimer.pause();
+    //     }, _.subtract(_.multiply(1000, this.config.inquiryIntervalSecond), 100));
+    //   } else {
+    //     // Timer가 존재하다면 추가 조회는 하지 않음.
+    //     const remainTime = this.inquiryAllDeviceStatusTimer.getTimeLeft();
+    //     if (remainTime < 0) this.inquiryAllDeviceStatusTimer.pause();
+    //     BU.CLI(`Timer 존재: ${this.inquiryAllDeviceStatusTimer.getTimeLeft()}`);
+    //     BU.logFile(`Timer 존재: ${this.inquiryAllDeviceStatusTimer.getTimeLeft()}`);
+    //     return false;
+    //   }
+    // } else {
+    //   // momentDate가 없는 경우 현재 메소드 테스트를 한다고 판단하고 수행하도록 함.
+    //   momentDate = moment();
+    // }
 
     // momentDate = _.isNil(momentDate) && moment();
-    BU.CLI('inquiryAllDeviceStatus', momentDate.format('MM-DD HH:mm:ss'));
+    // BU.CLI('inquiryAllDeviceStatus', momentDate.format('MM-DD HH:mm:ss'));
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
       requestCommandId: 'inquiryAllDeviceStatus',
@@ -609,11 +627,11 @@ class Control extends EventEmitter {
     );
 
     // BU.CLIN(validNodeList);
-    // BU.CLI(this.model.getAllNodeStatus(['node_id', 'data']));
+    // BU.CLI(this.model.getAllNodeStatus(['node_id', 'node_name', 'data']));
 
     // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
     const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
-      hasSensor: true,
+      hasSensor: false,
       hasDevice: false,
     });
 

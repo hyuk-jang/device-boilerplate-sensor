@@ -455,8 +455,8 @@ class Model {
         this.getAllNodeStatus(nodePickKey.FOR_DATA);
 
         // FIXME: emit 처리의 논리가 맞는지 체크
-        if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'discoveryRegularDevice') {
-          BU.CLI('Comlete discoveryRegularDevice');
+        if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'inquiryAllDeviceStatus') {
+          BU.CLI('Comlete inquiryAllDeviceStatus');
           this.controller.emit('completeDiscovery');
         } else {
           this.controller.emit('completeOrder', dcMessage.commandSet.commandId);
@@ -506,8 +506,17 @@ class Model {
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
    */
   saveCombinedOrder(commandType = requestOrderCommandType.MEASURE, combinedOrderWrapInfo) {
-    BU.CLI('saveCombinedOrder');
+    // BU.CLI('saveCombinedOrder');
 
+    // 아무런 명령을 내릴 것이 없다면 등록하지 않음
+    // BU.CLI(combinedOrderWrapInfo.orderContainerList);
+    const hasNonCommand = _.every(
+      combinedOrderWrapInfo.orderContainerList,
+      info => info.orderElementList.length === 0,
+    );
+    if (hasNonCommand) {
+      return false;
+    }
     /**
      * Socket Server로 전송하기 위한 명령 추가 객체 생성
      * @type {simpleOrderInfo}
@@ -539,7 +548,7 @@ class Model {
     storage.waitingList.push(combinedOrderWrapInfo);
     // 새로 생성된 명령 추가
     this.setSimpleOrderInfo(simpleOrder);
-    // BU.CLIN(this.combinedOrderStorage);
+    BU.CLIN(this.combinedOrderStorage, 5);
   }
 
   /**
