@@ -29,6 +29,7 @@ class Control extends EventEmitter {
   constructor(config = mainConfig) {
     super();
     this.config = config;
+    // BU.CLI(this.config);
 
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
@@ -115,7 +116,7 @@ class Control extends EventEmitter {
     this.nodeList = await biModule.getTable('v_dv_node', where);
 
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
-    this.dataLoggerList.forEach((dataLoggerInfo = { protocol_info: {}, connect_info: {} }) => {
+    this.dataLoggerList.forEach(dataLoggerInfo => {
       const { data_logger_seq: seqDL, connect_info = {}, protocol_info = {} } = dataLoggerInfo;
 
       const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
@@ -141,6 +142,9 @@ class Control extends EventEmitter {
     _.set(this, 'config.dbInfo', dbInfo);
     _.set(this, 'config.dataLoggerList', returnValue);
 
+    // BU.CLIN(this.config.dataLoggerList, 2);
+    // await Promise.delay(10);
+
     return this.config;
 
     // _.set(this.config, 'dataLoggerList', returnValue)
@@ -159,11 +163,12 @@ class Control extends EventEmitter {
    */
   async init() {
     try {
-      // BU.CLI(this.mainUUID, this.config.dataLoggerList.length);
+      BU.CLI(this.mainUUID, this.dataLoggerList.length);
       // 하부 Data Logger 순회
       const resultInitDataLoggerList = await Promise.map(
         this.config.dataLoggerList,
         dataLoggerConfig => {
+          // BU.CLI(dataLoggerConfig);
           // 데이터 로거 객체 생성
           const dataLoggerController = new DataLoggerController(dataLoggerConfig);
 
@@ -393,6 +398,7 @@ class Control extends EventEmitter {
   /**
    * 복합 명령 실행 요청
    * @param {requestCombinedOrderInfo} requestCombinedOrder
+   * @return {boolean} 명령 요청 여부
    */
   executeCombineOrder(requestCombinedOrder) {
     // BU.CLI('excuteCombineOrder', requestCombinedOrder);
@@ -445,16 +451,18 @@ class Control extends EventEmitter {
         const dataLoggerController = this.model.findDataLoggerController(currNodeId);
         // 해당하는 DLC가 없거나 장치가 비접속이라면 명령을 수행하지 않음
         // TODO: requestCombinedOrder의 실행 가능 여부를 판단하고 명령에서 제외하는 것이 맞는지 검증 필요
-        if (
-          _.isUndefined(dataLoggerController) ||
-          !_.get(dataLoggerController, 'hasConnectedDevice')
-        ) {
-          const msg = _.isUndefined(dataLoggerController)
-            ? 'DLC가 존재하지 않습니다.'
-            : '장치와 연결되지 않았습니다.';
+        let errMsg = '';
+        if (_.isUndefined(dataLoggerController)) {
+          errMsg = `DLC: ${currNodeId}가 존재하지 않습니다.`;
+        } else if (!_.get(dataLoggerController, 'hasConnectedDevice')) {
+          errMsg = `${currNodeId}는 장치와 연결되지 않았습니다.`;
+        }
+        if (errMsg.length) {
           BU.errorLog(
             'executeCombineOrder',
-            `nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${msg}`,
+            `mainUUID: ${
+              this.mainUUID
+            } nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${errMsg}`,
           );
           return false;
         }
@@ -473,11 +481,16 @@ class Control extends EventEmitter {
 
     BU.CLIN(combinedWrapOrder, 4);
     // 복합 명령 저장
-    this.model.saveCombinedOrder(requestCombinedOrder.requestCommandType, combinedWrapOrder);
+    const hasSaved = this.model.saveCombinedOrder(
+      requestCombinedOrder.requestCommandType,
+      combinedWrapOrder,
+    );
 
     // 복합 명령 실행 요청
     // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
-    return this.transferRequestOrder(combinedWrapOrder);
+    this.transferRequestOrder(combinedWrapOrder);
+
+    return hasSaved;
   }
 
   /**
@@ -608,11 +621,27 @@ class Control extends EventEmitter {
 
     // BU.CLI(requestCombinedOrder);
     // 명령 요청
-    this.executeCombineOrder(requestCombinedOrder);
+    const hasTransferInquiryStatus = this.executeCombineOrder(requestCombinedOrder);
+
+    // 장치와의 접속이 이루어지지 않을 경우 명령 전송하지 않음
+    if (!hasTransferInquiryStatus) {
+      BU.CLI(
+        `Empty Order inquiryAllDeviceStatus ${this.mainUUID}`,
+        momentDate.format('MM-DD HH:mm:ss'),
+      );
+      return false;
+    }
+
+    // 무한정 기다릴 순 없으니 실패 시 Error를 발생시킬 setTimer 등록
+    const inquiryTimer = setTimeout(() => {
+      this.emit('error', 'inquiryAllDeviceStatus Timeout');
+    }, 1000 * this.config.inquiryWaitingSecond);
 
     // completeDiscovery 이벤트가 발생할때까지 대기
     await eventToPromise.multi(this, ['completeDiscovery'], ['error', 'close']);
     BU.CLI('Comlete inquiryAllDeviceStatus', momentDate.format('MM-DD HH:mm:ss'));
+    // 조회가 성공하든 실패하든 타이머 해제
+    clearTimeout(inquiryTimer);
 
     // BU.CLI(this.nodeList);
     // 데이터의 유효성을 인정받는 Node List

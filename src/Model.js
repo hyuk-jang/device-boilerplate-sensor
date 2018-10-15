@@ -504,6 +504,7 @@ class Model {
    * 복합 명령을 저장
    * @param {string} commandType 저장할 타입 ADD, CANCEL, ''
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
+   * @return {boolean} 명령을 등록한다면 true, 아니라면 false
    */
   saveCombinedOrder(commandType = requestOrderCommandType.MEASURE, combinedOrderWrapInfo) {
     // BU.CLI('saveCombinedOrder');
@@ -548,7 +549,8 @@ class Model {
     storage.waitingList.push(combinedOrderWrapInfo);
     // 새로 생성된 명령 추가
     this.setSimpleOrderInfo(simpleOrder);
-    BU.CLIN(this.combinedOrderStorage, 5);
+    // BU.CLIN(this.combinedOrderStorage, 5);
+    return true;
   }
 
   /**

@@ -24,13 +24,14 @@ class DataLoggerController extends AbstDeviceClient {
     super();
 
     this.config = config;
+    // BU.CLI(this.config);
 
     /** @type {deviceInfo} Controller 객체의 생성 정보를 담고 있는 설정 정보 */
-    this.deviceInfo = this.config.deviceInfo;
+    this.deviceInfo;
     /** @type {connect_info} DCC를 생성하기 위한 설정 정보 */
-    this.connectInfo = this.deviceInfo.connect_info;
+    this.connectInfo;
     /** @type {protocol_info} DPC를 생성하기 위한 설정 정보  */
-    this.protocolInfo = this.deviceInfo.protocol_info;
+    this.protocolInfo;
 
     this.BaseModel = BaseModel;
 
@@ -118,6 +119,7 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {nodeInfo[]} nodeInfoList
    */
   s1AddNodeList(nodeInfoList) {
+    // BU.CLI(this.siteUUID, nodeInfoList.length);
     nodeInfoList.forEach(nodeInfo => {
       const foundIt = _.find(this.nodeList, {
         node_id: nodeInfo.node_id,
@@ -199,6 +201,7 @@ class DataLoggerController extends AbstDeviceClient {
         // BU.CLI('setPassiveClient', this.id);
         // 수동 클라이언트를 사용할 경우에는 반드시 사이트 UUID가 필요함
         if (_.isString(siteUUID)) {
+          // BU.CLI('setPassiveClient', this.id, siteUUID);
           // 해당 사이트 고유 ID
           this.siteUUID = siteUUID;
           this.setPassiveClient(this.deviceInfo, siteUUID);
@@ -380,7 +383,7 @@ class DataLoggerController extends AbstDeviceClient {
    * dcDisconnect --> 장치 연결 해제
    */
   updatedDcEventOnDevice(dcEvent) {
-    super.updatedDcEventOnDevice(dcEvent);
+    // super.updatedDcEventOnDevice(dcEvent);
 
     const { CONNECT, DISCONNECT } = this.definedControlEvent;
 
@@ -459,7 +462,7 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcData(dcData) {
-    super.onDcData(dcData);
+    // super.onDcData(dcData);
     try {
       const { DONE, ERROR, RETRY } = this.definedCommanderResponse;
       const { eventCode, data } = this.converter.parsingUpdateData(dcData);

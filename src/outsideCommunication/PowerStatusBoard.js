@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const cron = require('node-cron');
 const Serialport = require('serialport');
 const eventToPromise = require('event-to-promise');
 
@@ -39,7 +38,7 @@ class PowerStatusBoard extends AbstController {
     this.defaultConverter = BaseModel.defaultModule;
 
     // 현황판 데이터를 요청할 스케줄러
-    this.cronScheduler = null;
+    this.intervalScheduler = null;
   }
 
   /** AbstController 에서 접속 타이머 시작 요청 */
@@ -58,24 +57,18 @@ class PowerStatusBoard extends AbstController {
    */
   runCronRequestPowerStatusBoard() {
     try {
-      if (this.cronScheduler !== null) {
+      if (this.intervalScheduler !== null) {
         // BU.CLI('Stop')
-        this.cronScheduler.stop();
+        clearInterval(this.intervalScheduler);
       }
+
       // 1분마다 요청
-      this.cronScheduler = cron.schedule('* * * * *', () => {
+      this.intervalScheduler = setInterval(() => {
         this.controller.requestPowerStatusBoardInfo();
-      });
+      }, 1000 * 60);
 
-      this.cronScheduler.start();
+      this.controller.requestPowerStatusBoardInfo();
 
-      // this.cronScheduler = new cron.CronJob({
-      //   cronTime: '0 */1 * * * *',
-      //   onTick: () => {
-      //     this.controller.requestPowerStatusBoardInfo();
-      //   },
-      //   start: true,
-      // });
       return true;
     } catch (error) {
       throw error;

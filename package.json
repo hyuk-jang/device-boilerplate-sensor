@@ -37,7 +37,6 @@
     "event-to-promise": "^0.8.0",
     "lodash": "^4.17.11",
     "moment": "^2.22.2",
-    "node-cron": "^2.0.1",
     "serialport": "^7.0.2",
     "split": "^1.0.1",
     "uuid": "^3.3.2"

@@ -20,6 +20,7 @@ const config = {
   },
   uuid: 'aaaaa',
   inquiryIntervalSecond: 10,
+  inquiryWaitingSecond: 60,
   hasPassiveClient: true,
   mainSocketInfo: {
     host: process.env.WEB_SOCKET_HOST,
