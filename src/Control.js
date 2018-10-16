@@ -163,7 +163,7 @@ class Control extends EventEmitter {
    */
   async init() {
     try {
-      BU.CLI(this.mainUUID, this.dataLoggerList.length);
+      // BU.CLI(this.mainUUID, this.dataLoggerList.length);
       // 하부 Data Logger 순회
       const resultInitDataLoggerList = await Promise.map(
         this.config.dataLoggerList,
@@ -259,7 +259,10 @@ class Control extends EventEmitter {
    * @param {requestSingleOrderInfo} requestSingleOrderInfo
    */
   executeSingleControl(requestSingleOrderInfo) {
-    BU.CLI('executeSingleControl');
+    // BU.CLI('executeSingleControl');
+    if (process.env.LOG_DBS_EXEC_SC === '1') {
+      BU.CLIN(requestSingleOrderInfo);
+    }
     const {
       requestCommandType,
       nodeId,
@@ -293,7 +296,9 @@ class Control extends EventEmitter {
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
    */
   executeAutomaticControl(controlInfo) {
-    // BU.CLI(controlInfo);
+    if (process.env.LOG_DBS_EXEC_AC === '1') {
+      BU.CLI(controlInfo);
+    }
     const { cmdName, trueList = [], falseList = [] } = controlInfo;
 
     /** @type {requestCombinedOrderInfo} */
@@ -330,6 +335,9 @@ class Control extends EventEmitter {
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
    */
   cancelAutomaticControl(controlInfo) {
+    if (process.env.LOG_DBS_EXEC_AC === '1') {
+      BU.CLI(controlInfo);
+    }
     const { cmdName, trueList = [], falseList = [] } = controlInfo;
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
@@ -401,7 +409,9 @@ class Control extends EventEmitter {
    * @return {boolean} 명령 요청 여부
    */
   executeCombineOrder(requestCombinedOrder) {
-    // BU.CLI('excuteCombineOrder', requestCombinedOrder);
+    if (process.env.LOG_DBS_EXEC_CO_HEADER === '1') {
+      BU.CLI('excuteCombineOrder', requestCombinedOrder);
+    }
 
     // 복합 명령을 해체하여 정의
     const {
@@ -479,7 +489,10 @@ class Control extends EventEmitter {
       });
     });
 
-    BU.CLIN(combinedWrapOrder, 4);
+    if (process.env.LOG_DBS_EXEC_CO_TAIL === '1') {
+      BU.CLIN(combinedWrapOrder, 4);
+    }
+
     // 복합 명령 저장
     const hasSaved = this.model.saveCombinedOrder(
       requestCombinedOrder.requestCommandType,
@@ -499,7 +512,9 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   transferRequestOrder(combinedOrderWrapInfo) {
-    // BU.CLI('transferRequestOrder', combinedOrderWrapInfo);
+    if (process.env.LOG_DBS_TRANS_ORDER === '1') {
+      BU.CLI('transferRequestOrder', combinedOrderWrapInfo);
+    }
     const {
       uuid: integratedUUID,
       requestCommandId,
@@ -541,7 +556,7 @@ class Control extends EventEmitter {
    * 데이터 로거의 현 상태를 조회하는 스케줄러
    */
   runDeviceInquiryScheduler() {
-    BU.CLI('runDeviceInquiryScheduler');
+    // BU.CLI('runDeviceInquiryScheduler');
     try {
       if (this.cronScheduler !== null) {
         // BU.CLI('Stop')
@@ -561,15 +576,6 @@ class Control extends EventEmitter {
         null,
         true,
       );
-      // this.cronScheduler = cron.schedule('*/30 * * * * *', () => {
-      //   this.inquiryAllDeviceStatus(moment())
-      //     .then()
-      //     .catch(err => {
-      //       BU.errorLog('command', 'runDeviceInquiryScheduler', err);
-      //     });
-      // });
-
-      // this.cronScheduler.start();
 
       return true;
     } catch (error) {
@@ -582,33 +588,9 @@ class Control extends EventEmitter {
    *
    */
   async inquiryAllDeviceStatus(momentDate = moment()) {
-    BU.CLI(`inquiryAllDeviceStatus: ${this.mainUUID}`, momentDate);
-    // 정기 장치 상태 조회 명령일 경우
-    // if (!_.isNil(momentDate)) {
-    //   // FIXME: cron 스케줄러가 중복 실행되는 버그가 해결되기 전까지 사용
-    //   /** @type {Timer} */
-    //   const timer = this.inquiryAllDeviceStatusTimer;
-    //   // Timer가 존재하지 않거나(초기) 종료되었다면 새로이 명령을 내릴 수 있음
-    //   if (_.isNil(timer) || !timer.getStateRunning()) {
-    //     BU.CLI('what?');
-    //     this.inquiryAllDeviceStatusTimer = new CU.Timer(() => {
-    //       this.inquiryAllDeviceStatusTimer.pause();
-    //     }, _.subtract(_.multiply(1000, this.config.inquiryIntervalSecond), 100));
-    //   } else {
-    //     // Timer가 존재하다면 추가 조회는 하지 않음.
-    //     const remainTime = this.inquiryAllDeviceStatusTimer.getTimeLeft();
-    //     if (remainTime < 0) this.inquiryAllDeviceStatusTimer.pause();
-    //     BU.CLI(`Timer 존재: ${this.inquiryAllDeviceStatusTimer.getTimeLeft()}`);
-    //     BU.logFile(`Timer 존재: ${this.inquiryAllDeviceStatusTimer.getTimeLeft()}`);
-    //     return false;
-    //   }
-    // } else {
-    //   // momentDate가 없는 경우 현재 메소드 테스트를 한다고 판단하고 수행하도록 함.
-    //   momentDate = moment();
-    // }
-
-    // momentDate = _.isNil(momentDate) && moment();
-    // BU.CLI('inquiryAllDeviceStatus', momentDate.format('MM-DD HH:mm:ss'));
+    if (process.env.LOG_DBS_INQUIRY_START === '1') {
+      BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
+    }
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
       requestCommandId: 'inquiryAllDeviceStatus',
@@ -617,18 +599,12 @@ class Control extends EventEmitter {
       requestElementList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
     };
 
-    // BU.CLIN(requestCombinedOrder, 4);
-
-    // BU.CLI(requestCombinedOrder);
     // 명령 요청
     const hasTransferInquiryStatus = this.executeCombineOrder(requestCombinedOrder);
 
     // 장치와의 접속이 이루어지지 않을 경우 명령 전송하지 않음
     if (!hasTransferInquiryStatus) {
-      BU.CLI(
-        `Empty Order inquiryAllDeviceStatus ${this.mainUUID}`,
-        momentDate.format('MM-DD HH:mm:ss'),
-      );
+      BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
       return false;
     }
 
@@ -639,7 +615,10 @@ class Control extends EventEmitter {
 
     // completeDiscovery 이벤트가 발생할때까지 대기
     await eventToPromise.multi(this, ['completeDiscovery'], ['error', 'close']);
-    BU.CLI('Comlete inquiryAllDeviceStatus', momentDate.format('MM-DD HH:mm:ss'));
+
+    if (process.env.LOG_DBS_INQUIRY_COMPLETE === '1') {
+      BU.CLI(`${this.makeCommentMainUUID()} Comlete inquiryAllDeviceStatus`);
+    }
     // 조회가 성공하든 실패하든 타이머 해제
     clearTimeout(inquiryTimer);
 
@@ -656,12 +635,14 @@ class Control extends EventEmitter {
     );
 
     // BU.CLIN(validNodeList);
-    // BU.CLI(this.model.getAllNodeStatus(['node_id', 'node_name', 'data']));
+    if (process.env.LOG_DBS_INQUIRY_RESULT === '1') {
+      BU.CLI(this.model.getAllNodeStatus(['node_id', 'node_name', 'data']));
+    }
 
     // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
     const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
-      hasSensor: false,
-      hasDevice: false,
+      hasSensor: process.env.DBS_SAVE_SENSOR !== '0',
+      hasDevice: process.env.DBS_SAVE_DEVICE !== '0',
     });
 
     return returnValue;
@@ -765,5 +746,13 @@ class Control extends EventEmitter {
    * @param {dcError} dcError 명령 수행 결과 데이터
    */
   notifyError(dataLoggerController, dcError) {}
+
+  /** MainUUID 가 존재할 경우 해당 지점을 알리기 위한 텍스트 생성 */
+  makeCommentMainUUID() {
+    if (this.mainUUID.length) {
+      return `MainUUID: ${this.mainUUID}`;
+    }
+    return '';
+  }
 }
 module.exports = Control;

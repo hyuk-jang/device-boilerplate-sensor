@@ -20,7 +20,7 @@ class AbstController {
     this.hasConnect;
     this.connectTimer;
     // 장치 재접속 인터벌
-    this.connectIntervalTime = 1000 * 5;
+    this.connectIntervalTime = 1000 * 30;
 
     // TEST
     this.requestConnectCount = 0;
@@ -41,7 +41,7 @@ class AbstController {
     }
     timer.pause();
     try {
-      BU.CLI('doConnect()', this.configInfo);
+      // BU.CLI('doConnect()', this.configInfo);
       // 장치 접속 관리 객체가 없다면 접속 수행
       if (_.isEmpty(this.client)) {
         await this.connect();
@@ -145,7 +145,7 @@ class AbstController {
    * @param {Error} error
    */
   notifyError(error) {
-    BU.CLI('notifyError', error);
+    BU.CLI('notifyError', error.message);
     // 장치에서 이미 에러 내역을 발송한 상태라면 이벤트를 보내지 않음
     // this.notifyDisconnect();
   }

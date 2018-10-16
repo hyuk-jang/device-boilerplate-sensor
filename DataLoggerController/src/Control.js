@@ -178,20 +178,10 @@ class DataLoggerController extends AbstDeviceClient {
    */
   async init(siteUUID) {
     this.converter = new MainConverter(this.protocolInfo);
-    // _.set(this.converter, 'test', this.config.dataLoggerInfo.dl_id);
-    // this.baseModel = new BaseModel.UPSAS(this.protocolInfo);
-    // this.deviceModel = this.baseModel.device;
-
     // 모델 선언
     this.model = new Model(this);
-    /** 개발 버젼일 경우 Echo Server 구동 */
-    if (this.config.hasDev) {
-      // const EchoServer = require('device-echo-server-jh');
-      // 지정된 port로 생성
-      const echoServer = new EchoServer(this.connectInfo.port);
-      echoServer.attachDevice(this.protocolInfo);
-    }
     try {
+      const { CONNECT, DISCONNECT } = this.definedControlEvent;
       // 프로토콜 컨버터 바인딩
       this.converter.setProtocolConverter();
 
@@ -217,13 +207,10 @@ class DataLoggerController extends AbstDeviceClient {
       if (this.hasConnectedDevice) {
         return this;
       }
+
       // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
       // 장치와의 접속 수립이 아직 안되었을 경우 장치 접속 결과를 기다림
-      await eventToPromise.multi(
-        this,
-        [this.definedControlEvent.CONNECT],
-        [this.definedControlEvent.DISCONNECT],
-      );
+      await eventToPromise.multi(this, [CONNECT], [DISCONNECT]);
       // BU.CLI('Connected', this.id);
       // Controller 반환
       return this;
@@ -251,7 +238,7 @@ class DataLoggerController extends AbstDeviceClient {
    */
   getDeviceOperationInfo() {
     return {
-      id: this.deviceInfo.target_id,
+      id: this.id,
       config: this.deviceInfo,
       nodeList: this.nodeList,
       // systemErrorList: [{code: 'new Code2222', msg: '에러 테스트 메시지22', occur_date: new Date() }],
@@ -266,7 +253,9 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {executeOrderInfo} executeOrderInfo
    */
   orderOperation(executeOrderInfo) {
-    // BU.CLIN(executeOrderInfo);
+    if (process.env.LOG_DLC_ORDER === '1') {
+      BU.CLIN(executeOrderInfo);
+    }
     try {
       const {
         integratedUUID,
@@ -299,10 +288,6 @@ class DataLoggerController extends AbstDeviceClient {
         value: controlValue,
       });
 
-      BU.CLI(nodeInfo);
-      BU.CLI(cmdList);
-
-      // BU.CLI(cmdList);
       const commandName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${controlValue}`;
 
       const commandSet = this.generationManualCommand({
@@ -383,7 +368,9 @@ class DataLoggerController extends AbstDeviceClient {
    * dcDisconnect --> 장치 연결 해제
    */
   updatedDcEventOnDevice(dcEvent) {
-    // super.updatedDcEventOnDevice(dcEvent);
+    if (process.env.LOG_DLC_EVENT === '1') {
+      super.updatedDcEventOnDevice(dcEvent);
+    }
 
     const { CONNECT, DISCONNECT } = this.definedControlEvent;
 
@@ -412,7 +399,9 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcError} dcError 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcError(dcError) {
-    // super.onDcError(dcError);
+    if (process.env.LOG_DLC_ERROR === '1') {
+      super.onDcError(dcError);
+    }
 
     const { NEXT } = this.definedCommanderResponse;
 
@@ -462,15 +451,18 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcData(dcData) {
-    // super.onDcData(dcData);
+    if (process.env.LOG_DLC_ON_DATA === '1') {
+      super.onDcData(dcData);
+    }
     try {
       const { DONE, ERROR, RETRY } = this.definedCommanderResponse;
       const { eventCode, data } = this.converter.parsingUpdateData(dcData);
 
-      // BU.CLI(data);
+      if (process.env.LOG_DLC_ON_DATA === '1') {
+        BU.CLI(data);
+      }
       // 만약 파싱 에러가 발생한다면 명령 재 요청
       if (eventCode === ERROR) {
-        // BU.CLI(parsedData);
         return this.requestTakeAction(RETRY);
       }
       // 데이터가 정상적이라면
@@ -478,12 +470,14 @@ class DataLoggerController extends AbstDeviceClient {
         const renewalNodeList = this.model.onData(data);
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
-          // BU.CLI(
-          //   this.id,
-          //   _(renewalNodeList)
-          //     .map(node => _.pick(node, ['node_id', 'data']))
-          //     .value(),
-          // );
+          if (process.env.LOG_DLC_RENEWAL_DATA === '1') {
+            BU.CLI(
+              this.id,
+              _(renewalNodeList)
+                .map(node => _.pick(node, ['node_id', 'data']))
+                .value(),
+            );
+          }
           this.observerList.forEach(observer => {
             if (_.get(observer, 'notifyDeviceData')) {
               observer.notifyDeviceData(this, renewalNodeList);

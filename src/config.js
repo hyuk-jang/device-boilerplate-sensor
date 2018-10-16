@@ -19,9 +19,8 @@ const config = {
     database: '',
   },
   uuid: 'aaaaa',
-  inquiryIntervalSecond: 10,
+  inquiryIntervalSecond: 60,
   inquiryWaitingSecond: 60,
-  hasPassiveClient: true,
   mainSocketInfo: {
     host: process.env.WEB_SOCKET_HOST,
     port: process.env.WEB_SOCKET_PORT,

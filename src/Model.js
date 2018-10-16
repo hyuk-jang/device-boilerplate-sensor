@@ -33,6 +33,8 @@ class Model {
     this.dataLoggerList = controller.dataLoggerList;
     this.nodeList = controller.nodeList;
 
+    this.mainUUID = controller.mainUUID;
+
     this.initCombinedOrderStorage();
 
     this.biModule = new BM(this.controller.config.dbInfo);
@@ -62,7 +64,7 @@ class Model {
     //   throw new Error(`Map UUID: ${uuid}는 존재하지 않습니다.`);
     // }
     /** @type {mDeviceMap} */
-    this.deviceMap = JSON.parse(mainInfo.map);
+    this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {}
     // BU.CLI(this.deviceMap);
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
   }
@@ -96,7 +98,7 @@ class Model {
    * @return {boolean} 정상적인 신규 데이터 삽입이 이루어지면 true, 아니면 false
    */
   setSimpleOrderInfo(simpleOrderInfo) {
-    BU.CLI(this.controller.mainUUID, simpleOrderInfo);
+    // BU.CLI(this.controller.mainUUID, simpleOrderInfo);
     // 아직 접속이 이루어져있지 않을 경우 보내지 않음
     if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
       return false;
@@ -378,7 +380,7 @@ class Model {
       dcMessage.msgCode === COMMANDSET_EXECUTION_START &&
       resOrderInfo.orderInfoKeyLV2 === combinedOrderType.WAIT
     ) {
-      BU.CLI(`${resOrderInfo.orderWrapInfoLV3.requestCommandId} 작업 시작`);
+      BU.CLI(`${this.mainUUID} ${resOrderInfo.orderWrapInfoLV3.requestCommandId} 작업 시작`);
       // watingList에서 해당 명령 제거. pullAt은 배열 형태로 리턴하므로 첫번째 인자 가져옴.
       const newOrderInfo = _.head(
         _.pullAt(
@@ -439,7 +441,10 @@ class Model {
       );
       // BU.CLI(resOrderInfo.orderWrapInfoLV3.requestCommandId, flatSimpleList);
       if (_.every(flatOrderElementList, 'hasComplete')) {
-        BU.CLI('All Completed CommandId: ', dcMessage.commandSet.commandId);
+        BU.CLI(
+          `MainUUID: ${this.mainUUID || ''}`, 
+          `All Completed CommandId:  ${dcMessage.commandSet.commandId}`,
+        );
         // proceedingList에서 제거
         const completeOrderInfo = _.head(
           _.pullAt(
@@ -456,7 +461,7 @@ class Model {
 
         // FIXME: emit 처리의 논리가 맞는지 체크
         if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'inquiryAllDeviceStatus') {
-          BU.CLI('Comlete inquiryAllDeviceStatus');
+          // BU.CLI('Comlete inquiryAllDeviceStatus');
           this.controller.emit('completeDiscovery');
         } else {
           this.controller.emit('completeOrder', dcMessage.commandSet.commandId);
