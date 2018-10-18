@@ -64,7 +64,7 @@ class Model {
     //   throw new Error(`Map UUID: ${uuid}는 존재하지 않습니다.`);
     // }
     /** @type {mDeviceMap} */
-    this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {}
+    this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {};
     // BU.CLI(this.deviceMap);
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
   }
@@ -442,7 +442,7 @@ class Model {
       // BU.CLI(resOrderInfo.orderWrapInfoLV3.requestCommandId, flatSimpleList);
       if (_.every(flatOrderElementList, 'hasComplete')) {
         BU.CLI(
-          `MainUUID: ${this.mainUUID || ''}`, 
+          `MainUUID: ${this.mainUUID || ''}`,
           `All Completed CommandId:  ${dcMessage.commandSet.commandId}`,
         );
         // proceedingList에서 제거
@@ -462,8 +462,9 @@ class Model {
         // FIXME: emit 처리의 논리가 맞는지 체크
         if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'inquiryAllDeviceStatus') {
           // BU.CLI('Comlete inquiryAllDeviceStatus');
-          this.controller.emit('completeDiscovery');
+          this.completeInquiryDeviceStatus();
         } else {
+          // FIXME: 일반 명령 completeOrder이 완료되었을 경우 처리할 필요가 있다면 작성
           this.controller.emit('completeOrder', dcMessage.commandSet.commandId);
         }
 
@@ -503,6 +504,34 @@ class Model {
     //   default:
     //     break;
     // }
+  }
+
+  /** 정기 계측 조회 명령 완료 결과 반영 */
+  async completeInquiryDeviceStatus() {
+    if (process.env.LOG_DBS_INQUIRY_COMPLETE === '1') {
+      BU.CLI(`${this.makeCommentMainUUID()} Comlete inquiryAllDeviceStatus`);
+    }
+
+    // 데이터의 유효성을 인정받는 Node List
+    const validNodeList = this.checkValidateNodeData(
+      this.nodeList,
+      {
+        diffType: 'minutes',
+        duration: 2, // 2분을 벗어나면 데이터 가치가 없음
+      },
+      this.controller.inquiryDeviceStatusDate,
+      // momentDate.format('YYYY-MM-DD HH:mm:ss'),
+    );
+
+    // BU.CLIN(validNodeList);
+    if (process.env.LOG_DBS_INQUIRY_RESULT === '1') {
+      BU.CLI(this.getAllNodeStatus(['node_real_id', 'node_name', 'data']));
+    }
+
+    await this.insertNodeDataToDB(validNodeList, {
+      hasSensor: process.env.DBS_SAVE_SENSOR !== '0',
+      hasDevice: process.env.DBS_SAVE_DEVICE !== '0',
+    });
   }
 
   /**
@@ -614,35 +643,40 @@ class Model {
    */
   async insertNodeDataToDB(nodeList, insertOption = { hasSensor: false, hasDevice: false }) {
     const returnValue = [];
+    try {
+      if (insertOption.hasSensor) {
+        const nodeSensorList = _(nodeList)
+          .filter(ele => ele.is_sensor === 1 && _.isNumber(ele.node_seq) && _.isNumber(ele.data))
+          .map(ele =>
+            BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
+          )
+          .value();
+        // BU.CLI(nodeSensorList);
+        const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
+        returnValue.push(result);
+      }
+
+      // 장치류 삽입
+      if (insertOption.hasDevice) {
+        const nodeDeviceList = _(nodeList)
+          .filter(ele => ele.is_sensor === 0 && _.isNumber(ele.node_seq) && _.isString(ele.data))
+          .map(ele =>
+            BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'str_data'),
+          )
+          .value();
+
+        // BU.CLI(nodeDeviceList);
+        const result = await this.biModule.setTables('dv_device_data', nodeDeviceList, false);
+        returnValue.push(result);
+      }
+    } catch (error) {
+      BU.errorLog('insertNodeDataToDB', error)
+      return returnValue;
+    }
 
     // BU.CLIN(nodeList);
     // BU.CLIS(insertOption, insertOption.hasSensor, insertOption.hasDevice);
     // 센서류 삽입
-    if (insertOption.hasSensor) {
-      const nodeSensorList = _(nodeList)
-        .filter(ele => ele.is_sensor === 1 && _.isNumber(ele.node_seq) && _.isNumber(ele.data))
-        .map(ele =>
-          BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
-        )
-        .value();
-      // BU.CLI(nodeSensorList);
-      const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
-      returnValue.push(result);
-    }
-
-    // 장치류 삽입
-    if (insertOption.hasDevice) {
-      const nodeDeviceList = _(nodeList)
-        .filter(ele => ele.is_sensor === 0 && _.isNumber(ele.node_seq) && _.isString(ele.data))
-        .map(ele =>
-          BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'str_data'),
-        )
-        .value();
-
-      // BU.CLI(nodeDeviceList);
-      const result = await this.biModule.setTables('dv_device_data', nodeDeviceList, false);
-      returnValue.push(result);
-    }
     return returnValue;
   }
 }

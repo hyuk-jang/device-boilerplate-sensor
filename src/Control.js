@@ -53,6 +53,9 @@ class Control extends EventEmitter {
     // 정기 장치 조회 수행 여부
     this.inquiryAllDeviceStatusTimer;
 
+    /** @type {moment.Moment} */
+    this.inquiryDeviceStatusDate;
+
     // this.socketClient = {};
     // this.powerStatusBoard = {}
   }
@@ -203,6 +206,10 @@ class Control extends EventEmitter {
 
   /** Main Socket Server와 통신을 수립할 Socket Client 객체 생성 */
   setSocketClient() {
+    // Main Socket Server로 접속할 정보가 없다면 socketClient를 생성하지 않음
+    if (_.isEmpty(this.config.mainSocketInfo)) {
+      return false;
+    }
     this.socketClient = new SocketClint(this);
     this.socketClient.tryConnect();
   }
@@ -567,11 +574,8 @@ class Control extends EventEmitter {
       this.cronScheduler = new cron.CronJob(
         `*/${this.config.inquiryIntervalSecond} * * * * *`,
         () => {
-          this.inquiryAllDeviceStatus(moment())
-            .then()
-            .catch(err => {
-              BU.errorLog('command', 'runDeviceInquiryScheduler', err);
-            });
+          this.inquiryDeviceStatusDate = moment();
+          this.inquiryAllDeviceStatus();
         },
         null,
         true,
@@ -587,7 +591,7 @@ class Control extends EventEmitter {
    * @param {moment.Moment} momentDate
    *
    */
-  async inquiryAllDeviceStatus(momentDate = moment()) {
+  inquiryAllDeviceStatus() {
     if (process.env.LOG_DBS_INQUIRY_START === '1') {
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
     }
@@ -607,45 +611,6 @@ class Control extends EventEmitter {
       BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
       return false;
     }
-
-    // 무한정 기다릴 순 없으니 실패 시 Error를 발생시킬 setTimer 등록
-    const inquiryTimer = setTimeout(() => {
-      this.emit('error', 'inquiryAllDeviceStatus Timeout');
-    }, 1000 * this.config.inquiryWaitingSecond);
-
-    // completeDiscovery 이벤트가 발생할때까지 대기
-    await eventToPromise.multi(this, ['completeDiscovery'], ['error', 'close']);
-
-    if (process.env.LOG_DBS_INQUIRY_COMPLETE === '1') {
-      BU.CLI(`${this.makeCommentMainUUID()} Comlete inquiryAllDeviceStatus`);
-    }
-    // 조회가 성공하든 실패하든 타이머 해제
-    clearTimeout(inquiryTimer);
-
-    // BU.CLI(this.nodeList);
-    // 데이터의 유효성을 인정받는 Node List
-    const validNodeList = this.model.checkValidateNodeData(
-      this.nodeList,
-      {
-        diffType: 'minutes',
-        duration: 2, // 2분을 벗어나면 데이터 가치가 없음
-      },
-      momentDate,
-      // momentDate.format('YYYY-MM-DD HH:mm:ss'),
-    );
-
-    // BU.CLIN(validNodeList);
-    if (process.env.LOG_DBS_INQUIRY_RESULT === '1') {
-      BU.CLI(this.model.getAllNodeStatus(['node_id', 'node_name', 'data']));
-    }
-
-    // FIXME: DB 입력은 정상적으로 확인됐으니 서비스 시점에서 해제(2018-08-10)
-    const returnValue = await this.model.insertNodeDataToDB(validNodeList, {
-      hasSensor: process.env.DBS_SAVE_SENSOR !== '0',
-      hasDevice: process.env.DBS_SAVE_DEVICE !== '0',
-    });
-
-    return returnValue;
 
     // Data Logger 현재 상태 조회
     // this.dataLoggerControllerList.forEach(router => {
