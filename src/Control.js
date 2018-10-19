@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const cron = require('cron');
-const eventToPromise = require('event-to-promise');
 const EventEmitter = require('events');
 const uuidv4 = require('uuid/v4');
 const moment = require('moment');
@@ -18,11 +17,16 @@ const { definedCommandSetRank } = dccFlagModel;
 
 const DataLoggerController = require('../DataLoggerController');
 
-const Scenario = require('./Scenario');
-const SocketClint = require('./outsideCommunication/SocketClint');
-const PowerStatusBoard = require('./outsideCommunication/PowerStatusBoard');
-
 const Model = require('./Model');
+
+
+/** Main Socket Server와 통신을 수행하기 위한 Class */
+const SocketClint = require('./outsideCommunication/SocketClint');
+/** 태양광 현황판 계측을 위한 Class, 수중태양광에서만 사용됨 */
+const PowerStatusBoard = require('./UPSAS/PowerStatusBoard');
+/** 정해진 시나리오대로 진행하기 위한 Class, 수중태양광에서만 사용됨 */
+const Scenario = require('./UPSAS/Scenario');
+
 
 class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */
@@ -47,9 +51,6 @@ class Control extends EventEmitter {
     // Data Logger 상태 계측을 위한 Cron Scheduler 객체
     this.cronScheduler = null;
 
-    // 시나리오 관련
-    this.scenario = new Scenario(this);
-
     // 정기 장치 조회 수행 여부
     this.inquiryAllDeviceStatusTimer;
 
@@ -57,32 +58,6 @@ class Control extends EventEmitter {
     this.inquiryDeviceStatusDate;
 
     // this.socketClient = {};
-    // this.powerStatusBoard = {}
-  }
-
-  /**
-   * Passive Client를 수동으로 붙여줄 경우
-   * @param {string} mainUUID Site ID
-   * @param {*} passiveClient
-   * @return {boolean} 성공 유무
-   */
-  setPassiveClient(mainUUID, passiveClient) {
-    if (this.mainUUID !== mainUUID) {
-      throw new Error(
-        `The ${
-          this.mainUUID
-        } of this site is different from the ${mainUUID} of the site you received.`,
-      );
-    }
-    const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
-      _.isEqual(dataLoggerController.siteUUID, mainUUID),
-    );
-
-    // 해당 지점이 없다면 실패
-    if (_.isEmpty(fountIt)) return false;
-    // client를 binding 처리
-    fountIt.bindingPassiveClient(mainUUID, passiveClient);
-    return true;
   }
 
   /**
@@ -204,20 +179,51 @@ class Control extends EventEmitter {
     }
   }
 
-  /** Main Socket Server와 통신을 수립할 Socket Client 객체 생성 */
-  setSocketClient() {
-    // Main Socket Server로 접속할 정보가 없다면 socketClient를 생성하지 않음
-    if (_.isEmpty(this.config.mainSocketInfo)) {
-      return false;
+  /**
+   * Passive Client를 수동으로 붙여줄 경우
+   * @param {string} mainUUID Site ID
+   * @param {*} passiveClient
+   * @return {boolean} 성공 유무
+   */
+  setPassiveClient(mainUUID, passiveClient) {
+    if (this.mainUUID !== mainUUID) {
+      throw new Error(
+        `The ${
+          this.mainUUID
+        } of this site is different from the ${mainUUID} of the site you received.`,
+      );
     }
-    this.socketClient = new SocketClint(this);
-    this.socketClient.tryConnect();
+    const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
+      _.isEqual(dataLoggerController.siteUUID, mainUUID),
+    );
+
+    // 해당 지점이 없다면 실패
+    if (_.isEmpty(fountIt)) return false;
+    // client를 binding 처리
+    fountIt.bindingPassiveClient(mainUUID, passiveClient);
+    return true;
   }
 
-  /** 현황판 보여줄 객체 생성 */
-  setPowerStatusBoard() {
-    this.powerStatusBoard = new PowerStatusBoard(this);
-    this.powerStatusBoard.tryConnect();
+  /** DBS 순수 기능 외에 추가 될 기능 */
+  setOptionFeature() {
+    // Main Socket Server로 접속할 정보가 없다면 socketClient를 생성하지 않음
+    if (!_.isEmpty(this.config.mainSocketInfo) && process.env.HAS_SOCKET_CLIENT !== '0') {
+      BU.CLI('SocketClint');
+      this.socketClient = new SocketClint(this);
+      this.socketClient.tryConnect();
+    }
+
+    // UPSAS
+    if (process.env.HAS_UPSAS === '1') {
+      // 시나리오 관련
+      this.scenario = new Scenario(this);
+    }
+
+    /** 현황판 보여줄 객체 생성 */
+    if (process.env.HAS_POWER_BOARD === '1') {
+      this.powerStatusBoard = new PowerStatusBoard(this);
+      this.powerStatusBoard.tryConnect();
+    }
   }
 
   /**
@@ -625,35 +631,11 @@ class Control extends EventEmitter {
   }
 
   /** 인증이 되었음을 알림 */
-  nofityAuthentication() {
-    BU.CLI('nofityAuthentication');
-    // 현황판 데이터 요청
-    this.requestPowerStatusBoardInfo();
-    this.powerStatusBoard.runCronRequestPowerStatusBoard();
-  }
-
-  /**
-   * 현황판 객체에서 Socket Server로 현황판 데이터를 요청하고 응답받은 데이터를 현황판으로 전송하는 메소드
-   */
-  async requestPowerStatusBoardInfo() {
-    try {
-      this.socketClient.transmitDataToServer({
-        commandType: dcmWsModel.transmitToServerCommandType.POWER_BOARD,
-      });
-
-      const powerStatusBoardData = await eventToPromise.multi(this, ['done'], ['error']);
-      const powerStatusBoardInfo = _.head(powerStatusBoardData);
-      const bufData = this.powerStatusBoard.defaultConverter.protocolConverter.makeMsg2Buffer(
-        powerStatusBoardInfo,
-      );
-
-      // BU.CLI(powerStatusBoardData);
-      // 수신 받은 현황판 데이터 전송
-      this.powerStatusBoard.write(bufData);
-    } catch (error) {
-      BU.errorLog('communication', error);
-    }
-  }
+  // nofityAuthentication() {
+  //   BU.CLI('nofityAuthentication');
+  //   // 현황판 데이터 요청
+  //   this.emit('nofityAuthentication');
+  // }
 
   /**
    * TODO: 데이터 처리

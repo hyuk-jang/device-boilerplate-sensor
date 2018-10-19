@@ -2,11 +2,9 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 const Promise = require('bluebird');
-const ControlDBS = require('./Control');
+const ControlDBS = require('../Control');
 
-const map = require('../config/map');
-
-const { requestOrderCommandType } = require('../../default-intelligence').dcmConfigModel;
+const { requestOrderCommandType } = require('../../../default-intelligence').dcmConfigModel;
 
 /**
  * 수중태양광 용으로 만들어진 시나리오 모드.
@@ -18,7 +16,21 @@ class Scenario {
     this.controller = controller;
     this.hasOperationScenario1 = false;
 
-    this.map = map;
+    this.map = this.controller.model.deviceMap;
+
+    /** 시나리오 모드 1 */
+    this.controlList = this.map.controlInfo.tempControlList;
+
+    this.eventHandler();
+  }
+
+  /** controller에서 eventEmitter 처리 */
+  eventHandler() {
+    /** controller 에서 인증 된 경우 발생할 handler */
+    this.controller.on('interpretScenario', scenarioInfo => {
+      BU.CLI('interpretScenario');
+      this.interpretScenario(scenarioInfo);
+    });
   }
 
   /**
@@ -65,14 +77,14 @@ class Scenario {
     const DELAY_SCALE = 1;
 
     this.hasOperationScenario1 = true;
-    const scenario1 = _.find(this.map.controlList, { cmdName: '저수조 → 증발지 1' });
-    const scenario2 = _.find(this.map.controlList, { cmdName: '증발지 1 → 해주 1' });
-    const scenario3 = _.find(this.map.controlList, { cmdName: '해주 1 → 증발지 1' });
-    const scenario4 = _.find(this.map.controlList, { cmdName: '증발지 1 → 해주 2' });
-    const scenario5 = _.find(this.map.controlList, { cmdName: '해주 2 → 증발지 2, 3, 4' });
-    const scenario6 = _.find(this.map.controlList, { cmdName: '증발지 4 → 해주3' });
-    const scenario7 = _.find(this.map.controlList, { cmdName: '해주 3 → 결정지' });
-    const scenario8 = _.find(this.map.controlList, { cmdName: '결정지 → 해주 3' });
+    const scenario1 = _.find(this.controlList, { cmdName: '저수조 → 증발지 1' });
+    const scenario2 = _.find(this.controlList, { cmdName: '증발지 1 → 해주 1' });
+    const scenario3 = _.find(this.controlList, { cmdName: '해주 1 → 증발지 1' });
+    const scenario4 = _.find(this.controlList, { cmdName: '증발지 1 → 해주 2' });
+    const scenario5 = _.find(this.controlList, { cmdName: '해주 2 → 증발지 2, 3, 4' });
+    const scenario6 = _.find(this.controlList, { cmdName: '증발지 4 → 해주3' });
+    const scenario7 = _.find(this.controlList, { cmdName: '해주 3 → 결정지' });
+    const scenario8 = _.find(this.controlList, { cmdName: '결정지 → 해주 3' });
 
     // scenario_1: 저수조 → 증발지 1
     if (!this.hasOperationScenario1) return false;

@@ -32,6 +32,8 @@ class SocketClient extends AbstController {
       addConfigInfo: connectInfo.addConfigInfo,
     };
 
+    BU.CLI(this.configInfo);
+
     /**
      * Socket Client 연결 객체
      * @type {net.Socket}
@@ -153,7 +155,7 @@ class SocketClient extends AbstController {
    * 서버로 현재 진행중인 데이터(노드, 명령)를 보내줌
    */
   transmitStorageDataToServer() {
-    BU.CLI('transmitStorageDataToServer');
+    // BU.CLI('transmitStorageDataToServer');
     if (this.hasCertification === false) {
       return;
     }
@@ -198,14 +200,13 @@ class SocketClient extends AbstController {
               // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
               this.transmitStorageDataToServer();
 
-              this.controller.nofityAuthentication();
+              this.controller.emit('nofityAuthentication');
               break;
             // 수신 받은 현황판 데이터 전송
             case transmitToServerCommandType.POWER_BOARD:
-              // BU.CLI(responsedDataByServer);
               responsedDataByServer.isError === 0
-                ? this.controller.emit('done', responsedDataByServer.contents)
-                : this.controller.emit('error');
+                ? this.controller.emit('donePSB', responsedDataByServer.contents)
+                : this.controller.emit('errorPSB', responsedDataByServer.contents);
               break;
             default:
               break;
@@ -248,7 +249,7 @@ class SocketClient extends AbstController {
             this.controller.executeSavedCommand(contents);
             break;
           case transmitToClientCommandType.SCENARIO: // 시나리오
-            this.controller.scenario.interpretScenario(contents);
+            this.controller.emit('interpretScenario', contents);
             break;
           default:
             throw new Error(`commandId: ${commandId} does not exist.`);
@@ -292,6 +293,7 @@ class SocketClient extends AbstController {
     client.on('error', error => {
       this.notifyError(error);
     });
+
     await eventToPromise.multi(client, ['connect', 'connection', 'open'], ['close', 'error']);
     this.client = client;
 

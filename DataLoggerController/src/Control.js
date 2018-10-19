@@ -471,12 +471,10 @@ class DataLoggerController extends AbstDeviceClient {
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
           if (process.env.LOG_DLC_RENEWAL_DATA === '1') {
-            BU.CLI(
-              this.id,
-              _(renewalNodeList)
-                .map(node => _.pick(node, ['node_id', 'data']))
-                .value(),
-            );
+            const pickedNodeList = _(renewalNodeList)
+              .map(node => _.pick(node, ['node_id', 'data']))
+              .value();
+            BU.CLI(this.id, pickedNodeList);
           }
           this.observerList.forEach(observer => {
             if (_.get(observer, 'notifyDeviceData')) {

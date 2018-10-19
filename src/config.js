@@ -23,7 +23,7 @@ const config = {
   inquiryWaitingSecond: 60,
   mainSocketInfo: {
     host: process.env.WEB_HTTP_HOST,
-    port: process.env.WEB_HTTP_PORT,
+    port: process.env.WEB_SOCKET_PORT,
     type: 'socket',
     addConfigInfo: {
       parser: controllerParserType.socket.DELIMITER,

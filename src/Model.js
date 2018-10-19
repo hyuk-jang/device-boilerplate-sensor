@@ -457,9 +457,8 @@ class Model {
           throw new Error('해당 객체는 존재하지 않습니다.');
         }
 
-        this.getAllNodeStatus(nodePickKey.FOR_DATA);
+        // this.getAllNodeStatus(nodePickKey.FOR_DATA);
 
-        // FIXME: emit 처리의 논리가 맞는지 체크
         if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'inquiryAllDeviceStatus') {
           // BU.CLI('Comlete inquiryAllDeviceStatus');
           this.completeInquiryDeviceStatus();

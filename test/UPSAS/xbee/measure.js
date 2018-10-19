@@ -28,19 +28,11 @@ control
     'aaaaa',
   )
   .then(() => control.init())
-  .then(
-    () =>
-      // BU.CLI('@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
-      // setTimeout(() => {
-      //   // 장치 전체 탐색
-      // control.inquiryAllDeviceStatus(),
-      control.runDeviceInquiryScheduler(),
-
-    // control.executeSingleControl({
-    //   nodeId: control.nodeList[0].node_id,
-    // }),
-    // }, 2000);
-  )
+  .then(() => {
+    control.setOptionFeature();
+    // control.inquiryAllDeviceStatus(),
+    return control.runDeviceInquiryScheduler();
+  })
   .then(() => {
     BU.CLI(control.model.getAllNodeStatus(['node_id', 'data']));
   });

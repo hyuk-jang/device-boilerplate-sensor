@@ -44,6 +44,7 @@ if (require !== undefined && require.main === module) {
     )
     .then(dataLoggerControllerList => {
       BU.CLI('start Program');
+      control.setOptionFeature();
       // BU.CLIN(dataLoggerControllerList);
       // const dataLogger = control.model.findDataLoggerController('WL_001');
       // control.executeSingleControl({
@@ -52,8 +53,6 @@ if (require !== undefined && require.main === module) {
       // });
       // control.inquiryAllDeviceStatus(moment());
       control.runDeviceInquiryScheduler();
-      control.setSocketClient();
-      control.setPowerStatusBoard();
     })
     .catch(err => {
       BU.CLI(err);
