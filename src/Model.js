@@ -2,7 +2,7 @@ const _ = require('lodash');
 const moment = require('moment');
 
 const { BU } = require('base-util-jh');
-const { BM } = require('../../base-model-jh');
+const { BM } = require('base-model-jh');
 
 const ControlDBS = require('./Control');
 

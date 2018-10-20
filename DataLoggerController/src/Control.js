@@ -1,9 +1,8 @@
 const _ = require('lodash');
-const { BU } = require('base-util-jh');
 const eventToPromise = require('event-to-promise');
 
-const { BM } = require('../../../base-model-jh');
-const EchoServer = require('../../../device-echo-server-jh');
+const { BU } = require('base-util-jh');
+const { BM } = require('base-model-jh');
 // const AbstDeviceClient = require('device-client-controller-jh');
 const AbstDeviceClient = require('../../../device-client-controller-jh');
 
