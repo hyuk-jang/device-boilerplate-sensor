@@ -466,6 +466,8 @@ class DataLoggerController extends AbstDeviceClient {
       }
       // 데이터가 정상적이라면
       if (eventCode === DONE) {
+        // Device Client로 해당 이벤트 Code를 보냄
+        this.requestTakeAction(eventCode)
         const renewalNodeList = this.model.onData(data);
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
@@ -483,7 +485,7 @@ class DataLoggerController extends AbstDeviceClient {
         }
       }
       // Device Client로 해당 이벤트 Code를 보냄
-      return this.requestTakeAction(eventCode);
+      // return this.requestTakeAction(eventCode);
     } catch (error) {
       BU.logFile(error);
       throw error;
