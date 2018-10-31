@@ -30,11 +30,11 @@ control
   .then(() => control.init())
   .then(() => {
     control.setOptionFeature();
-    // control.inquiryAllDeviceStatus(),
-    return control.runDeviceInquiryScheduler();
-  })
-  .then(() => {
-    BU.CLI(control.model.getAllNodeStatus(['node_id', 'data']));
+    control.inquiryAllDeviceStatus();
+    setTimeout(() => {
+      BU.CLI(control.model.getAllNodeStatus(['node_id', 'data']));
+    }, 3000);
+    // return control.runDeviceInquiryScheduler();
   });
 
 process.on('uncaughtException', err => {
