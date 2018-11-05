@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "base-model-jh": "^1.2.4",
-    "base-util-jh": "^1.1.18",
+    "base-util-jh": "^1.1.19",
     "bluebird": "^3.5.2",
     "cron": "^1.5.0",
     "event-to-promise": "^0.8.0",
