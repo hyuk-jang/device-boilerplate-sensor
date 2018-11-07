@@ -344,9 +344,12 @@ class Model {
     // 명령 타입에 따라서 저장소를 가져옴(Control, Cancel, Measure)
 
     const resOrderInfo = this.findAllCombinedOrderByUUID(commandSet.integratedUUID);
+    BU.CLIN(this.combinedOrderStorage, 4)
 
     // requestCommandType에 맞는 저장소가 없는 경우
     if (!resOrderInfo.orderStorageKeyLV1.length) {
+      BU.CLIN(commandSet)
+      BU.CLIN(resOrderInfo)
       throw new Error(`requestCommandType: ${commandSet.commandType} is not exist.`);
     }
 
@@ -508,7 +511,7 @@ class Model {
   /** 정기 계측 조회 명령 완료 결과 반영 */
   async completeInquiryDeviceStatus() {
     if (process.env.LOG_DBS_INQUIRY_COMPLETE === '1') {
-      BU.CLI(`${this.makeCommentMainUUID()} Comlete inquiryAllDeviceStatus`);
+      BU.CLI(`${this.mainUUID} Comlete inquiryAllDeviceStatus`);
     }
 
     // 데이터의 유효성을 인정받는 Node List
