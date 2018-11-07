@@ -344,12 +344,12 @@ class Model {
     // 명령 타입에 따라서 저장소를 가져옴(Control, Cancel, Measure)
 
     const resOrderInfo = this.findAllCombinedOrderByUUID(commandSet.integratedUUID);
-    BU.CLIN(this.combinedOrderStorage, 4)
+    // BU.CLIN(this.combinedOrderStorage, 4)
 
     // requestCommandType에 맞는 저장소가 없는 경우
     if (!resOrderInfo.orderStorageKeyLV1.length) {
-      BU.CLIN(commandSet)
-      BU.CLIN(resOrderInfo)
+      // BU.CLIN(commandSet)
+      // BU.CLIN(resOrderInfo)
       throw new Error(`requestCommandType: ${commandSet.commandType} is not exist.`);
     }
 
@@ -383,7 +383,7 @@ class Model {
       dcMessage.msgCode === COMMANDSET_EXECUTION_START &&
       resOrderInfo.orderInfoKeyLV2 === combinedOrderType.WAIT
     ) {
-      BU.CLI(`${this.mainUUID} ${resOrderInfo.orderWrapInfoLV3.requestCommandId} 작업 시작`);
+      // BU.CLI(`${this.mainUUID} ${resOrderInfo.orderWrapInfoLV3.requestCommandId} 작업 시작`);
       // watingList에서 해당 명령 제거. pullAt은 배열 형태로 리턴하므로 첫번째 인자 가져옴.
       const newOrderInfo = _.head(
         _.pullAt(
