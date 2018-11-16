@@ -19,14 +19,12 @@ const DataLoggerController = require('../DataLoggerController');
 
 const Model = require('./Model');
 
-
 /** Main Socket Server와 통신을 수행하기 위한 Class */
 const SocketClint = require('./outsideCommunication/SocketClint');
 /** 태양광 현황판 계측을 위한 Class, 수중태양광에서만 사용됨 */
 const PowerStatusBoard = require('./UPSAS/PowerStatusBoard');
 /** 정해진 시나리오대로 진행하기 위한 Class, 수중태양광에서만 사용됨 */
 const Scenario = require('./UPSAS/Scenario');
-
 
 class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */
@@ -68,7 +66,9 @@ class Control extends EventEmitter {
    * @return {Promise.<mainConfig>}
    */
   async getDataLoggerListByDB(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
+    // BU.CLI('getDataLoggerListByDB', dbInfo);
     this.mainUUID = mainUUID;
+    this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);
     // BU.CLI(dbInfo);
     // BU.CLI(mainUUID);
@@ -142,6 +142,7 @@ class Control extends EventEmitter {
   async init() {
     try {
       // BU.CLI(this.mainUUID, this.dataLoggerList.length);
+      // BU.CLIN(this.dataLoggerList);
       // 하부 Data Logger 순회
       const resultInitDataLoggerList = await Promise.map(
         this.config.dataLoggerList,
@@ -207,8 +208,8 @@ class Control extends EventEmitter {
   /** DBS 순수 기능 외에 추가 될 기능 */
   setOptionFeature() {
     // Main Socket Server로 접속할 정보가 없다면 socketClient를 생성하지 않음
-    if (!_.isEmpty(this.config.mainSocketInfo) && process.env.HAS_SOCKET_CLIENT !== '0') {
-      BU.CLI('SocketClint');
+    if (!_.isEmpty(this.config.mainSocketInfo) && process.env.HAS_SOCKET_CLIENT === '1') {
+      // BU.CLI('setOptionFeature');
       this.socketClient = new SocketClint(this);
       this.socketClient.tryConnect();
     }
@@ -598,6 +599,7 @@ class Control extends EventEmitter {
    *
    */
   inquiryAllDeviceStatus() {
+    // BU.CLI('inquiryAllDeviceStatus')
     if (process.env.LOG_DBS_INQUIRY_START === '1') {
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
     }

@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'production';
 require('dotenv').config();
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
@@ -28,3 +29,16 @@ setTimeout(() => {
 //     }
 //   });
 // }, 2000);
+process.on('uncaughtException', err => {
+  // BU.debugConsole();
+  console.trace(err);
+  BU.logFile(JSON.stringify(err));
+  console.log('Node NOT Exiting...');
+});
+
+process.on('unhandledRejection', err => {
+  // BU.debugConsole();
+  console.trace(err);
+  BU.logFile(JSON.stringify(err));
+  console.log('Node NOT Exiting...');
+});

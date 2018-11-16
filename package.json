@@ -1,15 +1,27 @@
 {
-  "name": "jsdoc",
-  "version": "1.0.0",
+  "name": "device-boilerplate_sensor",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "directories": {
     "test": "test"
   },
+  "bin": {
+    "app": "./index.js"
+  },
+  "pkg": {
+    "assets": [
+      "../device-protocol-converter-jh/**/*"
+    ]
+  },
   "scripts": {
     "test": "node_modules/.bin/mocha -w",
     "start": "nodemon --trace-warnings index",
-    "generate-docs": "node_modules/.bin/jsdoc -c jsdoc.json"
+    "generate-docs": "node_modules/.bin/jsdoc -c jsdoc.json",
+    "build": "pkg . --out-path dist",
+    "build:win": "pkg . --out-path dist --targets node8-win-x64",
+    "build:linux": "pkg . --out-path dist --targets node8-linux-x64",
+    "build:macos": "pkg . --out-path dist --targets node8-macos-x64"
   },
   "keywords": [],
   "author": "",

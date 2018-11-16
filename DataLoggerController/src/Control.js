@@ -323,6 +323,7 @@ class DataLoggerController extends AbstDeviceClient {
       rank: this.definedCommandSetRank.THIRD,
     },
   ) {
+    // BU.CLI('orderOperationToDataLogger')
     try {
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
