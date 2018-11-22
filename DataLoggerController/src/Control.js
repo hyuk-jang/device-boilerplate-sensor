@@ -176,6 +176,7 @@ class DataLoggerController extends AbstDeviceClient {
    * @return {Promise.<DataLoggerController>} 생성된 현 객체 반환
    */
   async init(siteUUID) {
+    // BU.CLI('init');
     this.converter = new MainConverter(this.protocolInfo);
     // 모델 선언
     this.model = new Model(this);
@@ -200,6 +201,7 @@ class DataLoggerController extends AbstDeviceClient {
       }
       // 접속 경로가 존재시 선언 및 자동 접속을 수행
 
+      // BU.CLI('setDeviceClient');
       this.setDeviceClient(this.deviceInfo);
 
       // 만약 장치가 접속된 상태라면
@@ -214,6 +216,7 @@ class DataLoggerController extends AbstDeviceClient {
       // Controller 반환
       return this;
     } catch (error) {
+      BU.errorLog('init', error);
       // 초기화에 실패할 경우에는 에러 처리
       if (error instanceof ReferenceError) {
         throw error;
@@ -468,7 +471,7 @@ class DataLoggerController extends AbstDeviceClient {
       // 데이터가 정상적이라면
       if (eventCode === DONE) {
         // Device Client로 해당 이벤트 Code를 보냄
-        this.requestTakeAction(eventCode)
+        this.requestTakeAction(eventCode);
         const renewalNodeList = this.model.onData(data);
         // 데이터가 갱신되었다면 Observer에게 알림.
         if (renewalNodeList.length) {
