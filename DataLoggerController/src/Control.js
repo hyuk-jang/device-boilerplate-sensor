@@ -183,7 +183,9 @@ class DataLoggerController extends AbstDeviceClient {
     try {
       const { CONNECT, DISCONNECT } = this.definedControlEvent;
       // 프로토콜 컨버터 바인딩
+      // BU.CLI('setProtocolConverter');
       this.converter.setProtocolConverter();
+      // BU.CLI('setProtocolConverter');
 
       // DCC 초기화 시작
       // connectInfo가 없거나 수동 Client를 사용할 경우
@@ -318,14 +320,14 @@ class DataLoggerController extends AbstDeviceClient {
    * DataLogger Default 명령을 내리기 위함
    * @param {executeOrderInfo} executeOrder
    */
-  orderOperationToDataLogger(
-    /** @type {executeOrderInfo} */
-    executeOrder = {
-      requestCommandId: `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
-      requestCommandType: requestOrderCommandType.MEASURE,
-      rank: this.definedCommandSetRank.THIRD,
-    },
-  ) {
+  orderOperationToDataLogger(executeOrder) {
+    const {
+      integratedUUID,
+      uuid,
+      requestCommandId = `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
+      requestCommandType = requestOrderCommandType.MEASURE,
+      rank = this.definedCommandSetRank.THIRD,
+    } = executeOrder;
     // BU.CLI('orderOperationToDataLogger')
     try {
       if (!this.hasConnectedDevice) {
@@ -337,16 +339,16 @@ class DataLoggerController extends AbstDeviceClient {
       });
       const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${
         this.config.dataLoggerInfo.dl_target_code
-      } Type: ${executeOrder.requestCommandType}`;
+      } Type: ${requestCommandType}`;
 
       const commandSet = this.generationManualCommand({
-        integratedUUID: executeOrder.integratedUUID,
+        integratedUUID,
         cmdList,
-        commandId: executeOrder.requestCommandId,
+        commandId: requestCommandId,
         commandName: cmdName,
-        uuid: executeOrder.uuid,
-        commandType: executeOrder.requestCommandType,
-        rank: this.definedCommandSetRank.THIRD,
+        uuid,
+        commandType: requestCommandType,
+        rank,
       });
 
       this.executeCommand(commandSet);

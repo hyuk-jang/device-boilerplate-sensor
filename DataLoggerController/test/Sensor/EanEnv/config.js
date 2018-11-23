@@ -27,7 +27,7 @@ const config = {
       port: 'COM8',
       host: 'localhost',
     },
-    protocol_info: { mainCategory: 'Ean', subCategory: 'Env' },
+    protocol_info: { mainCategory: 'Sensor', subCategory: 'EanEnv' },
   },
   nodeList: [
     {

@@ -13,7 +13,9 @@ control.s2SetDeviceInfo();
 
 control.init().then(c => {
   // BU.CLIN(c);
-  control.orderOperation({ requestCommandId: 'test' });
+  setTimeout(() => {
+    control.orderOperation({ requestCommandId: 'test' });
+  }, 1000);
 });
 control.model.hasAverageStorage = true;
 // control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
