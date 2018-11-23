@@ -181,6 +181,12 @@ class DataLoggerController extends AbstDeviceClient {
     // 모델 선언
     this.model = new Model(this);
     try {
+      // 중앙 값 사용하는 Node가 있다면 적용
+      const filterdNodeList = _.filter(this.nodeList, { is_avg_center: 1 });
+      if (!_.isEmpty(filterdNodeList)) {
+        this.model.bindingAverageStorageForNode(filterdNodeList, true);
+      }
+
       const { CONNECT, DISCONNECT } = this.definedControlEvent;
       // 프로토콜 컨버터 바인딩
       // BU.CLI('setProtocolConverter');
@@ -352,8 +358,6 @@ class DataLoggerController extends AbstDeviceClient {
       });
 
       this.executeCommand(commandSet);
-
-      // BU.CLI(commandSet.cmdList)
       // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
@@ -406,6 +410,11 @@ class DataLoggerController extends AbstDeviceClient {
   onDcError(dcError) {
     if (process.env.LOG_DLC_ERROR === '1') {
       super.onDcError(dcError);
+    }
+
+    // 에러가 발생하였다면 빈 센서 데이터 객체를 전달.
+    if (dcError) {
+      this.model.onData(this.converter.BaseModel);
     }
 
     const { NEXT } = this.definedCommanderResponse;
@@ -464,7 +473,12 @@ class DataLoggerController extends AbstDeviceClient {
       const { eventCode, data } = this.converter.parsingUpdateData(dcData);
 
       if (process.env.LOG_DLC_ON_DATA === '1') {
-        BU.CLI(data);
+        const haveData = [];
+        _.forEach(data, (v, key) => {
+          v.length > 0 && haveData.push({ [key]: v });
+        });
+        // BU.CLI(data)
+        BU.CLI(haveData);
       }
       // Retry 시도 시 다중 명령 요청 및 수신이 이루어 지므로 Retry 하지 않음.
       if (eventCode === ERROR) {

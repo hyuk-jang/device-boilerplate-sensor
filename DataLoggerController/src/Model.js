@@ -25,29 +25,35 @@ class Model {
   }
 
   /**
-   * Data 초기화
+   * 저장소를 깨끗이 비우고 현재 값을 초기화 시킴 Data 초기화
    */
   initModel() {
     // nodeList를 돌면서 데이터를 undefined 처리함
     _.forEach(this.nodeList, nodeInfo => {
       nodeInfo.data = undefined;
     });
+
+    if (this.hasAverageStorage) {
+      this.averageStorage.init();
+    }
   }
 
   /**
    * @desc Node 용
    * 평균 값 도출 기능을 사용하고자 할 경우
    * @param {nodeInfo[]} nodeList
+   * @param {boolean=} hasCenterAverage 중앙 값 사용 여부. 기본 값 false
    */
-  bindingAverageStorageForNode(nodeList) {
+  bindingAverageStorageForNode(nodeList, hasCenterAverage = false) {
     this.averageNodeIdList = _.map(nodeList, 'node_id');
     this.hasAverageStorage = true;
     const averConfig = {
-      maxStorageNumber: 30, // 최대 저장 데이터 수
+      maxStorageNumber: 60, // 최대 저장 데이터 수
       keyList: this.averageNodeIdList,
     };
 
     this.averageStorage = new CU.AverageStorage(averConfig);
+    this.averageStorage.hasCenterAverage = hasCenterAverage;
   }
 
   /**
@@ -87,6 +93,7 @@ class Model {
    * @return {nodeInfo[]} 갱신된 노드
    */
   onData(receiveData) {
+    // BU.CLIN(this.requestCommandSetList);
     // BU.CLI(receiveData);
     /** @type {nodeInfo[]} */
     const renewalNodeList = [];
@@ -97,8 +104,8 @@ class Model {
       // Node에서 사용하는 Index와 매칭되는 dataList를 가져옴
       // BU.CLI(nodeInfo.nd_target_id);
       let data = _.nth(dataList, nodeInfo.data_logger_index);
-      // BU.CLI(data);
 
+      // 만약 해당 값이 존재하지 않는다면 갱신하지 않음.
       // 평균 값 추적 중인 데이터 일 경우 평균 값 도출 메소드 사용
       if (this.hasAverageStorage && _.includes(this.averageNodeIdList, nodeInfo.node_id)) {
         data = this.averageStorage.addData(nodeInfo.node_id, data).getAverage(nodeInfo.node_id);
