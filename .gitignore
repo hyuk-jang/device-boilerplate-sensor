@@ -1,6 +1,8 @@
 # 이것은 코멘트
 # 파일이름을 넣으면 모든 디렉토리에서 해당 파일 무시
 # ignore-file.txt
+package-lock.json
+**/*/package-lock.json
 
 # /로 끝나면 해당 디렉토리 전체를 무시
 **/node_modules/

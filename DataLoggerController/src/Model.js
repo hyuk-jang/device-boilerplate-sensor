@@ -1,5 +1,4 @@
 const _ = require('lodash');
-
 const { BU, CU } = require('base-util-jh');
 
 const Control = require('./Control');
@@ -22,6 +21,10 @@ class Model {
 
     /** @type {requestCommandSet[]} */
     this.requestCommandSetList = [];
+
+    // 데이터 일부분의 들어올 경우 최종 합산처리하기 까지 담아놀 저장소. 기본 값은 ProtocolConverter에 BASE_MODEL
+    // converter.BaseModel 은 요청할때마다 deepClone 한 객체. --> 데이터 형태만 정의된 객체
+    this.tempStorage = this.controller.converter.BaseModel;
   }
 
   /**
@@ -120,15 +123,32 @@ class Model {
       // 날짜는 항상 갱신
       _.set(nodeInfo, 'writeDate', new Date());
     });
-    // if (_.some(renewalNodeList, nodeInfo => _.isUndefined(nodeInfo.data))) {
-    //   BU.CLI(receiveData);
-    //   BU.CLI(
-    //     _(renewalNodeList)
-    //       .map(node => _.pick(node, ['node_id', 'data']))
-    //       .value()
-    //   );
-    // }
-    // BU.CLI(renewalNodeList);
+
+    return renewalNodeList;
+  }
+
+  /**
+   * 장치에 대한 명령을 2번이상 요청할 경우 데이터 갱신 오류가 발생되기 때문에 최종 데이터 합산을 하기 위한 메소드
+   * @param {Object} receiveData 일부분의 데이터만 수신되었을 경우
+   */
+  onPartData(receiveData) {
+    // 수신받은 데이터 객체 탐색
+    _.forEach(receiveData, (dataList, nodeDefId) => {
+      // 데이터 목록 중 의미있는 데이터가 있다면 기존 데이터에 덮어쓰기 함
+      _.forEach(dataList, (data, index) => {
+        if (!_.isNil(data)) {
+          _.set(this.tempStorage, `${nodeDefId}[${index}]`, data);
+        }
+      });
+    });
+  }
+
+  /** 장치에 대한 명령을 완료하고 임시 저장소에 있는 데이터를 반영할 경우 */
+  completeOnData() {
+    // 갱신된 Node 목록
+    const renewalNodeList = this.onData(this.tempStorage);
+    // 임시 저장소를 다시 초기화
+    this.tempStorage = this.controller.converter.BaseModel;
     return renewalNodeList;
   }
 }

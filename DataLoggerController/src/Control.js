@@ -8,7 +8,7 @@ const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
-const { MainConverter, BaseModel } = require('../../../device-protocol-converter-jh');
+const { MainConverter } = require('../../../device-protocol-converter-jh');
 
 const {
   requestOrderCommandType,
@@ -31,8 +31,6 @@ class DataLoggerController extends AbstDeviceClient {
     this.connectInfo;
     /** @type {protocol_info} DPC를 생성하기 위한 설정 정보  */
     this.protocolInfo;
-
-    this.BaseModel = BaseModel;
 
     // Model deviceData Prop 정의
     this.observerList = [];
@@ -177,22 +175,21 @@ class DataLoggerController extends AbstDeviceClient {
    */
   async init(siteUUID) {
     // BU.CLI('init');
-    this.converter = new MainConverter(this.protocolInfo);
-    // 모델 선언
-    this.model = new Model(this);
+    // 프로토콜 변환 객체 생성
     try {
+      const { CONNECT, DISCONNECT } = this.definedControlEvent;
+      // 프로토콜 컨버터 바인딩
+      this.converter = new MainConverter(this.protocolInfo);
+      // BU.CLI('setProtocolConverter');
+      this.converter.setProtocolConverter();
+      // BU.CLI('setProtocolConverter');
+      // 모델 선언
+      this.model = new Model(this);
       // 중앙 값 사용하는 Node가 있다면 적용
       const filterdNodeList = _.filter(this.nodeList, { is_avg_center: 1 });
       if (!_.isEmpty(filterdNodeList)) {
         this.model.bindingAverageStorageForNode(filterdNodeList, true);
       }
-
-      const { CONNECT, DISCONNECT } = this.definedControlEvent;
-      // 프로토콜 컨버터 바인딩
-      // BU.CLI('setProtocolConverter');
-      this.converter.setProtocolConverter();
-      // BU.CLI('setProtocolConverter');
-
       // DCC 초기화 시작
       // connectInfo가 없거나 수동 Client를 사용할 경우
       if (_.isEmpty(this.connectInfo) || this.connectInfo.hasPassive) {
@@ -357,6 +354,8 @@ class DataLoggerController extends AbstDeviceClient {
         rank,
       });
 
+      BU.CLI(cmdList);
+
       this.executeCommand(commandSet);
       // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
 
@@ -436,19 +435,51 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcMessage} dcMessage
    */
   onDcMessage(dcMessage) {
-    // super.onDcMessage(dcMessage);
-    // 명령 완료, 명령 삭제
-    const { COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE } = this.definedCommandSetMessage;
+    super.onDcMessage(dcMessage);
+    // 명령 완료, 명령 삭제, 지연 명령 대기열로 이동
+    const {
+      COMMANDSET_EXECUTION_TERMINATE,
+      COMMANDSET_DELETE,
+      COMMANDSET_MOVE_DELAYSET,
+    } = this.definedCommandSetMessage;
+
+    let renewalNodeList = [];
 
     switch (dcMessage.msgCode) {
-      // 명령 수행이 완료되었다고 판단이 되면 현재 진행중인 명령 완료로 처리
+      // 명령 수행이 완료
+      // 현재 데이터 업데이트, 명령 목록에서 해당 명령 제거
       case COMMANDSET_EXECUTION_TERMINATE:
+        renewalNodeList = this.model.completeOnData();
+        this.model.completeRequestCommandSet(dcMessage.commandSet);
+        break;
+      // 현재 데이터 업데이트
+      case COMMANDSET_MOVE_DELAYSET:
+        renewalNodeList = this.model.completeOnData();
+        this.model.completeOnData();
+        break;
+      // 명령 목록에서 해당 명령 제거
       case COMMANDSET_DELETE:
-        // BU.CLIN(this.model.requestCommandSetList);
+        this.model.tempStorage = this.converter.BaseModel;
         this.model.completeRequestCommandSet(dcMessage.commandSet);
         break;
       default:
         break;
+    }
+
+    // BU.CLIN(this.model.requestCommandSetList);
+    // 데이터가 갱신되었다면 Observer에게 알림.
+    if (renewalNodeList.length) {
+      if (process.env.LOG_DLC_RENEWAL_DATA === '1') {
+        const pickedNodeList = _(renewalNodeList)
+          .map(node => _.pick(node, ['node_id', 'data']))
+          .value();
+        BU.CLI(this.id, pickedNodeList);
+      }
+      this.observerList.forEach(observer => {
+        if (_.get(observer, 'notifyDeviceData')) {
+          observer.notifyDeviceData(this, renewalNodeList);
+        }
+      });
     }
 
     // Observer가 해당 메소드를 가지고 있다면 전송
@@ -488,24 +519,9 @@ class DataLoggerController extends AbstDeviceClient {
       if (eventCode === DONE) {
         // Device Client로 해당 이벤트 Code를 보냄
         this.requestTakeAction(eventCode);
-        const renewalNodeList = this.model.onData(data);
-        // 데이터가 갱신되었다면 Observer에게 알림.
-        if (renewalNodeList.length) {
-          if (process.env.LOG_DLC_RENEWAL_DATA === '1') {
-            const pickedNodeList = _(renewalNodeList)
-              .map(node => _.pick(node, ['node_id', 'data']))
-              .value();
-            BU.CLI(this.id, pickedNodeList);
-          }
-          this.observerList.forEach(observer => {
-            if (_.get(observer, 'notifyDeviceData')) {
-              observer.notifyDeviceData(this, renewalNodeList);
-            }
-          });
-        }
+        // 수신 받은 데이터 저장
+        this.model.onPartData(data);
       }
-      // Device Client로 해당 이벤트 Code를 보냄
-      // return this.requestTakeAction(eventCode);
     } catch (error) {
       BU.logFile(error);
       throw error;
