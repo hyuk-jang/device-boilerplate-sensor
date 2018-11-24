@@ -14,8 +14,6 @@ const {
   requestOrderCommandType,
   requestDeviceControlType,
 } = require('../../../default-intelligence').dcmConfigModel;
-// require('../../../default-intelligence');
-// const {AbstConverter} = require('device-protocol-converter-jh');
 
 class DataLoggerController extends AbstDeviceClient {
   /** @param {dataLoggerConfig} config */
@@ -376,9 +374,7 @@ class DataLoggerController extends AbstDeviceClient {
    * dcDisconnect --> 장치 연결 해제
    */
   updatedDcEventOnDevice(dcEvent) {
-    if (process.env.LOG_DLC_EVENT === '1') {
-      super.updatedDcEventOnDevice(dcEvent);
-    }
+    process.env.LOG_DLC_EVENT === '1' && super.updatedDcEventOnDevice(dcEvent);
 
     const { CONNECT, DISCONNECT } = this.definedControlEvent;
 
@@ -407,9 +403,7 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcError} dcError 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcError(dcError) {
-    if (process.env.LOG_DLC_ERROR === '1') {
-      super.onDcError(dcError);
-    }
+    process.env.LOG_DLC_ERROR === '1' && super.onDcError(dcError);
 
     // 에러가 발생하였다면 빈 센서 데이터 객체를 전달.
     if (dcError) {
@@ -435,7 +429,7 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcMessage} dcMessage
    */
   onDcMessage(dcMessage) {
-    super.onDcMessage(dcMessage);
+    process.env.LOG_DLC_MESSAGE === '1' && super.onDcMessage(dcMessage);
     // 명령 완료, 명령 삭제, 지연 명령 대기열로 이동
     const {
       COMMANDSET_EXECUTION_TERMINATE,
@@ -496,9 +490,8 @@ class DataLoggerController extends AbstDeviceClient {
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcData(dcData) {
-    if (process.env.LOG_DLC_ON_DATA === '1') {
-      super.onDcData(dcData);
-    }
+    process.env.LOG_DLC_ON_DATA === '1' && super.onDcData(dcData);
+
     try {
       const { DONE, ERROR, WAIT } = this.definedCommanderResponse;
       const { eventCode, data } = this.converter.parsingUpdateData(dcData);

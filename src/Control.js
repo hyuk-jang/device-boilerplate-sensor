@@ -274,9 +274,8 @@ class Control extends EventEmitter {
    */
   executeSingleControl(requestSingleOrderInfo) {
     // BU.CLI('executeSingleControl');
-    if (process.env.LOG_DBS_EXEC_SC === '1') {
-      BU.CLIN(requestSingleOrderInfo);
-    }
+    process.env.LOG_DBS_EXEC_SC === '1' && BU.CLIN(requestSingleOrderInfo);
+
     const {
       requestCommandType,
       nodeId,
@@ -310,9 +309,8 @@ class Control extends EventEmitter {
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
    */
   executeAutomaticControl(controlInfo) {
-    if (process.env.LOG_DBS_EXEC_AC === '1') {
-      BU.CLI(controlInfo);
-    }
+    process.env.LOG_DBS_EXEC_AC === '1' && BU.CLI(controlInfo);
+
     const { cmdName, trueList = [], falseList = [] } = controlInfo;
 
     /** @type {requestCombinedOrderInfo} */
@@ -349,9 +347,8 @@ class Control extends EventEmitter {
    * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
    */
   cancelAutomaticControl(controlInfo) {
-    if (process.env.LOG_DBS_EXEC_AC === '1') {
-      BU.CLI(controlInfo);
-    }
+    process.env.LOG_DBS_EXEC_AC === '1' && BU.CLI(controlInfo);
+
     const { cmdName, trueList = [], falseList = [] } = controlInfo;
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
@@ -423,9 +420,7 @@ class Control extends EventEmitter {
    * @return {boolean} 명령 요청 여부
    */
   executeCombineOrder(requestCombinedOrder) {
-    if (process.env.LOG_DBS_EXEC_CO_HEADER === '1') {
-      BU.CLI('excuteCombineOrder', requestCombinedOrder);
-    }
+    process.env.LOG_DBS_EXEC_CO_HEADER === '1' && BU.CLI('execCombineOrder', requestCombinedOrder);
 
     // 복합 명령을 해체하여 정의
     const {
@@ -503,9 +498,7 @@ class Control extends EventEmitter {
       });
     });
 
-    if (process.env.LOG_DBS_EXEC_CO_TAIL === '1') {
-      BU.CLIN(combinedWrapOrder, 4);
-    }
+    process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(combinedWrapOrder, 2);
 
     // 복합 명령 저장
     const hasSaved = this.model.saveCombinedOrder(
@@ -526,9 +519,8 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   transferRequestOrder(combinedOrderWrapInfo) {
-    if (process.env.LOG_DBS_TRANS_ORDER === '1') {
-      BU.CLI('transferRequestOrder', combinedOrderWrapInfo);
-    }
+    process.env.LOG_DBS_TRANS_ORDER === '1' && BU.CLI('transferRequestOr', combinedOrderWrapInfo);
+
     const {
       uuid: integratedUUID,
       requestCommandId,
@@ -600,9 +592,9 @@ class Control extends EventEmitter {
    */
   inquiryAllDeviceStatus() {
     // BU.CLI('inquiryAllDeviceStatus')
-    if (process.env.LOG_DBS_INQUIRY_START === '1') {
+    process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
-    }
+
     /** @type {requestCombinedOrderInfo} */
     const requestCombinedOrder = {
       requestCommandId: 'inquiryAllDeviceStatus',

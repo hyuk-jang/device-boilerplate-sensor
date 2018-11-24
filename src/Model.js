@@ -510,9 +510,7 @@ class Model {
 
   /** 정기 계측 조회 명령 완료 결과 반영 */
   async completeInquiryDeviceStatus() {
-    if (process.env.LOG_DBS_INQUIRY_COMPLETE === '1') {
-      BU.CLI(`${this.mainUUID} Comlete inquiryAllDeviceStatus`);
-    }
+    process.env.LOG_DBS_INQUIRY_COMPLETE === '1' && BU.CLI(`${this.mainUUID} Comlete inquiry`);
 
     // 데이터의 유효성을 인정받는 Node List
     const validNodeList = this.checkValidateNodeData(
@@ -672,7 +670,7 @@ class Model {
         returnValue.push(result);
       }
     } catch (error) {
-      BU.errorLog('insertNodeDataToDB', error)
+      BU.errorLog('insertNodeDataToDB', error);
       return returnValue;
     }
 
