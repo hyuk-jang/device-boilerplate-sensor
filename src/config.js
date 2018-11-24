@@ -19,8 +19,15 @@ const config = {
     database: '',
   },
   uuid: 'aaaaa',
+  inquirySchedulerInfo: {
+    intervalCronFormat: '*/10 * * * * *',
+    intervalSaveCnt: 1,
+    validInfo: {
+      diffType: 'minutes',
+      duration: 2,
+    },
+  },
   inquiryIntervalSecond: 60,
-  inquiryWaitingSecond: 60,
   mainSocketInfo: {
     host: process.env.WEB_HTTP_HOST,
     port: process.env.WEB_SOCKET_PORT,

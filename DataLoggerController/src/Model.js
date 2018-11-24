@@ -24,7 +24,7 @@ class Model {
 
     // 데이터 일부분의 들어올 경우 최종 합산처리하기 까지 담아놀 저장소. 기본 값은 ProtocolConverter에 BASE_MODEL
     // converter.BaseModel 은 요청할때마다 deepClone 한 객체. --> 데이터 형태만 정의된 객체
-    this.tempStorage = this.controller.converter.BaseModel;
+    this.tempStorage = controller.converter.BaseModel;
   }
 
   /**

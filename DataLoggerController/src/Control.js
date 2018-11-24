@@ -352,8 +352,6 @@ class DataLoggerController extends AbstDeviceClient {
         rank,
       });
 
-      BU.CLI(cmdList);
-
       this.executeCommand(commandSet);
       // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
 

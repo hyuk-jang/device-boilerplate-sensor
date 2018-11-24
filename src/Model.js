@@ -29,18 +29,27 @@ class Model {
    */
   constructor(controller) {
     this.controller = controller;
-    this.dataLoggerControllerList = controller.dataLoggerControllerList;
-    this.dataLoggerList = controller.dataLoggerList;
-    this.nodeList = controller.nodeList;
 
-    this.mainUUID = controller.mainUUID;
+    const { config, dataLoggerControllerList, dataLoggerList, nodeList, mainUUID } = controller;
+
+    this.config = config;
+
+    this.dataLoggerControllerList = dataLoggerControllerList;
+    this.dataLoggerList = dataLoggerList;
+    this.nodeList = nodeList;
+
+    this.mainUUID = mainUUID;
 
     this.initCombinedOrderStorage();
 
-    this.biModule = new BM(this.controller.config.dbInfo);
+    this.biModule = new BM(config.dbInfo);
 
     /** @type {simpleOrderInfo[]} */
     this.simpleOrderList = [];
+
+    // 정기 조회 Count
+    this.inquirySchedulerIntervalSaveCnt = config.inquirySchedulerInfo.intervalSaveCnt;
+    this.inquirySchedulerCurrCount = 0;
 
     // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
     // this.excuteControlList = map.controlList;
@@ -512,14 +521,22 @@ class Model {
   async completeInquiryDeviceStatus() {
     process.env.LOG_DBS_INQUIRY_COMPLETE === '1' && BU.CLI(`${this.mainUUID} Comlete inquiry`);
 
+    // 정기 계측 카운팅 증가
+    this.inquirySchedulerCurrCount += 1;
+
+    // 정기 계측 저장 간격 수와 현재 수행된 정기 계측 명령 수가 같지 않다면 데이터 저장 X
+    if (this.inquirySchedulerIntervalSaveCnt !== this.inquirySchedulerCurrCount) {
+      return false;
+    }
+
+    // 현재 정기 계측된 카운팅 초기화
+    this.inquirySchedulerCurrCount = 0;
+
     // 데이터의 유효성을 인정받는 Node List
     const validNodeList = this.checkValidateNodeData(
       this.nodeList,
-      {
-        diffType: 'minutes',
-        duration: 2, // 2분을 벗어나면 데이터 가치가 없음
-      },
-      this.controller.inquiryDeviceStatusDate,
+      this.config.inquirySchedulerInfo.validInfo,
+      this.controller.inquirySchedulerRunMoment,
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 

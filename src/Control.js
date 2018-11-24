@@ -53,7 +53,7 @@ class Control extends EventEmitter {
     this.inquiryAllDeviceStatusTimer;
 
     /** @type {moment.Moment} */
-    this.inquiryDeviceStatusDate;
+    this.inquirySchedulerRunMoment;
 
     // this.socketClient = {};
   }
@@ -571,9 +571,9 @@ class Control extends EventEmitter {
       // BU.CLI(this.config.inquiryIntervalSecond)
       // 1분마다 요청
       this.cronScheduler = new cron.CronJob(
-        `*/${this.config.inquiryIntervalSecond} * * * * *`,
+        this.config.inquirySchedulerInfo.intervalCronFormat,
         () => {
-          this.inquiryDeviceStatusDate = moment();
+          this.inquirySchedulerRunMoment = moment();
           this.inquiryAllDeviceStatus();
         },
         null,
