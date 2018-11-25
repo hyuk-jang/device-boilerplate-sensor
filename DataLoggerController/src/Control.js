@@ -8,7 +8,7 @@ const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
-const { MainConverter } = require('../../../device-protocol-converter-jh');
+const { MainConverter, BaseModel } = require('../../../device-protocol-converter-jh');
 
 const {
   requestOrderCommandType,
@@ -219,6 +219,7 @@ class DataLoggerController extends AbstDeviceClient {
       // Controller 반환
       return this;
     } catch (error) {
+      BU.CLI(error);
       BU.errorLog('init', error);
       // 초기화에 실패할 경우에는 에러 처리
       if (error instanceof ReferenceError) {
@@ -437,6 +438,22 @@ class DataLoggerController extends AbstDeviceClient {
 
     let renewalNodeList = [];
 
+    // 이안 모듈 전용. 아무런 데이터 변화가 없을 경우 WakeUp 명령 전송
+    if (
+      _.eq(dcMessage.msgCode, COMMANDSET_EXECUTION_TERMINATE) &&
+      _.includes(this.id, 'D_PV') &&
+      _.isEqual(this.model.tempStorage, this.converter.BaseModel)
+    ) {
+      BU.CLI('Write Wake Up');
+      const baseModel = new BaseModel.Sensor(this.protocolInfo);
+      // this.converter.designationCommand();
+      const wakeUpMsgList = baseModel.device.DEFAULT.COMMAND.WAKEUP;
+
+      wakeUpMsgList.forEach(bufMsg => {
+        this.manager.deviceController.write(bufMsg);
+      });
+    }
+
     switch (dcMessage.msgCode) {
       // 명령 수행이 완료
       // 현재 데이터 업데이트, 명령 목록에서 해당 명령 제거
@@ -458,7 +475,7 @@ class DataLoggerController extends AbstDeviceClient {
         break;
     }
 
-    // BU.CLIN(this.model.requestCommandSetList);
+    // BU.CLIN(renewalNodeList);
     // 데이터가 갱신되었다면 Observer에게 알림.
     if (renewalNodeList.length) {
       if (process.env.LOG_DLC_RENEWAL_DATA === '1') {

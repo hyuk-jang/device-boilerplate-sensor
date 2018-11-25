@@ -25,6 +25,35 @@ class Model {
     // 데이터 일부분의 들어올 경우 최종 합산처리하기 까지 담아놀 저장소. 기본 값은 ProtocolConverter에 BASE_MODEL
     // converter.BaseModel 은 요청할때마다 deepClone 한 객체. --> 데이터 형태만 정의된 객체
     this.tempStorage = controller.converter.BaseModel;
+
+    this.cumulativePower;
+    // 이안 전용 누적 발전량 가져오는 메소드 실행
+    if (_.includes(this.controller.id, 'D_PV')) {
+      setInterval(() => {
+        this.startGetterCP();
+      }, 1000 * 60);
+    }
+  }
+
+  async startGetterCP() {
+    BU.CLI('startGetterCP');
+    const { BM } = require('base-model-jh');
+    const biModule = new BM({
+      database: 'EAN',
+      user: 'root',
+      password: 'smsoftware',
+    });
+
+    const foundIt = _.find(this.nodeList, { nd_target_id: 'powerCpKwh' });
+    BU.CLI(foundIt);
+
+    const nodeInfo = await biModule.getTableRow('v_dv_sensor_profile', {
+      node_seq: foundIt.node_seq,
+    });
+
+    this.cumulativePower = _.isNil(_.get(nodeInfo, 'node_data', 0))
+      ? 0
+      : _.get(nodeInfo, 'node_data', 0);
   }
 
   /**
@@ -138,6 +167,19 @@ class Model {
       _.forEach(dataList, (data, index) => {
         if (!_.isNil(data)) {
           _.set(this.tempStorage, `${nodeDefId}[${index}]`, data);
+
+          // 이안 전용. 해당 구간 발전량 구함
+          if (
+            _.includes(this.controller.id, 'D_PV') &&
+            _.eq(nodeDefId, 'pvW') &&
+            _.isNumber(this.cumulativePower)
+          ) {
+            _.set(
+              this.tempStorage,
+              `powerCpKwh[${index}]`,
+              _.sum([this.cumulativePower, _.round(_.divide(data, 60 * 1000), 3)]),
+            );
+          }
         }
       });
     });
