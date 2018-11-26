@@ -45,7 +45,7 @@ class Model {
     });
 
     const foundIt = _.find(this.nodeList, { nd_target_id: 'powerCpKwh' });
-    BU.CLI(foundIt);
+    // BU.CLI(foundIt);
 
     const nodeInfo = await biModule.getTableRow('v_dv_sensor_profile', {
       node_seq: foundIt.node_seq,

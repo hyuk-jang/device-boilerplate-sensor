@@ -3,8 +3,8 @@ const eventToPromise = require('event-to-promise');
 
 const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
-// const AbstDeviceClient = require('device-client-controller-jh');
-const AbstDeviceClient = require('../../../device-client-controller-jh');
+const AbstDeviceClient = require('device-client-controller-jh');
+// const AbstDeviceClient = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
@@ -377,6 +377,17 @@ class DataLoggerController extends AbstDeviceClient {
 
     const { CONNECT, DISCONNECT } = this.definedControlEvent;
 
+    // 이안 모듈 전용. 아무런 데이터 변화가 없을 경우 WakeUp 명령 전송
+    if (_.eq(dcEvent.eventName, CONNECT) && _.includes(this.id, 'D_PV')) {
+      const baseModel = new BaseModel.Sensor(this.protocolInfo);
+      // this.converter.designationCommand();
+      const wakeUpMsgList = baseModel.device.DEFAULT.COMMAND.WAKEUP;
+
+      wakeUpMsgList.forEach(bufMsg => {
+        this.manager.deviceController.write(bufMsg);
+      });
+    }
+
     switch (dcEvent.eventName) {
       case CONNECT:
         this.emit(CONNECT);
@@ -437,22 +448,6 @@ class DataLoggerController extends AbstDeviceClient {
     } = this.definedCommandSetMessage;
 
     let renewalNodeList = [];
-
-    // 이안 모듈 전용. 아무런 데이터 변화가 없을 경우 WakeUp 명령 전송
-    if (
-      _.eq(dcMessage.msgCode, COMMANDSET_EXECUTION_TERMINATE) &&
-      _.includes(this.id, 'D_PV') &&
-      _.isEqual(this.model.tempStorage, this.converter.BaseModel)
-    ) {
-      BU.CLI('Write Wake Up');
-      const baseModel = new BaseModel.Sensor(this.protocolInfo);
-      // this.converter.designationCommand();
-      const wakeUpMsgList = baseModel.device.DEFAULT.COMMAND.WAKEUP;
-
-      wakeUpMsgList.forEach(bufMsg => {
-        this.manager.deviceController.write(bufMsg);
-      });
-    }
 
     switch (dcMessage.msgCode) {
       // 명령 수행이 완료

@@ -11,7 +11,8 @@
   },
   "pkg": {
     "assets": [
-      "../device-protocol-converter-jh/**/*"
+      "../device-protocol-converter-jh/**/*",
+      "../default-intelligence/**/*"
     ]
   },
   "scripts": {

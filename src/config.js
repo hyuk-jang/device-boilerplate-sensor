@@ -20,8 +20,8 @@ const config = {
   },
   uuid: 'aaaaa',
   inquirySchedulerInfo: {
-    intervalCronFormat: '*/3 * * * * *',
-    intervalSaveCnt: 20,
+    intervalCronFormat: '*/20 * * * * *',
+    intervalSaveCnt: 3,
     validInfo: {
       diffType: 'minutes',
       duration: 2,

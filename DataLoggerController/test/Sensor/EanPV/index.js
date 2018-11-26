@@ -12,12 +12,12 @@ control.s2SetDeviceInfo();
 
 control.init().then(c => {
   // BU.CLIN(c);
-  setInterval(() => {
-    control.orderOperation({ requestCommandId: 'test' });
-  }, 3000);
-  // setTimeout(() => {
+  // setInterval(() => {
   //   control.orderOperation({ requestCommandId: 'test' });
-  // }, 1000);
+  // }, 3000);
+  setTimeout(() => {
+    control.orderOperation({ requestCommandId: 'test' });
+  }, 1000);
 });
 // control.model.hasAverageStorage = true;
 // control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
