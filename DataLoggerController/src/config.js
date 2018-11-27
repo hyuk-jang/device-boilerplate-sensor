@@ -9,14 +9,14 @@ const config = {
   hasDev: false,
   deviceInfo: {},
   dataLoggerInfo: {
-    dl_real_id: 'D_V_1_001',
-    dl_id: 'D_V_001',
-    dld_target_name: '밸브',
+    dl_real_id: 'D_WD_014',
+    dl_id: 'D_WD_014',
+    dld_target_name: '수문',
     m_name: '6kW 급 TB',
     data_logger_seq: 1,
     main_seq: 1,
     data_logger_def_seq: 4,
-    serial_number: '0013A20040F7B47F',
+    serial_number: '0013A20040F7B453',
     dl_target_code: '001',
     connect_info: {
       type: 'zigbee',
@@ -27,7 +27,7 @@ const config = {
     protocol_info: {
       mainCategory: 'UPSAS',
       subCategory: 'xbee',
-      deviceId: '0013A20040F7B47F',
+      deviceId: '0013A20040F7B453',
     },
   },
   nodeList: [
