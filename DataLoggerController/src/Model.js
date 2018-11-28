@@ -177,7 +177,7 @@ class Model {
             _.set(
               this.tempStorage,
               `powerCpKwh[${index}]`,
-              _.sum([this.cumulativePower, _.round(_.divide(data, 60 * 1000), 3)]),
+              _.sum([this.cumulativePower, _.round(_.divide(data, 60 * 1000), 6)]),
             );
           }
         }
@@ -189,6 +189,11 @@ class Model {
   completeOnData() {
     // 갱신된 Node 목록
     const renewalNodeList = this.onData(this.tempStorage);
+
+    _.remove(renewalNodeList, node => {
+      if (_.isNaN(_.get(node, 'data'))) return true;
+    });
+
     // 임시 저장소를 다시 초기화
     this.tempStorage = this.controller.converter.BaseModel;
     return renewalNodeList;

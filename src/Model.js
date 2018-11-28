@@ -660,6 +660,7 @@ class Model {
    */
   async insertNodeDataToDB(nodeList, insertOption = { hasSensor: false, hasDevice: false }) {
     const returnValue = [];
+    let debugTarget;
     try {
       if (insertOption.hasSensor) {
         const nodeSensorList = _(nodeList)
@@ -668,6 +669,7 @@ class Model {
             BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
           )
           .value();
+        debugTarget = nodeSensorList;
         // BU.CLI(nodeSensorList);
         const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
         returnValue.push(result);
@@ -688,6 +690,7 @@ class Model {
       }
     } catch (error) {
       BU.errorLog('insertNodeDataToDB', error);
+      BU.errorLog('insertNodeDataToDB', JSON.stringify(debugTarget));
       return returnValue;
     }
 

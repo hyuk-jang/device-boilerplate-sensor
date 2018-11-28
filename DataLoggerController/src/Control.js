@@ -420,6 +420,17 @@ class DataLoggerController extends AbstDeviceClient {
       this.model.onData(this.converter.BaseModel);
     }
 
+    // 이안 모듈 전용. 아무런 데이터 변화가 없을 경우 WakeUp 명령 전송
+    if (_.includes(this.id, 'D_PV')) {
+      const baseModel = new BaseModel.Sensor(this.protocolInfo);
+      // this.converter.designationCommand();
+      const wakeUpMsgList = baseModel.device.DEFAULT.COMMAND.WAKEUP;
+
+      wakeUpMsgList.forEach(bufMsg => {
+        this.manager.deviceController.write(bufMsg);
+      });
+    }
+
     const { NEXT } = this.definedCommanderResponse;
 
     // Error가 발생하면 추적 중인 데이터는 폐기 (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
@@ -505,6 +516,16 @@ class DataLoggerController extends AbstDeviceClient {
     try {
       const { DONE, ERROR, WAIT } = this.definedCommanderResponse;
       const { eventCode, data } = this.converter.parsingUpdateData(dcData);
+
+      // 이안 전원 켜져있는지 확인
+      if (_.includes(this.id, 'D_PV') && _.get(data, 'operIsRun[0]') === 0) {
+        const baseModel = new BaseModel.Sensor(this.protocolInfo);
+        const wakeUpMsgList = baseModel.device.DEFAULT.COMMAND.WAKEUP;
+
+        wakeUpMsgList.forEach(bufMsg => {
+          this.manager.deviceController.write(bufMsg);
+        });
+      }
 
       if (process.env.LOG_DLC_ON_DATA === '1') {
         const haveData = [];
