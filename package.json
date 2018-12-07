@@ -29,8 +29,8 @@
   "license": "ISC",
   "devDependencies": {
     "chai": "^4.2.0",
-    "docdash": "^1.0.0",
-    "dotenv": "^6.1.0",
+    "docdash": "^1.0.1",
+    "dotenv": "^6.2.0",
     "eslint": "^5.9.0",
     "eslint-config-airbnb": "^17.1.0",
     "eslint-config-prettier": "^3.3.0",
@@ -40,17 +40,18 @@
     "eslint-plugin-react": "^7.11.1",
     "jsdoc": "^3.5.5",
     "mocha": "^5.2.0",
-    "prettier": "^1.15.2"
+    "prettier": "^1.15.3"
   },
   "dependencies": {
     "base-model-jh": "^1.2.5",
-    "base-util-jh": "^1.1.23",
+    "base-util-jh": "^1.1.21",
     "bluebird": "^3.5.3",
-    "cron": "^1.5.0",
+    "cron": "^1.5.1",
+    "device-client-controller-jh": "^0.2.1",
     "event-to-promise": "^0.8.0",
     "lodash": "^4.17.11",
     "moment": "^2.22.2",
-    "serialport": "^7.0.2",
+    "serialport": "^7.1.0",
     "split": "^1.0.1",
     "uuid": "^3.3.2"
   }
