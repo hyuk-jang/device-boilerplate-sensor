@@ -423,10 +423,9 @@ class DataLoggerController extends AbstDeviceClient {
     // 이안 모듈 전용. 아무런 데이터 변화가 없을 경우 WakeUp 명령 전송
     if (_.includes(this.id, 'D_PV')) {
       const baseModel = new BaseModel.Sensor(this.protocolInfo);
-      // this.converter.designationCommand();
-      const wakeUpMsgList = baseModel.device.DEFAULT.COMMAND.WAKEUP;
+      const restartMsgList = baseModel.device.DEFAULT.COMMAND.RESTART;
 
-      wakeUpMsgList.forEach(bufMsg => {
+      restartMsgList.forEach(bufMsg => {
         this.manager.deviceController.write(bufMsg);
       });
     }
