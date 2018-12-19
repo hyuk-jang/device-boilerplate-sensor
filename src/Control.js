@@ -33,6 +33,9 @@ class Control extends EventEmitter {
     this.config = config;
     // BU.CLI(this.config);
 
+    /** @type {placeInfo[]} */
+    this.placeList = [];
+
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
     /** @type {dataLoggerInfo[]} */
@@ -74,7 +77,7 @@ class Control extends EventEmitter {
     // BU.CLI(mainUUID);
 
     /** @type {dataLoggerConfig[]} */
-    const returnValue = [];
+    const dataLoggerControllerConfigList = [];
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
     const mainList = await biModule.getTable('main', { uuid: mainUUID });
@@ -92,6 +95,26 @@ class Control extends EventEmitter {
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
     this.nodeList = await biModule.getTable('v_dv_node', where);
+
+    // 장소 단위로 묶을 장소 목록을 가져옴
+    this.placeList = await biModule.getTable('v_dv_place', where);
+    // 장소에 속해있는 센서를 알기위한 목록을 가져옴
+    /** @type {V_DV_PLACE_RELATION[]} */
+    const viewPlaceRelationRows = await biModule.getTable('v_dv_place_relation', where);
+    // 장소 관계 목록을 순회하면서 장소목록에 속해있는 node를 삽입
+    viewPlaceRelationRows.forEach(plaRelRow => {
+      // 장소 시퀀스와 노드 시퀀스를 불러옴
+      const { place_seq: placeSeq, node_seq: nodeSeq } = plaRelRow;
+      // 장소 시퀀스를 가진 객체 검색
+      const placeInfo = _.find(this.placeList, { place_seq: placeSeq });
+      // 노드 시퀀스를 가진 객체 검색
+      const nodeInfo = _.find(this.nodeList, { node_seq: nodeSeq });
+      // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
+      if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
+        !_.has(placeInfo, 'nodeList') && _.set(placeInfo, 'nodeList', []);
+        placeInfo.nodeList.push(nodeInfo);
+      }
+    });
 
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.dataLoggerList.forEach(dataLoggerInfo => {
@@ -114,11 +137,11 @@ class Control extends EventEmitter {
         deviceInfo: {},
       };
 
-      returnValue.push(loggerConfig);
+      dataLoggerControllerConfigList.push(loggerConfig);
     });
 
     _.set(this, 'config.dbInfo', dbInfo);
-    _.set(this, 'config.dataLoggerList', returnValue);
+    _.set(this, 'config.dataLoggerList', dataLoggerControllerConfigList);
 
     // BU.CLIN(this.config.dataLoggerList, 2);
     // await Promise.delay(10);
@@ -170,7 +193,8 @@ class Control extends EventEmitter {
       this.dataLoggerControllerList = resultInitDataLoggerList;
       // BU.CLIN(this.dataLoggerControllerList);
 
-      this.model = new Model(this);
+      /** @type {Model} */
+      this.model = _.has(this, 'Model') ? new this.Model(this) : new Model(this);
       // DBS 사용 Map 설정
       await this.model.setMap();
 
@@ -207,6 +231,7 @@ class Control extends EventEmitter {
 
   /** DBS 순수 기능 외에 추가 될 기능 */
   setOptionFeature() {
+    BU.CLI('setOptionFeature')
     // Main Socket Server로 접속할 정보가 없다면 socketClient를 생성하지 않음
     if (!_.isEmpty(this.config.mainSocketInfo) && process.env.HAS_SOCKET_CLIENT === '1') {
       // BU.CLI('setOptionFeature');

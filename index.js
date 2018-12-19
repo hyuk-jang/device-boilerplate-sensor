@@ -12,7 +12,10 @@ if (require !== undefined && require.main === module) {
   const config = require('./src/config');
   const { BU } = require('base-util-jh');
 
-  const control = new Control(config);
+  const Main = require('./src/Main');
+  const control = new Main(config);
+
+  // const control = new Control(config);
   // control.init();
   control
     .getDataLoggerListByDB(

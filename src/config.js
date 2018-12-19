@@ -5,6 +5,10 @@ const { controllerParserType } = require('../../default-intelligence').dccFlagMo
 
 /** @type {integratedDataLoggerConfig} */
 const config = {
+  projectInfo: {
+    projectMainId: 'UPSAS',
+    projectSubId: 'muan',
+  },
   /** @type {dbInfo} */
   dbInfo: {
     /** 접속 주소 구동 */

@@ -1,10 +1,12 @@
 require('dotenv').config();
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
+const Main = require('../../../src/Main');
 const Control = require('../../../src/Control');
 const config = require('../../../src/config');
 
-const control = new Control(config);
+const main = new Main();
+const control = main.setControl(config);
 
 control.on('completeDiscovery', () => {
   if (_.every(control.nodeList, nodeInfo => !_.isNil(nodeInfo.data))) {
