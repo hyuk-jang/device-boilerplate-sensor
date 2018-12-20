@@ -1,63 +1,16 @@
 const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
-const Promise = require('bluebird');
-const ControlDBS = require('../Control');
 
-const { requestOrderCommandType } = require('../../../default-intelligence').dcmConfigModel;
+const AbstScenario = require('../../../Feature/Scenario/AbstScenario');
 
-/**
- * 수중태양광 용으로 만들어진 시나리오 모드.
- * 본래 Boilerplate와는 거리가 있음.
- */
-class Scenario {
-  /** @param {ControlDBS} controller */
+class MuanScenario extends AbstScenario {
+  /** @param {MainControl} controller */
   constructor(controller) {
-    this.controller = controller;
-    this.hasOperationScenario1 = false;
+    super(controller);
 
     this.map = this.controller.model.deviceMap;
-
-    /** 시나리오 모드 1 */
     this.controlList = this.map.controlInfo.tempControlList;
-
-    this.eventHandler();
-  }
-
-  /** controller에서 eventEmitter 처리 */
-  eventHandler() {
-    /** controller 에서 인증 된 경우 발생할 handler */
-    this.controller.on('interpretScenario', scenarioInfo => {
-      BU.CLI('interpretScenario');
-      this.interpretScenario(scenarioInfo);
-    });
-  }
-
-  /**
-   * 시나리오를 수행하고자 할 경우
-   * @param {{scenarioId: string, requestCommandType: string}} scenarioInfo 시나리오 ID
-   */
-  interpretScenario(scenarioInfo) {
-    BU.CLI(scenarioInfo);
-    const { scenarioId, requestCommandType } = scenarioInfo;
-    // 명령 타입 체크. MEASURE 까지 포함되어 있지만... webServer 측에서 보내지 말 것
-    if (!_.values(requestOrderCommandType).includes(requestCommandType)) {
-      throw new Error(`requestCommandType: ${requestCommandType} does not exist.`);
-    }
-    BU.CLI(scenarioInfo);
-    // 제어 요청일 경우에는 true, 아닐 경우에는 false로 설정
-    const hasExecute = requestCommandType === requestOrderCommandType.CONTROL;
-    BU.CLI(scenarioInfo);
-
-    switch (scenarioId) {
-      case 'scenario1':
-        BU.CLI(scenarioInfo);
-        this.scenarioMode1(hasExecute);
-        break;
-      default:
-        throw new Error(`scenarioId: ${scenarioId} does not exist.`);
-    }
-    return true;
   }
 
   /**
@@ -178,4 +131,4 @@ class Scenario {
     return true;
   }
 }
-module.exports = Scenario;
+module.exports = MuanScenario;

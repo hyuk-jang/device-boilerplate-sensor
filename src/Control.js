@@ -20,11 +20,11 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
-const SocketClint = require('./outsideCommunication/SocketClint');
-/** 태양광 현황판 계측을 위한 Class, 수중태양광에서만 사용됨 */
-const PowerStatusBoard = require('./UPSAS/PowerStatusBoard');
-/** 정해진 시나리오대로 진행하기 위한 Class, 수중태양광에서만 사용됨 */
-const Scenario = require('./UPSAS/Scenario');
+const AbstApiClient = require('./Feature/ApiCommunicator/AbstApiClient');
+/** 정해진 시나리오대로 진행하기 위한 Class */
+const AbstScenario = require('./Feature/Scenario/AbstScenario');
+/** 현황판 표현을 위한 Class, apiClient와의 통신을 통해 갱신 */
+const AbstPBS = require('./Feature/PowerStatusBoard/AbstPBS');
 
 class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */
@@ -57,8 +57,6 @@ class Control extends EventEmitter {
 
     /** @type {moment.Moment} */
     this.inquirySchedulerRunMoment;
-
-    // this.socketClient = {};
   }
 
   /**
@@ -198,10 +196,23 @@ class Control extends EventEmitter {
       // DBS 사용 Map 설정
       await this.model.setMap();
 
+      this.bindingFeature();
+
       return this.dataLoggerControllerList;
     } catch (error) {
       throw error;
     }
+  }
+
+  /** DBS 순수 기능 외에 추가 될 기능 */
+  bindingFeature() {
+    BU.CLI('setOptionFeature');
+    // API Socket Server
+    this.apiClient = new AbstApiClient(this);
+    // 현황판
+    this.powerStatusBoard = new AbstPBS(this);
+    // 시나리오 관리자
+    this.scenarioManager = new AbstScenario(this);
   }
 
   /**
@@ -229,30 +240,8 @@ class Control extends EventEmitter {
     return true;
   }
 
-  /** DBS 순수 기능 외에 추가 될 기능 */
-  setOptionFeature() {
-    BU.CLI('setOptionFeature')
-    // Main Socket Server로 접속할 정보가 없다면 socketClient를 생성하지 않음
-    if (!_.isEmpty(this.config.mainSocketInfo) && process.env.HAS_SOCKET_CLIENT === '1') {
-      // BU.CLI('setOptionFeature');
-      this.socketClient = new SocketClint(this);
-      this.socketClient.tryConnect();
-    }
-
-    // UPSAS
-    if (process.env.HAS_UPSAS === '1') {
-      // 시나리오 관련
-      this.scenario = new Scenario(this);
-    }
-
-    /** 현황판 보여줄 객체 생성 */
-    if (process.env.HAS_POWER_BOARD === '1') {
-      this.powerStatusBoard = new PowerStatusBoard(this);
-      this.powerStatusBoard.tryConnect();
-    }
-  }
-
   /**
+   * @abstract
    * @param {nodeInfo} nodeInfo
    * @param {string} controlValue
    */
@@ -440,6 +429,14 @@ class Control extends EventEmitter {
   }
 
   /**
+   * 시나리오를 수행하고자 할 경우
+   * @param {{scenarioId: string, requestCommandType: string}} scenarioInfo 시나리오 ID
+   */
+  executeScenario(scenarioInfo) {
+    this.scenarioManager.executeScenario(scenarioInfo);
+  }
+
+  /**
    * 복합 명령 실행 요청
    * @param {requestCombinedOrderInfo} requestCombinedOrder
    * @return {boolean} 명령 요청 여부
@@ -533,7 +530,7 @@ class Control extends EventEmitter {
 
     // 복합 명령 실행 요청
     // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
-    this.transferRequestOrder(combinedWrapOrder);
+    this.executeCommandToDLC(combinedWrapOrder);
 
     return hasSaved;
   }
@@ -543,7 +540,7 @@ class Control extends EventEmitter {
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
    * @memberof Control
    */
-  transferRequestOrder(combinedOrderWrapInfo) {
+  executeCommandToDLC(combinedOrderWrapInfo) {
     process.env.LOG_DBS_TRANS_ORDER === '1' && BU.CLI('transferRequestOr', combinedOrderWrapInfo);
 
     const {

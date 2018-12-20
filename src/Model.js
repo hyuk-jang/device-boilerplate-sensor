@@ -109,7 +109,9 @@ class Model {
   setSimpleOrderInfo(simpleOrderInfo) {
     // BU.CLI(this.controller.mainUUID, simpleOrderInfo);
     // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-    if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
+    if (!this.controller.apiClient.isConnect) {
+      // if (!_.get(this, 'controller.apiClient.isConnect', false)) {
+      // if (_.isEmpty(_.get(this, 'controller.apiClient.client'))) {
       return false;
     }
     const foundIt = _.find(this.simpleOrderList, { uuid: simpleOrderInfo.uuid });
@@ -121,7 +123,7 @@ class Model {
     this.simpleOrderList.push(simpleOrderInfo);
 
     // 신규 알림
-    this.controller.socketClient.transmitDataToServer({
+    this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCommandType.COMMAND,
       data: [simpleOrderInfo],
     });
@@ -135,7 +137,8 @@ class Model {
    */
   updateSimpleOrderInfo(uuid, orderStatus) {
     // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-    if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
+    if (!this.controller.apiClient.isConnect) {
+      // if (_.isEmpty(_.get(this, 'controller.apiClient.client'))) {
       return false;
     }
     const simpleOrderInfo = _.find(this.simpleOrderList, { uuid });
@@ -162,7 +165,7 @@ class Model {
         // BU.CLIN(dlc.nodeList);
 
         // 업데이트 알림 (통째로 보내버림)
-        this.controller.socketClient.transmitDataToServer({
+        this.controller.apiClient.transmitDataToServer({
           commandType: transmitToServerCommandType.COMMAND,
           data: this.simpleOrderList,
         });

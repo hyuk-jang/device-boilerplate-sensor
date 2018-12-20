@@ -2,8 +2,9 @@ require('dotenv').config();
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 const Main = require('../../../src/Main');
-const Control = require('../../../src/Control');
 const config = require('../../../src/config');
+
+config.projectInfo = {};
 
 const main = new Main();
 const control = main.setControl(config);
@@ -31,7 +32,6 @@ control
   )
   .then(() => control.init())
   .then(() => {
-    control.setOptionFeature();
     control.inquiryAllDeviceStatus();
     setTimeout(() => {
       BU.CLI(control.model.getAllNodeStatus(['node_id', 'data']));

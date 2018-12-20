@@ -25,7 +25,7 @@ class DeviceManager extends EventEmitter {
   /**
    * @param {deviceInfo} deviceInfo
    */
-  async doConnect(deviceInfo = {}) {
+  async connect(deviceInfo = {}) {
     this.deviceInfo = deviceInfo;
     // 모델 선언
     try {

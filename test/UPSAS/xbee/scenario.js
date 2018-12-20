@@ -4,8 +4,10 @@ const _ = require('lodash');
 const Control = require('../../../src/Control');
 
 const config = require('../../../src/config');
+const Main = require('../../../src/Main');
 
-const control = new Control(config);
+const main = new Main();
+const control = main.setControl(config);
 
 // control.on('completeDiscovery', () => {
 //   if (_.every(control.nodeList, 'data')) {
@@ -29,7 +31,7 @@ control
   .then(() => control.init())
   .then(DLCs => {
     // setTimeout(() => {
-    control.scenario.scenarioMode1(true);
+    control.scenarioManager.scenarioMode1(true);
     // }, 2000);
   });
 

@@ -52,15 +52,17 @@ class DefaultApiClient extends DeviceManager {
               BU.CLI('@@@ Authentication is completed from the Socket Server.');
               this.hasCertification = responsedDataByServer.isError === 0;
               // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
-              this.transmitStorageDataToServer();
-
-              this.controller.emit('nofityAuthentication');
+              this.hasCertification && this.transmitStorageDataToServer();
+              // 인증이 완료되면 현황판 크론 구동
+              this.hasCertification &&
+                this.controller.powerStatusBoard.runCronRequestPowerStatusBoard();
               break;
             // 수신 받은 현황판 데이터 전송
             case transmitToServerCommandType.POWER_BOARD:
-              responsedDataByServer.isError === 0
-                ? this.controller.emit('donePSB', responsedDataByServer.contents)
-                : this.controller.emit('errorPSB', responsedDataByServer.contents);
+              this.controller.powerStatusBoard.onDataFromApiClient(
+                responsedDataByServer.errorStack,
+                responsedDataByServer.contents,
+              );
               break;
             default:
               break;
@@ -124,7 +126,7 @@ class DefaultApiClient extends DeviceManager {
       // 명령 전송 성공 유무 반환
       return this.write(encodingData)
         .then(() => true)
-        .catch(err => err);
+        .catch(err => BU.errorLog('transmitDataToServer', err));
       // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
       // BU.CLI(error.stack);
@@ -137,11 +139,7 @@ class DefaultApiClient extends DeviceManager {
    */
   transmitStorageDataToServer() {
     // BU.CLI('transmitStorageDataToServer');
-    if (this.hasCertification === false) {
-      return;
-    }
     // this.controller.notifyDeviceData(null, this.controller.nodeList);
-
     this.transmitDataToServer({
       commandType: transmitToServerCommandType.NODE,
       data: this.controller.nodeList,
@@ -180,7 +178,7 @@ class DefaultApiClient extends DeviceManager {
             this.controller.executeSavedCommand(contents);
             break;
           case transmitToClientCommandType.SCENARIO: // 시나리오
-            this.controller.emit('interpretScenario', contents);
+            this.controller.executeScenario(contents);
             break;
           default:
             throw new Error(`commandId: ${commandId} does not exist.`);

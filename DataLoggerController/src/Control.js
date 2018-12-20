@@ -410,7 +410,8 @@ class DataLoggerController extends AbstDeviceClient {
 
     const { NEXT } = this.definedCommanderResponse;
 
-    // Error가 발생하면 추적 중인 데이터는 폐기 (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
+    // Error가 발생하면 추적 중인 데이터는 폐기
+    // (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
     this.converter.resetTrackingDataBuffer();
     this.requestTakeAction(NEXT);
     // Observer가 해당 메소드를 가지고 있다면 전송
