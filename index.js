@@ -13,9 +13,8 @@ if (require !== undefined && require.main === module) {
   const { BU } = require('base-util-jh');
 
   const Main = require('./src/Main');
-  const control = new Main(config);
-
-  // const control = new Control(config);
+  const main = new Main();
+  const control = main.setControl(config);
   // control.init();
   control
     .getDataLoggerListByDB(
@@ -47,15 +46,14 @@ if (require !== undefined && require.main === module) {
     )
     .then(dataLoggerControllerList => {
       BU.CLI('start Program');
-      control.setOptionFeature();
       // BU.CLIN(dataLoggerControllerList);
       // const dataLogger = control.model.findDataLoggerController('WL_001');
       // control.executeSingleControl({
       //   controlValue: 2,
       //   nodeId: 'V_001',
       // });
-      // control.inquiryAllDeviceStatus(moment());
-      control.runDeviceInquiryScheduler();
+      control.inquiryAllDeviceStatus(moment());
+      // control.runDeviceInquiryScheduler();
     })
     .catch(err => {
       BU.CLI(err);

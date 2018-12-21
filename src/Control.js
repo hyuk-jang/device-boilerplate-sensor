@@ -206,7 +206,7 @@ class Control extends EventEmitter {
 
   /** DBS 순수 기능 외에 추가 될 기능 */
   bindingFeature() {
-    BU.CLI('setOptionFeature');
+    BU.CLI('bindingFeature');
     // API Socket Server
     this.apiClient = new AbstApiClient(this);
     // 현황판

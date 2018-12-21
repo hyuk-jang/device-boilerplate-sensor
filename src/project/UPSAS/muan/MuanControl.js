@@ -14,16 +14,23 @@ class MuanControl extends Control {
 
   bindingFeature() {
     BU.CLI('bindingFeature');
+    // super.bindingFeature();
     // const test = new DefaultApiClient(this);
     /** @type {DefaultApiClient} */
     this.apiClient = new DefaultApiClient(this);
-    this.apiClient.connect(this.config.mainSocketInfo);
+    this.apiClient.connect({
+      connect_info: this.config.mainSocketInfo,
+    });
+    // this.apiClient.connect(this.config.mainSocketInfo);
 
     /** @type {MuanScenario} */
     this.scenarioManager = new MuanScenario(this);
 
     /** @type {DefaultPBS} */
     this.powerStatusBoard = new DefaultPBS(this);
+    this.powerStatusBoard.connect({
+      connect_info: this.config.powerStatusBoardInfo,
+    });
     this.powerStatusBoard.connect(this.config.powerStatusBoardInfo);
 
     // this.apiClient.doConnect(this.config.powerStatusBoardInfo);

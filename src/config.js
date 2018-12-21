@@ -32,15 +32,16 @@ const config = {
     },
   },
   mainSocketInfo: {
+    type: 'socket',
     host: process.env.WEB_HTTP_HOST,
     port: process.env.WEB_SOCKET_PORT,
-    type: 'socket',
     addConfigInfo: {
       parser: controllerParserType.socket.DELIMITER,
       option: Buffer.from([0x04]),
     },
   },
   powerStatusBoardInfo: {
+    type: 'serial',
     /**
      * @type {number=} Serial baud_rate
      * @defaultvalue 9600

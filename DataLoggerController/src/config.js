@@ -16,7 +16,7 @@ const config = {
     data_logger_seq: 1,
     main_seq: 1,
     data_logger_def_seq: 4,
-    serial_number: '0013A20040F7B453',
+    serial_number: '0013A20040F7B47E',
     dl_target_code: '001',
     connect_info: {
       type: 'zigbee',
@@ -27,7 +27,7 @@ const config = {
     protocol_info: {
       mainCategory: 'UPSAS',
       subCategory: 'xbee',
-      deviceId: '0013A20040F7B453',
+      deviceId: '0013A20040F7B47E',
     },
   },
   nodeList: [
