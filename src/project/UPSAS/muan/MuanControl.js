@@ -19,6 +19,9 @@ class MuanControl extends Control {
     /** @type {DefaultApiClient} */
     this.apiClient = new DefaultApiClient(this);
     this.apiClient.connect({
+      controlInfo: {
+        hasReconnect: true,
+      },
       connect_info: this.config.mainSocketInfo,
     });
     // this.apiClient.connect(this.config.mainSocketInfo);
@@ -29,6 +32,9 @@ class MuanControl extends Control {
     /** @type {DefaultPBS} */
     this.powerStatusBoard = new DefaultPBS(this);
     this.powerStatusBoard.connect({
+      controlInfo: {
+        hasReconnect: true,
+      },
       connect_info: this.config.powerStatusBoardInfo,
     });
   }
