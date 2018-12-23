@@ -12,7 +12,7 @@ const mainConfig = require('./config');
 
 const { dcmConfigModel, dccFlagModel, dcmWsModel } = require('../../default-intelligence');
 
-const { requestOrderCommandType, requestDeviceControlType } = dcmConfigModel;
+const { requestOrderCommandType, requestDeviceControlType, nodePickKey } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
 
 const DataLoggerController = require('../DataLoggerController');
@@ -660,21 +660,16 @@ class Control extends EventEmitter {
    * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
    */
   notifyDeviceData(dataLoggerController, renewalNodeList) {
-    // BU.CLI(
-    //   _(renewalNodeList)
-    //     .map(node => _.pick(node, ['node_id', 'data']))
-    //     .value()
-    // );
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
       // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-      if (_.isEmpty(_.get(this, 'socketClient.client'))) {
+      if (!this.apiClient.isConnect) {
         return false;
       }
-      this.socketClient.transmitDataToServer({
+      this.apiClient.transmitDataToServer({
         commandType: dcmWsModel.transmitToServerCommandType.NODE,
-        data: renewalNodeList,
+        data: this.model.getAllNodeStatus(nodePickKey.FOR_SERVER, renewalNodeList),
       });
     } catch (error) {
       BU.CLI(error);

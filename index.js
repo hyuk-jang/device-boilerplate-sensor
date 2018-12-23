@@ -52,8 +52,8 @@ if (require !== undefined && require.main === module) {
       //   controlValue: 2,
       //   nodeId: 'V_001',
       // });
-      control.inquiryAllDeviceStatus(moment());
-      // control.runDeviceInquiryScheduler();
+      // control.inquiryAllDeviceStatus(moment());
+      control.runDeviceInquiryScheduler();
     })
     .catch(err => {
       BU.CLI(err);

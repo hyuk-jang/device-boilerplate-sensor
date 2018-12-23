@@ -34,9 +34,9 @@ class DefaultApiClient extends DeviceManager {
    */
   onData(bufData) {
     try {
+      // BU.CLI(bufData);
       const decodingData = this.defaultConverter.decodingMsg(bufData);
       const strData = decodingData.toString();
-      // BU.CLI(strData);
 
       // 형식을 지켜서 보낸 명령만 대응
       if (BU.IsJsonString(strData)) {
@@ -88,7 +88,14 @@ class DefaultApiClient extends DeviceManager {
   /**
    * 초기 구동 개시
    */
-  startOperation() {}
+  startOperation() {
+    // BU.CLI('startOperation');
+    // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
+    this.transmitDataToServer({
+      commandType: transmitToServerCommandType.CERTIFICATION,
+      data: this.controller.mainUUID,
+    });
+  }
 
   /**
    * @desc DataLogger --> Server 데이터 보고. (보고에 관한 추적은 하지 않으므로 onData 메소드에서 별도의 처리는 하지 않음)
@@ -96,6 +103,7 @@ class DefaultApiClient extends DeviceManager {
    * @param {transDataToServerInfo} transDataToServerInfo
    */
   transmitDataToServer(transDataToServerInfo = {}) {
+    // BU.CLI('transmitDataToServer');
     const { commandType, data } = transDataToServerInfo;
     try {
       // BU.CLI('transDataToServerInfo');
@@ -131,6 +139,26 @@ class DefaultApiClient extends DeviceManager {
     } catch (error) {
       // BU.CLI(error.stack);
       throw error;
+    }
+  }
+
+  /**
+   * Device Controller에서 새로운 이벤트가 발생되었을 경우 알림
+   * @param {string} eventName 'dcConnect' 연결, 'dcClose' 닫힘, 'dcError' 에러
+   */
+  onEvent(eventName) {
+    // BU.CLI(eventName);
+    const { CONNECT, DISCONNECT } = this.definedControlEvent;
+
+    switch (eventName) {
+      case CONNECT:
+        this.startOperation();
+        break;
+      case DISCONNECT:
+        this.hasCertification = false;
+        break;
+      default:
+        break;
     }
   }
 

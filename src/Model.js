@@ -543,9 +543,15 @@ class Model {
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
+    // 정기 계측이 완료되면 현재 데이터를 전송.
+    this.controller.apiClient.transmitDataToServer({
+      commandType: transmitToServerCommandType.NODE,
+      data: this.getAllNodeStatus(nodePickKey.FOR_SERVER),
+    });
+
     // BU.CLIN(validNodeList);
     if (process.env.LOG_DBS_INQUIRY_RESULT === '1') {
-      BU.CLI(this.getAllNodeStatus(['node_real_id', 'node_name', 'data']));
+      BU.CLI(this.getAllNodeStatus(nodePickKey.FOR_DATA));
     }
 
     await this.insertNodeDataToDB(validNodeList, {
@@ -610,16 +616,18 @@ class Model {
   /**
    * 모든 노드가 가지고 있는 정보 출력
    * @param {nodePickKey} nodePickKeyList
+   * @param {nodeInfo[]=} nodeList
    */
-  getAllNodeStatus(nodePickKeyList) {
-    const statusList = _(this.nodeList)
+  getAllNodeStatus(nodePickKeyList = [], nodeList = this.nodeList) {
+    const orderKey = _.includes(nodePickKeyList, 'node_id') ? 'node_id' : _.head(nodePickKeyList);
+    const statusList = _(nodeList)
       .map(nodeInfo => {
         if (nodePickKeyList) {
           return _.pick(nodeInfo, nodePickKeyList);
         }
         return nodeInfo;
       })
-      .orderBy('node_id')
+      .orderBy(orderKey)
       .value();
     // BU.CLI(statusList);
     return statusList;

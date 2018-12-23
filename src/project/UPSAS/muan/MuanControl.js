@@ -31,9 +31,6 @@ class MuanControl extends Control {
     this.powerStatusBoard.connect({
       connect_info: this.config.powerStatusBoardInfo,
     });
-    this.powerStatusBoard.connect(this.config.powerStatusBoardInfo);
-
-    // this.apiClient.doConnect(this.config.powerStatusBoardInfo);
   }
 
   test() {}
