@@ -34,8 +34,8 @@ control
       // BU.CLI('@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
       // setTimeout(() => {
       //   // 장치 전체 탐색
-      // control.inquiryAllDeviceStatus(),
-      control.runDeviceInquiryScheduler(),
+      control.inquiryAllDeviceStatus(),
+    // control.runDeviceInquiryScheduler(),
 
     // control.executeSingleControl({
     //   nodeId: control.nodeList[0].node_id,

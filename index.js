@@ -1,6 +1,7 @@
+const Main = require('./src/Main');
 const Control = require('./src/Control');
 
-module.exports = Control;
+module.exports = Main;
 
 // if __main process
 if (require !== undefined && require.main === module) {
