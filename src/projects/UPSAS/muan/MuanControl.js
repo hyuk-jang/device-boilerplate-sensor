@@ -2,9 +2,9 @@ const { BU, CU } = require('base-util-jh');
 
 const Control = require('../../../Control');
 
-const DefaultApiClient = require('../../../Feature/ApiCommunicator/DefaultApiClient');
+const DefaultApiClient = require('../../../features/ApiCommunicator/DefaultApiClient');
 const MuanScenario = require('./MuanScenario');
-const DefaultPBS = require('../../../Feature/PowerStatusBoard/DefaultPBS');
+const DefaultPBS = require('../../../features/PowerStatusBoard/DefaultPBS');
 
 class MuanControl extends Control {
   // /** @param {integratedDataLoggerConfig} config */
@@ -13,6 +13,7 @@ class MuanControl extends Control {
   // }
 
   bindingFeature() {
+    return super.bindingFeature();
     BU.CLI('bindingFeature');
     // super.bindingFeature();
     // const test = new DefaultApiClient(this);

@@ -2,7 +2,7 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const AbstScenario = require('../../../Feature/Scenario/AbstScenario');
+const AbstScenario = require('../../../features/Scenario/AbstScenario');
 
 class MuanScenario extends AbstScenario {
   /** @param {MainControl} controller */

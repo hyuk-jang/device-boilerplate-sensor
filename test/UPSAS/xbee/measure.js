@@ -4,7 +4,7 @@ const { BU } = require('base-util-jh');
 const Main = require('../../../src/Main');
 const config = require('../../../src/config');
 
-config.projectInfo = {};
+// config.projectInfo = {};
 
 const main = new Main();
 const control = main.setControl(config);
@@ -34,7 +34,7 @@ control
   .then(() => {
     control.inquiryAllDeviceStatus();
     setTimeout(() => {
-      BU.CLI(control.model.getAllNodeStatus(['node_id', 'data']));
+      // BU.CLI(control.model.getAllNodeStatus(['node_id', 'data']));
     }, 3000);
     // return control.runDeviceInquiryScheduler();
   });

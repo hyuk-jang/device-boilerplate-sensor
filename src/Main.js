@@ -1,8 +1,8 @@
 const Control = require('./Control');
-const MuanControl = require('./project/UPSAS/muan/MuanControl');
+const MuanControl = require('./projects/UPSAS/muan/MuanControl');
 
 const Model = require('./Model');
-const MuanModel = require('./project/UPSAS/muan/MuanModel');
+const MuanModel = require('./projects/UPSAS/muan/MuanModel');
 
 /**
  * 프로젝트에 따라 Control과 Model을 생성.

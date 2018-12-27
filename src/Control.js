@@ -5,7 +5,7 @@ const uuidv4 = require('uuid/v4');
 const moment = require('moment');
 const Promise = require('bluebird');
 
-const { BU, CU } = require('base-util-jh');
+const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
 
 const mainConfig = require('./config');
@@ -20,11 +20,11 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
-const AbstApiClient = require('./Feature/ApiCommunicator/AbstApiClient');
+const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');
 /** 정해진 시나리오대로 진행하기 위한 Class */
-const AbstScenario = require('./Feature/Scenario/AbstScenario');
+const AbstScenario = require('./features/Scenario/AbstScenario');
 /** 현황판 표현을 위한 Class, apiClient와의 통신을 통해 갱신 */
-const AbstPBS = require('./Feature/PowerStatusBoard/AbstPBS');
+const AbstPBS = require('./features/PowerStatusBoard/AbstPBS');
 
 class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */

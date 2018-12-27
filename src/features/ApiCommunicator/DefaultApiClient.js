@@ -2,7 +2,7 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const DeviceManager = require('../../Util/DeviceManager');
+const DeviceManager = require('../../utils/DeviceManager');
 
 const { BaseModel } = require('../../../../device-protocol-converter-jh');
 
