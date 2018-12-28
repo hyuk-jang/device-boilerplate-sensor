@@ -488,6 +488,7 @@ class Control extends EventEmitter {
 
       // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
       _.forEach(nodeList, currNodeId => {
+        // BU.CLI(currNodeId);
         // 장치와 연결되어 있는 DLC 불러옴
         const dataLoggerController = this.model.findDataLoggerController(currNodeId);
         // 해당하는 DLC가 없거나 장치가 비접속이라면 명령을 수행하지 않음
@@ -495,8 +496,10 @@ class Control extends EventEmitter {
         let errMsg = '';
         if (_.isUndefined(dataLoggerController)) {
           errMsg = `DLC: ${currNodeId}가 존재하지 않습니다.`;
+          // BU.CLI(errMsg);
         } else if (!_.get(dataLoggerController, 'hasConnectedDevice')) {
           errMsg = `${currNodeId}는 장치와 연결되지 않았습니다.`;
+          // BU.CLI(errMsg);
         }
         if (errMsg.length) {
           BU.errorLog(
@@ -505,18 +508,17 @@ class Control extends EventEmitter {
               this.mainUUID
             } nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${errMsg}`,
           );
-          return false;
+        } else {
+          /** @type {combinedOrderElementInfo} */
+          const elementInfo = {
+            hasComplete: false,
+            nodeId: currNodeId,
+            rank,
+            uuid: uuidv4(),
+          };
+
+          foundRemainInfo.orderElementList.push(elementInfo);
         }
-
-        /** @type {combinedOrderElementInfo} */
-        const elementInfo = {
-          hasComplete: false,
-          nodeId: currNodeId,
-          rank,
-          uuid: uuidv4(),
-        };
-
-        foundRemainInfo.orderElementList.push(elementInfo);
       });
     });
 
@@ -541,6 +543,7 @@ class Control extends EventEmitter {
    * @memberof Control
    */
   executeCommandToDLC(combinedOrderWrapInfo) {
+    // BU.CLI(combinedOrderWrapInfo)
     process.env.LOG_DBS_TRANS_ORDER === '1' && BU.CLI('transferRequestOr', combinedOrderWrapInfo);
 
     const {
@@ -625,12 +628,16 @@ class Control extends EventEmitter {
       requestElementList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
     };
 
+    BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
+
     // 명령 요청
     const hasTransferInquiryStatus = this.executeCombineOrder(requestCombinedOrder);
 
+    BU.CLI(hasTransferInquiryStatus);
+
     // 장치와의 접속이 이루어지지 않을 경우 명령 전송하지 않음
     if (!hasTransferInquiryStatus) {
-      // BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
+      BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
       return false;
     }
 

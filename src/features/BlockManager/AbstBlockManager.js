@@ -1,16 +1,14 @@
-const AbstDeviceClientModel = require('../../../../device-client-model-jh');
+const DeviceClientModel = require('../../../../device-client-model-jh');
 
 class AbstBlockManager {
   /** @param {MainControl} controller */
   constructor(controller) {
     this.controller = controller;
 
-    this.deviceClientModel = new AbstDeviceClientModel();
+    this.deviceClientModel = new DeviceClientModel();
   }
 
-  init() {
-    this.deviceClientModel.setHasSaveToDB(true);
-  }
+  init() {}
 
   // TODO: DB Table을 참조하여 DCM 저장소 초기화
 
