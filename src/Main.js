@@ -11,7 +11,7 @@ class Main {
   /**
    * @param {integratedDataLoggerConfig} config
    */
-  setControl(config = {}) {
+  createControl(config = {}) {
     const { projectInfo = {} } = config;
     const { projectMainId, projectSubId } = projectInfo;
 

@@ -48,7 +48,7 @@ class Model {
     this.simpleOrderList = [];
 
     // 정기 조회 Count
-    this.inquirySchedulerIntervalSaveCnt = config.inquirySchedulerInfo.intervalSaveCnt;
+    this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);
     this.inquirySchedulerCurrCount = 0;
 
     // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
@@ -59,14 +59,12 @@ class Model {
    * DBS가 사용하는 Device Map을 설정
    */
   async setMap() {
-    const { uuid } = this.controller.config;
+    const { mainUUID: uuid } = this.controller;
     /** @type {MAIN[]} */
-    const mainList = await this.biModule.getTable('main', { uuid });
-    if (_.isEmpty(mainList)) {
+    const mainInfo = await this.biModule.getTableRow('main', { uuid });
+    if (_.isEmpty(mainInfo)) {
       throw new Error(`Main UUID: ${uuid}는 존재하지 않습니다.`);
     }
-    const mainInfo = _.head(mainList);
-
     // /** @type {MAIN_MAP[]} */
     // const mapList = await this.BM.getTable('main_map', { main_seq: mainInfo.main_seq });
     // if (_.isEmpty(mapList)) {

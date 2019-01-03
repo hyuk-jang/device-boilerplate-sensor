@@ -15,7 +15,10 @@ if (require !== undefined && require.main === module) {
 
   const Main = require('./src/Main');
   const main = new Main();
-  const control = main.setControl(config);
+  // const control = main.createControl({
+  //   dbInfo: config.dbInfo,
+  // });
+  const control = main.createControl(config);
   // control.init();
   control
     .getDataLoggerListByDB(
@@ -54,7 +57,7 @@ if (require !== undefined && require.main === module) {
       //   nodeId: 'V_001',
       // });
       // control.inquiryAllDeviceStatus(moment());
-      control.runDeviceInquiryScheduler();
+      // control.runDeviceInquiryScheduler();
     })
     .catch(err => {
       BU.CLI(err);

@@ -7,7 +7,7 @@ const config = require('../../../src/config');
 // config.projectInfo = {};
 
 const main = new Main();
-const control = main.setControl(config);
+const control = main.createControl(config);
 
 control.on('completeDiscovery', () => {
   if (_.every(control.nodeList, nodeInfo => !_.isNil(nodeInfo.data))) {
