@@ -50,27 +50,32 @@ class MuanControl extends Control {
    * @return {Promise.<mainConfig>}
    */
   async getDataLoggerListByDB(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
-    // BU.CLI('getDataLoggerListByDB', dbInfo);
+    BU.CLI('getDataLoggerListByDB', dbInfo);
     this.mainUUID = mainUUID;
     this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);
     // BU.CLI(dbInfo);
     // BU.CLI(mainUUID);
 
+    const mainWhere = _.isNil(mainUUID) ? null : { uuid: mainUUID };
+
     /** @type {dataLoggerConfig[]} */
     const dataLoggerControllerConfigList = [];
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
-    const mainList = await biModule.getTable('main', { uuid: mainUUID });
+    const mainInfo = await biModule.getTableRow('main', mainWhere);
 
     // UUID가 동일한 정보가 없다면 종료
-    if (mainList.length === 0) {
+    if (_.isEmpty(mainInfo)) {
       throw new Error(`uuid: ${mainUUID}는 존재하지 않습니다.`);
     }
 
+    // 만약 MainUUID를 지정하지 않을 경우 해당 Row의 uuid를 가져와 세팅함
+    _.isNil(this.mainUUID) && _.set(this, 'mainUUID', _.get(mainInfo, 'uuid'));
+
     // 가져온 Main 정보에서 main_seq를 구함
     const where = {
-      main_seq: _.get(_.head(mainList), 'main_seq', ''),
+      main_seq: _.get(mainInfo, 'main_seq', ''),
     };
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
@@ -118,12 +123,10 @@ class MuanControl extends Control {
           option: '}}',
         };
       } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
-        BU.CLI(connInfo)
         connInfo.type = 'socket';
         connInfo.port = 9001;
         connInfo.subType = '';
         delete connInfo.addConfigInfo;
-        BU.CLI(connInfo);
       } else if (connInfo.type === 'serial' && connInfo.subType === '') {
         connInfo.type = 'socket';
         connInfo.port = 9002;

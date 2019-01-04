@@ -67,7 +67,7 @@ class Control extends EventEmitter {
    * @return {Promise.<mainConfig>}
    */
   async getDataLoggerListByDB(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
-    // BU.CLI('getDataLoggerListByDB', dbInfo);
+    BU.CLI('getDataLoggerListByDB', dbInfo);
     this.mainUUID = mainUUID;
     this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);

@@ -1,24 +1,82 @@
-const DeviceClientModel = require('../../../../device-client-model-jh');
+const { BM } = require('base-model-jh');
 
 class AbstBlockManager {
   /** @param {MainControl} controller */
   constructor(controller) {
     this.controller = controller;
 
-    this.deviceClientModel = new DeviceClientModel();
+    /** @type {dataContainerDBS[]} */
+    this.dataContainerList = [];
+
+    this.hasSaveToDB = true;
   }
-
-  init() {}
-
-  // TODO: DB Table을 참조하여 DCM 저장소 초기화
 
   /**
    *
-   * @param {Object} dcmConstructorInfo
-   * @param {string} dbTableName 참조할 DB Table 명
-   * @param {string} idKey DB Table에서 ID로 사용할 컬럼 명. DCM Storage 관리 ID로 사용 됨.
-   * @param {string} category DCM 저장소에서 관리할 Category 명.
+   * @param {dbInfo} dbInfo
+   * @param {blockConfig[]} blockConfigList
    */
-  async setDeviceClientModel(dcmConstructorInfo) {}
+  async init(dbInfo, blockConfigList) {
+    // DB Connector 설정 (현재 mysql만 되어 있음.)
+    this.setDbConnector(dbInfo);
+    // 블록 정보를 기반으로 DB Table을 접근하여 dataContainer를 설정
+    await this.setBlockTable(blockConfigList);
+    this.bindingPlaceList(this.controller.placeList);
+  }
+
+  /**
+   *
+   * @param {boolean} hasSaveToDB
+   */
+  setHasSaveToDB(hasSaveToDB) {
+    this.hasSaveToDB = hasSaveToDB;
+  }
+
+  /**
+   * DB에 저장할 Connector를 생성하기 위한 정보
+   * @param {dbInfo} dbInfo
+   */
+  setDbConnector(dbInfo) {
+    console.log('setDbConnector', dbInfo);
+    this.biModule = new BM(dbInfo);
+  }
+
+  /**
+   * @desc only DBS.
+   * Device Client 추가
+   * @param {blockConfig[]} blockConfigList
+   * @return {dataContainerDBS[]}
+   */
+  async setBlockTable(blockConfigList) {}
+
+  /**
+   * @desc only DBS.
+   * dataContainer과 연관이 있는 place Node List를 세팅함.
+   * @param {placeInfo[]} placeList
+   */
+  bindingPlaceList(placeList) {}
+
+  /**
+   * 지정한 카테고리의 모든 데이터를 순회하면서 db에 적용할 데이터를 정제함.
+   * @param {string} deviceCategory  장치 Type 'inverter', 'connector'
+   * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
+   * @param {boolean} hasIgnoreError 에러를 무시하고 insertData 구문을 실애할 지 여부. default: false
+   * @return {dataContainerDBS}
+   */
+  async refineDataContainer(deviceCategory, processingDate, hasIgnoreError) {}
+
+  /**
+   * DB에 컨테이너 단위로 저장된 insertDataList, insertTroubleList, updateTroubleList를 적용
+   * @param {string} deviceCategory 카테고리 명
+   * @return {dataContainerDBS}
+   */
+  async saveDataToDB(deviceCategory) {}
+
+  /**
+   * 장치 저장소 카테고리에 맞는 타입을 가져옴
+   * @param {string} storageCategory 저장소 카테고리 'inverter', 'connector' ... etc
+   * @return {dataContainerDBS}
+   */
+  getDataContainer(storageCategory) {}
 }
 module.exports = AbstBlockManager;

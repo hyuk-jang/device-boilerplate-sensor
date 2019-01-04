@@ -474,6 +474,7 @@ class Model {
 
         if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'inquiryAllDeviceStatus') {
           // BU.CLI('Comlete inquiryAllDeviceStatus');
+          this.controller.emit('completeInquiryAllDeviceStatus', dcMessage.commandSet.commandId);
           this.completeInquiryDeviceStatus();
         } else {
           // FIXME: 일반 명령 completeOrder이 완료되었을 경우 처리할 필요가 있다면 작성
@@ -536,7 +537,7 @@ class Model {
     // 데이터의 유효성을 인정받는 Node List
     const validNodeList = this.checkValidateNodeData(
       this.nodeList,
-      this.config.inquirySchedulerInfo.validInfo,
+      _.get(this, 'config.inquirySchedulerInfo.validInfo'),
       this.controller.inquirySchedulerRunMoment,
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
