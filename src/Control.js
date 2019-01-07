@@ -621,7 +621,7 @@ class Control extends EventEmitter {
    *
    */
   inquiryAllDeviceStatus() {
-    // BU.CLI('inquiryAllDeviceStatus')
+    BU.CLI('inquiryAllDeviceStatus')
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
 

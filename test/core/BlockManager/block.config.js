@@ -80,7 +80,7 @@ const blockConfigInfo = [
       ],
     },
     troubleTableInfo: {
-      tableName: 'pw_inverter_trouble_data',
+      tableName: 'inverter_trouble_data',
       insertDateColumn: 'writedate',
       fromToKeyTableList: [
         {

@@ -40,16 +40,27 @@ async function testManager() {
 
   await controller.getDataLoggerListByDB(dbInfo);
   BU.CLI('Tru controller init Complete');
+
   await controller.init();
+
   BU.CLI('controller init Complete');
+  console.time('blockInit');
   const blockManager = new BlockManager(controller);
-  blockManager.init(dbInfo, blockConfig);
+  // // Block Table 설정 옵션
+  await blockManager.init(dbInfo, blockConfig);
+  console.timeEnd('blockInit');
 
-  controller.inquiryAllDeviceStatus();
+  if (!blockManager.dataContainerList.length) {
+    throw new Error('컨테이너가 없습니다.');
+  }
 
-  await eventToPromise(controller, 'completeInquiryAllDeviceStatus');
+  // controller.inquiryAllDeviceStatus();
 
+  // await eventToPromise(controller, 'completeInquiryAllDeviceStatus');
+
+  console.time('refineDataContainer');
   blockManager.refineDataContainer('inverter');
+  console.timeEnd('refineDataContainer');
 
   BU.CLI('complete All');
 }

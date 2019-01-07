@@ -1,6 +1,15 @@
 /**
+ * @typedef {Object} troubleInfo 시스템 오류, 장치 오류를 추적하기 위한 객체 정보
+ * @property {string} code 장치 에러 고유 id
+ * @property {string} msg 세부 오류 정보
+ * @property {number} isError 에러 여부. 0: Warning, 1: Error
+ */
+
+/**
  * @typedef {Object} dataStorageDBS Device Controller 현재 장치의 계측 및 오류 데이터를 관리하는 상위 주체
  * @property {string} id Device Controller ID
+ * @property {Object} dataFrame row 를 구성할 경우 baseTable에서 가져와야 할 필수 정보를 미리 구성해놓은 객체
+ * @property {Object} troubleFrame trouble 관련 row를 삽입할 경우 baseTable에서 가져와야 할 필수 정보를 미리 구성해놓은 객체
  * @property {number} placeSeq 장소 시퀀스
  * @property {nodeInfo[]} nodeList place와 관련된 nodeInfo
  * @property {deviceErrorInfo[]} troubleList 장치와 약속한 프로토콜 상에서 발생한 에러
@@ -15,7 +24,7 @@
  * @property {Array} insertTroubleList 신규 오류 리스트
  * @property {Array} updateTroubleList 기존 DB의 오류 내역을 수정할 리스트
  * @property {Array} insertDataList 저장할 계측 데이터 리스트
- * @property {Date} processingDate 본 DB에 컨테이너를 처리한 시각
+ * @property {Date} refineDate 본 DB에 컨테이너를 처리한 시각
  * @property {dataStorageDBS[]} dataStorageList 관리하고 있는 Device Controller 계측 데이터 객체 리스트
  */
 

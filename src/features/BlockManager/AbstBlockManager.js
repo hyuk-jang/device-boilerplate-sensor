@@ -21,6 +21,7 @@ class AbstBlockManager {
     this.setDbConnector(dbInfo);
     // 블록 정보를 기반으로 DB Table을 접근하여 dataContainer를 설정
     await this.setBlockTable(blockConfigList);
+    // DBS에 연결된 장소 목록을 dataContainer
     this.bindingPlaceList(this.controller.placeList);
   }
 
@@ -74,9 +75,9 @@ class AbstBlockManager {
 
   /**
    * 장치 저장소 카테고리에 맞는 타입을 가져옴
-   * @param {string} storageCategory 저장소 카테고리 'inverter', 'connector' ... etc
+   * @param {string} blockCategory 저장소 카테고리 'inverter', 'connector' ... etc
    * @return {dataContainerDBS}
    */
-  getDataContainer(storageCategory) {}
+  getDataContainer(blockCategory) {}
 }
 module.exports = AbstBlockManager;

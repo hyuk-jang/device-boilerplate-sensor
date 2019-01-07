@@ -27,15 +27,6 @@ describe('Step 1', () => {
   // 2. 가상 placeList를 바탕으로 dataStorage 단위로 nodeInfo 를 붙임.
   // 3. Echo Server와의 통신을 통한 node 데이터를 생성하고. 데이터 정제 테스트
   it.only('setDeviceForDB', async () => {
-    const blockManager = new BlockManager();
-
-    // 1. DB 접속 정보(mysql)를 바탕으로 dataContainer를 구성.
-    await blockManager.setDbConnector(dbInfo);
-
-    const dataStorageList = await blockManager.setBlockTable(blockConfig);
-
-    expect(dataStorageList.length).to.eq(1);
-
     // 2. 가상 placeList를 바탕으로 dataStorage 단위로 nodeInfo 를 붙임.
     const main = new Main();
     const controller = main.createControl({
@@ -48,9 +39,22 @@ describe('Step 1', () => {
     await controller.getDataLoggerListByDB(dbInfo);
     await controller.init();
 
+    const blockManager = new BlockManager();
+
+    // 1. DB 접속 정보(mysql)를 바탕으로 dataContainer를 구성.
+    await blockManager.setDbConnector(dbInfo);
+
+    const dataStorageList = await blockManager.setBlockTable(blockConfig);
+
+    expect(dataStorageList.length).to.eq(1);
+    // Init 구현 테스트
     blockManager.bindingPlaceList(controller.placeList);
 
+    BU.CLIN(blockManager.dataContainerList);
+
     expect(dataStorageList[0].dataStorageList[0].nodeList.length).to.not.eq(0);
+
+    blockManager.refineDataContainer('inverter');
   });
 
   it('bindingPlaceList', async () => {});

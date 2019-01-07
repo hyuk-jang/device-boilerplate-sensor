@@ -7,17 +7,6 @@
  */
 
 /**
- * @typedef {Object} dataStorage Device Controller 현재 장치의 계측 및 오류 데이터를 관리하는 상위 주체
- * @property {string} id Device Controller ID
- * @property {Object} config Device Controller를 구동하기 위한 설정
- * @property {Object|Array} data Controller에서 측정한 데이터
- * @property {Array.<deviceErrorInfo>} troubleList 장치와 약속한 프로토콜 상에서 발생한 에러
- * @property {Array.<deviceErrorInfo>} systemErrorList Controller를 구동하고 장치와 연결을 수립하고 통신하는 중간에 생기는 에러
- * @property {Date} measureDate 현재 데이터들의 측정 시간 (DeviceContainer에서 처리)
- * @property {Object[]} convertedDataList data를 {dataStorageConfig}를 통해서 변경한 데이터 (DeviceContainer에서 처리)
- */
-
-/**
  * @typedef {Object} deviceErrorInfo 시스템 오류, 장치 오류를 추적하기 위한 객체 정보
  * @property {string} code 장치 에러 고유 id
  * @property {string} msg 세부 오류 정보
@@ -26,23 +15,12 @@
  */
 
 /**
- * @typedef {Object} defaultDbTroubleTableScheme 장치 Trouble, SystemError를 저장하고 업데이트 하기 위한 기본 테이블 스키마
+ * @typedef {Object} dbTroubleRow 장치 Trouble, SystemError를 저장하고 업데이트 하기 위한 기본 테이블 스키마
  * @property {number} is_error 시스템 오류 여부 (0 or 1)
  * @property {string} code 해당 장치 Code (Unique)
  * @property {string} msg 오류에 대한 설명
  * @property {Date} occur_date 오류 발생 일
  * @property {Date} fix_date 오류 해결 일
- */
-
-/**
- * @typedef {Object} dataContainer Device Category별로 dataStorage를 관리하는 주체
- * @property {string} deviceCategory 장치 카테고리 (inverter, connector, weatherDevice, ...etc)
- * @property {dataStorageConfig} dataStorageConfig 데이터를 가공하기 위한 설정 변수
- * @property {Array} insertTroubleList 신규 오류 리스트
- * @property {Array} updateTroubleList 기존 DB의 오류 내역을 수정할 리스트
- * @property {Array} insertDataList 저장할 계측 데이터 리스트
- * @property {Date} processingDate 본 DB에 컨테이너를 처리한 시각
- * @property {Array.<dataStorage>} dataStorageList 관리하고 있는 Device Controller 계측 데이터 객체 리스트
  */
 
 /**
