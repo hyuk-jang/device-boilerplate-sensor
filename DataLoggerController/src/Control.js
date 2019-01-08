@@ -4,7 +4,7 @@ const eventToPromise = require('event-to-promise');
 const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
 // const AbstDeviceClient = require('device-client-controller-jh');
-const AbstDeviceClient = require('../../../device-client-controller-jh');
+const DccFacade = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
@@ -15,7 +15,7 @@ const {
   requestDeviceControlType,
 } = require('../../../default-intelligence').dcmConfigModel;
 
-class DataLoggerController extends AbstDeviceClient {
+class DataLoggerController extends DccFacade {
   /** @param {dataLoggerConfig} config */
   constructor(config) {
     super();

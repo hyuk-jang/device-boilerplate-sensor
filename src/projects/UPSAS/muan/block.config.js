@@ -3,47 +3,24 @@ const Converter = require('../../../../../device-protocol-converter-jh');
 
 const keyInfo = Converter.BaseModel.Inverter.BASE_KEY;
 
-/**
- * @typedef {Object} tableParamFormat
- * @property {string} fromKey
- * @property {string} toKey
- */
-
-module.exports = [
+/** @type {blockConfig[]} */
+const blockConfigInfo = [
   {
-    deviceCategory: 'inverter',
-    troubleTableInfo: {
-      tableName: 'pw_inverter_trouble_data',
-      /** @type {Array.<tableParamFormat>} */
-      addParamList: [
+    blockCategory: 'inverter',
+    baseTableInfo: {
+      tableName: 'inverter',
+      idKey: 'target_id',
+      placeKey: 'place_seq',
+      fromToKeyTableList: [
         {
           fromKey: 'inverter_seq',
           toKey: 'inverter_seq',
         },
       ],
-      changeColumnKeyInfo: {
-        isErrorKey: 'is_error',
-        codeKey: 'code',
-        msgKey: 'msg',
-        occurDateKey: 'occur_date',
-        fixDateKey: 'fix_date',
-      },
-      insertDateKey: 'writedate',
-      indexInfo: {
-        primaryKey: 'inverter_trouble_data_seq',
-        foreignKey: 'inverter_seq',
-      },
     },
-    dataTableInfo: {
-      tableName: 'pw_inverter_data',
-      /** @type {tableParamFormat[]} */
-      addParamList: [
-        {
-          fromKey: 'inverter_seq',
-          toKey: 'inverter_seq',
-        },
-      ],
-      insertDateKey: 'writedate',
+    applyTableInfo: {
+      tableName: 'inverter_data',
+      insertDateColumn: 'writedate',
       matchingList: [
         {
           fromKey: keyInfo.pvAmp,
@@ -81,16 +58,16 @@ module.exports = [
           calculate: 1000,
           toFixed: 1,
         },
-        {
-          fromKey: keyInfo.gridLf,
-          toKey: 'l_f',
-          calculate: 1,
-          toFixed: 1,
-        },
+        // {
+        //   fromKey: keyInfo.gridLf,
+        //   toKey: 'l_f',
+        //   calculate: 1,
+        //   toFixed: 1,
+        // },
         {
           fromKey: keyInfo.powerPf,
           toKey: 'p_f',
-          calculate: `${keyInfo.powerGridKw} / ${keyInfo.pvKw} * 100`,
+          calculate: 1,
           toFixed: 1,
         },
         {
@@ -101,5 +78,28 @@ module.exports = [
         },
       ],
     },
+    troubleTableInfo: {
+      tableName: 'inverter_trouble_data',
+      insertDateColumn: 'writedate',
+      fromToKeyTableList: [
+        {
+          fromKey: 'inverter_seq',
+          toKey: 'inverter_seq',
+        },
+      ],
+      changeColumnKeyInfo: {
+        isErrorKey: 'is_error',
+        codeKey: 'code',
+        msgKey: 'msg',
+        occurDateKey: 'occur_date',
+        fixDateKey: 'fix_date',
+      },
+      indexInfo: {
+        primaryKey: 'inverter_trouble_data_seq',
+        foreignKey: 'inverter_seq',
+      },
+    },
   },
 ];
+
+module.exports = blockConfigInfo;

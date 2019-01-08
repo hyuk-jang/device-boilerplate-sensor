@@ -31,7 +31,7 @@ class Main {
         break;
       case 'FP':
         switch (projectSubId) {
-          case 'R&D':
+          case 'RnD':
             break;
           default:
             break;

@@ -1,8 +1,12 @@
 /**
- * @typedef {Object} troubleInfo 시스템 오류, 장치 오류를 추적하기 위한 객체 정보
- * @property {string} code 장치 에러 고유 id
- * @property {string} msg 세부 오류 정보
- * @property {number} isError 에러 여부. 0: Warning, 1: Error
+ * @typedef {Object} dataContainerDBS Device Category별로 dataStorage를 관리하는 주체
+ * @property {string} blockCategory 장치(블록) 카테고리 (inverter, connector, weatherDevice, ...etc)
+ * @property {blockConfig} blockConfigInfo 데이터를 가공하기 위한 설정 변수
+ * @property {Array} insertTroubleList 신규 오류 리스트
+ * @property {Array} updateTroubleList 기존 DB의 오류 내역을 수정할 리스트
+ * @property {Array} insertDataList 저장할 계측 데이터 리스트
+ * @property {Date} refineDate 본 DB에 컨테이너를 처리한 시각
+ * @property {dataStorageDBS[]} dataStorageList 관리하고 있는 Device Controller 계측 데이터 객체 리스트
  */
 
 /**
@@ -13,19 +17,15 @@
  * @property {number} placeSeq 장소 시퀀스
  * @property {nodeInfo[]} nodeList place와 관련된 nodeInfo
  * @property {deviceErrorInfo[]} troubleList 장치와 약속한 프로토콜 상에서 발생한 에러
- * @property {Object} convertedNodeData nodeList에서 DB에 적용할 데이터를 추출하여 정제된 데이터. {dataStorageConfig}를 통해서 변경한 데이터 (DeviceContainer에서 처리)
  * @property {Date} measureDate 현재 데이터들의 측정 시간 (DeviceContainer에서 처리)
  */
 
 /**
- * @typedef {Object} dataContainerDBS Device Category별로 dataStorage를 관리하는 주체
- * @property {string} blockCategory 장치(블록) 카테고리 (inverter, connector, weatherDevice, ...etc)
- * @property {blockConfig} blockConfigInfo 데이터를 가공하기 위한 설정 변수
- * @property {Array} insertTroubleList 신규 오류 리스트
- * @property {Array} updateTroubleList 기존 DB의 오류 내역을 수정할 리스트
- * @property {Array} insertDataList 저장할 계측 데이터 리스트
- * @property {Date} refineDate 본 DB에 컨테이너를 처리한 시각
- * @property {dataStorageDBS[]} dataStorageList 관리하고 있는 Device Controller 계측 데이터 객체 리스트
+ * @typedef {Object} deviceErrorInfo 시스템 오류, 장치 오류를 추적하기 위한 객체 정보
+ * @property {string} code 장치 에러 고유 id
+ * @property {string} msg 세부 오류 정보
+ * @property {Date} occur_date 에러 발생 일자
+ * @property {Date} fix_date 에러 수정 일자
  */
 
 /**
@@ -61,12 +61,18 @@
  * @typedef {Object} fromToKeyParam 데이터 객체를 DB에 반영하기 위하여 Key 값을 가공할 정보
  * @property {string} fromKey 현 객체 값을 지닌 Key
  * @property {string} toKey DB에 삽입할 Key
- * @property {number|string} calculate 데이터 가공 계산식.
+ * @property {number=} calculate 데이터 곱셈 배율.
  * @property {number=} toFixed 가공을 통해 나온 값의 소수점 처리 자리 수.
  * @example
  * calculate 1: 현재 값에 1배수. 즉 현재 값을 그대로 사용. default
  * calculate 10: 현재 값에 10배수. 데이터: 25.3 --> 253 변경
- * calculate `${keyInfo.powerGridKw} / ${keyInfo.pvKw} * 100`: string 값을 eval 처리하여 계산하여 반환.
+ */
+
+/**
+ * @typedef {Object} troubleInfo 시스템 오류, 장치 오류를 추적하기 위한 객체 정보
+ * @property {string} code 장치 에러 고유 id
+ * @property {string} msg 세부 오류 정보
+ * @property {number} isError 에러 여부. 0: Warning, 1: Error
  */
 
 /**

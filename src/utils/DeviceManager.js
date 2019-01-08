@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 
 const { BU } = require('base-util-jh');
 
-const AbstController = require('../../../device-client-controller-jh');
+const DccFacade = require('../../../device-client-controller-jh');
 
 class DeviceManager extends EventEmitter {
   /**
@@ -29,11 +29,11 @@ class DeviceManager extends EventEmitter {
     this.deviceInfo = deviceInfo;
     // 모델 선언
     try {
-      const abstController = new AbstController();
-      this.definedControlEvent = abstController.definedControlEvent;
+      const dccFacade = new DccFacade();
+      this.definedControlEvent = dccFacade.definedControlEvent;
       const { CONNECT, DISCONNECT } = this.definedControlEvent;
 
-      this.deviceController = abstController.setDeviceController(deviceInfo);
+      this.deviceController = dccFacade.setDeviceController(deviceInfo);
       this.deviceController.attach(this);
 
       // 이미 접속 중인 객체가 있다면

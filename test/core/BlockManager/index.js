@@ -54,13 +54,17 @@ async function testManager() {
     throw new Error('컨테이너가 없습니다.');
   }
 
-  // controller.inquiryAllDeviceStatus();
+  controller.inquiryAllDeviceStatus();
 
-  // await eventToPromise(controller, 'completeInquiryAllDeviceStatus');
+  await eventToPromise(controller, 'completeInquiryAllDeviceStatus');
 
   console.time('refineDataContainer');
-  blockManager.refineDataContainer('inverter');
+  await blockManager.refineDataContainer('inverter');
   console.timeEnd('refineDataContainer');
+
+  console.time('saveDataToDB');
+  await blockManager.saveDataToDB('inverter');
+  console.timeEnd('saveDataToDB');
 
   BU.CLI('complete All');
 }

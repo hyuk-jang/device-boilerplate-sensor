@@ -8,7 +8,7 @@ class AbstBlockManager {
     /** @type {dataContainerDBS[]} */
     this.dataContainerList = [];
 
-    this.hasSaveToDB = true;
+    this.isSaveToDB = true;
   }
 
   /**
@@ -17,6 +17,10 @@ class AbstBlockManager {
    * @param {blockConfig[]} blockConfigList
    */
   async init(dbInfo, blockConfigList) {
+    console.trace(process.env.DBS_SAVE_BLOCK);
+    if (process.env.DBS_SAVE_BLOCK === '0') {
+      this.isSaveToDB = false;
+    }
     // DB Connector 설정 (현재 mysql만 되어 있음.)
     this.setDbConnector(dbInfo);
     // 블록 정보를 기반으로 DB Table을 접근하여 dataContainer를 설정
@@ -27,10 +31,10 @@ class AbstBlockManager {
 
   /**
    *
-   * @param {boolean} hasSaveToDB
+   * @param {boolean} isSaveDB
    */
-  setHasSaveToDB(hasSaveToDB) {
-    this.hasSaveToDB = hasSaveToDB;
+  setIsSaveToDB(isSaveDB) {
+    this.isSaveToDB = isSaveDB;
   }
 
   /**
@@ -59,19 +63,19 @@ class AbstBlockManager {
 
   /**
    * 지정한 카테고리의 모든 데이터를 순회하면서 db에 적용할 데이터를 정제함.
-   * @param {string} deviceCategory  장치 Type 'inverter', 'connector'
+   * @param {string} blockCategory  장치 Type 'inverter', 'connector'
    * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
    * @param {boolean} hasIgnoreError 에러를 무시하고 insertData 구문을 실애할 지 여부. default: false
    * @return {dataContainerDBS}
    */
-  async refineDataContainer(deviceCategory, processingDate, hasIgnoreError) {}
+  async refineDataContainer(blockCategory, processingDate, hasIgnoreError) {}
 
   /**
    * DB에 컨테이너 단위로 저장된 insertDataList, insertTroubleList, updateTroubleList를 적용
-   * @param {string} deviceCategory 카테고리 명
+   * @param {string} blockCategory 카테고리 명
    * @return {dataContainerDBS}
    */
-  async saveDataToDB(deviceCategory) {}
+  async saveDataToDB(blockCategory) {}
 
   /**
    * 장치 저장소 카테고리에 맞는 타입을 가져옴

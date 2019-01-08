@@ -25,6 +25,8 @@ const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');
 const AbstScenario = require('./features/Scenario/AbstScenario');
 /** 현황판 표현을 위한 Class, apiClient와의 통신을 통해 갱신 */
 const AbstPBS = require('./features/PowerStatusBoard/AbstPBS');
+/** 현황판 표현을 위한 Class, apiClient와의 통신을 통해 갱신 */
+const AbstBlockManager = require('./features/BlockManager/AbstBlockManager');
 
 class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */
@@ -218,6 +220,8 @@ class Control extends EventEmitter {
     this.powerStatusBoard = new AbstPBS(this);
     // 시나리오 관리자
     this.scenarioManager = new AbstScenario(this);
+    // 시나리오 관리자
+    this.blockManager = new AbstBlockManager(this);
   }
 
   /**

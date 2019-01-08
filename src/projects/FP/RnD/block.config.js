@@ -1,6 +1,5 @@
-require('../../../src/features/BlockManager/block.jsdoc');
-
-const Converter = require('../../../../device-protocol-converter-jh');
+// const Converter = require('device-protocol-converter-jh');
+const Converter = require('../../../../../device-protocol-converter-jh');
 
 const keyInfo = Converter.BaseModel.Inverter.BASE_KEY;
 
@@ -10,8 +9,6 @@ const blockConfigInfo = [
     blockCategory: 'inverter',
     baseTableInfo: {
       tableName: 'inverter',
-      idKey: 'target_id',
-      placeKey: 'place_seq',
       fromToKeyTableList: [
         {
           fromKey: 'inverter_seq',
@@ -25,62 +22,73 @@ const blockConfigInfo = [
       matchingList: [
         {
           fromKey: keyInfo.pvAmp,
-          toKey: 'in_a',
-          calculate: 1,
+          toKey: 'pv_a',
           toFixed: 1,
         },
         {
           fromKey: keyInfo.pvVol,
-          toKey: 'in_v',
-          calculate: 1,
+          toKey: 'pv_v',
           toFixed: 1,
         },
         {
           fromKey: keyInfo.pvKw,
-          toKey: 'in_w',
-          calculate: 1000,
-          toFixed: 1,
-        },
-        {
-          fromKey: keyInfo.gridRAmp,
-          toKey: 'out_a',
-          calculate: 1,
+          toKey: 'pv_kw',
           toFixed: 1,
         },
         {
           fromKey: keyInfo.gridRsVol,
-          toKey: 'out_v',
-          calculate: 1,
+          toKey: 'grid_rs_v',
+          toFixed: 1,
+        },
+        {
+          fromKey: keyInfo.gridStVol,
+          toKey: 'grid_st_v',
+          toFixed: 1,
+        },
+        {
+          fromKey: keyInfo.gridTrVol,
+          toKey: 'grid_tr_v',
+          toFixed: 1,
+        },
+        {
+          fromKey: keyInfo.gridRAmp,
+          toKey: 'grid_r_a',
+          toFixed: 1,
+        },
+        {
+          fromKey: keyInfo.gridSAmp,
+          toKey: 'grid_s_a',
+          toFixed: 1,
+        },
+        {
+          fromKey: keyInfo.gridTAmp,
+          toKey: 'grid_t_a',
+          toFixed: 1,
+        },
+        {
+          fromKey: keyInfo.gridLf,
+          toKey: 'line_f',
+          toFixed: 1,
+        },
+        {
+          fromKey: keyInfo.powerPf,
+          toKey: 'power_f',
           toFixed: 1,
         },
         {
           fromKey: keyInfo.powerGridKw,
-          toKey: 'out_w',
-          calculate: 1000,
-          toFixed: 1,
-        },
-        // {
-        //   fromKey: keyInfo.gridLf,
-        //   toKey: 'l_f',
-        //   calculate: 1,
-        //   toFixed: 1,
-        // },
-        {
-          fromKey: keyInfo.powerPf,
-          toKey: 'p_f',
-          calculate: 1,
+          toKey: 'power_kw',
           toFixed: 1,
         },
         {
           fromKey: keyInfo.powerCpKwh,
-          toKey: 'c_wh',
-          calculate: 1000,
+          toKey: 'power_total_kwh',
           toFixed: 1,
         },
       ],
     },
     troubleTableInfo: {
-      tableName: 'inverter_trouble_data',
+      tableName: 'pw_inverter_trouble_data',
       insertDateColumn: 'writedate',
       fromToKeyTableList: [
         {
@@ -102,4 +110,5 @@ const blockConfigInfo = [
     },
   },
 ];
+
 module.exports = blockConfigInfo;

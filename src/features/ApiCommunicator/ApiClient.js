@@ -11,7 +11,7 @@ const {
   transmitToClientCommandType,
 } = require('../../../../default-intelligence').dcmWsModel;
 
-class DefaultApiClient extends DeviceManager {
+class ApiClient extends DeviceManager {
   /** @param {MainControl} controller */
   constructor(controller) {
     super();
@@ -228,4 +228,4 @@ class DefaultApiClient extends DeviceManager {
     }
   }
 }
-module.exports = DefaultApiClient;
+module.exports = ApiClient;

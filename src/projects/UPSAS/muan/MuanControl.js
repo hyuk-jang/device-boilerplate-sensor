@@ -4,9 +4,9 @@ const { BM } = require('base-model-jh');
 
 const Control = require('../../../Control');
 
-const DefaultApiClient = require('../../../features/ApiCommunicator/DefaultApiClient');
+const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
 const MuanScenario = require('./MuanScenario');
-const DefaultPBS = require('../../../features/PowerStatusBoard/DefaultPBS');
+const PBS = require('../../../features/PowerStatusBoard/PBS');
 
 class MuanControl extends Control {
   // /** @param {integratedDataLoggerConfig} config */
@@ -15,12 +15,12 @@ class MuanControl extends Control {
   // }
 
   bindingFeature() {
-    return super.bindingFeature();
+    // return super.bindingFeature();
     BU.CLI('bindingFeature');
     // super.bindingFeature();
     // const test = new DefaultApiClient(this);
     /** @type {DefaultApiClient} */
-    this.apiClient = new DefaultApiClient(this);
+    this.apiClient = new ApiClient(this);
     this.apiClient.connect({
       controlInfo: {
         hasReconnect: true,
@@ -33,7 +33,7 @@ class MuanControl extends Control {
     this.scenarioManager = new MuanScenario(this);
 
     /** @type {DefaultPBS} */
-    this.powerStatusBoard = new DefaultPBS(this);
+    this.powerStatusBoard = new PBS(this);
     this.powerStatusBoard.connect({
       controlInfo: {
         hasReconnect: true,

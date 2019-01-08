@@ -1,13 +1,12 @@
 const _ = require('lodash');
 const moment = require('moment');
-
 const Promise = require('bluebird');
 
 const { BU } = require('base-util-jh');
 
 const AbstBlockManager = require('./AbstBlockManager');
 
-require('./block.config');
+require('./block.jsdoc');
 
 class BlockManager extends AbstBlockManager {
   /**
@@ -66,7 +65,7 @@ class BlockManager extends AbstBlockManager {
     // 컨테이너에 공통으로 쓰일 data frame
     const baseDataFrame = {};
     matchingList.forEach(matchingInfo => {
-      _.assign(baseDataFrame, { [matchingInfo.fromKey]: null });
+      _.assign(baseDataFrame, { [matchingInfo.toKey]: null });
     });
 
     const baseTroubleFrame = {};
@@ -95,8 +94,6 @@ class BlockManager extends AbstBlockManager {
         placeSeq: _.get(tableRow, placeKey),
         nodeList: [],
         troubleList: [],
-        convertedNodeData: {},
-        measureDate: null,
       };
       dataStorageList.push(dataStorage);
     });
@@ -129,34 +126,111 @@ class BlockManager extends AbstBlockManager {
     // BU.CLIN(this.dataContainerList[0]);
   }
 
-  // TODO: category 시 정제 처리
-  // insertTroubleList: [], updateTroubleList: [], insertDataList: [] 생성
   /**
    * @override
    * 지정한 카테고리의 모든 데이터를 순회하면서 db에 적용할 데이터를 정제함.
    * @param {string} blockCategory  장치 Type 'inverter', 'connector'
    * @param {Date=} refineDate 해당 카테고리를 정제한 시각. insertData에 저장이 됨
-   * @param {boolean} isIgnoreError 에러를 무시하고 insertData 구문을 실행할 지 여부. default: false
    */
-  async refineDataContainer(blockCategory, refineDate = new Date(), isIgnoreError = false) {
-    BU.CLI('refineDataContainer', blockCategory);
+  async refineDataContainer(blockCategory, refineDate = new Date()) {
+    // BU.CLI('refineDataContainer', blockCategory);
     const dataContainer = this.getDataContainer(blockCategory);
 
     if (_.isEmpty(dataContainer)) {
       throw new Error(`There is no such device category. [${blockCategory}]`);
     }
 
-    // 처리 시각 저장
+    // 처리 시각 저장 및 각 list 초기화
     dataContainer.refineDate = refineDate;
+    dataContainer.insertDataList = [];
+    dataContainer.insertTroubleList = [];
+    dataContainer.updateTroubleList = [];
 
-    const { blockConfigInfo, dataStorageList } = dataContainer;
-    const { applyTableInfo, baseTableInfo, troubleTableInfo } = blockConfigInfo;
-    const { tableName, insertDateColumn, matchingList = [] } = applyTableInfo;
+    // 데이터 정제 처리
+    this.processData(dataContainer);
 
-    // 각 list 초기화
-    _.set(dataContainer, 'insertDataList', []);
-    _.set(dataContainer, 'updateTroubleList', []);
-    _.set(dataContainer, 'insertTroubleList', []);
+    // 에러 내역을 정의한 컨테이너라면 Trouble 정제 처리
+    if (!_.isEmpty(dataContainer.blockConfigInfo.troubleTableInfo)) {
+      await this.processTrouble(dataContainer);
+    }
+
+    // BU.CLIN(dataContainer.insertDataList);
+    return dataContainer;
+  }
+
+  /**
+   * DB에 컨테이너 단위로 저장된 insertDataList, insertTroubleList, updateTroubleList를 적용
+   * @param {string} blockCategory 카테고리 명
+   * @return {dataContainerDBS}
+   */
+  async saveDataToDB(blockCategory) {
+    const dataContainer = this.getDataContainer(blockCategory);
+
+    if (_.isEmpty(dataContainer)) {
+      throw new Error(`There is no such device category. [${blockCategory}]`);
+    }
+
+    // 블록 정보와 DB에 적용할 데이터
+    const { blockConfigInfo, insertDataList, insertTroubleList, updateTroubleList } = dataContainer;
+    // 데이터 Table 정보와 Trouble Table 정보
+    const { applyTableInfo, troubleTableInfo } = blockConfigInfo;
+
+    // BU.CLIS(insertTroubleList, updateTroubleList);
+
+    // list 초기화
+    dataContainer.insertDataList = [];
+    dataContainer.insertTroubleList = [];
+    dataContainer.updateTroubleList = [];
+
+    // 저장하지 않고자 할 경우 실행하지 않음.
+    if (!this.isSaveToDB) {
+      return false;
+    }
+
+    // 삽입할 데이터와 Table이 존재한다면 삽입
+    if (insertDataList.length && applyTableInfo.tableName) {
+      await this.biModule.setTables(applyTableInfo.tableName, insertDataList);
+    }
+
+    // Trouble Table 정보가 존재한다면
+    if (!_.isEmpty(troubleTableInfo)) {
+      const { tableName, indexInfo } = troubleTableInfo;
+      const { primaryKey } = indexInfo;
+
+      // 입력할 Trouble Data가 있을 경우
+      if (insertTroubleList.length) {
+        await this.biModule.setTables(tableName, insertTroubleList, false);
+      }
+
+      // 수정할 Trouble이 있을 경우
+      if (updateTroubleList.length) {
+        await this.biModule.updateTablesByPool(tableName, primaryKey, updateTroubleList, false);
+      }
+    }
+  }
+
+  /**
+   * 장치 카테고리에 맞는 타입을 가져옴
+   * @param {string} blockCategory 장치 카테고리 'inverter', 'connector' ... etc
+   * @return {dataContainerDBS}
+   */
+  getDataContainer(blockCategory) {
+    // BU.CLIN(this.dataContainerList, 3);
+    return _.find(this.dataContainerList, {
+      blockCategory,
+    });
+  }
+
+  /**
+   * @private
+   * 컨테이너 안에 포함되어 있는 저장소 목록을 순회하면서 nodeList를 의미있는 InsertData 객체로 변환 후 insertDataList에 삽입.
+   * @param {dataContainerDBS} dataContainer
+   */
+  processData(dataContainer) {
+    const { refineDate, dataStorageList, blockConfigInfo, insertDataList } = dataContainer;
+
+    const { applyTableInfo } = blockConfigInfo;
+    const { insertDateColumn, matchingList } = applyTableInfo;
 
     // dataStorageList를 순회하면서 nodeList의 데이터 유효성 검증(refineDate 기반)
     // 유효성이 검증되면 dataInfo에 nd_target_id 값과 동일한 곳에 데이터 삽입
@@ -178,33 +252,21 @@ class BlockManager extends AbstBlockManager {
         moment(refineDate),
       );
 
+      // BU.CLIN(filterdNodeList);
+
       // 필터링 된 NodeList에서 nd_target_id가 dataInfo에 존재할 경우 해당 값 정의
       filterdNodeList.forEach(nodeInfo => {
-        _.has(dataInfo, nodeInfo.nd_target_id) &&
-          _.set(dataInfo, nodeInfo.nd_target_id, nodeInfo.data);
+        const { nd_target_id: ndId, data } = nodeInfo;
+        const matchingInfo = _.find(matchingList, { fromKey: ndId });
+        // 매칭 정보가 있을 경우 데이터 변환처리 후 정의
+        if (matchingInfo !== undefined) {
+          const { calculate = 1, toFixed = 0, toKey } = matchingInfo;
+          _.set(dataInfo, toKey, _.round(_.multiply(data, calculate), toFixed));
+        }
       });
 
       // nodeList 단위로 유효성 검증이 종료되면 dataInfo를 dataContainer.insertDataList 추가
-      dataContainer.insertDataList.push(dataInfo);
-    });
-
-    // 에러 내역을 삽입할 경우
-    if (!_.isEmpty(troubleTableInfo)) {
-      await this.processTrouble(dataContainer);
-    }
-
-    // BU.CLIN(dataContainer.insertDataList);
-  }
-
-  /**
-   * 장치 카테고리에 맞는 타입을 가져옴
-   * @param {string} blockCategory 장치 카테고리 'inverter', 'connector' ... etc
-   * @return {dataContainerDBS}
-   */
-  getDataContainer(blockCategory) {
-    // BU.CLIN(this.dataContainerList, 3);
-    return _.find(this.dataContainerList, {
-      blockCategory,
+      insertDataList.push(dataInfo);
     });
   }
 
@@ -212,10 +274,9 @@ class BlockManager extends AbstBlockManager {
    * @private
    * Device Error 처리. 신규 에러라면 insert, 기존 에러라면 dbTroubleList에서 해당 에러 삭제, 최종으로 남아있는 에러는 update
    * @param {dataContainerDBS} dataContainer
-   * @param {dbTroubleRow[]} dbTroubleRows DB에서 가져온 trouble list.
    */
   async processTrouble(dataContainer) {
-    BU.CLIS('processTrouble');
+    // BU.CLIS('processTrouble');
     const {
       refineDate,
       insertTroubleList,
@@ -225,22 +286,29 @@ class BlockManager extends AbstBlockManager {
     } = dataContainer;
 
     const { troubleTableInfo } = blockConfigInfo;
+    const { changeColumnKeyInfo } = troubleTableInfo;
+    const { codeKey, fixDateKey, isErrorKey, msgKey, occurDateKey } = changeColumnKeyInfo;
 
-    const { tableName, insertDateColumn } = troubleTableInfo;
-
-    // DB 상에서 해결되지 못한 Trouble 목록을 가져옴
+    /**
+     * DB 상에서 해결되지 못한 Trouble 목록을 가져옴
+     * @type {Object[]}
+     */
     const remainTroubleRows = await this.getTroubleList(troubleTableInfo);
+    // BU.CLI(remainTroubleRows);
 
     dataStorageList.forEach(dataStorage => {
       const { nodeList, troubleFrame } = dataStorage;
 
-      // 입력할 데이터 객체 생성
-      const troubleData = _.clone(troubleFrame);
+      // 원천 Table 정보를 지닌 troubleFrame 복사
+      // ex) inverter_seq 등을 가진 객체(toKey를 가짐)
+      const troubleHeader = _.clone(troubleFrame);
 
       // is_sensor 값이 3인 대상은 오류 내역
+      /** @type {nodeInfo} */
       const troubleNode = _.find(nodeList, { is_sensor: 3 });
 
-      if (_.isObject) {
+      // trouble Node 가 존재하지 않는다면 해당 Place에는 Trouble Node가 없다고 판단
+      if (_.isObject(troubleNode)) {
         // nodeList 데이터 갱신 날짜와 refineDate의 간격 차가 스케줄러 오차 안에 들어오는 대상 필터링
         const filterdNodeList = this.controller.model.checkValidateNodeData(
           [troubleNode],
@@ -250,45 +318,50 @@ class BlockManager extends AbstBlockManager {
 
         // 배열이 존재한다는 것은 에러의 데이터가 유효하다는 것
         /** @type {troubleInfo[]} */
-        let troubleList = [];
+        let currTroubleList = [];
         if (filterdNodeList.length) {
-          troubleList = _.head(filterdNodeList);
+          currTroubleList = _.get(troubleNode, 'data', []);
         }
 
-        troubleList.forEach(troubleInfo => {
-          let hasExitError = false;
-          _.remove(remainTroubleRows, remainTroubleRow => {
+        // 현재 오류 내역 목록을 순회하면서 DB에서 존재하는 trouble과 비교하고
+        // insert, trouble, update 목록을 구성
+        currTroubleList.forEach(troubleInfo => {
+          // 남아있는 DB Trouble Rows 에서 동일한 에러가 있는지 체크. 있다면 query가 필요치 않으므로 제거.
+          /** @type {Object[]} */
+          const deletedTroubleRows = _.remove(remainTroubleRows, remainTroubleRow => {
             // code 가 같다면 설정 변수 값이 같은지 확인하여 모두 동일하다면 해당 에러 삭제
             if (remainTroubleRow.code === troubleInfo.code) {
-              // TroubleTableInfo의 AddParam에 명시된 값과 dataStorage의 config Key 값들이 전부 일치 한다면 동일 에러라고 판단
-              const everyMatching = _.every(
-                troubleTableInfo.fromToKeyTableList,
-                fromToKeyInfo =>
-                remainTroubleRow[fromToKeyInfo.toKey] === dataStorage.config[fromToKeyInfo.fromKey],
-              );
-              if (everyMatching) {
-                hasExitError = true;
-              }
-              return false;
+              return _.every(troubleHeader, (v, k) => _.eq(v, remainTroubleRow[k]));
             }
-            // new Error
-            return false;
-          })
+          });
 
-        })
+          // 삭제한 Rows 가 존재하지 않는다면 신규 에러
+          if (!deletedTroubleRows.length) {
+            const newTroubleInfo = {
+              [isErrorKey]: troubleInfo.isError,
+              [codeKey]: troubleInfo.code,
+              [msgKey]: troubleInfo.msg,
+              // nodeInfo 에서 갱신된 시간을 가져옴
+              [occurDateKey]: troubleNode.writeDate,
+              [fixDateKey]: null,
+            };
 
-
-        
-
-
-
-        
-
-        
+            // 데이터외에 추가적으로 삽입할 Trouble Header를 결합하고 Insert Trouble 목록에 삽입
+            insertTroubleList.push(_.assign(_.clone(troubleHeader), newTroubleInfo));
+          }
+        });
       }
-
-      // BU.CLI(troubleNode);
     });
+
+    // 남아있는 에러는 수정되었다고 처리
+    remainTroubleRows.forEach(remainTroubleRow => {
+      // 수정일은 데이터 갱신일로 처리
+      remainTroubleRow[fixDateKey] = dataContainer.refineDate;
+
+      updateTroubleList.push(remainTroubleRow);
+    });
+
+    // BU.CLIS(insertTroubleList, updateTroubleList);
   }
 
   /**
@@ -317,7 +390,7 @@ class BlockManager extends AbstBlockManager {
         ORDER BY originTbl.${primaryKey} ASC
     `;
 
-    return this.biModule.db.single(sql, null, true);
+    return this.biModule.db.single(sql, null, false);
   }
 }
 module.exports = BlockManager;
