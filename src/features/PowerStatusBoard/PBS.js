@@ -56,6 +56,7 @@ class PowerStatusBoard extends AbstPBS {
 
     // 수신 받은 현황판 데이터 Buffer로 변환
     const bufData = this.defaultConverter.protocolConverter.makeMsg2Buffer(data);
+    BU.CLI(bufData);
     const pbsData = Buffer.concat([Buffer.from([0x02]), bufData, Buffer.from([0x03])]);
     this.write(pbsData).catch(err => BU.errorLog('powerStatusBoard', err));
   }

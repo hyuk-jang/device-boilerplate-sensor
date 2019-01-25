@@ -1,26 +1,38 @@
 require('dotenv').config();
 // const {integratedDataLoggerConfig} = require('../../default-intelligence').dcmConfigModel;
+const ENV = process.env;
 
 const { controllerParserType } = require('../../default-intelligence').dccFlagModel;
 
 /** @type {integratedDataLoggerConfig} */
 const config = {
   projectInfo: {
-    projectMainId: 'UPSAS',
-    projectSubId: 'muan',
+    projectMainId: ENV.PJ_MAIN_ID || 'UPSAS',
+    projectSubId: ENV.PJ_SUB_ID || 'muan',
+    featureConfig: {
+      apiConfig: {
+        type: 'socket',
+        host: process.env.PJ_HTTP_HOST,
+        port: process.env.PJ_API_PORT,
+        addConfigInfo: {
+          parser: controllerParserType.socket.DELIMITER,
+          option: '\u0004',
+        },
+      },
+      powerStatusBoardConfig: {
+        type: 'serial',
+        baudRate: 9600,
+        port: 'COM17',
+      },
+    },
   },
   /** @type {dbInfo} */
   dbInfo: {
-    /** 접속 주소 구동 */
-    host: '',
-    /** user ID */
-    user: 'root',
-    /** user password */
-    password: '',
-    /** 사용할 port */
-    port: 3306,
-    /** 사용할 database */
-    database: '',
+    port: ENV.PJ_DB_PORT || '3306',
+    host: ENV.PJ_DB_HOST || 'localhost',
+    user: ENV.PJ_DB_USER || 'root',
+    password: ENV.PJ_DB_PW || 'test',
+    database: ENV.PJ_DB_DB || 'test',
   },
   uuid: 'aaaaa',
   inquirySchedulerInfo: {
@@ -30,30 +42,6 @@ const config = {
       diffType: 'minutes',
       duration: 2,
     },
-  },
-  mainSocketInfo: {
-    type: 'socket',
-    host: process.env.WEB_HTTP_HOST,
-    port: process.env.WEB_SOCKET_PORT,
-    addConfigInfo: {
-      parser: controllerParserType.socket.DELIMITER,
-      option: Buffer.from([0x04]),
-    },
-  },
-  powerStatusBoardInfo: {
-    type: 'serial',
-    /**
-     * @type {number=} Serial baud_rate
-     * @defaultvalue 9600
-     */
-    baudRate: 9600,
-    /**
-     * @type {string|number=} 대분류가 serial, socket, zigbee일 경우에 사용
-     * @example
-     * serial, zigbee --> windows(COM1~), linux(...)
-     * socket --> socket port
-     */
-    port: 'COM17',
   },
   dataLoggerList: [],
 };

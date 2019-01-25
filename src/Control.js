@@ -48,6 +48,8 @@ class Control extends EventEmitter {
     /** @type {string} 데이터 지점 ID */
     this.mainUUID = this.config.uuid;
 
+    this.dcmConfigModel = dcmConfigModel;
+
     // /** @type {DataLoggerController[]} */
     // this.preparingDataLoggerControllerList = [];
 
@@ -223,6 +225,12 @@ class Control extends EventEmitter {
     // 시나리오 관리자
     this.blockManager = new AbstBlockManager(this);
   }
+
+  /**
+   * 생성된 Feature를 구동시킴
+   * @param {dbsFeatureConfig} featureConfig
+   */
+  runFeature(featureConfig) {}
 
   /**
    * Passive Client를 수동으로 붙여줄 경우
@@ -625,7 +633,7 @@ class Control extends EventEmitter {
    *
    */
   inquiryAllDeviceStatus() {
-    BU.CLI('inquiryAllDeviceStatus')
+    BU.CLI('inquiryAllDeviceStatus');
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
 
@@ -637,12 +645,12 @@ class Control extends EventEmitter {
       requestElementList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
     };
 
-    BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
+    // BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
 
     // 명령 요청
     const hasTransferInquiryStatus = this.executeCombineOrder(requestCombinedOrder);
 
-    BU.CLI(hasTransferInquiryStatus);
+    // BU.CLI(hasTransferInquiryStatus);
 
     // 장치와의 접속이 이루어지지 않을 경우 명령 전송하지 않음
     if (!hasTransferInquiryStatus) {
@@ -674,8 +682,9 @@ class Control extends EventEmitter {
    * Data Logger Controller 로 부터 데이터 갱신이 이루어 졌을때 자동 업데이트 됨.
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
+   * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
    */
-  notifyDeviceData(dataLoggerController, renewalNodeList) {
+  notifyDeviceData(dataLoggerController, renewalNodeList, targetSensorRange = [0, 1, 2, 3]) {
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
@@ -683,10 +692,20 @@ class Control extends EventEmitter {
       if (!this.apiClient.isConnect) {
         return false;
       }
-      this.apiClient.transmitDataToServer({
-        commandType: dcmWsModel.transmitToServerCommandType.NODE,
-        data: this.model.getAllNodeStatus(nodePickKey.FOR_SERVER, renewalNodeList),
-      });
+
+      const dataList = this.model.getAllNodeStatus(
+        nodePickKey.FOR_SERVER,
+        renewalNodeList,
+        targetSensorRange,
+      );
+
+      // 데이터가 있을 경우에만 전송
+      if (dataList.length) {
+        this.apiClient.transmitDataToServer({
+          commandType: dcmWsModel.transmitToServerCommandType.NODE,
+          data: dataList,
+        });
+      }
     } catch (error) {
       BU.CLI(error);
     }

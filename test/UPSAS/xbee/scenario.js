@@ -1,13 +1,11 @@
 require('dotenv').config();
 const _ = require('lodash');
 
-const Control = require('../../../src/Control');
-
 const config = require('../../../src/config');
 const Main = require('../../../src/Main');
 
 const main = new Main();
-const control = main.setControl(config);
+const control = main.createControl(config);
 
 // control.on('completeDiscovery', () => {
 //   if (_.every(control.nodeList, 'data')) {

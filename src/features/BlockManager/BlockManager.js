@@ -385,7 +385,7 @@ class BlockManager extends AbstBlockManager {
         FROM ${tableName} originTbl
           LEFT JOIN ${tableName} joinTbl
               ON originTbl.${codeKey} = joinTbl.${codeKey} AND originTbl.${primaryKey} < joinTbl.${primaryKey}
-      ${foreignKey ? ` AND  originTbl.${foreignKey} = joinTbl.${foreignKey} ` : ''}
+      ${foreignKey ? ` AND originTbl.${foreignKey} = joinTbl.${foreignKey} ` : ''}
         WHERE joinTbl.${primaryKey} is NULL AND originTbl.${fixDateKey} is NULL
         ORDER BY originTbl.${primaryKey} ASC
     `;

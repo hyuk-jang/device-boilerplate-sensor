@@ -17,7 +17,6 @@ class AbstBlockManager {
    * @param {blockConfig[]} blockConfigList
    */
   async init(dbInfo, blockConfigList) {
-    console.trace(process.env.DBS_SAVE_BLOCK);
     if (process.env.DBS_SAVE_BLOCK === '0') {
       this.isSaveToDB = false;
     }

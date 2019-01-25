@@ -137,8 +137,8 @@ class ApiClient extends DeviceManager {
         .catch(err => BU.errorLog('transmitDataToServer', err));
       // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
-      // BU.CLI(error.stack);
-      throw error;
+      console.trace(error.stack);
+      BU.errorLog('error', 'transmitDataToServer', error);
     }
   }
 
@@ -170,7 +170,7 @@ class ApiClient extends DeviceManager {
     // this.controller.notifyDeviceData(null, this.controller.nodeList);
     this.transmitDataToServer({
       commandType: transmitToServerCommandType.NODE,
-      data: this.controller.nodeList,
+      data: this.controller.model.getAllNodeStatus(),
     });
 
     this.transmitDataToServer({

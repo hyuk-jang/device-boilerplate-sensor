@@ -21,24 +21,34 @@ class MuanControl extends Control {
     // const test = new DefaultApiClient(this);
     /** @type {DefaultApiClient} */
     this.apiClient = new ApiClient(this);
-    this.apiClient.connect({
-      controlInfo: {
-        hasReconnect: true,
-      },
-      connect_info: this.config.mainSocketInfo,
-    });
-    // this.apiClient.connect(this.config.mainSocketInfo);
 
     /** @type {MuanScenario} */
     this.scenarioManager = new MuanScenario(this);
 
-    /** @type {DefaultPBS} */
+    /** @type {PBS} */
     this.powerStatusBoard = new PBS(this);
+  }
+
+  /**
+   * 생성된 Feature를 구동시킴
+   * @param {dbsFeatureConfig} featureConfig
+   */
+  runFeature(featureConfig) {
+    BU.CLI(featureConfig);
+    const { apiConfig, powerStatusBoardConfig } = featureConfig;
+    this.apiClient.connect({
+      controlInfo: {
+        hasReconnect: true,
+      },
+      connect_info: apiConfig,
+    });
+
+    // 현황판 접속
     this.powerStatusBoard.connect({
       controlInfo: {
         hasReconnect: true,
       },
-      connect_info: this.config.powerStatusBoardInfo,
+      connect_info: powerStatusBoardConfig,
     });
   }
 
@@ -156,12 +166,16 @@ class MuanControl extends Control {
     // await Promise.delay(10);
 
     return this.config;
+  }
 
-    // _.set(this.config, 'dataLoggerList', returnValue)
-    // BU.CLI(returnValue);
-
-    // BU.CLI(file);
-    // BU.writeFile('out.json', file);
+  /**
+   * @override
+   * Data Logger Controller 로 부터 데이터 갱신이 이루어 졌을때 자동 업데이트 됨.
+   * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
+   * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
+   */
+  notifyDeviceData(dataLoggerController, renewalNodeList) {
+    super.notifyDeviceData(dataLoggerController, renewalNodeList, [0, 1]);
   }
 }
 module.exports = MuanControl;
