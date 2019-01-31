@@ -50,6 +50,8 @@ class Control extends EventEmitter {
 
     this.dcmConfigModel = dcmConfigModel;
 
+    this.Model = Model;
+
     // /** @type {DataLoggerController[]} */
     // this.preparingDataLoggerControllerList = [];
 
@@ -62,16 +64,40 @@ class Control extends EventEmitter {
     /** @type {moment.Moment} */
     this.inquirySchedulerRunMoment;
   }
+  
+  /**
+   * DBS 를 구동하기 위한 초기화 및 프로그램 시작점
+   * @param {dbInfo} dbInfo
+   * @param {string} mainUUID
+   */
+  async init(dbInfo, mainUUID) {
+    try {
+      // init Step: 1 DB 정보를 기초로 nodeList, dataLoggerList, placeList 구성
+      await this.initSetProperty(dbInfo, mainUUID);
+
+      // init Step: 2 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
+      this.initMakeConfigForDLC();
+
+      // init Step: 3 DLC 객체를 Constuction And Operation
+      // DLC ConOps는 Async이나 성공 유무를 기다리지 않고 Feature를 Binding 함
+      await this.initConOpsDLC();
+
+      // Binding Feature
+      this.bindingFeature();
+    } catch (error) {
+      BU.CLI(error);
+      BU.errorLog('init', error);
+    }
+  }
 
   /**
-   * @desc Step 1
-   * DB에서 특정 데이터를 가져오고 싶을경우
+   * @desc init Step: 1
+   * DB 정보를 기초로 nodeList, dataLoggerList, placeList 구성
    * @param {dbInfo} dbInfo
-   * @param {string} mainUUID main UUID
-   * @return {Promise.<mainConfig>}
+   * @param {string} mainUUID
    */
-  async getDataLoggerListByDB(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
-    BU.CLI('getDataLoggerListByDB', dbInfo);
+  async initSetProperty(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
+    BU.CLI('initSetProperty', dbInfo);
     this.mainUUID = mainUUID;
     this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);
@@ -79,9 +105,6 @@ class Control extends EventEmitter {
     // BU.CLI(mainUUID);
 
     const mainWhere = _.isNil(mainUUID) ? null : { uuid: mainUUID };
-
-    /** @type {dataLoggerConfig[]} */
-    const dataLoggerControllerConfigList = [];
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
     const mainInfo = await biModule.getTableRow('main', mainWhere);
@@ -116,22 +139,36 @@ class Control extends EventEmitter {
       const placeInfo = _.find(this.placeList, { place_seq: placeSeq });
       // 노드 시퀀스를 가진 객체 검색
       const nodeInfo = _.find(this.nodeList, { node_seq: nodeSeq });
+
+      // place와 node 리스트가 연결되어져 있는 node 에만 DBW API Server로 전송 flag 설정
+      _.set(nodeInfo, 'isSubmitDBW', true);
+
       // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
       if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
         !_.has(placeInfo, 'nodeList') && _.set(placeInfo, 'nodeList', []);
         placeInfo.nodeList.push(nodeInfo);
       }
     });
+  }
 
+  /**
+   * @desc init Step: 2
+   * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
+   */
+  initMakeConfigForDLC() {
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
-    this.dataLoggerList.forEach(dataLoggerInfo => {
-      const { data_logger_seq: seqDL, connect_info = {}, protocol_info = {} } = dataLoggerInfo;
+    this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
+      const {
+        data_logger_seq: seqDL,
+        connect_info: connectInfo = {},
+        protocol_info = {},
+      } = dataLoggerInfo;
 
       const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
 
       // 환경 정보가 strJson이라면 변환하여 저장
-      BU.IsJsonString(connect_info) &&
-        _.set(dataLoggerInfo, 'connect_info', JSON.parse(connect_info));
+      BU.IsJsonString(connectInfo) &&
+        _.set(dataLoggerInfo, 'connect_info', JSON.parse(connectInfo));
 
       BU.IsJsonString(protocol_info) &&
         _.set(dataLoggerInfo, 'protocol_info', JSON.parse(protocol_info));
@@ -144,32 +181,21 @@ class Control extends EventEmitter {
         deviceInfo: {},
       };
 
-      dataLoggerControllerConfigList.push(loggerConfig);
+      return loggerConfig;
     });
-
-    _.set(this, 'config.dbInfo', dbInfo);
-    _.set(this, 'config.dataLoggerList', dataLoggerControllerConfigList);
-
-    // BU.CLIN(this.config.dataLoggerList, 2);
-    // await Promise.delay(10);
-
-    return this.config;
-
-    // _.set(this.config, 'dataLoggerList', returnValue)
-    // BU.CLI(returnValue);
-
-    // BU.CLI(file);
-    // BU.writeFile('out.json', file);
   }
 
   /**
+   * @desc init Step: 3
+   * DLC 객체를 Constuction And Operation
    * 데이터 로거 객체를 생성하고 초기화를 진행
    * 1. setDeviceInfo --> controlInfo 정의 및 logOption 정의, deviceInfo 생성
    * 2. DCM, DPC, Model 정의
    * 3. Commander 를 Observer로 등록
    * 4. 생성 객체를 routerLists 에 삽입
    */
-  async init() {
+  async initConOpsDLC() {
+    BU.CLI('initConOpsDLC');
     try {
       // BU.CLI(this.mainUUID, this.dataLoggerList.length);
       // BU.CLIN(this.dataLoggerList);
@@ -201,11 +227,9 @@ class Control extends EventEmitter {
       // BU.CLIN(this.dataLoggerControllerList);
 
       /** @type {Model} */
-      this.model = _.has(this, 'Model') ? new this.Model(this) : new Model(this);
+      this.model = new this.Model(this);
       // DBS 사용 Map 설정
       await this.model.setMap();
-
-      this.bindingFeature();
 
       return this.dataLoggerControllerList;
     } catch (error) {
@@ -213,7 +237,10 @@ class Control extends EventEmitter {
     }
   }
 
-  /** DBS 순수 기능 외에 추가 될 기능 */
+  /**
+   * @desc init Step: 4
+   * DBS 순수 기능 외에 추가 될 기능
+   */
   bindingFeature() {
     BU.CLI('bindingFeature');
     // API Socket Server
@@ -227,6 +254,7 @@ class Control extends EventEmitter {
   }
 
   /**
+   * @desc init Step: 5
    * 생성된 Feature를 구동시킴
    * @param {dbsFeatureConfig} featureConfig
    */

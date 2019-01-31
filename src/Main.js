@@ -41,6 +41,7 @@ class Main {
         break;
     }
 
+    console.log(MainModel);
     MainControl.Model = MainModel;
 
     const mainControl = new MainControl(config);

@@ -18,17 +18,16 @@ control.on('completeDiscovery', () => {
 });
 
 control
-  .getDataLoggerListByDB(
+  .init(
     {
-      database: process.env.WEB_DB_DB,
-      host: process.env.WEB_DB_HOST,
-      password: process.env.WEB_DB_PW,
-      port: process.env.WEB_DB_PORT,
-      user: process.env.WEB_DB_USER,
+      port: process.env.PJ_DB_PORT || '3306',
+      host: process.env.PJ_DB_HOST || 'localhost',
+      user: process.env.PJ_DB_USER || 'root',
+      password: process.env.PJ_DB_PW || 'test',
+      database: process.env.PJ_DB_DB || 'test',
     },
     '001',
   )
-  .then(() => control.init())
   .then(
     () =>
       // BU.CLI('@@@@@@@@@@@@@@@@@@@@@@@@@@@@');

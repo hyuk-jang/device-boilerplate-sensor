@@ -111,18 +111,17 @@ control.on('completeOrder', commandId => {
 });
 
 control
-  .getDataLoggerListByDB(
+  .init(
     {
-      host: process.env.WEB_DB_HOST,
-      port: process.env.WEB_DB_PORT,
-      user: process.env.WEB_DB_USER,
-      password: process.env.WEB_DB_PW,
-      database: process.env.WEB_DB_DB,
+      port: process.env.PJ_DB_PORT || '3306',
+      host: process.env.PJ_DB_HOST || 'localhost',
+      user: process.env.PJ_DB_USER || 'root',
+      password: process.env.PJ_DB_PW || 'test',
+      database: process.env.PJ_DB_DB || 'test',
     },
     'aaaaa',
   )
   .then(() => {
-    control.init();
     setTimeout(() => {
       // 명령 제어 요청
       control.executeAutomaticControl(testDumpCmd);

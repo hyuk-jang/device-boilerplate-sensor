@@ -18,24 +18,7 @@ if (require !== undefined && require.main === module) {
   const control = main.createControl(config);
   // control.init();
   control
-    .getDataLoggerListByDB(dbInfo, config.uuid)
-    .then(
-      () => control.init(),
-
-      // setTimeout(() => {
-      //   control.executeSingleControl({
-      //     nodeId: 'V_001',
-      //     controlValue: 2,
-      //   });
-      // }, 1000);
-
-      // setTimeout(() => {
-      //   control.discoveryRegularDevice(moment());
-      // }, 1000);
-      // setTimeout(() => {
-      //   control.requestPowerStatusBoardInfo();
-      // }, 2000);
-    )
+    .init(dbInfo, config.uuid)
     .then(dataLoggerControllerList => {
       BU.CLI('start Program');
       // BU.CLIN(dataLoggerControllerList);

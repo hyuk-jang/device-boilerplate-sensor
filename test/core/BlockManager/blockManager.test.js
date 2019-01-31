@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+const ENV = process.env;
+
 const Promise = require('bluebird');
 const eventToPromise = require('event-to-promise');
 
@@ -14,11 +16,11 @@ const config = require('../../../src/config');
 const BlockManager = require('../../../src/features/BlockManager/BlockManager');
 
 const dbInfo = {
-  host: process.env.WEB_DB_HOST,
-  database: process.env.WEB_DB_DB,
-  port: process.env.WEB_DB_PORT,
-  user: process.env.WEB_DB_USER,
-  password: process.env.WEB_DB_PW,
+  port: ENV.PJ_DB_PORT || '3306',
+  host: ENV.PJ_DB_HOST || 'localhost',
+  user: ENV.PJ_DB_USER || 'root',
+  password: ENV.PJ_DB_PW || 'test',
+  database: ENV.PJ_DB_DB || 'test',
 };
 
 describe('Step 1', () => {
@@ -36,8 +38,7 @@ describe('Step 1', () => {
       },
     });
 
-    await controller.getDataLoggerListByDB(dbInfo);
-    await controller.init();
+    await controller.init(dbInfo);
 
     const blockManager = new BlockManager();
 

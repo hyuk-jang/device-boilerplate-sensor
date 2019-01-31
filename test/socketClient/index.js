@@ -293,7 +293,7 @@ function callAllStatus() {}
 
 // 초기화
 // control
-//   .getDataLoggerListByDB(
+//   .init(
 //     {
 //       database: process.env.DB_UPSAS_DB,
 //       host: process.env.DB_UPSAS_HOST,
@@ -304,7 +304,6 @@ function callAllStatus() {}
 //     'aaaaa',
 //   )
 //   .then(() => {
-//     control.init();
 //     setTimeout(() => {
 //       // 노드 정보 전송
 //       transmitNodeScenario();

@@ -34,7 +34,6 @@ const config = {
     password: ENV.PJ_DB_PW || 'test',
     database: ENV.PJ_DB_DB || 'test',
   },
-  uuid: 'aaaaa',
   inquirySchedulerInfo: {
     intervalCronFormat: '0 * * * * *',
     intervalSaveCnt: 1,
