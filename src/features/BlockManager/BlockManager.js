@@ -6,6 +6,8 @@ const { BU } = require('base-util-jh');
 
 const AbstBlockManager = require('./AbstBlockManager');
 
+const { TROUBLE } = require('../../../../default-intelligence').dcmConfigModel.nodeDataType;
+
 require('./block.jsdoc');
 
 class BlockManager extends AbstBlockManager {
@@ -303,9 +305,9 @@ class BlockManager extends AbstBlockManager {
       // ex) inverter_seq 등을 가진 객체(toKey를 가짐)
       const troubleHeader = _.clone(troubleFrame);
 
-      // is_sensor 값이 3인 대상은 오류 내역
+      // save_db_type 값이 TROUBLE인 대상은 오류 내역
       /** @type {nodeInfo} */
-      const troubleNode = _.find(nodeList, { is_sensor: 3 });
+      const troubleNode = _.find(nodeList, { save_db_type: TROUBLE });
 
       // trouble Node 가 존재하지 않는다면 해당 Place에는 Trouble Node가 없다고 판단
       if (_.isObject(troubleNode)) {

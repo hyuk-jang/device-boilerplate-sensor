@@ -13,6 +13,7 @@ const {
   requestOrderCommandType,
   simpleOrderStatus,
   nodePickKey,
+  nodeDataType,
 } = dcmConfigModel;
 
 const { transmitToServerCommandType } = dcmWsModel;
@@ -619,15 +620,10 @@ class Model {
    * @param {nodeInfo[]=} nodeList
    * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
    */
-  getAllNodeStatus(
-    nodePickKeyList = nodePickKey.FOR_SERVER,
-    nodeList = this.nodeList,
-    targetSensorRange = [0, 1, 2, 3],
-  ) {
+  getAllNodeStatus(nodePickKeyList = nodePickKey.FOR_SERVER, nodeList = this.nodeList) {
     const orderKey = _.includes(nodePickKeyList, 'node_id') ? 'node_id' : _.head(nodePickKeyList);
 
     const statusList = _(nodeList)
-      .filter(nodeInfo => _.includes(targetSensorRange, nodeInfo.is_sensor))
       .map(nodeInfo => {
         if (nodePickKeyList) {
           return _.pick(nodeInfo, nodePickKeyList);
@@ -638,7 +634,6 @@ class Model {
       .value();
     // BU.CLI(statusList);
     return statusList;
-    // BU.CLI(this.nodeList);
   }
 
   /**
@@ -677,14 +672,14 @@ class Model {
    * @param {{hasSensor: boolean, hasDevice: boolean}} insertOption DB에 입력 처리 체크
    */
   async insertNodeDataToDB(nodeList, insertOption = { hasSensor: false, hasDevice: false }) {
+    const { DEVICE, SENSOR } = nodeDataType;
+    const { FOR_DB } = nodePickKey;
     const returnValue = [];
     try {
       if (insertOption.hasSensor) {
         const nodeSensorList = _(nodeList)
-          .filter(ele => ele.is_sensor === 1 && _.isNumber(ele.node_seq) && _.isNumber(ele.data))
-          .map(ele =>
-            BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
-          )
+          .filter(ele => ele.save_db_type === SENSOR && _.isNumber(ele.data))
+          .map(ele => BU.renameObj(_.pick(ele, FOR_DB), 'data', 'num_data'))
           .value();
         // BU.CLI(nodeSensorList);
         const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
@@ -694,10 +689,8 @@ class Model {
       // 장치류 삽입
       if (insertOption.hasDevice) {
         const nodeDeviceList = _(nodeList)
-          .filter(ele => ele.is_sensor === 0 && _.isNumber(ele.node_seq) && _.isString(ele.data))
-          .map(ele =>
-            BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'str_data'),
-          )
+          .filter(ele => ele.save_db_type === DEVICE && _.isString(ele.data))
+          .map(ele => BU.renameObj(_.pick(ele, FOR_DB), 'data', 'str_data'))
           .value();
 
         // BU.CLI(nodeDeviceList);

@@ -64,7 +64,7 @@ class Control extends EventEmitter {
     /** @type {moment.Moment} */
     this.inquirySchedulerRunMoment;
   }
-  
+
   /**
    * DBS 를 구동하기 위한 초기화 및 프로그램 시작점
    * @param {dbInfo} dbInfo
@@ -140,11 +140,12 @@ class Control extends EventEmitter {
       // 노드 시퀀스를 가진 객체 검색
       const nodeInfo = _.find(this.nodeList, { node_seq: nodeSeq });
 
-      // place와 node 리스트가 연결되어져 있는 node 에만 DBW API Server로 전송 flag 설정
-      _.set(nodeInfo, 'isSubmitDBW', true);
-
       // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
       if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
+        // 노드 정보가 있고 데이터 로거에 해당 장치가 등록되어져있다면 API 서버로 전송 Flag 설정
+        _.find(this.dataLoggerList, { data_logger_seq: nodeInfo.data_logger_seq }) &&
+          _.set(nodeInfo, 'isSubmitDBW', true);
+
         !_.has(placeInfo, 'nodeList') && _.set(placeInfo, 'nodeList', []);
         placeInfo.nodeList.push(nodeInfo);
       }
@@ -710,9 +711,8 @@ class Control extends EventEmitter {
    * Data Logger Controller 로 부터 데이터 갱신이 이루어 졌을때 자동 업데이트 됨.
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
-   * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
    */
-  notifyDeviceData(dataLoggerController, renewalNodeList, targetSensorRange = [0, 1, 2, 3]) {
+  notifyDeviceData(dataLoggerController, renewalNodeList) {
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
@@ -723,8 +723,7 @@ class Control extends EventEmitter {
 
       const dataList = this.model.getAllNodeStatus(
         nodePickKey.FOR_SERVER,
-        renewalNodeList,
-        targetSensorRange,
+        renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
       );
 
       // 데이터가 있을 경우에만 전송
