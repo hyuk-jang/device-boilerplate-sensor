@@ -52,28 +52,10 @@ class Model {
     this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);
     this.inquirySchedulerCurrCount = 0;
 
-    // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
-    // this.excuteControlList = map.controlList;
-  }
+    this.deviceMap = controller.deviceMap;
 
-  /**
-   * DBS가 사용하는 Device Map을 설정
-   */
-  async setMap() {
-    const { mainUUID: uuid } = this.controller;
-    /** @type {MAIN[]} */
-    const mainInfo = await this.biModule.getTableRow('main', { uuid });
-    if (_.isEmpty(mainInfo)) {
-      throw new Error(`Main UUID: ${uuid}는 존재하지 않습니다.`);
-    }
-    // /** @type {MAIN_MAP[]} */
-    // const mapList = await this.BM.getTable('main_map', { main_seq: mainInfo.main_seq });
-    // if (_.isEmpty(mapList)) {
-    //   throw new Error(`Map UUID: ${uuid}는 존재하지 않습니다.`);
-    // }
-    /** @type {mDeviceMap} */
-    this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {};
-    // BU.CLI(this.deviceMap);
+    // this.excuteControlList = map.controlList;
+    // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
   }
 

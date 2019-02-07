@@ -7,7 +7,7 @@ const Main = require('../../../src/Main');
 const main = new Main();
 const control = main.createControl(config);
 
-// control.on('completeDiscovery', () => {
+// control.on('completeInquiryAllDeviceStatus', () => {
 //   if (_.every(control.nodeList, 'data')) {
 //     console.trace('모든 장치 데이터 입력 검증 완료');
 //   } else {

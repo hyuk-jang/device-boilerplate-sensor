@@ -7,7 +7,7 @@ const config = require('../../../src/config');
 config.uuid = '001';
 const control = new Control(config);
 
-control.on('completeDiscovery', () => {
+control.on('completeInquiryAllDeviceStatus', () => {
   if (_.every(control.nodeList, nodeInfo => !_.isNil(nodeInfo.data))) {
     BU.CLI('SUCCESS', '모든 장치 데이터 입력 검증 완료');
   } else {

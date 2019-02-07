@@ -107,6 +107,7 @@ class Control extends EventEmitter {
     const mainWhere = _.isNil(mainUUID) ? null : { uuid: mainUUID };
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
+    /** @type {MAIN[]} */
     const mainInfo = await biModule.getTableRow('main', mainWhere);
 
     // UUID가 동일한 정보가 없다면 종료
@@ -121,6 +122,9 @@ class Control extends EventEmitter {
     const where = {
       main_seq: _.get(mainInfo, 'main_seq', ''),
     };
+
+    /** @type {mDeviceMap} */
+    this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {};
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
@@ -142,9 +146,17 @@ class Control extends EventEmitter {
 
       // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
       if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
+        // svg node로 표현하는 객체만 API 서버로 전송 Flag 설정
+        const { svgNodeList } = this.deviceMap.drawInfo.positionInfo;
+        const svgNodeInfo = _.find(svgNodeList, { nodeDefId: nodeInfo.nd_target_id });
+        if (svgNodeInfo) {
+          const { defList } = svgNodeInfo;
+          _.find(defList, { id: nodeInfo.node_id }) && _.set(nodeInfo, 'isSubmitDBW', true);
+        }
+
         // 노드 정보가 있고 데이터 로거에 해당 장치가 등록되어져있다면 API 서버로 전송 Flag 설정
-        _.find(this.dataLoggerList, { data_logger_seq: nodeInfo.data_logger_seq }) &&
-          _.set(nodeInfo, 'isSubmitDBW', true);
+        // _.find(this.dataLoggerList, { data_logger_seq: nodeInfo.data_logger_seq }) &&
+        //   _.set(nodeInfo, 'isSubmitDBW', true);
 
         !_.has(placeInfo, 'nodeList') && _.set(placeInfo, 'nodeList', []);
         placeInfo.nodeList.push(nodeInfo);
@@ -229,8 +241,6 @@ class Control extends EventEmitter {
 
       /** @type {Model} */
       this.model = new this.Model(this);
-      // DBS 사용 Map 설정
-      await this.model.setMap();
 
       return this.dataLoggerControllerList;
     } catch (error) {
@@ -250,7 +260,7 @@ class Control extends EventEmitter {
     this.powerStatusBoard = new AbstPBS(this);
     // 시나리오 관리자
     this.scenarioManager = new AbstScenario(this);
-    // 시나리오 관리자
+    // 블록 매니저
     this.blockManager = new AbstBlockManager(this);
   }
 
@@ -259,7 +269,7 @@ class Control extends EventEmitter {
    * 생성된 Feature를 구동시킴
    * @param {dbsFeatureConfig} featureConfig
    */
-  runFeature(featureConfig) {}
+  async runFeature(featureConfig) {}
 
   /**
    * Passive Client를 수동으로 붙여줄 경우

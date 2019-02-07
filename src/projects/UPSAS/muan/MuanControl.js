@@ -7,6 +7,9 @@ const Control = require('../../../Control');
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
 const MuanScenario = require('./MuanScenario');
 const PBS = require('../../../features/PowerStatusBoard/PBS');
+const BlockManager = require('../../../features/BlockManager/BlockManager');
+
+const blockConfig = require('./block.config');
 
 class MuanControl extends Control {
   // /** @param {integratedDataLoggerConfig} config */
@@ -27,13 +30,19 @@ class MuanControl extends Control {
 
     /** @type {PBS} */
     this.powerStatusBoard = new PBS(this);
+
+    /** @type {BlockManager} */
+    this.blockManager = new BlockManager(this);
+
+    this.bindingEventHandler();
   }
 
   /**
+   * @override
    * 생성된 Feature를 구동시킴
    * @param {dbsFeatureConfig} featureConfig
    */
-  runFeature(featureConfig) {
+  async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     BU.CLI(featureConfig);
     const { apiConfig, powerStatusBoardConfig } = featureConfig;
     this.apiClient.connect({
@@ -50,8 +59,15 @@ class MuanControl extends Control {
       },
       connect_info: powerStatusBoardConfig,
     });
+
+    await this.blockManager.init(this.config.dbInfo, blockConfig);
   }
 
+  /**
+   * @override
+   * @desc init Step: 2
+   * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
+   */
   initMakeConfigForDLC() {
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
@@ -101,6 +117,14 @@ class MuanControl extends Control {
       };
 
       return loggerConfig;
+    });
+  }
+
+  bindingEventHandler() {
+    this.on('completeInquiryAllDeviceStatus', err => {
+      this.blockManager
+        .refineDataContainer('inverter')
+        .then(() => this.blockManager.saveDataToDB('inverter'));
     });
   }
 }

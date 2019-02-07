@@ -19,16 +19,11 @@ if (require !== undefined && require.main === module) {
   // control.init();
   control
     .init(dbInfo, config.uuid)
-    .then(dataLoggerControllerList => {
+    .then(() => {
+      control.runFeature();
       BU.CLI('start Program');
-      // BU.CLIN(dataLoggerControllerList);
-      // const dataLogger = control.model.findDataLoggerController('WL_001');
-      // control.executeSingleControl({
-      //   controlValue: 2,
-      //   nodeId: 'V_001',
-      // });
-      // control.inquiryAllDeviceStatus(moment());
-      // control.runDeviceInquiryScheduler();
+      // control.inquiryAllDeviceStatus();
+      control.runDeviceInquiryScheduler();
     })
     .catch(err => {
       BU.CLI(err);

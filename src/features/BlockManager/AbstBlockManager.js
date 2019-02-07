@@ -49,7 +49,7 @@ class AbstBlockManager {
    * @desc only DBS.
    * Device Client 추가
    * @param {blockConfig[]} blockConfigList
-   * @return {dataContainerDBS[]}
+   * @return {Promise.<dataContainerDBS[]>}
    */
   async setBlockTable(blockConfigList) {}
 
@@ -63,16 +63,15 @@ class AbstBlockManager {
   /**
    * 지정한 카테고리의 모든 데이터를 순회하면서 db에 적용할 데이터를 정제함.
    * @param {string} blockCategory  장치 Type 'inverter', 'connector'
-   * @param {Date=} processingDate 해당 카테고리를 DB에 처리한 시각. insertData에 저장이 됨
-   * @param {boolean} hasIgnoreError 에러를 무시하고 insertData 구문을 실애할 지 여부. default: false
-   * @return {dataContainerDBS}
+   * @param {Date=} refineDate 해당 카테고리를 정제한 시각. insertData에 저장이 됨
+   * @return {Promise.<dataContainerDBS>}
    */
-  async refineDataContainer(blockCategory, processingDate, hasIgnoreError) {}
+  async refineDataContainer(blockCategory, refineDate = new Date()) {}
 
   /**
    * DB에 컨테이너 단위로 저장된 insertDataList, insertTroubleList, updateTroubleList를 적용
    * @param {string} blockCategory 카테고리 명
-   * @return {dataContainerDBS}
+   * @return {Promise.<dataContainerDBS>}
    */
   async saveDataToDB(blockCategory) {}
 
