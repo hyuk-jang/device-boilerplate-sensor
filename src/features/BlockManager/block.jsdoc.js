@@ -61,8 +61,8 @@
  * @typedef {Object} fromToKeyParam 데이터 객체를 DB에 반영하기 위하여 Key 값을 가공할 정보
  * @property {string} fromKey 현 객체 값을 지닌 Key
  * @property {string} toKey DB에 삽입할 Key
- * @property {number=} calculate 데이터 곱셈 배율.
- * @property {number=} toFixed 가공을 통해 나온 값의 소수점 처리 자리 수.
+ * @property {number=} calculate 데이터 곱셈 배율. default: 1
+ * @property {number=} toFixed 가공을 통해 나온 값의 소수점 처리 자리 수. default: 1
  * @example
  * calculate 1: 현재 값에 1배수. 즉 현재 값을 그대로 사용. default
  * calculate 10: 현재 값에 10배수. 데이터: 25.3 --> 253 변경

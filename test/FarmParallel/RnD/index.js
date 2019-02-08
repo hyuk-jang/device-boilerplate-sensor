@@ -2,7 +2,6 @@ require('dotenv').config();
 
 const _ = require('lodash');
 
-const Promise = require('bluebird');
 const eventToPromise = require('event-to-promise');
 
 const { BU } = require('base-util-jh');
@@ -16,7 +15,7 @@ const { dbInfo } = config;
 
 const BlockManager = require('../../../src/features/BlockManager/BlockManager');
 
-BU.CLI(config);
+// BU.CLI(config);
 
 // TEST: DBS 테스트
 // 1. DB 접속 정보(mysql)를 바탕으로 dataContainer를 구성.

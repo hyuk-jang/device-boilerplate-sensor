@@ -5,8 +5,6 @@ const { BM } = require('base-model-jh');
 const Control = require('../../../Control');
 
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
-const MuanScenario = require('./MuanScenario');
-const PBS = require('../../../features/PowerStatusBoard/PBS');
 const BlockManager = require('../../../features/BlockManager/BlockManager');
 
 const blockConfig = require('./block.config');
@@ -25,12 +23,6 @@ class MuanControl extends Control {
     /** @type {DefaultApiClient} */
     this.apiClient = new ApiClient(this);
 
-    /** @type {MuanScenario} */
-    this.scenarioManager = new MuanScenario(this);
-
-    /** @type {PBS} */
-    this.powerStatusBoard = new PBS(this);
-
     /** @type {BlockManager} */
     this.blockManager = new BlockManager(this);
 
@@ -44,20 +36,12 @@ class MuanControl extends Control {
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     BU.CLI(featureConfig);
-    const { apiConfig, powerStatusBoardConfig } = featureConfig;
+    const { apiConfig } = featureConfig;
     this.apiClient.connect({
       controlInfo: {
         hasReconnect: true,
       },
       connect_info: apiConfig,
-    });
-
-    // 현황판 접속
-    this.powerStatusBoard.connect({
-      controlInfo: {
-        hasReconnect: true,
-      },
-      connect_info: powerStatusBoardConfig,
     });
 
     await this.blockManager.init(this.config.dbInfo, blockConfig);
@@ -90,24 +74,24 @@ class MuanControl extends Control {
       }
 
       // FIXME: TEST 로 사용됨  -------------
-      if (connInfo.type === 'zigbee') {
+      // 농병 센서
+      if (protoInfo.mainCategory === 'FarmParallel') {
         connInfo.type = 'socket';
-        connInfo.subType = 'parser';
+        connInfo.subType = '';
         connInfo.port = 9000;
-        connInfo.addConfigInfo = {
-          parser: 'delimiterParser',
-          option: '}}',
-        };
-      } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
+        // connInfo.addConfigInfo = {
+        //   parser: 'delimiterParser',
+        //   option: '}}',
+        // };
+      } else if (protoInfo.subCategory === 'das_1.3') {
         connInfo.type = 'socket';
         connInfo.port = 9001;
         connInfo.subType = '';
         delete connInfo.addConfigInfo;
-      } else if (connInfo.type === 'serial' && connInfo.subType === '') {
+      } else if (protoInfo.subCategory === 's5500k') {
         connInfo.type = 'socket';
         connInfo.port = 9002;
       }
-
       // FIXME: TEST 로 사용됨  -------------
 
       // 변환한 설정정보 입력
@@ -126,18 +110,11 @@ class MuanControl extends Control {
     });
   }
 
-  /**
-   * Control에서 Event가 발생했을 경우 처리 과정을 바인딩
-   * 1. 정기 계측 명령이 완료되었을 경우 inverter 카테고리 데이터 정제 후 DB 저장
-   */
   bindingEventHandler() {
     this.on('completeInquiryAllDeviceStatus', err => {
       this.blockManager
         .refineDataContainer('inverter')
-        .then(() => this.blockManager.saveDataToDB('inverter'))
-        .catch(error => {
-          BU.CLI(error.name);
-        });
+        .then(() => this.blockManager.saveDataToDB('inverter'));
     });
   }
 }

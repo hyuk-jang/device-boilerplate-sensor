@@ -16,7 +16,7 @@ class BlockManager extends AbstBlockManager {
    * @param {blockConfig[]} blockConfigList
    */
   async setBlockTable(blockConfigList) {
-    BU.CLI('setDeviceForDB');
+    BU.CLI('setBlockTable');
     const completeStorageList = [];
 
     blockConfigList.forEach(blockConfigInfo => {
@@ -45,7 +45,6 @@ class BlockManager extends AbstBlockManager {
 
     /** @type {dataContainerDBS[]} */
     const dataStorageList = await Promise.all(completeStorageList);
-
     return dataStorageList;
   }
 
@@ -217,7 +216,8 @@ class BlockManager extends AbstBlockManager {
    * @return {dataContainerDBS}
    */
   getDataContainer(blockCategory) {
-    // BU.CLIN(this.dataContainerList, 3);
+    // BU.CLI('getDataContainer')
+    // BU.CLIN(this.dataContainerList, 2);
     return _.find(this.dataContainerList, {
       blockCategory,
     });
@@ -262,7 +262,7 @@ class BlockManager extends AbstBlockManager {
         const matchingInfo = _.find(matchingList, { fromKey: ndId });
         // 매칭 정보가 있을 경우 데이터 변환처리 후 정의
         if (matchingInfo !== undefined) {
-          const { calculate = 1, toFixed = 0, toKey } = matchingInfo;
+          const { calculate = 1, toFixed = 1, toKey } = matchingInfo;
           _.set(dataInfo, toKey, _.round(_.multiply(data, calculate), toFixed));
         }
       });

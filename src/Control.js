@@ -174,17 +174,24 @@ class Control extends EventEmitter {
       const {
         data_logger_seq: seqDL,
         connect_info: connectInfo = {},
-        protocol_info = {},
+        protocol_info: protocolInfo = {},
       } = dataLoggerInfo;
 
       const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
 
-      // 환경 정보가 strJson이라면 변환하여 저장
-      BU.IsJsonString(connectInfo) &&
-        _.set(dataLoggerInfo, 'connect_info', JSON.parse(connectInfo));
+      /** @type {connect_info} */
+      const connInfo = JSON.parse(connectInfo);
+      /** @type {protocol_info} */
+      const protoInfo = JSON.parse(protocolInfo);
 
-      BU.IsJsonString(protocol_info) &&
-        _.set(dataLoggerInfo, 'protocol_info', JSON.parse(protocol_info));
+      // 장치 id가 Buffer 타입이라면 Buffer로 변환 후 strnig 으로 변환
+      if (protoInfo.deviceId && protoInfo.deviceId.type === 'Buffer') {
+        protoInfo.deviceId = Buffer.from(protoInfo.deviceId.data).toString();
+      }
+
+      // 변환한 설정정보 입력
+      _.set(dataLoggerInfo, 'connect_info', connInfo);
+      _.set(dataLoggerInfo, 'protocol_info', protoInfo);
 
       /** @type {dataLoggerConfig} */
       const loggerConfig = {
