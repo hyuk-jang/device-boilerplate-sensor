@@ -82,11 +82,13 @@ class MuanControl extends Control {
         connInfo.port = 9000;
         connInfo.hasPassive = false;
 
-        connInfo = {};
+        protoInfo.wrapperCategory = 'default';
         // connInfo.addConfigInfo = {
         //   parser: 'delimiterParser',
         //   option: '}}',
         // };
+
+        // connInfo = {};
       } else if (protoInfo.subCategory === 'das_1.3') {
         connInfo.type = 'socket';
         connInfo.port = 9001;
@@ -95,6 +97,10 @@ class MuanControl extends Control {
 
         protoInfo.wrapperCategory = 'default';
         delete connInfo.addConfigInfo;
+
+        BU.CLI(protoInfo);
+
+        // connInfo = {};
       } else if (protoInfo.subCategory === 's5500k') {
         BU.CLI('s5500k');
         connInfo.type = 'socket';
@@ -105,6 +111,8 @@ class MuanControl extends Control {
         protoInfo.wrapperCategory = 'default';
 
         delete connInfo.addConfigInfo;
+
+        connInfo = {};
       }
       // FIXME: TEST 로 사용됨  -------------
 
@@ -125,11 +133,14 @@ class MuanControl extends Control {
   }
 
   bindingEventHandler() {
-    // this.on('completeInquiryAllDeviceStatus', () => {
-    //   this.blockManager
-    //     .refineDataContainer('inverter')
-    //     .then(() => this.blockManager.saveDataToDB('inverter'));
-    // });
+    this.on('completeInquiryAllDeviceStatus', () => {
+      this.blockManager
+        .refineDataContainer('inverter')
+        .then(() => this.blockManager.saveDataToDB('inverter'));
+      // this.blockManager
+      //   .refineDataContainer('farmSensor')
+      //   .then(() => this.blockManager.saveDataToDB('farmSensor'));
+    });
   }
 }
 module.exports = MuanControl;

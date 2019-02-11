@@ -2,6 +2,7 @@
  * @typedef {Object} dataContainerDBS Device Category별로 dataStorage를 관리하는 주체
  * @property {string} blockCategory 장치(블록) 카테고리 (inverter, connector, weatherDevice, ...etc)
  * @property {blockConfig} blockConfigInfo 데이터를 가공하기 위한 설정 변수
+ * @property {Object} troubleWhere trouble 정보를 가져올 Where 옵션
  * @property {Array} insertTroubleList 신규 오류 리스트
  * @property {Array} updateTroubleList 기존 DB의 오류 내역을 수정할 리스트
  * @property {Array} insertDataList 저장할 계측 데이터 리스트
@@ -41,6 +42,7 @@
  * @property {string} tableName 참조할 Table 명
  * @property {string} idKey Table Row 당 ID로 사용할 컬럼 명
  * @property {string} placeKey Table Row와 연결되어 있는 place seq 컬럼 명
+ * @property {string[]=} placeClassKeyList dv_class를 참조할 경우 filtering 할 place_class target_id List
  * @property {fromToKeyTableInfo[]} fromToKeyTableList tableName에 지정한 table에서 추출할 Param 값 목록
  */
 

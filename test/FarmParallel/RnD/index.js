@@ -29,7 +29,7 @@ async function testManager() {
     // 2. 가상 placeList를 바탕으로 dataStorage 단위로 nodeInfo 를 붙임.
     const main = new Main();
 
-    config.uuid = '002';
+    config.uuid = '001';
 
     const controller = main.createControl(config);
 
@@ -59,16 +59,15 @@ async function testManager() {
 
     await eventToPromise(controller, 'completeInquiryAllDeviceStatus');
 
-    console.time('refineDataContainer');
-    await blockManager.refineDataContainer('inverter');
-    console.timeEnd('refineDataContainer');
+    // console.time('refineDataContainer');
+    // await blockManager.refineDataContainer('inverter');
+    // console.timeEnd('refineDataContainer');
 
-    BU.CLIN(blockManager.getDataContainer('inverter'));
+    // BU.CLIN(blockManager.getDataContainer('inverter'));
 
-    return;
-    console.time('saveDataToDB');
-    await blockManager.saveDataToDB('inverter');
-    console.timeEnd('saveDataToDB');
+    // console.time('saveDataToDB');
+    // await blockManager.saveDataToDB('inverter');
+    // console.timeEnd('saveDataToDB');
 
     BU.CLI('complete All');
   } catch (error) {

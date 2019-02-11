@@ -103,6 +103,7 @@ const blockConfigInfo = [
       tableName: 'v_dv_place',
       idKey: 'place_real_id',
       placeKey: 'place_seq',
+      placeClassKeyList: ['farmParallelSite', 'outside'],
       fromToKeyTableList: [
         {
           fromKey: 'place_seq',
