@@ -53,6 +53,7 @@ class MuanControl extends Control {
    * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
    */
   initMakeConfigForDLC() {
+    BU.CLI('initMakeConfigForDLC');
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
       const {
@@ -64,7 +65,7 @@ class MuanControl extends Control {
       const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
 
       /** @type {connect_info} */
-      const connInfo = JSON.parse(connectInfo);
+      let connInfo = JSON.parse(connectInfo);
       /** @type {protocol_info} */
       const protoInfo = JSON.parse(protocolInfo);
 
@@ -79,6 +80,9 @@ class MuanControl extends Control {
         connInfo.type = 'socket';
         connInfo.subType = '';
         connInfo.port = 9000;
+        connInfo.hasPassive = false;
+
+        connInfo = {};
         // connInfo.addConfigInfo = {
         //   parser: 'delimiterParser',
         //   option: '}}',
@@ -86,17 +90,27 @@ class MuanControl extends Control {
       } else if (protoInfo.subCategory === 'das_1.3') {
         connInfo.type = 'socket';
         connInfo.port = 9001;
-        connInfo.subType = '';
+        // connInfo.subType = '';
+        connInfo.hasPassive = false;
+
+        protoInfo.wrapperCategory = 'default';
         delete connInfo.addConfigInfo;
       } else if (protoInfo.subCategory === 's5500k') {
+        BU.CLI('s5500k');
         connInfo.type = 'socket';
         connInfo.port = 9002;
+        // connInfo.subType = '';
+        connInfo.hasPassive = false;
+
+        protoInfo.wrapperCategory = 'default';
+
+        delete connInfo.addConfigInfo;
       }
       // FIXME: TEST 로 사용됨  -------------
 
       // 변환한 설정정보 입력
-      _.set(dataLoggerInfo, 'connect_info', connInfo);
-      _.set(dataLoggerInfo, 'protocol_info', protoInfo);
+      !_.isEmpty(connInfo) && _.set(dataLoggerInfo, 'connect_info', connInfo);
+      !_.isEmpty(protoInfo) && _.set(dataLoggerInfo, 'protocol_info', protoInfo);
 
       /** @type {dataLoggerConfig} */
       const loggerConfig = {
@@ -111,11 +125,11 @@ class MuanControl extends Control {
   }
 
   bindingEventHandler() {
-    this.on('completeInquiryAllDeviceStatus', err => {
-      this.blockManager
-        .refineDataContainer('inverter')
-        .then(() => this.blockManager.saveDataToDB('inverter'));
-    });
+    // this.on('completeInquiryAllDeviceStatus', () => {
+    //   this.blockManager
+    //     .refineDataContainer('inverter')
+    //     .then(() => this.blockManager.saveDataToDB('inverter'));
+    // });
   }
 }
 module.exports = MuanControl;

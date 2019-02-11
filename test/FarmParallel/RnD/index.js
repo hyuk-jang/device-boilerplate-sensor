@@ -28,14 +28,15 @@ async function testManager() {
   try {
     // 2. 가상 placeList를 바탕으로 dataStorage 단위로 nodeInfo 를 붙임.
     const main = new Main();
+
+    config.uuid = '002';
+
     const controller = main.createControl(config);
 
-    BU.CLI(controller.Model);
-
     await controller.init(dbInfo);
-    BU.CLI('Tru controller init Complete');
+    BU.CLI('True controller init Complete');
 
-    BU.CLIN(_.head(controller.nodeList));
+    // BU.CLIN(_.head(controller.nodeList));
 
     // 생성된 기능들 활성화
     // controller.runFeature(config.projectInfo.featureConfig);
@@ -62,6 +63,9 @@ async function testManager() {
     await blockManager.refineDataContainer('inverter');
     console.timeEnd('refineDataContainer');
 
+    BU.CLIN(blockManager.getDataContainer('inverter'));
+
+    return;
     console.time('saveDataToDB');
     await blockManager.saveDataToDB('inverter');
     console.timeEnd('saveDataToDB');

@@ -1,14 +1,19 @@
 // const Converter = require('device-protocol-converter-jh');
-const Converter = require('../../../../../device-protocol-converter-jh');
+const {
+  BaseModel: { Inverter, FarmParallel },
+} = require('../../../../../device-protocol-converter-jh');
 
-const keyInfo = Converter.BaseModel.Inverter.BASE_KEY;
+const inverterKeyInfo = Inverter.BASE_KEY;
+const farmKeyInfo = FarmParallel.BASE_KEY;
 
 /** @type {blockConfig[]} */
 const blockConfigInfo = [
   {
     blockCategory: 'inverter',
     baseTableInfo: {
-      tableName: 'inverter',
+      tableName: 'pw_inverter',
+      idKey: 'target_id',
+      placeKey: 'place_seq',
       fromToKeyTableList: [
         {
           fromKey: 'inverter_seq',
@@ -17,73 +22,56 @@ const blockConfigInfo = [
       ],
     },
     applyTableInfo: {
-      tableName: 'inverter_data',
+      tableName: 'pw_inverter_data',
       insertDateColumn: 'writedate',
       matchingList: [
         {
-          fromKey: keyInfo.pvAmp,
+          fromKey: inverterKeyInfo.pvAmp,
           toKey: 'pv_a',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.pvVol,
+          fromKey: inverterKeyInfo.pvVol,
           toKey: 'pv_v',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.pvKw,
+          fromKey: inverterKeyInfo.pvKw,
           toKey: 'pv_kw',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.gridRsVol,
+          fromKey: inverterKeyInfo.gridRsVol,
           toKey: 'grid_rs_v',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.gridStVol,
+          fromKey: inverterKeyInfo.gridStVol,
           toKey: 'grid_st_v',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.gridTrVol,
+          fromKey: inverterKeyInfo.gridTrVol,
           toKey: 'grid_tr_v',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.gridRAmp,
+          fromKey: inverterKeyInfo.gridRAmp,
           toKey: 'grid_r_a',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.gridSAmp,
+          fromKey: inverterKeyInfo.gridSAmp,
           toKey: 'grid_s_a',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.gridTAmp,
+          fromKey: inverterKeyInfo.gridTAmp,
           toKey: 'grid_t_a',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.gridLf,
+          fromKey: inverterKeyInfo.gridLf,
           toKey: 'line_f',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.powerPf,
-          toKey: 'power_f',
-          toFixed: 1,
-        },
-        {
-          fromKey: keyInfo.powerGridKw,
+          fromKey: inverterKeyInfo.powerGridKw,
           toKey: 'power_kw',
-          toFixed: 1,
         },
         {
-          fromKey: keyInfo.powerCpKwh,
+          fromKey: inverterKeyInfo.powerCpKwh,
           toKey: 'power_total_kwh',
-          toFixed: 1,
         },
       ],
     },
@@ -109,6 +97,86 @@ const blockConfigInfo = [
       },
     },
   },
+  {
+    blockCategory: 'farmSensor',
+    baseTableInfo: {
+      tableName: 'v_dv_place',
+      idKey: 'place_real_id',
+      placeKey: 'place_seq',
+      fromToKeyTableList: [
+        {
+          fromKey: 'place_seq',
+          toKey: 'place_seq',
+        },
+      ],
+    },
+    applyTableInfo: {
+      tableName: 'farm_sensor_data',
+      insertDateColumn: 'writedate',
+      matchingList: [
+        {
+          fromKey: farmKeyInfo.pvRearTemperature,
+          toKey: 'pv_rear_temp',
+        },
+        {
+          fromKey: farmKeyInfo.pvUnderlyingSolar,
+          toKey: 'pv_under_solar',
+        },
+        {
+          fromKey: farmKeyInfo.inclinedSolar,
+          toKey: 'inclined_solar',
+        },
+        {
+          fromKey: farmKeyInfo.lux,
+          toKey: 'lux',
+        },
+        {
+          fromKey: farmKeyInfo.co2,
+          toKey: 'co2',
+        },
+        {
+          fromKey: farmKeyInfo.soilWaterValue,
+          toKey: 'soil_ec',
+        },
+        {
+          fromKey: farmKeyInfo.soilTemperature,
+          toKey: 'soil_temp',
+        },
+        {
+          fromKey: farmKeyInfo.soilReh,
+          toKey: 'soil_reh',
+        },
+        {
+          fromKey: farmKeyInfo.outsideAirTemperature,
+          toKey: 'oa_temp',
+        },
+        {
+          fromKey: farmKeyInfo.outsideAirReh,
+          toKey: 'oa_reh',
+        },
+        {
+          fromKey: farmKeyInfo.horizontalSolar,
+          toKey: 'horizontal_solar',
+        },
+        {
+          fromKey: farmKeyInfo.windSpeed,
+          toKey: 'oa_ws',
+        },
+        {
+          fromKey: farmKeyInfo.windDirection,
+          toKey: 'oa_wd',
+        },
+        {
+          fromKey: farmKeyInfo.r1,
+          toKey: 'oa_r1',
+        },
+        {
+          fromKey: farmKeyInfo.isRain,
+          toKey: 'oa_is_rain',
+        },
+      ],
+    },
+    troubleTableInfo: {},
+  },
 ];
-
 module.exports = blockConfigInfo;

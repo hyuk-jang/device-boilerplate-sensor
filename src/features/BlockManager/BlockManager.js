@@ -16,7 +16,7 @@ class BlockManager extends AbstBlockManager {
    * @param {blockConfig[]} blockConfigList
    */
   async setBlockTable(blockConfigList) {
-    BU.CLI('setBlockTable');
+    // BU.CLI('setBlockTable');
     const completeStorageList = [];
 
     blockConfigList.forEach(blockConfigInfo => {
@@ -72,7 +72,10 @@ class BlockManager extends AbstBlockManager {
     const baseTroubleFrame = {};
 
     /** @type {Object[]} */
-    const tableRows = await this.biModule.getTable(tableName);
+    let tableRows = await this.biModule.getTable(tableName);
+
+    // 해당 Site에 존재하는 tableRows만 필터링
+    tableRows = _.intersectionBy(tableRows, this.controller.placeList, 'place_seq');
 
     tableRows.forEach(tableRow => {
       // insertDataList 에서 사용될 기본 객체 정보 생성. baseFrame을 얕은 복사를 사용하여 객체 생성.
@@ -242,7 +245,7 @@ class BlockManager extends AbstBlockManager {
       // 입력할 데이터 객체 생성
       const dataInfo = _.clone(dataFrame);
 
-      // 날짜를 사용한다면 삽입
+      // 날짜 형식을 사용한다면 DB에 입력할 정제 시간을 기록
       _.isString(insertDateColumn) &&
         insertDateColumn.length &&
         _.set(dataInfo, [insertDateColumn], refineDate);
@@ -254,21 +257,27 @@ class BlockManager extends AbstBlockManager {
         moment(refineDate),
       );
 
-      // BU.CLIN(filterdNodeList);
+      // nodeList의 데이터 유효성 체크 진행
+      const existNodeList = _.filter(filterdNodeList, nodeInfo => !_.isNil(nodeInfo.data));
 
-      // 필터링 된 NodeList에서 nd_target_id가 dataInfo에 존재할 경우 해당 값 정의
-      filterdNodeList.forEach(nodeInfo => {
-        const { nd_target_id: ndId, data } = nodeInfo;
-        const matchingInfo = _.find(matchingList, { fromKey: ndId });
-        // 매칭 정보가 있을 경우 데이터 변환처리 후 정의
-        if (matchingInfo !== undefined) {
-          const { calculate = 1, toFixed = 1, toKey } = matchingInfo;
-          _.set(dataInfo, toKey, _.round(_.multiply(data, calculate), toFixed));
-        }
-      });
+      // nodeList 중에서 1개라도 유효한 데이터가 있을 경우에만 insert 목록으로 처리
+      if (existNodeList.length) {
+        // 필터링 된 NodeList에서 nd_target_id가 dataInfo에 존재할 경우 해당 값 정의
+        existNodeList.forEach(nodeInfo => {
+          const { nd_target_id: ndId, data } = nodeInfo;
 
-      // nodeList 단위로 유효성 검증이 종료되면 dataInfo를 dataContainer.insertDataList 추가
-      insertDataList.push(dataInfo);
+          // 데이터가 유효할 경우에만 세팅
+          const matchingInfo = _.find(matchingList, { fromKey: ndId });
+          // 매칭 정보가 있을 경우 데이터 변환처리 후 정의
+          if (matchingInfo !== undefined) {
+            const { calculate = 1, toFixed = 1, toKey } = matchingInfo;
+            _.set(dataInfo, toKey, _.round(_.multiply(data, calculate), toFixed));
+          }
+        });
+
+        // nodeList 단위로 유효성 검증이 종료되면 dataInfo를 dataContainer.insertDataList 추가
+        insertDataList.push(dataInfo);
+      }
     });
   }
 

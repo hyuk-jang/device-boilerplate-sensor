@@ -1,4 +1,4 @@
-require('dotenv').config();
+// require('dotenv').config();
 // const {integratedDataLoggerConfig} = require('../../default-intelligence').dcmConfigModel;
 const ENV = process.env;
 

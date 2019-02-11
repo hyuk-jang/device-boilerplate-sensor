@@ -97,7 +97,7 @@ class Control extends EventEmitter {
    * @param {string} mainUUID
    */
   async initSetProperty(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
-    BU.CLI('initSetProperty', dbInfo);
+    // BU.CLI('initSetProperty', dbInfo);
     this.mainUUID = mainUUID;
     this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);
@@ -107,7 +107,7 @@ class Control extends EventEmitter {
     const mainWhere = _.isNil(mainUUID) ? null : { uuid: mainUUID };
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
-    /** @type {MAIN[]} */
+    /** @type {MAIN} */
     const mainInfo = await biModule.getTableRow('main', mainWhere);
 
     // UUID가 동일한 정보가 없다면 종료
@@ -119,8 +119,9 @@ class Control extends EventEmitter {
     _.isNil(this.mainUUID) && _.set(this, 'mainUUID', _.get(mainInfo, 'uuid'));
 
     // 가져온 Main 정보에서 main_seq를 구함
+    this.mainSeq = _.get(mainInfo, 'main_seq', '');
     const where = {
-      main_seq: _.get(mainInfo, 'main_seq', ''),
+      main_seq: this.mainSeq,
     };
 
     /** @type {mDeviceMap} */
@@ -128,6 +129,7 @@ class Control extends EventEmitter {
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
+    // BU.CLI(this.dataLoggerList)
     this.nodeList = await biModule.getTable('v_dv_node', where);
 
     // 장소 단위로 묶을 장소 목록을 가져옴
@@ -147,7 +149,9 @@ class Control extends EventEmitter {
       // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
       if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
         // svg node로 표현하는 객체만 API 서버로 전송 Flag 설정
-        const { svgNodeList } = this.deviceMap.drawInfo.positionInfo;
+        /** @type {mSvgNodeInfo[]} */
+        const svgNodeList = _.get(this, 'deviceMap.drawInfo.positionInfo.svgNodeList', []);
+        // BU.CLI(svgNodeList);
         const svgNodeInfo = _.find(svgNodeList, { nodeDefId: nodeInfo.nd_target_id });
         if (svgNodeInfo) {
           const { defList } = svgNodeInfo;
@@ -215,7 +219,7 @@ class Control extends EventEmitter {
    * 4. 생성 객체를 routerLists 에 삽입
    */
   async initConOpsDLC() {
-    BU.CLI('initConOpsDLC');
+    // BU.CLI('initConOpsDLC');
     try {
       // BU.CLI(this.mainUUID, this.dataLoggerList.length);
       // BU.CLIN(this.dataLoggerList);

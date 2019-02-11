@@ -41,7 +41,6 @@ class AbstBlockManager {
    * @param {dbInfo} dbInfo
    */
   setDbConnector(dbInfo) {
-    console.log('setDbConnector', dbInfo);
     this.biModule = new BM(dbInfo);
   }
 
