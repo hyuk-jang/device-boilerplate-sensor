@@ -6,7 +6,6 @@ module.exports = Main;
 if (require !== undefined && require.main === module) {
   console.log('__main__');
   process.env.NODE_ENV = 'development';
-  require('dotenv').config();
   const { BU } = require('base-util-jh');
   const config = require('./src/config');
   const { dbInfo } = config;
@@ -20,10 +19,10 @@ if (require !== undefined && require.main === module) {
   control
     .init(dbInfo, config.uuid)
     .then(() => {
-      control.runFeature();
       BU.CLI('start Program');
-      // control.inquiryAllDeviceStatus();
-      control.runDeviceInquiryScheduler();
+      control.runFeature();
+      control.inquiryAllDeviceStatus();
+      // control.runDeviceInquiryScheduler();
     })
     .catch(err => {
       BU.CLI(err);

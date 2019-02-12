@@ -65,7 +65,7 @@ class MuanControl extends Control {
       const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
 
       /** @type {connect_info} */
-      let connInfo = JSON.parse(connectInfo);
+      const connInfo = JSON.parse(connectInfo);
       /** @type {protocol_info} */
       const protoInfo = JSON.parse(protocolInfo);
 
@@ -82,29 +82,44 @@ class MuanControl extends Control {
         connInfo.port = 9000;
         connInfo.hasPassive = false;
 
+        switch (protoInfo.deviceId) {
+          case '001':
+            connInfo.port = 9000;
+            break;
+          case '002':
+            connInfo.port = 9001;
+            break;
+          case '003':
+            connInfo.port = 9002;
+            break;
+          case '004':
+            connInfo.port = 9003;
+            break;
+          case '005':
+            connInfo.port = 9004;
+            break;
+
+          default:
+            break;
+        }
+
         protoInfo.wrapperCategory = 'default';
-        // connInfo.addConfigInfo = {
-        //   parser: 'delimiterParser',
-        //   option: '}}',
-        // };
 
         // connInfo = {};
       } else if (protoInfo.subCategory === 'das_1.3') {
         connInfo.type = 'socket';
-        connInfo.port = 9001;
+        connInfo.port = 9005;
         // connInfo.subType = '';
         connInfo.hasPassive = false;
 
         protoInfo.wrapperCategory = 'default';
         delete connInfo.addConfigInfo;
-
-        BU.CLI(protoInfo);
 
         // connInfo = {};
       } else if (protoInfo.subCategory === 's5500k') {
         BU.CLI('s5500k');
         connInfo.type = 'socket';
-        connInfo.port = 9002;
+        connInfo.port = 9006;
         // connInfo.subType = '';
         connInfo.hasPassive = false;
 
@@ -112,7 +127,7 @@ class MuanControl extends Control {
 
         delete connInfo.addConfigInfo;
 
-        connInfo = {};
+        // connInfo = {};
       }
       // FIXME: TEST 로 사용됨  -------------
 
@@ -137,9 +152,9 @@ class MuanControl extends Control {
       this.blockManager
         .refineDataContainer('inverter')
         .then(() => this.blockManager.saveDataToDB('inverter'));
-      // this.blockManager
-      //   .refineDataContainer('farmSensor')
-      //   .then(() => this.blockManager.saveDataToDB('farmSensor'));
+      this.blockManager
+        .refineDataContainer('farmSensor')
+        .then(() => this.blockManager.saveDataToDB('farmSensor'));
     });
   }
 }

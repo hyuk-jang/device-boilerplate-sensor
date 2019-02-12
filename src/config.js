@@ -1,4 +1,4 @@
-// require('dotenv').config();
+require('dotenv').config();
 // const {integratedDataLoggerConfig} = require('../../default-intelligence').dcmConfigModel;
 const ENV = process.env;
 
@@ -6,14 +6,15 @@ const { controllerParserType } = require('../../default-intelligence').dccFlagMo
 
 /** @type {integratedDataLoggerConfig} */
 const config = {
+  uuid: ENV.PJ_UUID || '001',
   projectInfo: {
     projectMainId: ENV.PJ_MAIN_ID || 'UPSAS',
     projectSubId: ENV.PJ_SUB_ID || 'muan',
     featureConfig: {
       apiConfig: {
         type: 'socket',
-        host: process.env.PJ_HTTP_HOST,
-        port: process.env.PJ_API_PORT,
+        host: ENV.PJ_HTTP_HOST,
+        port: ENV.PJ_API_PORT,
         addConfigInfo: {
           parser: controllerParserType.socket.DELIMITER,
           option: '\u0004',
