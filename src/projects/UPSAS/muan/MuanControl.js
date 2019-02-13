@@ -19,7 +19,7 @@ class MuanControl extends Control {
 
   bindingFeature() {
     // return super.bindingFeature();
-    BU.CLI('bindingFeature');
+    // BU.CLI('bindingFeature');
     // super.bindingFeature();
     // const test = new DefaultApiClient(this);
     /** @type {DefaultApiClient} */
@@ -43,7 +43,7 @@ class MuanControl extends Control {
    * @param {dbsFeatureConfig} featureConfig
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
-    BU.CLI(featureConfig);
+    // BU.CLI(featureConfig);
     const { apiConfig, powerStatusBoardConfig } = featureConfig;
     this.apiClient.connect({
       controlInfo: {

@@ -45,7 +45,7 @@ class DeviceManager extends EventEmitter {
 
       return this.deviceController;
     } catch (error) {
-      BU.CLI(error);
+      // BU.CLI(error);
       // 초기화에 실패할 경우에는 에러 처리
       if (error instanceof ReferenceError) {
         throw error;

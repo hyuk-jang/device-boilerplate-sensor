@@ -285,7 +285,7 @@ class Control extends EventEmitter {
   /**
    * Passive Client를 수동으로 붙여줄 경우
    * @param {string} mainUUID Site ID
-   * @param {*} passiveClient
+   * @param {*} passiveClient 접속해온 Client
    * @return {boolean} 성공 유무
    */
   setPassiveClient(mainUUID, passiveClient) {
@@ -683,7 +683,7 @@ class Control extends EventEmitter {
    *
    */
   inquiryAllDeviceStatus() {
-    BU.CLI('inquiryAllDeviceStatus');
+    // BU.CLI('inquiryAllDeviceStatus');
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
 

@@ -17,7 +17,7 @@ class MuanControl extends Control {
 
   bindingFeature() {
     // return super.bindingFeature();
-    BU.CLI('bindingFeature');
+    // BU.CLI('bindingFeature');
     // super.bindingFeature();
     // const test = new DefaultApiClient(this);
     /** @type {DefaultApiClient} */
@@ -35,14 +35,15 @@ class MuanControl extends Control {
    * @param {dbsFeatureConfig} featureConfig
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
-    BU.CLI(featureConfig);
-    const { apiConfig } = featureConfig;
-    this.apiClient.connect({
-      controlInfo: {
-        hasReconnect: true,
-      },
-      connect_info: apiConfig,
-    });
+    // BU.CLI(featureConfig);
+    // FIXME: DBW에 접속 처리하지 않음. Map 위치 정보 및 DBW API Server 구동 시 해제 (2019-02-13)
+    // const { apiConfig } = featureConfig;
+    // this.apiClient.connect({
+    //   controlInfo: {
+    //     hasReconnect: true,
+    //   },
+    //   connect_info: apiConfig,
+    // });
 
     await this.blockManager.init(this.config.dbInfo, blockConfig);
   }
@@ -53,7 +54,7 @@ class MuanControl extends Control {
    * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
    */
   initMakeConfigForDLC() {
-    BU.CLI('initMakeConfigForDLC');
+    // BU.CLI('initMakeConfigForDLC');
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
       const {
@@ -65,7 +66,7 @@ class MuanControl extends Control {
       const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
 
       /** @type {connect_info} */
-      const connInfo = JSON.parse(connectInfo);
+      let connInfo = JSON.parse(connectInfo);
       /** @type {protocol_info} */
       const protoInfo = JSON.parse(protocolInfo);
 
@@ -80,22 +81,33 @@ class MuanControl extends Control {
         connInfo.type = 'socket';
         connInfo.subType = '';
         connInfo.port = 9000;
-        connInfo.hasPassive = false;
+        // connInfo.hasPassive = false;
 
         switch (protoInfo.deviceId) {
-          case '001':
+          case '\u0001':
+          case '\u0002':
+          case '\u0003':
+          case '\u0004':
+          case '\u0005':
+          case '\u0006':
+          case '\u0007':
             connInfo.port = 9000;
             break;
-          case '002':
+          case '\u0008':
+          case '\u0009':
             connInfo.port = 9001;
             break;
-          case '003':
+          case '\u000a':
+          case '\u000b':
             connInfo.port = 9002;
             break;
-          case '004':
+          case '\u000c':
+          case '\u000d':
             connInfo.port = 9003;
             break;
-          case '005':
+          case '\u000e':
+          case '\u000f':
+          case '\u0010':
             connInfo.port = 9004;
             break;
 
@@ -110,22 +122,49 @@ class MuanControl extends Control {
         connInfo.type = 'socket';
         connInfo.port = 9005;
         // connInfo.subType = '';
-        connInfo.hasPassive = false;
+        // connInfo.hasPassive = false;
 
         protoInfo.wrapperCategory = 'default';
         delete connInfo.addConfigInfo;
+
+        // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
+        // 현재 모든 농병 사이트 인버터 계측하지 않음
+        switch (this.mainUUID) {
+          case '001':
+            connInfo = {};
+            break;
+          case '004':
+            connInfo = {};
+            break;
+          case '005':
+            connInfo = {};
+            break;
+          default:
+            break;
+        }
 
         // connInfo = {};
       } else if (protoInfo.subCategory === 's5500k') {
-        BU.CLI('s5500k');
+        // BU.CLI('s5500k');
         connInfo.type = 'socket';
         connInfo.port = 9006;
         // connInfo.subType = '';
-        connInfo.hasPassive = false;
+        // connInfo.hasPassive = false;
 
         protoInfo.wrapperCategory = 'default';
 
         delete connInfo.addConfigInfo;
+
+        switch (this.mainUUID) {
+          case '002':
+            connInfo = {};
+            break;
+          case '003':
+            connInfo = {};
+            break;
+          default:
+            break;
+        }
 
         // connInfo = {};
       }
