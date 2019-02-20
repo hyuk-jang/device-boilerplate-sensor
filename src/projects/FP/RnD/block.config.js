@@ -71,7 +71,7 @@ const blockConfigInfo = [
         },
         {
           fromKey: inverterKeyInfo.powerCpKwh,
-          toKey: 'power_total_kwh',
+          toKey: 'power_cp_kwh',
         },
       ],
     },

@@ -69,6 +69,7 @@ class MuanControl extends Control {
    * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
    */
   initMakeConfigForDLC() {
+    return super.initMakeConfigForDLC();
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
       const {
@@ -80,7 +81,7 @@ class MuanControl extends Control {
       const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
 
       /** @type {connect_info} */
-      const connInfo = JSON.parse(connectInfo);
+      let connInfo = JSON.parse(connectInfo);
       /** @type {protocol_info} */
       const protoInfo = JSON.parse(protocolInfo);
 
@@ -100,12 +101,16 @@ class MuanControl extends Control {
         };
       } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
         connInfo.type = 'socket';
-        connInfo.port = 9001;
+        connInfo.port = 9005;
         connInfo.subType = '';
         delete connInfo.addConfigInfo;
+
+        connInfo = {};
       } else if (connInfo.type === 'serial' && connInfo.subType === '') {
         connInfo.type = 'socket';
         connInfo.port = 9002;
+
+        connInfo = {};
       }
 
       // FIXME: TEST 로 사용됨  -------------
