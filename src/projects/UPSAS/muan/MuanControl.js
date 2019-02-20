@@ -69,7 +69,7 @@ class MuanControl extends Control {
    * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
    */
   initMakeConfigForDLC() {
-    return super.initMakeConfigForDLC();
+    // return super.initMakeConfigForDLC();
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
       const {
@@ -92,13 +92,13 @@ class MuanControl extends Control {
 
       // FIXME: TEST 로 사용됨  -------------
       if (connInfo.type === 'zigbee') {
-        connInfo.type = 'socket';
-        connInfo.subType = 'parser';
-        connInfo.port = 9000;
-        connInfo.addConfigInfo = {
-          parser: 'delimiterParser',
-          option: '}}',
-        };
+        // connInfo.type = 'socket';
+        // connInfo.subType = 'parser';
+        // connInfo.port = 9000;
+        // connInfo.addConfigInfo = {
+        //   parser: 'delimiterParser',
+        //   option: '}}',
+        // };
       } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
         connInfo.type = 'socket';
         connInfo.port = 9005;
@@ -137,12 +137,13 @@ class MuanControl extends Control {
    */
   bindingEventHandler() {
     this.on('completeInquiryAllDeviceStatus', err => {
-      this.blockManager
-        .refineDataContainer('inverter')
-        .then(() => this.blockManager.saveDataToDB('inverter'))
-        .catch(error => {
-          BU.CLI(error.name);
-        });
+      // FIXME: 인버터 사용할 경우 해제
+      // this.blockManager
+      //   .refineDataContainer('inverter')
+      //   .then(() => this.blockManager.saveDataToDB('inverter'))
+      //   .catch(error => {
+      //     BU.CLI(error.name);
+      //   });
     });
   }
 }
