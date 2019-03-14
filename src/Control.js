@@ -704,7 +704,7 @@ class Control extends EventEmitter {
 
     // 장치와의 접속이 이루어지지 않을 경우 명령 전송하지 않음
     if (!hasTransferInquiryStatus) {
-      BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
+      BU.log(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
       return false;
     }
 
