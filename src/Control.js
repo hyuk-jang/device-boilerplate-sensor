@@ -5,14 +5,14 @@ const uuidv4 = require('uuid/v4');
 const moment = require('moment');
 const Promise = require('bluebird');
 
-const { BU, CU } = require('base-util-jh');
+const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
 
 const mainConfig = require('./config');
 
 const { dcmConfigModel, dccFlagModel, dcmWsModel } = require('../../default-intelligence');
 
-const { requestOrderCommandType, requestDeviceControlType } = dcmConfigModel;
+const { requestOrderCommandType, requestDeviceControlType, nodePickKey } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
 
 const DataLoggerController = require('../DataLoggerController');
@@ -20,11 +20,13 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
-const SocketClint = require('./outsideCommunication/SocketClint');
-/** 태양광 현황판 계측을 위한 Class, 수중태양광에서만 사용됨 */
-const PowerStatusBoard = require('./UPSAS/PowerStatusBoard');
-/** 정해진 시나리오대로 진행하기 위한 Class, 수중태양광에서만 사용됨 */
-const Scenario = require('./UPSAS/Scenario');
+const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');
+/** 정해진 시나리오대로 진행하기 위한 Class */
+const AbstScenario = require('./features/Scenario/AbstScenario');
+/** 현황판 표현을 위한 Class, apiClient와의 통신을 통해 갱신 */
+const AbstPBS = require('./features/PowerStatusBoard/AbstPBS');
+/** 현황판 표현을 위한 Class, apiClient와의 통신을 통해 갱신 */
+const AbstBlockManager = require('./features/BlockManager/AbstBlockManager');
 
 class Control extends EventEmitter {
   /** @param {integratedDataLoggerConfig} config */
@@ -32,6 +34,9 @@ class Control extends EventEmitter {
     super();
     this.config = config;
     // BU.CLI(this.config);
+
+    /** @type {placeInfo[]} */
+    this.placeList = [];
 
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
@@ -42,6 +47,10 @@ class Control extends EventEmitter {
 
     /** @type {string} 데이터 지점 ID */
     this.mainUUID = this.config.uuid;
+
+    this.dcmConfigModel = dcmConfigModel;
+
+    this.Model = Model;
 
     // /** @type {DataLoggerController[]} */
     // this.preparingDataLoggerControllerList = [];
@@ -54,57 +63,139 @@ class Control extends EventEmitter {
 
     /** @type {moment.Moment} */
     this.inquirySchedulerRunMoment;
-
-    // this.socketClient = {};
   }
 
   /**
-   * @desc Step 1
-   * DB에서 특정 데이터를 가져오고 싶을경우
+   * DBS 를 구동하기 위한 초기화 및 프로그램 시작점
    * @param {dbInfo} dbInfo
-   * @param {string} mainUUID main UUID
-   * @return {Promise.<mainConfig>}
+   * @param {string} mainUUID
    */
-  async getDataLoggerListByDB(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
-    // BU.CLI('getDataLoggerListByDB', dbInfo);
+  async init(dbInfo, mainUUID) {
+    try {
+      // init Step: 1 DB 정보를 기초로 nodeList, dataLoggerList, placeList 구성
+      await this.initSetProperty(dbInfo, mainUUID);
+
+      // init Step: 2 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
+      this.initMakeConfigForDLC();
+
+      // init Step: 3 DLC 객체를 Constuction And Operation
+      // DLC ConOps는 Async이나 성공 유무를 기다리지 않고 Feature를 Binding 함
+      await this.initConOpsDLC();
+
+      // Binding Feature
+      this.bindingFeature();
+    } catch (error) {
+      BU.CLI(error);
+      BU.errorLog('init', error);
+    }
+  }
+
+  /**
+   * @desc init Step: 1
+   * DB 정보를 기초로 nodeList, dataLoggerList, placeList 구성
+   * @param {dbInfo} dbInfo
+   * @param {string} mainUUID
+   */
+  async initSetProperty(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
+    // BU.CLI('initSetProperty', dbInfo);
     this.mainUUID = mainUUID;
     this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);
     // BU.CLI(dbInfo);
     // BU.CLI(mainUUID);
 
-    /** @type {dataLoggerConfig[]} */
-    const returnValue = [];
+    const mainWhere = _.isNil(mainUUID) ? null : { uuid: mainUUID };
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
-    const mainList = await biModule.getTable('main', { uuid: mainUUID });
+    /** @type {MAIN} */
+    const mainInfo = await biModule.getTableRow('main', mainWhere);
 
     // UUID가 동일한 정보가 없다면 종료
-    if (mainList.length === 0) {
+    if (_.isEmpty(mainInfo)) {
       throw new Error(`uuid: ${mainUUID}는 존재하지 않습니다.`);
     }
 
+    // 만약 MainUUID를 지정하지 않을 경우 해당 Row의 uuid를 가져와 세팅함
+    _.isNil(this.mainUUID) && _.set(this, 'mainUUID', _.get(mainInfo, 'uuid'));
+
     // 가져온 Main 정보에서 main_seq를 구함
+    this.mainSeq = _.get(mainInfo, 'main_seq', '');
     const where = {
-      main_seq: _.get(_.head(mainList), 'main_seq', ''),
+      main_seq: this.mainSeq,
     };
+
+    /** @type {mDeviceMap} */
+    this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {};
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
+    // BU.CLI(this.dataLoggerList)
     this.nodeList = await biModule.getTable('v_dv_node', where);
 
+    // 장소 단위로 묶을 장소 목록을 가져옴
+    this.placeList = await biModule.getTable('v_dv_place', where);
+    // 장소에 속해있는 센서를 알기위한 목록을 가져옴
+    /** @type {V_DV_PLACE_RELATION[]} */
+    const viewPlaceRelationRows = await biModule.getTable('v_dv_place_relation', where);
+    // 장소 관계 목록을 순회하면서 장소목록에 속해있는 node를 삽입
+    viewPlaceRelationRows.forEach(plaRelRow => {
+      // 장소 시퀀스와 노드 시퀀스를 불러옴
+      const { place_seq: placeSeq, node_seq: nodeSeq } = plaRelRow;
+      // 장소 시퀀스를 가진 객체 검색
+      const placeInfo = _.find(this.placeList, { place_seq: placeSeq });
+      // 노드 시퀀스를 가진 객체 검색
+      const nodeInfo = _.find(this.nodeList, { node_seq: nodeSeq });
+
+      // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
+      if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
+        // svg node로 표현하는 객체만 API 서버로 전송 Flag 설정
+        /** @type {mSvgNodeInfo[]} */
+        const svgNodeList = _.get(this, 'deviceMap.drawInfo.positionInfo.svgNodeList', []);
+        // BU.CLI(svgNodeList);
+        const svgNodeInfo = _.find(svgNodeList, { nodeDefId: nodeInfo.nd_target_id });
+        if (svgNodeInfo) {
+          const { defList } = svgNodeInfo;
+          _.find(defList, { id: nodeInfo.node_id }) && _.set(nodeInfo, 'isSubmitDBW', true);
+        }
+
+        // 노드 정보가 있고 데이터 로거에 해당 장치가 등록되어져있다면 API 서버로 전송 Flag 설정
+        // _.find(this.dataLoggerList, { data_logger_seq: nodeInfo.data_logger_seq }) &&
+        //   _.set(nodeInfo, 'isSubmitDBW', true);
+
+        !_.has(placeInfo, 'nodeList') && _.set(placeInfo, 'nodeList', []);
+        placeInfo.nodeList.push(nodeInfo);
+      }
+    });
+  }
+
+  /**
+   * @desc init Step: 2
+   * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
+   */
+  initMakeConfigForDLC() {
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
-    this.dataLoggerList.forEach(dataLoggerInfo => {
-      const { data_logger_seq: seqDL, connect_info = {}, protocol_info = {} } = dataLoggerInfo;
+    this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
+      const {
+        data_logger_seq: seqDL,
+        connect_info: connectInfo = {},
+        protocol_info: protocolInfo = {},
+      } = dataLoggerInfo;
 
       const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
 
-      // 환경 정보가 strJson이라면 변환하여 저장
-      BU.IsJsonString(connect_info) &&
-        _.set(dataLoggerInfo, 'connect_info', JSON.parse(connect_info));
+      /** @type {connect_info} */
+      const connInfo = JSON.parse(connectInfo);
+      /** @type {protocol_info} */
+      const protoInfo = JSON.parse(protocolInfo);
 
-      BU.IsJsonString(protocol_info) &&
-        _.set(dataLoggerInfo, 'protocol_info', JSON.parse(protocol_info));
+      // 장치 id가 Buffer 타입이라면 Buffer로 변환 후 strnig 으로 변환
+      if (protoInfo.deviceId && protoInfo.deviceId.type === 'Buffer') {
+        protoInfo.deviceId = Buffer.from(protoInfo.deviceId.data).toString();
+      }
+
+      // 변환한 설정정보 입력
+      _.set(dataLoggerInfo, 'connect_info', connInfo);
+      _.set(dataLoggerInfo, 'protocol_info', protoInfo);
 
       /** @type {dataLoggerConfig} */
       const loggerConfig = {
@@ -114,32 +205,21 @@ class Control extends EventEmitter {
         deviceInfo: {},
       };
 
-      returnValue.push(loggerConfig);
+      return loggerConfig;
     });
-
-    _.set(this, 'config.dbInfo', dbInfo);
-    _.set(this, 'config.dataLoggerList', returnValue);
-
-    // BU.CLIN(this.config.dataLoggerList, 2);
-    // await Promise.delay(10);
-
-    return this.config;
-
-    // _.set(this.config, 'dataLoggerList', returnValue)
-    // BU.CLI(returnValue);
-
-    // BU.CLI(file);
-    // BU.writeFile('out.json', file);
   }
 
   /**
+   * @desc init Step: 3
+   * DLC 객체를 Constuction And Operation
    * 데이터 로거 객체를 생성하고 초기화를 진행
    * 1. setDeviceInfo --> controlInfo 정의 및 logOption 정의, deviceInfo 생성
    * 2. DCM, DPC, Model 정의
    * 3. Commander 를 Observer로 등록
    * 4. 생성 객체를 routerLists 에 삽입
    */
-  async init() {
+  async initConOpsDLC() {
+    // BU.CLI('initConOpsDLC');
     try {
       // BU.CLI(this.mainUUID, this.dataLoggerList.length);
       // BU.CLIN(this.dataLoggerList);
@@ -170,9 +250,8 @@ class Control extends EventEmitter {
       this.dataLoggerControllerList = resultInitDataLoggerList;
       // BU.CLIN(this.dataLoggerControllerList);
 
-      this.model = new Model(this);
-      // DBS 사용 Map 설정
-      await this.model.setMap();
+      /** @type {Model} */
+      this.model = new this.Model(this);
 
       return this.dataLoggerControllerList;
     } catch (error) {
@@ -181,9 +260,32 @@ class Control extends EventEmitter {
   }
 
   /**
+   * @desc init Step: 4
+   * DBS 순수 기능 외에 추가 될 기능
+   */
+  bindingFeature() {
+    BU.CLI('bindingFeature');
+    // API Socket Server
+    this.apiClient = new AbstApiClient(this);
+    // 현황판
+    this.powerStatusBoard = new AbstPBS(this);
+    // 시나리오 관리자
+    this.scenarioManager = new AbstScenario(this);
+    // 블록 매니저
+    this.blockManager = new AbstBlockManager(this);
+  }
+
+  /**
+   * @desc init Step: 5
+   * 생성된 Feature를 구동시킴
+   * @param {dbsFeatureConfig} featureConfig
+   */
+  async runFeature(featureConfig) {}
+
+  /**
    * Passive Client를 수동으로 붙여줄 경우
    * @param {string} mainUUID Site ID
-   * @param {*} passiveClient
+   * @param {*} passiveClient 접속해온 Client
    * @return {boolean} 성공 유무
    */
   setPassiveClient(mainUUID, passiveClient) {
@@ -205,29 +307,8 @@ class Control extends EventEmitter {
     return true;
   }
 
-  /** DBS 순수 기능 외에 추가 될 기능 */
-  setOptionFeature() {
-    // Main Socket Server로 접속할 정보가 없다면 socketClient를 생성하지 않음
-    if (!_.isEmpty(this.config.mainSocketInfo) && process.env.HAS_SOCKET_CLIENT === '1') {
-      // BU.CLI('setOptionFeature');
-      this.socketClient = new SocketClint(this);
-      this.socketClient.tryConnect();
-    }
-
-    // UPSAS
-    if (process.env.HAS_UPSAS === '1') {
-      // 시나리오 관련
-      this.scenario = new Scenario(this);
-    }
-
-    /** 현황판 보여줄 객체 생성 */
-    if (process.env.HAS_POWER_BOARD === '1') {
-      this.powerStatusBoard = new PowerStatusBoard(this);
-      this.powerStatusBoard.tryConnect();
-    }
-  }
-
   /**
+   * @abstract
    * @param {nodeInfo} nodeInfo
    * @param {string} controlValue
    */
@@ -415,6 +496,14 @@ class Control extends EventEmitter {
   }
 
   /**
+   * 시나리오를 수행하고자 할 경우
+   * @param {{scenarioId: string, requestCommandType: string}} scenarioInfo 시나리오 ID
+   */
+  executeScenario(scenarioInfo) {
+    this.scenarioManager.executeScenario(scenarioInfo);
+  }
+
+  /**
    * 복합 명령 실행 요청
    * @param {requestCombinedOrderInfo} requestCombinedOrder
    * @return {boolean} 명령 요청 여부
@@ -466,6 +555,7 @@ class Control extends EventEmitter {
 
       // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
       _.forEach(nodeList, currNodeId => {
+        // BU.CLI(currNodeId);
         // 장치와 연결되어 있는 DLC 불러옴
         const dataLoggerController = this.model.findDataLoggerController(currNodeId);
         // 해당하는 DLC가 없거나 장치가 비접속이라면 명령을 수행하지 않음
@@ -473,28 +563,29 @@ class Control extends EventEmitter {
         let errMsg = '';
         if (_.isUndefined(dataLoggerController)) {
           errMsg = `DLC: ${currNodeId}가 존재하지 않습니다.`;
+          // BU.CLI(errMsg);
         } else if (!_.get(dataLoggerController, 'hasConnectedDevice')) {
           errMsg = `${currNodeId}는 장치와 연결되지 않았습니다.`;
+          // BU.CLI(errMsg);
         }
         if (errMsg.length) {
-          BU.errorLog(
-            'executeCombineOrder',
-            `mainUUID: ${
-              this.mainUUID
-            } nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${errMsg}`,
-          );
-          return false;
+          // BU.errorLog(
+          //   'executeCombineOrder',
+          //   `mainUUID: ${
+          //     this.mainUUID
+          //   } nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${errMsg}`,
+          // );
+        } else {
+          /** @type {combinedOrderElementInfo} */
+          const elementInfo = {
+            hasComplete: false,
+            nodeId: currNodeId,
+            rank,
+            uuid: uuidv4(),
+          };
+
+          foundRemainInfo.orderElementList.push(elementInfo);
         }
-
-        /** @type {combinedOrderElementInfo} */
-        const elementInfo = {
-          hasComplete: false,
-          nodeId: currNodeId,
-          rank,
-          uuid: uuidv4(),
-        };
-
-        foundRemainInfo.orderElementList.push(elementInfo);
       });
     });
 
@@ -508,7 +599,7 @@ class Control extends EventEmitter {
 
     // 복합 명령 실행 요청
     // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
-    this.transferRequestOrder(combinedWrapOrder);
+    this.executeCommandToDLC(combinedWrapOrder);
 
     return hasSaved;
   }
@@ -518,7 +609,8 @@ class Control extends EventEmitter {
    * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
    * @memberof Control
    */
-  transferRequestOrder(combinedOrderWrapInfo) {
+  executeCommandToDLC(combinedOrderWrapInfo) {
+    // BU.CLI(combinedOrderWrapInfo)
     process.env.LOG_DBS_TRANS_ORDER === '1' && BU.CLI('transferRequestOr', combinedOrderWrapInfo);
 
     const {
@@ -591,7 +683,7 @@ class Control extends EventEmitter {
    *
    */
   inquiryAllDeviceStatus() {
-    // BU.CLI('inquiryAllDeviceStatus')
+    // BU.CLI('inquiryAllDeviceStatus');
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
 
@@ -603,12 +695,16 @@ class Control extends EventEmitter {
       requestElementList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
     };
 
+    // BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
+
     // 명령 요청
     const hasTransferInquiryStatus = this.executeCombineOrder(requestCombinedOrder);
 
+    // BU.CLI(hasTransferInquiryStatus);
+
     // 장치와의 접속이 이루어지지 않을 경우 명령 전송하지 않음
     if (!hasTransferInquiryStatus) {
-      // BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
+      BU.log(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
       return false;
     }
 
@@ -638,22 +734,26 @@ class Control extends EventEmitter {
    * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
    */
   notifyDeviceData(dataLoggerController, renewalNodeList) {
-    // BU.CLI(
-    //   _(renewalNodeList)
-    //     .map(node => _.pick(node, ['node_id', 'data']))
-    //     .value()
-    // );
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
       // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-      if (_.isEmpty(_.get(this, 'socketClient.client'))) {
+      if (!this.apiClient.isConnect) {
         return false;
       }
-      this.socketClient.transmitDataToServer({
-        commandType: dcmWsModel.transmitToServerCommandType.NODE,
-        data: renewalNodeList,
-      });
+
+      const dataList = this.model.getAllNodeStatus(
+        nodePickKey.FOR_SERVER,
+        renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
+      );
+
+      // 데이터가 있을 경우에만 전송
+      if (dataList.length) {
+        this.apiClient.transmitDataToServer({
+          commandType: dcmWsModel.transmitToServerCommandType.NODE,
+          data: dataList,
+        });
+      }
     } catch (error) {
       BU.CLI(error);
     }

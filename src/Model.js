@@ -13,6 +13,7 @@ const {
   requestOrderCommandType,
   simpleOrderStatus,
   nodePickKey,
+  nodeDataType,
 } = dcmConfigModel;
 
 const { transmitToServerCommandType } = dcmWsModel;
@@ -48,33 +49,13 @@ class Model {
     this.simpleOrderList = [];
 
     // 정기 조회 Count
-    this.inquirySchedulerIntervalSaveCnt = config.inquirySchedulerInfo.intervalSaveCnt;
+    this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);
     this.inquirySchedulerCurrCount = 0;
 
-    // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
+    this.deviceMap = controller.deviceMap;
+
     // this.excuteControlList = map.controlList;
-  }
-
-  /**
-   * DBS가 사용하는 Device Map을 설정
-   */
-  async setMap() {
-    const { uuid } = this.controller.config;
-    /** @type {MAIN[]} */
-    const mainList = await this.biModule.getTable('main', { uuid });
-    if (_.isEmpty(mainList)) {
-      throw new Error(`Main UUID: ${uuid}는 존재하지 않습니다.`);
-    }
-    const mainInfo = _.head(mainList);
-
-    // /** @type {MAIN_MAP[]} */
-    // const mapList = await this.BM.getTable('main_map', { main_seq: mainInfo.main_seq });
-    // if (_.isEmpty(mapList)) {
-    //   throw new Error(`Map UUID: ${uuid}는 존재하지 않습니다.`);
-    // }
-    /** @type {mDeviceMap} */
-    this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {};
-    // BU.CLI(this.deviceMap);
+    // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
   }
 
@@ -109,7 +90,9 @@ class Model {
   setSimpleOrderInfo(simpleOrderInfo) {
     // BU.CLI(this.controller.mainUUID, simpleOrderInfo);
     // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-    if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
+    if (!this.controller.apiClient.isConnect) {
+      // if (!_.get(this, 'controller.apiClient.isConnect', false)) {
+      // if (_.isEmpty(_.get(this, 'controller.apiClient.client'))) {
       return false;
     }
     const foundIt = _.find(this.simpleOrderList, { uuid: simpleOrderInfo.uuid });
@@ -121,7 +104,7 @@ class Model {
     this.simpleOrderList.push(simpleOrderInfo);
 
     // 신규 알림
-    this.controller.socketClient.transmitDataToServer({
+    this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCommandType.COMMAND,
       data: [simpleOrderInfo],
     });
@@ -134,10 +117,6 @@ class Model {
    * @return {boolean} 갱신이 이루어지면 true, 아니면 false
    */
   updateSimpleOrderInfo(uuid, orderStatus) {
-    // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-    if (_.isEmpty(_.get(this, 'controller.socketClient.client'))) {
-      return false;
-    }
     const simpleOrderInfo = _.find(this.simpleOrderList, { uuid });
     // BU.CLI(orderStatus, simpleOrderInfo);
     // 데이터가 존재한다면 해당 명령의 변화가 생긴 것
@@ -161,16 +140,16 @@ class Model {
         // const dlc = this.findDataLoggerController('V_001');
         // BU.CLIN(dlc.nodeList);
 
+        // 접속이 이루어져있을 경우 보냄
+        // if (this.controller.apiClient.isConnect) {
+        // if (_.isEmpty(_.get(this, 'controller.apiClient.client'))) {
         // 업데이트 알림 (통째로 보내버림)
-        this.controller.socketClient.transmitDataToServer({
+        this.controller.apiClient.transmitDataToServer({
           commandType: transmitToServerCommandType.COMMAND,
           data: this.simpleOrderList,
         });
-      } else {
-        return false;
+        // }
       }
-    } else {
-      return false;
     }
   }
 
@@ -473,6 +452,7 @@ class Model {
 
         if (resOrderInfo.orderWrapInfoLV3.requestCommandId === 'inquiryAllDeviceStatus') {
           // BU.CLI('Comlete inquiryAllDeviceStatus');
+          this.controller.emit('completeInquiryAllDeviceStatus', dcMessage.commandSet.commandId);
           this.completeInquiryDeviceStatus();
         } else {
           // FIXME: 일반 명령 completeOrder이 완료되었을 경우 처리할 필요가 있다면 작성
@@ -535,14 +515,21 @@ class Model {
     // 데이터의 유효성을 인정받는 Node List
     const validNodeList = this.checkValidateNodeData(
       this.nodeList,
-      this.config.inquirySchedulerInfo.validInfo,
+      _.get(this, 'config.inquirySchedulerInfo.validInfo'),
       this.controller.inquirySchedulerRunMoment,
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
+    // FIXME: 정기 계측을 완료한 후 데이터를 보내야할 지 결정.
+    // 정기 계측이 완료되면 현재 데이터를 전송.
+    // this.controller.apiClient.transmitDataToServer({
+    //   commandType: transmitToServerCommandType.NODE,
+    //   data: this.getAllNodeStatus(nodePickKey.FOR_SERVER),
+    // });
+
     // BU.CLIN(validNodeList);
     if (process.env.LOG_DBS_INQUIRY_RESULT === '1') {
-      BU.CLI(this.getAllNodeStatus(['node_real_id', 'node_name', 'data']));
+      BU.CLI(this.getAllNodeStatus(nodePickKey.FOR_DATA));
     }
 
     await this.insertNodeDataToDB(validNodeList, {
@@ -607,20 +594,23 @@ class Model {
   /**
    * 모든 노드가 가지고 있는 정보 출력
    * @param {nodePickKey} nodePickKeyList
+   * @param {nodeInfo[]=} nodeList
+   * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
    */
-  getAllNodeStatus(nodePickKeyList) {
-    const statusList = _(this.nodeList)
+  getAllNodeStatus(nodePickKeyList = nodePickKey.FOR_SERVER, nodeList = this.nodeList) {
+    const orderKey = _.includes(nodePickKeyList, 'node_id') ? 'node_id' : _.head(nodePickKeyList);
+
+    const statusList = _(nodeList)
       .map(nodeInfo => {
         if (nodePickKeyList) {
           return _.pick(nodeInfo, nodePickKeyList);
         }
         return nodeInfo;
       })
-      .orderBy('node_id')
+      .orderBy(orderKey)
       .value();
     // BU.CLI(statusList);
     return statusList;
-    // BU.CLI(this.nodeList);
   }
 
   /**
@@ -659,14 +649,14 @@ class Model {
    * @param {{hasSensor: boolean, hasDevice: boolean}} insertOption DB에 입력 처리 체크
    */
   async insertNodeDataToDB(nodeList, insertOption = { hasSensor: false, hasDevice: false }) {
+    const { DEVICE, SENSOR } = nodeDataType;
+    const { FOR_DB } = nodePickKey;
     const returnValue = [];
     try {
       if (insertOption.hasSensor) {
         const nodeSensorList = _(nodeList)
-          .filter(ele => ele.is_sensor === 1 && _.isNumber(ele.node_seq) && _.isNumber(ele.data))
-          .map(ele =>
-            BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'num_data'),
-          )
+          .filter(ele => ele.save_db_type === SENSOR && _.isNumber(ele.data))
+          .map(ele => BU.renameObj(_.pick(ele, FOR_DB), 'data', 'num_data'))
           .value();
         // BU.CLI(nodeSensorList);
         const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
@@ -676,10 +666,8 @@ class Model {
       // 장치류 삽입
       if (insertOption.hasDevice) {
         const nodeDeviceList = _(nodeList)
-          .filter(ele => ele.is_sensor === 0 && _.isNumber(ele.node_seq) && _.isString(ele.data))
-          .map(ele =>
-            BU.renameObj(_.pick(ele, ['node_seq', 'data', 'writeDate']), 'data', 'str_data'),
-          )
+          .filter(ele => ele.save_db_type === DEVICE && _.isString(ele.data))
+          .map(ele => BU.renameObj(_.pick(ele, FOR_DB), 'data', 'str_data'))
           .value();
 
         // BU.CLI(nodeDeviceList);

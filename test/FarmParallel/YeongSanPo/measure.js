@@ -7,7 +7,7 @@ const config = require('../../../src/config');
 config.uuid = '001';
 const control = new Control(config);
 
-control.on('completeDiscovery', () => {
+control.on('completeInquiryAllDeviceStatus', () => {
   if (_.every(control.nodeList, nodeInfo => !_.isNil(nodeInfo.data))) {
     BU.CLI('SUCCESS', '모든 장치 데이터 입력 검증 완료');
   } else {
@@ -18,24 +18,23 @@ control.on('completeDiscovery', () => {
 });
 
 control
-  .getDataLoggerListByDB(
+  .init(
     {
-      database: process.env.WEB_DB_DB,
-      host: process.env.WEB_DB_HOST,
-      password: process.env.WEB_DB_PW,
-      port: process.env.WEB_DB_PORT,
-      user: process.env.WEB_DB_USER,
+      port: process.env.PJ_DB_PORT || '3306',
+      host: process.env.PJ_DB_HOST || 'localhost',
+      user: process.env.PJ_DB_USER || 'root',
+      password: process.env.PJ_DB_PW || 'test',
+      database: process.env.PJ_DB_DB || 'test',
     },
     '001',
   )
-  .then(() => control.init())
   .then(
     () =>
       // BU.CLI('@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
       // setTimeout(() => {
       //   // 장치 전체 탐색
-      // control.inquiryAllDeviceStatus(),
-      control.runDeviceInquiryScheduler(),
+      control.inquiryAllDeviceStatus(),
+    // control.runDeviceInquiryScheduler(),
 
     // control.executeSingleControl({
     //   nodeId: control.nodeList[0].node_id,

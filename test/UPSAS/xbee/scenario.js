@@ -1,13 +1,13 @@
 require('dotenv').config();
 const _ = require('lodash');
 
-const Control = require('../../../src/Control');
-
 const config = require('../../../src/config');
+const Main = require('../../../src/Main');
 
-const control = new Control(config);
+const main = new Main();
+const control = main.createControl(config);
 
-// control.on('completeDiscovery', () => {
+// control.on('completeInquiryAllDeviceStatus', () => {
 //   if (_.every(control.nodeList, 'data')) {
 //     console.trace('모든 장치 데이터 입력 검증 완료');
 //   } else {
@@ -16,20 +16,19 @@ const control = new Control(config);
 // });
 
 control
-  .getDataLoggerListByDB(
+  .init(
     {
-      host: process.env.WEB_DB_HOST,
-      port: process.env.WEB_DB_PORT,
-      user: process.env.WEB_DB_USER,
-      password: process.env.WEB_DB_PW,
-      database: process.env.WEB_DB_DB,
+      port: process.env.PJ_DB_PORT || '3306',
+      host: process.env.PJ_DB_HOST || 'localhost',
+      user: process.env.PJ_DB_USER || 'root',
+      password: process.env.PJ_DB_PW || 'test',
+      database: process.env.PJ_DB_DB || 'test',
     },
     'aaaaa',
   )
-  .then(() => control.init())
   .then(DLCs => {
     // setTimeout(() => {
-    control.scenario.scenarioMode1(true);
+    control.scenarioManager.scenarioMode1(true);
     // }, 2000);
   });
 

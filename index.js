@@ -1,57 +1,27 @@
-const Control = require('./src/Control');
+const Main = require('./src/Main');
 
-module.exports = Control;
+module.exports = Main;
 
 // if __main process
 if (require !== undefined && require.main === module) {
   console.log('__main__');
   process.env.NODE_ENV = 'development';
-  require('dotenv').config();
-  const _ = require('lodash');
-  const moment = require('moment');
-  const config = require('./src/config');
   const { BU } = require('base-util-jh');
+  const config = require('./src/config');
+  const { dbInfo } = config;
 
-  const control = new Control(config);
+  const main = new Main();
+  // const control = main.createControl({
+  //   dbInfo: config.dbInfo,
+  // });
+  const control = main.createControl(config);
   // control.init();
   control
-    .getDataLoggerListByDB(
-      {
-        host: process.env.WEB_DB_HOST,
-        port: process.env.WEB_DB_PORT,
-        user: process.env.WEB_DB_USER,
-        password: process.env.WEB_DB_PW,
-        database: process.env.WEB_DB_DB,
-      },
-      config.uuid,
-    )
-    .then(
-      () => control.init(),
-
-      // setTimeout(() => {
-      //   control.executeSingleControl({
-      //     nodeId: 'V_001',
-      //     controlValue: 2,
-      //   });
-      // }, 1000);
-
-      // setTimeout(() => {
-      //   control.discoveryRegularDevice(moment());
-      // }, 1000);
-      // setTimeout(() => {
-      //   control.requestPowerStatusBoardInfo();
-      // }, 2000);
-    )
-    .then(dataLoggerControllerList => {
+    .init(dbInfo, config.uuid)
+    .then(() => {
       BU.CLI('start Program');
-      control.setOptionFeature();
-      // BU.CLIN(dataLoggerControllerList);
-      // const dataLogger = control.model.findDataLoggerController('WL_001');
-      // control.executeSingleControl({
-      //   controlValue: 2,
-      //   nodeId: 'V_001',
-      // });
-      // control.inquiryAllDeviceStatus(moment());
+      control.runFeature();
+      // control.inquiryAllDeviceStatus();
       control.runDeviceInquiryScheduler();
     })
     .catch(err => {

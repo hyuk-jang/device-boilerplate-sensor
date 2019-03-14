@@ -4,7 +4,7 @@ const eventToPromise = require('event-to-promise');
 const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
 // const AbstDeviceClient = require('device-client-controller-jh');
-const AbstDeviceClient = require('../../../device-client-controller-jh');
+const DccFacade = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
 // const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
@@ -15,7 +15,7 @@ const {
   requestDeviceControlType,
 } = require('../../../default-intelligence').dcmConfigModel;
 
-class DataLoggerController extends AbstDeviceClient {
+class DataLoggerController extends DccFacade {
   /** @param {dataLoggerConfig} config */
   constructor(config) {
     super();
@@ -410,7 +410,8 @@ class DataLoggerController extends AbstDeviceClient {
 
     const { NEXT } = this.definedCommanderResponse;
 
-    // Error가 발생하면 추적 중인 데이터는 폐기 (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
+    // Error가 발생하면 추적 중인 데이터는 폐기
+    // (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
     this.converter.resetTrackingDataBuffer();
     this.requestTakeAction(NEXT);
     // Observer가 해당 메소드를 가지고 있다면 전송
@@ -441,6 +442,7 @@ class DataLoggerController extends AbstDeviceClient {
       // 명령 수행이 완료
       // 현재 데이터 업데이트, 명령 목록에서 해당 명령 제거
       case COMMANDSET_EXECUTION_TERMINATE:
+        // BU.CLI(this.model.tempStorage);
         renewalNodeList = this.model.completeOnData();
         this.model.completeRequestCommandSet(dcMessage.commandSet);
         break;
@@ -494,13 +496,14 @@ class DataLoggerController extends AbstDeviceClient {
       const { DONE, ERROR, WAIT } = this.definedCommanderResponse;
       const { eventCode, data } = this.converter.parsingUpdateData(dcData);
 
-      if (process.env.LOG_DLC_ON_DATA === '1') {
+      if (process.env.LOG_DLC_PARSER_DATA === '1') {
         const haveData = [];
         _.forEach(data, (v, key) => {
           v.length > 0 && haveData.push({ [key]: v });
         });
         // BU.CLI(data)
-        BU.CLI(haveData);
+        !_.isEmpty(haveData) && BU.CLI(this.id, haveData);
+        // BU.CLI(haveData);
       }
       // Retry 시도 시 다중 명령 요청 및 수신이 이루어 지므로 Retry 하지 않음.
       if (eventCode === ERROR) {
@@ -509,9 +512,10 @@ class DataLoggerController extends AbstDeviceClient {
       // 데이터가 정상적이라면
       if (eventCode === DONE) {
         // Device Client로 해당 이벤트 Code를 보냄
-        this.requestTakeAction(eventCode);
         // 수신 받은 데이터 저장
         this.model.onPartData(data);
+
+        this.requestTakeAction(eventCode, dcData.data);
       }
     } catch (error) {
       BU.logFile(error);

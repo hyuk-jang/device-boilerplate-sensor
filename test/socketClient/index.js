@@ -7,7 +7,7 @@
 
 require('dotenv').config();
 const _ = require('lodash');
-const {BU} = require('base-util-jh');
+const { BU } = require('base-util-jh');
 
 const Promise = require('bluebird');
 
@@ -16,12 +16,16 @@ const {
   simpleOrderStatus,
   nodePickKey,
 } = require('../../../default-intelligence').dcmConfigModel;
-const {transmitToServerCommandType} = require('../../../default-intelligence').dcmWsModel;
+const { transmitToServerCommandType } = require('../../../default-intelligence').dcmWsModel;
 
+const Main = require('../../src/Main');
 const Control = require('../../src/Control');
 const config = require('../../src/config');
 
-const control = new Control(config);
+const main = new Main();
+const control = main.setControl(config);
+control.bindingFeature();
+
 const dumpNodeList = [
   {
     commandType: transmitToServerCommandType.NODE,
@@ -187,28 +191,23 @@ const dumpCommandList = [
   },
 ];
 
-const SocketClint = require('../../src/SocketClint');
-
-const socketClient = new SocketClint(control);
-socketClient.init();
-
 // Case: 장치 정보가 변경되었을 때 Socket Server로의 데이터 전송
 async function transmitNodeScenario() {
-  // const {socketClient} = control;
+  // const {control.apiClient} = control;
 
-  socketClient.transmitDataToServer(_.head(dumpNodeList));
+  control.apiClient.transmitDataToServer(_.head(dumpNodeList));
 
   await Promise.delay(1000);
   // 같은 명령 1개 전송되면 서버측에는 이 데이터는 무시해야함
-  socketClient.transmitDataToServer(_.head(dumpNodeList));
+  control.apiClient.transmitDataToServer(_.head(dumpNodeList));
   await Promise.delay(1000);
   // 같은 명령 1개 전송되면 서버측에는 이 데이터는 무시해야함
   _.head(dumpNodeList).data[0].data = 'hi test';
-  socketClient.transmitDataToServer(_.head(dumpNodeList));
+  control.apiClient.transmitDataToServer(_.head(dumpNodeList));
   await Promise.delay(1000);
 
   dumpNodeList.forEach(transDataToClientInfo => {
-    socketClient.transmitDataToServer(transDataToClientInfo);
+    control.apiClient.transmitDataToServer(transDataToClientInfo);
   });
 }
 
@@ -256,28 +255,28 @@ async function transmitOrderScenario() {
   );
 
   // New 명령 등록
-  socketClient.transmitDataToServer(controlCmdNew);
+  control.apiClient.transmitDataToServer(controlCmdNew);
   await Promise.delay(1);
   // New 명령 동일 명령 재등록. <--- 무시되야 함
-  socketClient.transmitDataToServer(controlCmdNew);
+  control.apiClient.transmitDataToServer(controlCmdNew);
   await Promise.delay(1);
 
   // Proceed 명령등록. <--- 기존 CONTROL이 삭제되어야함
-  socketClient.transmitDataToServer(controlCmdProceed);
+  control.apiClient.transmitDataToServer(controlCmdProceed);
   await Promise.delay(1);
   // Proceed 명령완료.
-  socketClient.transmitDataToServer(controlCmdComplete);
+  control.apiClient.transmitDataToServer(controlCmdComplete);
   await Promise.delay(1);
 
   // 명령 취소
-  socketClient.transmitDataToServer(cancelCmdNew);
+  control.apiClient.transmitDataToServer(cancelCmdNew);
   await Promise.delay(1);
   // 명령 삭제 진행중
-  socketClient.transmitDataToServer(cancelCmdProceed);
+  control.apiClient.transmitDataToServer(cancelCmdProceed);
   await Promise.delay(1);
 
   // 계측 명령 등재
-  socketClient.transmitDataToServer(measureCmdNew);
+  control.apiClient.transmitDataToServer(measureCmdNew);
   await Promise.delay(1);
 }
 
@@ -294,7 +293,7 @@ function callAllStatus() {}
 
 // 초기화
 // control
-//   .getDataLoggerListByDB(
+//   .init(
 //     {
 //       database: process.env.DB_UPSAS_DB,
 //       host: process.env.DB_UPSAS_HOST,
@@ -305,7 +304,6 @@ function callAllStatus() {}
 //     'aaaaa',
 //   )
 //   .then(() => {
-//     control.init();
 //     setTimeout(() => {
 //       // 노드 정보 전송
 //       transmitNodeScenario();
