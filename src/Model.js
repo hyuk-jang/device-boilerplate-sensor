@@ -117,11 +117,6 @@ class Model {
    * @return {boolean} 갱신이 이루어지면 true, 아니면 false
    */
   updateSimpleOrderInfo(uuid, orderStatus) {
-    // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-    if (!this.controller.apiClient.isConnect) {
-      // if (_.isEmpty(_.get(this, 'controller.apiClient.client'))) {
-      return false;
-    }
     const simpleOrderInfo = _.find(this.simpleOrderList, { uuid });
     // BU.CLI(orderStatus, simpleOrderInfo);
     // 데이터가 존재한다면 해당 명령의 변화가 생긴 것
@@ -145,16 +140,16 @@ class Model {
         // const dlc = this.findDataLoggerController('V_001');
         // BU.CLIN(dlc.nodeList);
 
+        // 접속이 이루어져있을 경우 보냄
+        // if (this.controller.apiClient.isConnect) {
+        // if (_.isEmpty(_.get(this, 'controller.apiClient.client'))) {
         // 업데이트 알림 (통째로 보내버림)
         this.controller.apiClient.transmitDataToServer({
           commandType: transmitToServerCommandType.COMMAND,
           data: this.simpleOrderList,
         });
-      } else {
-        return false;
+        // }
       }
-    } else {
-      return false;
     }
   }
 

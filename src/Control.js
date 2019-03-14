@@ -569,12 +569,12 @@ class Control extends EventEmitter {
           // BU.CLI(errMsg);
         }
         if (errMsg.length) {
-          BU.errorLog(
-            'executeCombineOrder',
-            `mainUUID: ${
-              this.mainUUID
-            } nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${errMsg}`,
-          );
+          // BU.errorLog(
+          //   'executeCombineOrder',
+          //   `mainUUID: ${
+          //     this.mainUUID
+          //   } nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${errMsg}`,
+          // );
         } else {
           /** @type {combinedOrderElementInfo} */
           const elementInfo = {
