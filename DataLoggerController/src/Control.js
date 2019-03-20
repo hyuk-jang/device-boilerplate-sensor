@@ -405,7 +405,7 @@ class DataLoggerController extends DccFacade {
 
     // 에러가 발생하였다면 빈 센서 데이터 객체를 전달.
     if (dcError) {
-      this.model.onData(this.converter.BaseModel);
+      this.tempStorage = this.converter.BaseModel;
     }
 
     const { NEXT } = this.definedCommanderResponse;
