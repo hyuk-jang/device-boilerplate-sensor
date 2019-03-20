@@ -38,6 +38,9 @@ class Control extends EventEmitter {
     /** @type {placeInfo[]} */
     this.placeList = [];
 
+    /** @type {V_DV_PLACE_RELATION[]} */
+    this.placeRelationList = [];
+
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
     /** @type {dataLoggerInfo[]} */
@@ -135,10 +138,10 @@ class Control extends EventEmitter {
     // 장소 단위로 묶을 장소 목록을 가져옴
     this.placeList = await biModule.getTable('v_dv_place', where);
     // 장소에 속해있는 센서를 알기위한 목록을 가져옴
-    /** @type {V_DV_PLACE_RELATION[]} */
-    const viewPlaceRelationRows = await biModule.getTable('v_dv_place_relation', where);
+    this.placeRelationList = await biModule.getTable('v_dv_place_relation', where);
+
     // 장소 관계 목록을 순회하면서 장소목록에 속해있는 node를 삽입
-    viewPlaceRelationRows.forEach(plaRelRow => {
+    this.placeRelationList.forEach(plaRelRow => {
       // 장소 시퀀스와 노드 시퀀스를 불러옴
       const { place_seq: placeSeq, node_seq: nodeSeq } = plaRelRow;
       // 장소 시퀀스를 가진 객체 검색
