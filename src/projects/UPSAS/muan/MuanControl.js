@@ -11,6 +11,8 @@ const BlockManager = require('../../../features/BlockManager/BlockManager');
 
 const blockConfig = require('./block.config');
 
+const SmartSalternStorage = require('../smartSalternCore/SmartSalternStorage');
+
 class MuanControl extends Control {
   // /** @param {integratedDataLoggerConfig} config */
   // constructor(config) {
@@ -34,6 +36,9 @@ class MuanControl extends Control {
     /** @type {BlockManager} */
     this.blockManager = new BlockManager(this);
 
+    this.smartSalternStorage = new SmartSalternStorage(this);
+    this.smartSalternStorage.init();
+
     this.bindingEventHandler();
   }
 
@@ -44,6 +49,7 @@ class MuanControl extends Control {
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     // BU.CLI(featureConfig);
+
     const { apiConfig, powerStatusBoardConfig } = featureConfig;
     this.apiClient.connect({
       controlInfo: {
@@ -92,13 +98,15 @@ class MuanControl extends Control {
 
       // FIXME: TEST 로 사용됨  -------------
       if (connInfo.type === 'zigbee') {
-        // connInfo.type = 'socket';
-        // connInfo.subType = 'parser';
-        // connInfo.port = 9000;
-        // connInfo.addConfigInfo = {
-        //   parser: 'delimiterParser',
-        //   option: '}}',
-        // };
+        connInfo.type = 'socket';
+        connInfo.subType = 'parser';
+        connInfo.port = 9000;
+        connInfo.addConfigInfo = {
+          parser: 'delimiterParser',
+          option: '}}',
+        };
+
+        connInfo = {};
       } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
         connInfo.type = 'socket';
         connInfo.port = 9005;
