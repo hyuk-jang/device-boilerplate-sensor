@@ -78,6 +78,33 @@ class SmartSalternStorage {
     console.time('initCommand');
     this.initCommand();
     console.timeEnd('initCommand');
+
+    BU.CLI(this.getPlaceByDeviceId('O_002'))
+  }
+
+  /**
+   * 장치 Id를 기반으로 속해있는 장소 객체 목록 반환
+   * @param {string} deviceId node_id
+   */
+  getPlaceByDeviceId(deviceId) {
+    // 장치가 속해있는 place_seq 목록 추출
+    const foundPlaceSeqList = _(this.placeRelationList)
+      .filter({ node_id: deviceId })
+      .map('place_seq')
+      .value();
+
+    // placeSeq를 포함하는 장소 객체 목록 반환
+    return _.filter(this.placeList, placeInfo =>
+      _.includes(foundPlaceSeqList, placeInfo.place_seq),
+    );
+  }
+
+  /**
+   * 장소 Id를 기반으로 장소 객체를 찾아 반환
+   * @param {string} placeId 장소 Id
+   */
+  getPlace(placeId) {
+    return _.find(this.placeList, { place_id: placeId });
   }
 
   /**
@@ -88,14 +115,16 @@ class SmartSalternStorage {
   getWaterDoorType(placeId, waterDoorId) {
     // 출발지 지형 높이(Depth)
     // BU.CLIS(placeId, waterDoorId);
-    const { depth: srcDepth } = _.find(this.placeList, { place_id: placeId });
+    const { depth: srcDepth } = this.getPlace(placeId);
+    // 수문을 통해 물이 흐르기 위해서는 시작지와 도착지가 있어야함
+    // 따라서 현재 수문을 사용하는 장소 외에 타 장소에서 사용되는 장소가 있어야함.
     const { place_id: plaRelId } = _.find(
       this.placeRelationList,
       plaRel => _.eq(plaRel.node_id, waterDoorId) && !_.eq(plaRel.place_id, placeId),
     );
 
     // 도착지 지형 높이(Depth)
-    const { depth: desDepth } = _.find(this.placeList, { place_id: plaRelId });
+    const { depth: desDepth } = this.getPlace(plaRelId);
 
     // 기본 수문은 동일 레벨
     let waterDoorType = WD_TYPE.EQUAL;
@@ -134,6 +163,12 @@ class SmartSalternStorage {
     }
   }
 
+  /**
+   * 스마트 염전 장소 관계를 초기화 진행
+   * 1. 장치 카테고리 별 분류하여 저장 (펌프, 밸브, 각종 센서류 등등)
+   * 2. 장소별 수문 타입 정의(배수, 급수, 동일)
+   * 3. 저장소내 장소 카테고리 별 분류하여 저장(염판, 해주, 저수지, 바다)
+   */
   initPlace() {
     BU.CLI('initPlace');
 
@@ -220,7 +255,9 @@ class SmartSalternStorage {
 
   // getPlaceByPcId()
   /**
-   * 명령 제어에 필요한 추가 구성
+   * 명령 제어 내용 초기화
+   * 1. 단순 명령 시작지, 도착지 명 한글화
+   * 2. 단순 명령 ID 코드 생성(srcPlaceId_TO_destPlaceId)
    */
   initCommand() {
     const { simpleModeList, settingModeList } = this.deviceMap.controlInfo;
