@@ -1,10 +1,12 @@
 const Control = require('./Control');
 const MuanControl = require('./projects/UPSAS/muan/MuanControl');
-const RnDControl = require('./projects/FP/RnD/RnDControl');
+const FPRndControl = require('./projects/FP/RnD/RnDControl');
+const S2WRndControl = require('./projects/S2W/RnD/RnDControl');
 
 const Model = require('./Model');
 const MuanModel = require('./projects/UPSAS/muan/MuanModel');
-const RnDModel = require('./projects/FP/RnD/RnDModel');
+const FPRndModel = require('./projects/FP/RnD/RnDModel');
+const S2WRndModel = require('./projects/S2W/RnD/RnDModel');
 
 /**
  * 프로젝트에 따라 Control과 Model을 생성.
@@ -34,9 +36,18 @@ class Main {
       case 'FP':
         switch (projectSubId) {
           case 'RnD':
-          case 'muan':
-            MainControl = RnDControl;
-            MainModel = RnDModel;
+            MainControl = FPRndControl;
+            MainModel = FPRndModel;
+            break;
+          default:
+            break;
+        }
+        break;
+      case 'S2W':
+        switch (projectSubId) {
+          case 'RnD':
+            MainControl = S2WRndControl;
+            MainModel = S2WRndModel;
             break;
           default:
             break;
