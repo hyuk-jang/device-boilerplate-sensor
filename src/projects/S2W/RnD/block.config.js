@@ -66,6 +66,10 @@ const blockConfigInfo = [
           toKey: 'line_f',
         },
         {
+          fromKey: inverterKeyInfo.powerPf,
+          toKey: 'power_f',
+        },
+        {
           fromKey: inverterKeyInfo.powerGridKw,
           toKey: 'power_kw',
         },
