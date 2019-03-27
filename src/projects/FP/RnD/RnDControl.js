@@ -159,9 +159,9 @@ class MuanControl extends Control {
           case '002':
             connInfo = {};
             break;
-          case '003':
-            connInfo = {};
-            break;
+          // case '003':
+            // connInfo = {};
+            // break;
           default:
             break;
         }

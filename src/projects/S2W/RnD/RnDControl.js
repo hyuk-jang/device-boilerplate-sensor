@@ -77,7 +77,7 @@ class MuanControl extends Control {
 
       // FIXME: TEST 로 사용됨  -------------
       // 농병 센서
-      if (protoInfo.mainCategory === 'FarmParallel') {
+      if (protoInfo.mainCategory === 'S2W') {
         connInfo.type = 'socket';
         connInfo.subType = '';
         connInfo.port = 9000;
@@ -130,13 +130,10 @@ class MuanControl extends Control {
         // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
         // 현재 모든 농병 사이트 인버터 계측하지 않음
         switch (this.mainUUID) {
-          case '001':
-          case '002':
-          case '003':
-          case '004':
-            connInfo = {};
-            break;
-          case '005':
+          // case '101':
+          case '102':
+          case '103':
+          case '104':
             connInfo = {};
             break;
           default:

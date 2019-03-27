@@ -36,6 +36,7 @@ const blockConfigInfo = [
         {
           fromKey: inverterKeyInfo.pvKw,
           toKey: 'pv_kw',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.gridRsVol,
@@ -72,6 +73,7 @@ const blockConfigInfo = [
         {
           fromKey: inverterKeyInfo.powerGridKw,
           toKey: 'power_kw',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.powerCpKwh,
