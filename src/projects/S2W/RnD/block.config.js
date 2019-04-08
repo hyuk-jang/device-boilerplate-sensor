@@ -76,6 +76,11 @@ const blockConfigInfo = [
           toFixed: 3,
         },
         {
+          fromKey: inverterKeyInfo.powerDailyKwh,
+          toKey: 'power_d_kwh',
+          // toFixed: 3,
+        },
+        {
           fromKey: inverterKeyInfo.powerCpKwh,
           toKey: 'power_cp_kwh',
         },
