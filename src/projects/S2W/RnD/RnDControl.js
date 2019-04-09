@@ -77,7 +77,7 @@ class MuanControl extends Control {
 
       // FIXME: TEST 로 사용됨  -------------
       // 농병 센서
-      if (protoInfo.mainCategory === 'FarmParallel') {
+      if (protoInfo.mainCategory === 'S2W') {
         connInfo.type = 'socket';
         connInfo.subType = '';
         connInfo.port = 9000;
@@ -118,7 +118,7 @@ class MuanControl extends Control {
         protoInfo.wrapperCategory = 'default';
 
         // connInfo = {};
-      } else if (protoInfo.subCategory === 'das_1.3') {
+      } else if (protoInfo.subCategory === 'ESP3K5') {
         connInfo.type = 'socket';
         connInfo.port = 9005;
         // connInfo.subType = '';
@@ -130,38 +130,12 @@ class MuanControl extends Control {
         // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
         // 현재 모든 농병 사이트 인버터 계측하지 않음
         switch (this.mainUUID) {
-          case '001':
+          // case '101':
+          case '102':
+          case '103':
+          case '104':
             connInfo = {};
             break;
-          case '004':
-            connInfo = {};
-            break;
-          case '005':
-            connInfo = {};
-            break;
-          default:
-            break;
-        }
-
-        // connInfo = {};
-      } else if (protoInfo.subCategory === 's5500k') {
-        // BU.CLI('s5500k');
-        connInfo.type = 'socket';
-        connInfo.port = 9006;
-        // connInfo.subType = '';
-        // connInfo.hasPassive = false;
-
-        protoInfo.wrapperCategory = 'default';
-
-        delete connInfo.addConfigInfo;
-
-        switch (this.mainUUID) {
-          case '002':
-            connInfo = {};
-            break;
-          // case '003':
-            // connInfo = {};
-            // break;
           default:
             break;
         }

@@ -433,8 +433,8 @@ class Model {
       // BU.CLI(resOrderInfo.orderWrapInfoLV3.requestCommandId, flatSimpleList);
       if (_.every(flatOrderElementList, 'hasComplete')) {
         BU.CLI(
-          `MainUUID: ${this.mainUUID || ''}`,
-          `All Completed CommandId:  ${dcMessage.commandSet.commandId}`,
+          `M.UUID: ${this.mainUUID || ''}`,
+          `Complete CMD: ${dcMessage.commandSet.commandId}`,
         );
         // proceedingList에서 제거
         const completeOrderInfo = _.head(
