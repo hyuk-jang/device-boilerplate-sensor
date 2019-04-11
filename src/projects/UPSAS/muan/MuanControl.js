@@ -11,6 +11,8 @@ const BlockManager = require('../../../features/BlockManager/BlockManager');
 
 const blockConfig = require('./block.config');
 
+const CriticalSetter = require('../smartSalternCore/CriticalSetter');
+
 const SmartSalternStorage = require('../smartSalternCore/SmartSalternStorage');
 
 class MuanControl extends Control {
@@ -36,8 +38,14 @@ class MuanControl extends Control {
     /** @type {BlockManager} */
     this.blockManager = new BlockManager(this);
 
-    this.smartSalternStorage = new SmartSalternStorage(this);
-    this.smartSalternStorage.init();
+    const criticalSetter = new CriticalSetter(this);
+
+    criticalSetter.init();
+
+    BU.CLIN(this.placeList);
+
+    // this.smartSalternStorage = new SmartSalternStorage(this);
+    // this.smartSalternStorage.init();
 
     this.bindingEventHandler();
   }

@@ -1,26 +1,21 @@
 const _ = require('lodash');
 
-class CriticalState {
-  /**
-   * @interface
-   * 갱신된 상태에 대한 명령 요청
-   */
-  requestCommand() {}
-}
+const {
+  MaxOverState,
+  UpperLimitOverState,
+  NormalState,
+  LowerLimitUnderState,
+  MinUnderState,
+  UnknownState,
+} = require('./AbstCriticalState');
 
-const MaxOverState = class extends CriticalState {};
-const UpperLimitOverState = class extends CriticalState {};
-const NormalState = class extends CriticalState {};
-const LowerLimitUnderState = class extends CriticalState {};
-const MinUnderState = class extends CriticalState {};
-const UnknownState = class extends CriticalState {};
-
-class CriticalManager {
+class AbstCriticalManager {
   /**
-   *
+   * @param {MainControl} controller
    * @param {mCriticalControlInfo} criticalControlInfo
    */
-  constructor(criticalControlInfo = {}) {
+  constructor(controller, criticalControlInfo = {}) {
+    this.controller = controller;
     const {
       ndId,
       maxValue,
@@ -40,21 +35,29 @@ class CriticalManager {
     this.minValue = minValue;
     this.callPlaceRankList = callPlaceRankList;
     this.putPlaceRankList = putPlaceRankList;
-
-    this.MaxOverState = MaxOverState;
-    this.UpperLimitOverState = UpperLimitOverState;
-    this.NormalState = NormalState;
-    this.LowerLimitUnderState = LowerLimitUnderState;
-    this.MinUnderState = MinUnderState;
-    this.UnknownState = UnknownState;
-
-    /** 장치 데이터가 갱신된 현재 상태 */
-    this.currState = new this.UnknownState();
-    // 상태가 변경되기 전 상태. currState와의 값이 틀리다면 Update 명령을 수행하지 않은 것으로 판단
-    this.prevState = new this.UnknownState();
   }
 
-  init() {}
+  init() {
+    // State 객체 생성
+    this.initState();
+    /** 장치 데이터가 갱신된 현재 상태 */
+    this.currState = this.unknownState;
+    // 상태가 변경되기 전 상태. currState와의 값이 틀리다면 Update 명령을 수행하지 않은 것으로 판단
+    this.prevState = this.unknownState;
+  }
+
+  /**
+   * @abstract
+   * State 객체를 생성
+   */
+  initState() {
+    this.maxOverState = new MaxOverState();
+    this.upperLimitOverState = new UpperLimitOverState();
+    this.normalState = new NormalState();
+    this.lowerLimitUnderState = new LowerLimitUnderState();
+    this.minUnderState = new MinUnderState();
+    this.unknownState = new UnknownState();
+  }
 
   /**
    * @desc Bridge Pattern
@@ -93,7 +96,7 @@ class CriticalManager {
       this.currState = currState;
 
       // 상태가 변경되었으로 갱신 명령을 요청
-      this.currState.requestCommand();
+      this.currState.changedState();
     }
   }
 
@@ -104,17 +107,17 @@ class CriticalManager {
     let currState;
 
     if (!_.isNumber(numDeviceData)) {
-      currState = new this.UnknownState();
+      currState = this.unknownState;
     } else if (_.isNumber(this.maxValue) && numDeviceData >= this.maxValue) {
-      currState = new this.MaxOverState();
+      currState = this.maxOverState;
     } else if (_.isNumber(this.upperLimitValue) && numDeviceData >= this.upperLimitValue) {
-      currState = new this.UpperLimitOverState();
+      currState = this.upperLimitOverState;
     } else if (_.isNumber(this.minValue) && numDeviceData <= this.minValue) {
-      currState = new this.MinUnderState();
+      currState = this.minUnderState;
     } else if (_.isNumber(this.lowerLimitValue) && numDeviceData <= this.lowerLimitValue) {
-      currState = new this.LowerLimitUnderState();
+      currState = this.lowerLimitUnderState;
     } else {
-      currState = new this.NormalState();
+      currState = this.normalState;
     }
     return currState;
   }
@@ -126,13 +129,4 @@ class CriticalManager {
   checkUpdateStrValue(strDeviceData = '') {}
 }
 
-module.exports = {
-  CriticalManager,
-  CriticalState,
-  MaxOverState,
-  UpperLimitOverState,
-  NormalState,
-  LowerLimitUnderState,
-  MinUnderState,
-  UnknownState,
-};
+module.exports = AbstCriticalManager;

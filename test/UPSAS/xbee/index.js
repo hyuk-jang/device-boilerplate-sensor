@@ -20,7 +20,7 @@ control
   .init(dbInfo, config.uuid)
   .then(() => {
     BU.CLI('start Program');
-    control.runFeature();
+    // control.runFeature();
     // control.inquiryAllDeviceStatus();
     // control.runDeviceInquiryScheduler();
   })
