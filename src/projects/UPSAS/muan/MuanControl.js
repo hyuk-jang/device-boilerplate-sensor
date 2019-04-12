@@ -42,7 +42,7 @@ class MuanControl extends Control {
 
     criticalSetter.init();
 
-    BU.CLIN(this.placeList);
+    // BU.CLIN(this.placeList);
 
     // this.smartSalternStorage = new SmartSalternStorage(this);
     // this.smartSalternStorage.init();
@@ -114,7 +114,7 @@ class MuanControl extends Control {
           option: '}}',
         };
 
-        connInfo = {};
+        // connInfo = {};
       } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
         connInfo.type = 'socket';
         connInfo.port = 9005;

@@ -83,31 +83,23 @@ class Model {
   }
 
   /**
-   * simpleOrderInfo 를 새로이 입력하고자 할 경우
+   * 신규 simpleOrderInfo가 생성되었을 경우
    * @param {simpleOrderInfo} simpleOrderInfo
    * @return {boolean} 정상적인 신규 데이터 삽입이 이루어지면 true, 아니면 false
    */
-  setSimpleOrderInfo(simpleOrderInfo) {
-    // BU.CLI(this.controller.mainUUID, simpleOrderInfo);
-    // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-    if (!this.controller.apiClient.isConnect) {
-      // if (!_.get(this, 'controller.apiClient.isConnect', false)) {
-      // if (_.isEmpty(_.get(this, 'controller.apiClient.client'))) {
-      return false;
-    }
+  addSimpleOrderInfo(simpleOrderInfo) {
     const foundIt = _.find(this.simpleOrderList, { uuid: simpleOrderInfo.uuid });
-    // 기존에 존재한다면
-    if (foundIt) {
-      return false;
-    }
-    // 신규 삽입
-    this.simpleOrderList.push(simpleOrderInfo);
+    // 기존에 없을 경우에만 삽입
+    if (!foundIt) {
+      // 신규 삽입
+      this.simpleOrderList.push(simpleOrderInfo);
 
-    // 신규 알림
-    this.controller.apiClient.transmitDataToServer({
-      commandType: transmitToServerCommandType.COMMAND,
-      data: [simpleOrderInfo],
-    });
+      // 신규 알림
+      this.controller.apiClient.transmitDataToServer({
+        commandType: transmitToServerCommandType.COMMAND,
+        data: [simpleOrderInfo],
+      });
+    }
   }
 
   /**
@@ -583,7 +575,7 @@ class Model {
 
     storage.waitingList.push(combinedOrderWrapInfo);
     // 새로 생성된 명령 추가
-    this.setSimpleOrderInfo(simpleOrder);
+    this.addSimpleOrderInfo(simpleOrder);
     // BU.CLIN(this.combinedOrderStorage, 5);
     return true;
   }

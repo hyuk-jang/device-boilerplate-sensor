@@ -7,10 +7,11 @@ const {
   nodePickKey,
 } = require('../../../../default-intelligence').dcmConfigModel;
 
-const Control = require('../../../src/Control');
-const config = require('../../../src/config');
+const config = require('./config');
+const Main = require('../../../src/Main');
 
-const control = new Control(config);
+const main = new Main();
+const control = main.createControl(config);
 
 const testDumpCmd = {
   cmdName: '증발지1 -> 저수지1',
@@ -124,6 +125,7 @@ control
   .then(() => {
     setTimeout(() => {
       // 명령 제어 요청
+      BU.CLI('명령 제어 요청');
       control.executeAutomaticControl(testDumpCmd);
     }, 2000);
   });

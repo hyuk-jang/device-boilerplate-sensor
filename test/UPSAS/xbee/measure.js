@@ -8,10 +8,15 @@ const main = new Main();
 const control = main.createControl(config);
 
 control.on('completeInquiryAllDeviceStatus', () => {
-  if (_.every(control.nodeList, nodeInfo => !_.isNil(nodeInfo.data))) {
+  const result = _(control.nodeList)
+    .filter(nodeInfo => _.includes(['sensor', 'device'], nodeInfo.save_db_type))
+    .map(nodeInfo => _.pick(nodeInfo, ['node_id', 'data']))
+    .value();
+
+  if (_.every(result, nodeInfo => !_.isNil(nodeInfo.data))) {
     BU.CLI('SUCCESS', '모든 장치 데이터 입력 검증 완료');
   } else {
-    const result = _.map(control.nodeList, node => _.pick(node, ['node_id', 'data']));
+    // const result = _.map(control.nodeList, node => _.pick(node, ['node_id', 'data']));
     BU.CLI(result);
     throw new Error('장치에 데이터가 없는게 있음');
   }

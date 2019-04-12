@@ -7,6 +7,7 @@ const {
   LowerLimitUnderState,
   MinUnderState,
   UnknownState,
+  ErrorState,
 } = require('./AbstCriticalState');
 
 class AbstCriticalManager {
@@ -57,6 +58,7 @@ class AbstCriticalManager {
     this.lowerLimitUnderState = new LowerLimitUnderState();
     this.minUnderState = new MinUnderState();
     this.unknownState = new UnknownState();
+    this.errorState = new ErrorState();
   }
 
   /**
@@ -88,6 +90,8 @@ class AbstCriticalManager {
       currState = this.updateNumValue(deviceData);
     } else if (_.isString(deviceData)) {
       currState = this.checkUpdateStrValue(deviceData);
+    } else {
+      currState = this.errorState;
     }
 
     // 이전 State와 비교 후 같은 상태가 아니라면 현재 상태를 이전 상태로 옮기고 업데이트 된 상태를 현재 상태로 정의
