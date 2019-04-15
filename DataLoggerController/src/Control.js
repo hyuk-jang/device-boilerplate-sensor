@@ -257,7 +257,7 @@ class DataLoggerController extends DccFacade {
    * 외부에서 명령을 내릴경우
    * @param {executeCmdInfo} executeCmdInfo
    */
-  orderOperation(executeCmdInfo) {
+  requestCommand(executeCmdInfo) {
     if (process.env.LOG_DLC_ORDER === '1') {
       BU.CLIN(executeCmdInfo);
     }
@@ -278,7 +278,7 @@ class DataLoggerController extends DccFacade {
 
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
       if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
-        return this.orderOperationToDataLogger(executeCmdInfo);
+        return this.requestDefaultCommand(executeCmdInfo);
       }
       const nodeInfo = _.find(this.nodeList, {
         node_id: nodeId,
@@ -321,7 +321,7 @@ class DataLoggerController extends DccFacade {
    * DataLogger Default 명령을 내리기 위함
    * @param {executeCmdInfo} executeCmd
    */
-  orderOperationToDataLogger(executeCmd) {
+  requestDefaultCommand(executeCmd) {
     const {
       integratedUUID,
       uuid,

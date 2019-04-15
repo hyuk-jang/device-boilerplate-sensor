@@ -227,7 +227,7 @@ class CommandExecManager {
     const { wrapCmdId, wrapCmdType, wrapCmdName, reqCmdEleList } = reqComplexCmd;
 
     /** @type {complexCmdWrapInfo} */
-    const combinedWrapOrder = {
+    const complexCmdWrap = {
       uuid: uuidv4(),
       wrapCmdId,
       wrapCmdType,
@@ -247,7 +247,7 @@ class CommandExecManager {
       const nodeList = _.isArray(nodeId) ? nodeId : [nodeId];
 
       // 해당 controlValue가 complexEleList 기존재하는지 체크
-      let foundRemainInfo = _.find(combinedWrapOrder.complexCmdContainerList, {
+      let foundRemainInfo = _.find(complexCmdWrap.complexCmdContainerList, {
         controlValue,
       });
       // 없다면
@@ -257,7 +257,7 @@ class CommandExecManager {
           controlSetValue,
           complexEleList: [],
         };
-        combinedWrapOrder.complexCmdContainerList.push(foundRemainInfo);
+        complexCmdWrap.complexCmdContainerList.push(foundRemainInfo);
       }
 
       // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
@@ -296,14 +296,14 @@ class CommandExecManager {
       });
     });
 
-    process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(combinedWrapOrder, 2);
+    process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(complexCmdWrap, 2);
 
     // 복합 명령 저장
-    const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, combinedWrapOrder);
+    const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, complexCmdWrap);
 
     // 복합 명령 실행 요청
     // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
-    this.executeCommandToDLC(combinedWrapOrder);
+    this.executeCommandToDLC(complexCmdWrap);
 
     return hasSaved;
   }
@@ -342,7 +342,7 @@ class CommandExecManager {
 
         const dataLoggerController = this.model.findDataLoggerController(nodeId);
 
-        dataLoggerController.orderOperation(executeCmd);
+        dataLoggerController.requestCommand(executeCmd);
         // hasFirst = false;
         // }
       });
@@ -353,7 +353,7 @@ class CommandExecManager {
    * 정기적인 Router Status 탐색
    */
   inquiryAllDeviceStatus() {
-    // BU.CLI('inquiryAllDeviceStatus');
+    BU.CLI('inquiryAllDeviceStatus');
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
 

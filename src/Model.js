@@ -213,24 +213,24 @@ class Model {
     _.forEach(this.complexCmdIntegratedStorage, (complexCmdStorage, complexStorageType) => {
       if (hasFined) return false;
       // 각 저장소의 대기, 진행, 실행 목록 순회
-      _.forEach(complexCmdStorage, (complexCmdWrapList, orderType) => {
+      _.forEach(complexCmdStorage, (complexCmdWrapList, strCmdStorageStep) => {
         if (hasFined) return false;
         // 저장소에 저장된 명령 리스트 목록 순회
-        _.forEach(complexCmdWrapList, orderWrapInfo => {
+        _.forEach(complexCmdWrapList, complexCmdWrapInfo => {
           if (hasFined) return false;
           // 제어 목록별 명령 순회
-          _.forEach(orderWrapInfo.complexCmdContainerList, containerInfo => {
+          _.forEach(complexCmdWrapInfo.complexCmdContainerList, cmdContainerInfo => {
             if (hasFined) return false;
             // 해당 ID를 가진 complexCmdWrapInfo 검색
-            const foundIt = _.find(containerInfo.complexEleList, { uuid });
+            const foundIt = _.find(cmdContainerInfo.complexEleList, { uuid });
             if (foundIt) {
               hasFined = true;
               returnValue.complexCmdIntegratedStorageKey = complexStorageType;
               returnValue.complexCmdStorage = complexCmdStorage;
-              returnValue.complexCmdStorageStepKey = orderType;
+              returnValue.complexCmdStorageStepKey = strCmdStorageStep;
               returnValue.cmdWrapList = complexCmdWrapList;
-              returnValue.cmdWrapInfo = orderWrapInfo;
-              returnValue.cmdContainerInfo = containerInfo;
+              returnValue.cmdWrapInfo = complexCmdWrapInfo;
+              returnValue.cmdContainerInfo = cmdContainerInfo;
               returnValue.cmdEleInfo = foundIt;
             }
           });
@@ -244,14 +244,14 @@ class Model {
   /**
    * @desc Find Step 1
    * 명령 요청에 따라 '제어', '취소', '계측' 저장소 리스트 반환
-   * @param {string} commandType CONTROL, CANCEL, MEASURE
+   * @param {string} complexCmdIntegratedStorageType CONTROL, CANCEL, MEASURE
    * @return {complexCmdStorage}
    */
-  findComplexCmdLV1(commandType) {
+  findComplexCmdStorage(complexCmdIntegratedStorageType) {
     // commandSet.
     const { controlStorage, cancelStorage, measureStorage } = this.complexCmdIntegratedStorage;
     let complexCmd;
-    switch (commandType) {
+    switch (complexCmdIntegratedStorageType) {
       case reqWrapCmdType.CONTROL:
         complexCmd = controlStorage;
         break;
@@ -365,18 +365,18 @@ class Model {
     ) {
       // BU.CLI(`${this.mainUUID} ${resComplexStorageInfo.cmdWrapInfo.wrapCmdId} 작업 시작`);
       // watingList에서 해당 명령 제거. pullAt은 배열 형태로 리턴하므로 첫번째 인자 가져옴.
-      const newOrderInfo = _.head(
+      const complexCmdWrapInfo = _.head(
         _.pullAt(
           resComplexStorageInfo.complexCmdStorage[resComplexStorageInfo.complexCmdStorageStepKey],
           resComplexStorageInfo.cmdWrapListIndex,
         ),
       );
-      if (newOrderInfo === undefined) {
+      if (complexCmdWrapInfo === undefined) {
         throw new Error('해당 객체는 존재하지 않습니다.');
       }
 
       // 진행중 명령 저장소 목록에 삽입
-      resComplexStorageInfo.complexCmdStorage.proceedingList.push(newOrderInfo);
+      resComplexStorageInfo.complexCmdStorage.proceedingList.push(complexCmdWrapInfo);
       // contractCmdList 갱신
       this.updateContractCmdInfo(resComplexStorageInfo.cmdWrapInfo.uuid, contractCmdStatus.PROCEED);
       return false;
@@ -532,11 +532,11 @@ class Model {
 
   /**
    * 복합 명령을 저장
-   * @param {string} commandType 저장할 타입 ADD, CANCEL, ''
+   * @param {string} wrapCmdType 저장할 타입 ADD, CANCEL, ''
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @return {boolean} 명령을 등록한다면 true, 아니라면 false
    */
-  saveComplexCmd(commandType = reqWrapCmdType.MEASURE, complexCmdWrapInfo) {
+  saveComplexCmd(wrapCmdType = reqWrapCmdType.MEASURE, complexCmdWrapInfo) {
     // BU.CLI('saveComplexCmd');
 
     // 아무런 명령을 내릴 것이 없다면 등록하지 않음
@@ -553,7 +553,7 @@ class Model {
      * @type {contractCmdInfo}
      */
     const contractCmd = {
-      reqWrapCmdType: commandType,
+      reqWrapCmdType: wrapCmdType,
       complexCmdStep: contractCmdStatus.NEW,
       commandId: complexCmdWrapInfo.wrapCmdId,
       commandName: complexCmdWrapInfo.wrapCmdName,
@@ -563,7 +563,7 @@ class Model {
     const { CONTROL, CANCEL, MEASURE } = reqWrapCmdType;
 
     let storage;
-    switch (commandType) {
+    switch (wrapCmdType) {
       case CONTROL:
         storage = this.complexCmdIntegratedStorage.controlStorage;
         break;

@@ -33,7 +33,7 @@ if (require !== undefined && require.main === module) {
       //   controlValue: 2,
       //   wrapCmdId: 'TEST',
       // });
-      control.orderOperationToDataLogger({});
+      control.requestDefaultCommand({});
     })
     .catch(err => {
       BU.CLI(err);

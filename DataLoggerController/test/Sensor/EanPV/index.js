@@ -16,7 +16,7 @@ control.init().then(c => {
   //   control.orderOperation({ wrapCmdId: 'test' });
   // }, 1000);
   setTimeout(() => {
-    control.orderOperation({ wrapCmdId: 'test' });
+    control.requestCommand({ wrapCmdId: 'test' });
   }, 1000);
 });
 control.model.hasAverageStorage = true;

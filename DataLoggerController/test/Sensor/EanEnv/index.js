@@ -15,7 +15,7 @@ control.s2SetDeviceInfo();
 control.init().then(c => {
   // BU.CLIN(c);
   setInterval(() => {
-    control.orderOperation({ wrapCmdId: 'test' });
+    control.requestCommand({ wrapCmdId: 'test' });
   }, 1000);
   // setTimeout(() => {
   //   control.orderOperation({ wrapCmdId: 'test' });

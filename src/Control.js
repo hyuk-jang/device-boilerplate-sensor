@@ -286,8 +286,9 @@ class Control extends EventEmitter {
    * @desc init Step: 5
    * 생성된 Feature를 구동시킴
    * @param {dbsFeatureConfig} featureConfig
+   * @return {Promise}
    */
-  async runFeature(featureConfig) {}
+  runFeature(featureConfig) {}
 
   /**
    * Passive Client를 수동으로 붙여줄 경우
