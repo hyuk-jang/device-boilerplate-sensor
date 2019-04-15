@@ -175,7 +175,7 @@ class ApiClient extends DeviceManager {
 
     this.transmitDataToServer({
       commandType: transmitToServerCommandType.COMMAND,
-      data: this.controller.model.simpleOrderList,
+      data: this.controller.model.contractCmdList,
     });
   }
 

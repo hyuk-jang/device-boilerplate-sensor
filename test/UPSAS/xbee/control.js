@@ -2,10 +2,7 @@ require('dotenv').config();
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const {
-  requestOrderCommandType,
-  nodePickKey,
-} = require('../../../../default-intelligence').dcmConfigModel;
+const { reqWrapCmdType, nodePickKey } = require('../../../../default-intelligence').dcmConfigModel;
 
 const config = require('./config');
 const Main = require('../../../src/Main');

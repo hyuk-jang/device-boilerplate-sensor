@@ -316,7 +316,7 @@ class Control extends EventEmitter {
 
   /**
    * 시나리오를 수행하고자 할 경우
-   * @param {{scenarioId: string, requestCommandType: string}} scenarioInfo 시나리오 ID
+   * @param {{scenarioId: string, wrapCmdType: string}} scenarioInfo 시나리오 ID
    */
   executeScenario(scenarioInfo) {
     return this.scenarioManager.executeScenario(scenarioInfo);
@@ -324,10 +324,10 @@ class Control extends EventEmitter {
 
   /**
    * 외부에서 단일 명령을 내릴경우
-   * @param {requestSingleOrderInfo} requestSingleOrderInfo
+   * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
-  executeSingleControl(requestSingleOrderInfo) {
-    return this.commandExecManager.executeSingleControl(requestSingleOrderInfo);
+  executeSingleControl(reqSingleCmdInfo) {
+    return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
   }
 
   /**
@@ -348,7 +348,7 @@ class Control extends EventEmitter {
 
   /**
    * 저장된 명령 요청 수행
-   * @param {{savedCommandId: string, requestCommandType: string }} savedCommandInfo 저장된 명령 ID
+   * @param {{savedCommandId: string, wrapCmdType: string }} savedCommandInfo 저장된 명령 ID
    */
   executeSavedCommand(savedCommandInfo) {
     return this.commandExecManager.executeSavedCommand(savedCommandInfo);
@@ -356,20 +356,20 @@ class Control extends EventEmitter {
 
   /**
    * 복합 명령 실행 요청
-   * @param {requestCombinedOrderInfo} requestCombinedOrder
+   * @param {reqComplexCmdInfo} reqComplexCmd
    * @return {boolean} 명령 요청 여부
    */
-  executeCombineCommand(requestCombinedOrder) {
-    return this.commandExecManager.executeCombineCommand(requestCombinedOrder);
+  executeComplexCmd(reqComplexCmd) {
+    return this.commandExecManager.executeComplexCmd(reqComplexCmd);
   }
 
   /**
    * Data Logger Controller로 실제로 명령을 요청하는 메소드
-   * @param {combinedOrderWrapInfo} combinedOrderWrapInfo
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @memberof Control
    */
-  executeCommandToDLC(combinedOrderWrapInfo) {
-    return this.commandExecManager.executeCommandToDLC(combinedOrderWrapInfo);
+  executeCommandToDLC(complexCmdWrapInfo) {
+    return this.commandExecManager.executeCommandToDLC(complexCmdWrapInfo);
   }
 
   /**
@@ -464,7 +464,7 @@ class Control extends EventEmitter {
     // const {COMMANDSET_EXECUTION_START, COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE} = dataLoggerController.definedCommandSetMessage;
     // const commandSet = dcMessage.commandSet;
 
-    this.model.manageCombinedStorage(dataLoggerController, dcMessage);
+    this.model.manageComplexStorage(dataLoggerController, dcMessage);
   }
 
   /**

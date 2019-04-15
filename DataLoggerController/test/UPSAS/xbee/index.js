@@ -19,7 +19,7 @@ control.model.hasAverageStorage = true;
 setTimeout(() => {
   // DataLogger 조회
   // BU.CLIN(control.manager.deviceController);
-  control.orderOperationToDataLogger({ requestCommandId: 'test' });
+  control.orderOperationToDataLogger({ wrapCmdId: 'test' });
 }, 1000);
 
 // setTimeout(() => {

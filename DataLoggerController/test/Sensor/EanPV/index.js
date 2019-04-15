@@ -13,10 +13,10 @@ control.s2SetDeviceInfo();
 control.init().then(c => {
   // BU.CLIN(c);
   // setInterval(() => {
-  //   control.orderOperation({ requestCommandId: 'test' });
+  //   control.orderOperation({ wrapCmdId: 'test' });
   // }, 1000);
   setTimeout(() => {
-    control.orderOperation({ requestCommandId: 'test' });
+    control.orderOperation({ wrapCmdId: 'test' });
   }, 1000);
 });
 control.model.hasAverageStorage = true;
@@ -25,8 +25,8 @@ control.model.hasAverageStorage = true;
 // setTimeout(() => {
 //   // DataLogger 조회
 //   // BU.CLIN(control.manager.deviceController);
-//   control.orderOperation({ requestCommandId: 'test' });
-//   // control.orderOperationToDataLogger({ requestCommandId: 'test' });
+//   control.orderOperation({ wrapCmdId: 'test' });
+//   // control.orderOperationToDataLogger({ wrapCmdId: 'test' });
 // }, 1000);
 
 // setTimeout(() => {

@@ -12,8 +12,8 @@ const { BU } = require('base-util-jh');
 const Promise = require('bluebird');
 
 const {
-  requestOrderCommandType,
-  simpleOrderStatus,
+  reqWrapCmdType,
+  contractCmdStatus,
   nodePickKey,
 } = require('../../../default-intelligence').dcmConfigModel;
 const { transmitToServerCommandType } = require('../../../default-intelligence').dcmWsModel;
@@ -157,8 +157,8 @@ const dumpCommandList = [
     commandType: transmitToServerCommandType.COMMAND,
     data: [
       {
-        orderCommandType: 'CONTROL',
-        orderStatus: 'NEW',
+        reqWrapCmdType: 'CONTROL',
+        complexCmdStep: 'NEW',
         commandId: '증발지1 -> 저수지1',
         commandName: '증발지1 -> 저수지1',
         uuid: 'b3a18526-93ec-46fc-a44d-1c0b5cc900c6',
@@ -169,8 +169,8 @@ const dumpCommandList = [
     commandType: transmitToServerCommandType.COMMAND,
     data: [
       {
-        orderCommandType: 'CANCEL',
-        orderStatus: 'NEW',
+        reqWrapCmdType: 'CANCEL',
+        complexCmdStep: 'NEW',
         commandId: '증발지1 -> 저수지1 취소',
         commandName: '증발지1 -> 저수지1 취소',
         uuid: '0eb58502-cfb7-46d6-b42d-cc3e381a8efa',
@@ -181,8 +181,8 @@ const dumpCommandList = [
     commandType: transmitToServerCommandType.COMMAND,
     data: [
       {
-        orderCommandType: 'MEASURE',
-        orderStatus: 'NEW',
+        reqWrapCmdType: 'MEASURE',
+        complexCmdStep: 'NEW',
         commandId: 'RegularDevice',
         commandName: 'Regular',
         uuid: 'aaaaaaa-cfb7-46d6-b42d-alksjfalskfj',
@@ -218,40 +218,40 @@ async function transmitOrderScenario() {
   const controlCmdNew = _.nth(dumpCommandList, 0);
   const controlCmdProceed = _.set(
     _.cloneDeep(controlCmdNew),
-    'data[0].orderStatus',
-    simpleOrderStatus.PROCEED,
+    'data[0].complexCmdStep',
+    contractCmdStatus.PROCEED,
   );
 
   const controlCmdComplete = _.set(
     _.cloneDeep(controlCmdNew),
-    'data[0].orderStatus',
-    simpleOrderStatus.COMPLETE,
+    'data[0].complexCmdStep',
+    contractCmdStatus.COMPLETE,
   );
 
   // Cancel
   const cancelCmdNew = _.nth(dumpCommandList, 1);
   const cancelCmdProceed = _.set(
     _.cloneDeep(cancelCmdNew),
-    'data[0].orderStatus',
-    simpleOrderStatus.PROCEED,
+    'data[0].complexCmdStep',
+    contractCmdStatus.PROCEED,
   );
   const cancelCmdComplete = _.set(
     _.cloneDeep(cancelCmdNew),
-    'data[0].orderStatus',
-    simpleOrderStatus.COMPLETE,
+    'data[0].complexCmdStep',
+    contractCmdStatus.COMPLETE,
   );
 
   // Measure
   const measureCmdNew = _.nth(dumpCommandList, 2);
   const measureCmdProceed = _.set(
     _.cloneDeep(measureCmdNew),
-    'data[0].orderStatus',
-    simpleOrderStatus.PROCEED,
+    'data[0].complexCmdStep',
+    contractCmdStatus.PROCEED,
   );
   const measureCmdComplete = _.set(
     _.cloneDeep(measureCmdNew),
-    'data[0].orderStatus',
-    simpleOrderStatus.COMPLETE,
+    'data[0].complexCmdStep',
+    contractCmdStatus.COMPLETE,
   );
 
   // New 명령 등록

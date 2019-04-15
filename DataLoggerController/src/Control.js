@@ -11,7 +11,7 @@ const Model = require('./Model');
 const { MainConverter } = require('../../../device-protocol-converter-jh');
 
 const {
-  requestOrderCommandType,
+  reqWrapCmdType,
   requestDeviceControlType,
 } = require('../../../default-intelligence').dcmConfigModel;
 
@@ -255,22 +255,22 @@ class DataLoggerController extends DccFacade {
 
   /**
    * 외부에서 명령을 내릴경우
-   * @param {executeOrderInfo} executeOrderInfo
+   * @param {executeCmdInfo} executeCmdInfo
    */
-  orderOperation(executeOrderInfo) {
+  orderOperation(executeCmdInfo) {
     if (process.env.LOG_DLC_ORDER === '1') {
-      BU.CLIN(executeOrderInfo);
+      BU.CLIN(executeCmdInfo);
     }
     try {
       const {
         integratedUUID,
-        requestCommandId,
-        requestCommandType,
+        wrapCmdId,
+        wrapCmdType,
         uuid,
         controlValue,
         nodeId = '',
         rank = this.definedCommandSetRank.THIRD,
-      } = executeOrderInfo;
+      } = executeCmdInfo;
       // BU.CLI(this.siteUUID);
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
@@ -278,14 +278,14 @@ class DataLoggerController extends DccFacade {
 
       // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
       if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
-        return this.orderOperationToDataLogger(executeOrderInfo);
+        return this.orderOperationToDataLogger(executeCmdInfo);
       }
       const nodeInfo = _.find(this.nodeList, {
         node_id: nodeId,
       });
       // let modelId = orderInfo.modelId;
       if (_.isEmpty(nodeInfo)) {
-        throw new Error(`Node ${executeOrderInfo.nodeId} 장치는 존재하지 않습니다.`);
+        throw new Error(`Node ${executeCmdInfo.nodeId} 장치는 존재하지 않습니다.`);
       }
 
       const cmdList = this.converter.generationCommand({
@@ -298,9 +298,9 @@ class DataLoggerController extends DccFacade {
       const commandSet = this.generationManualCommand({
         integratedUUID,
         cmdList,
-        commandId: requestCommandId,
+        commandId: wrapCmdId,
         commandName,
-        commandType: requestCommandType,
+        commandType: wrapCmdType,
         uuid,
         nodeId,
         rank,
@@ -319,16 +319,16 @@ class DataLoggerController extends DccFacade {
 
   /**
    * DataLogger Default 명령을 내리기 위함
-   * @param {executeOrderInfo} executeOrder
+   * @param {executeCmdInfo} executeCmd
    */
-  orderOperationToDataLogger(executeOrder) {
+  orderOperationToDataLogger(executeCmd) {
     const {
       integratedUUID,
       uuid,
-      requestCommandId = `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
-      requestCommandType = requestOrderCommandType.MEASURE,
+      wrapCmdId = `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
+      wrapCmdType = reqWrapCmdType.MEASURE,
       rank = this.definedCommandSetRank.THIRD,
-    } = executeOrder;
+    } = executeCmd;
     // BU.CLI('orderOperationToDataLogger')
     try {
       if (!this.hasConnectedDevice) {
@@ -340,20 +340,20 @@ class DataLoggerController extends DccFacade {
       });
       const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${
         this.config.dataLoggerInfo.dl_target_code
-      } Type: ${requestCommandType}`;
+      } Type: ${wrapCmdType}`;
 
       const commandSet = this.generationManualCommand({
         integratedUUID,
         cmdList,
-        commandId: requestCommandId,
+        commandId: wrapCmdId,
         commandName: cmdName,
         uuid,
-        commandType: requestCommandType,
+        commandType: wrapCmdType,
         rank,
       });
 
       this.executeCommand(commandSet);
-      // BU.CLIN(this.manager.findCommandStorage({commandId: requestOrderInfo.requestCommandId}), 4);
+      // BU.CLIN(this.manager.findCommandStorage({commandId: reqExecCmdInfo.wrapCmdId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
       return this.model.addRequestCommandSet(commandSet);

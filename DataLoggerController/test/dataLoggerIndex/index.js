@@ -17,7 +17,7 @@ control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
 
 setTimeout(() => {
   // DataLogger 조회
-  control.orderOperationToDataLogger({ requestCommandId: 'test' });
+  control.orderOperationToDataLogger({ wrapCmdId: 'test' });
 }, 1000);
 
 setTimeout(() => {

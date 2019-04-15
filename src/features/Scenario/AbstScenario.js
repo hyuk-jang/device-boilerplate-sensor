@@ -2,7 +2,7 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const { requestOrderCommandType } = require('../../../../default-intelligence').dcmConfigModel;
+const { reqWrapCmdType } = require('../../../../default-intelligence').dcmConfigModel;
 
 class AbstScenario {
   /** @param {MainControl} controller */
@@ -17,17 +17,17 @@ class AbstScenario {
 
   /**
    * 시나리오를 수행하고자 할 경우
-   * @param {{scenarioId: string, requestCommandType: string}} scenarioInfo 시나리오 ID
+   * @param {{scenarioId: string, wrapCmdType: string}} scenarioInfo 시나리오 ID
    */
   executeScenario(scenarioInfo) {
     BU.CLI(scenarioInfo);
-    const { scenarioId, requestCommandType } = scenarioInfo;
+    const { scenarioId, wrapCmdType } = scenarioInfo;
     // 명령 타입 체크. MEASURE 까지 포함되어 있지만... webServer 측에서 보내지 말 것
-    if (!_.values(requestOrderCommandType).includes(requestCommandType)) {
-      throw new Error(`requestCommandType: ${requestCommandType} does not exist.`);
+    if (!_.values(reqWrapCmdType).includes(wrapCmdType)) {
+      throw new Error(`wrapCmdType: ${wrapCmdType} does not exist.`);
     }
     // 제어 요청일 경우에는 true, 아닐 경우에는 false로 설정
-    const hasExecute = requestCommandType === requestOrderCommandType.CONTROL;
+    const hasExecute = wrapCmdType === reqWrapCmdType.CONTROL;
 
     switch (scenarioId) {
       case 'scenario1':

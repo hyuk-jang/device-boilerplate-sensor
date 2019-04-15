@@ -31,7 +31,7 @@ if (require !== undefined && require.main === module) {
       // control.orderOperation({
       //   nodeId: 'GV_001',
       //   controlValue: 2,
-      //   requestCommandId: 'TEST',
+      //   wrapCmdId: 'TEST',
       // });
       control.orderOperationToDataLogger({});
     })
@@ -55,7 +55,7 @@ if (require !== undefined && require.main === module) {
   //   control.orderOperation({
   //     nodeId: 'V_001',
   //     controlValue: 2,
-  //     requestCommandId: 'TEST',
+  //     wrapCmdId: 'TEST',
   //   });
   // }, 1000);
 
