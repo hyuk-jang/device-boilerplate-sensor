@@ -142,7 +142,6 @@ class DataLoggerController extends DccFacade {
   s2SetDeviceInfo() {
     this.deviceInfo = {
       target_id: this.dataLoggerInfo.dl_real_id,
-      // target_category: 'Saltern',
       target_name: this.dataLoggerInfo.dld_target_name,
       connect_info: this.dataLoggerInfo.connect_info,
       protocol_info: this.dataLoggerInfo.protocol_info,
@@ -403,12 +402,19 @@ class DataLoggerController extends DccFacade {
   onDcError(dcError) {
     process.env.LOG_DLC_ERROR === '1' && super.onDcError(dcError);
 
+    const { E_TIMEOUT } = this.definedOperationError;
+
+    const { NEXT, RETRY } = this.definedCommanderResponse;
+
+    // 타임 아웃이 발생하였을 경우 재시도
+    if (_.eq(dcError.errorInfo, E_TIMEOUT)) {
+      return this.requestTakeAction(RETRY);
+    }
+
     // 에러가 발생하였다면 빈 센서 데이터 객체를 전달.
     if (dcError) {
       this.tempStorage = this.converter.BaseModel;
     }
-
-    const { NEXT } = this.definedCommanderResponse;
 
     // Error가 발생하면 추적 중인 데이터는 폐기
     // (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
