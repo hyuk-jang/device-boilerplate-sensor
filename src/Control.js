@@ -361,7 +361,7 @@ class Control extends EventEmitter {
    * @return {boolean} 명령 요청 여부
    */
   executeComplexCmd(reqComplexCmd) {
-    return this.commandExecManager.executeComplexCmd(reqComplexCmd);
+    return this.commandExecManager.executeComplexCommand(reqComplexCmd);
   }
 
   /**

@@ -98,7 +98,7 @@ class CommandExecManager {
 
       reqComplexCmd.reqCmdEleList.push(reqCmdEle);
 
-      return this.executeComplexCmd(reqComplexCmd);
+      return this.executeComplexCommand(reqComplexCmd);
     } catch (error) {
       BU.errorLog('excuteControl', 'Error', error);
     }
@@ -139,7 +139,7 @@ class CommandExecManager {
       });
     }
 
-    return this.executeComplexCmd(reqComplexCmd);
+    return this.executeComplexCommand(reqComplexCmd);
   }
 
   /**
@@ -177,12 +177,12 @@ class CommandExecManager {
     //   });
     // }
 
-    return this.executeComplexCmd(reqComplexCmd);
+    return this.executeComplexCommand(reqComplexCmd);
   }
 
   /**
    * 저장된 명령 요청 수행
-   * @param {{savedCommandId: string, wrapCmdType: string }} savedCommandInfo 저장된 명령 ID
+   * @param {wsExecCommandInfo} savedCommandInfo 저장된 명령 ID
    */
   executeSavedCommand(savedCommandInfo) {
     try {
@@ -219,7 +219,7 @@ class CommandExecManager {
    * @param {reqComplexCmdInfo} reqComplexCmd
    * @return {boolean} 명령 요청 여부
    */
-  executeComplexCmd(reqComplexCmd) {
+  executeComplexCommand(reqComplexCmd) {
     // BU.CLI(reqComplexCmd);
     process.env.LOG_DBS_EXEC_CO_HEADER === '1' && BU.CLI('execCombineOrder', reqComplexCmd);
 
@@ -368,7 +368,7 @@ class CommandExecManager {
     // BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
 
     // 명령 요청
-    const hasTransferInquiryStatus = this.executeComplexCmd(reqComplexCmd);
+    const hasTransferInquiryStatus = this.executeComplexCommand(reqComplexCmd);
 
     // BU.CLI(hasTransferInquiryStatus);
 
