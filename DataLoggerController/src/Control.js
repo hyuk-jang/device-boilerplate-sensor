@@ -41,6 +41,9 @@ class DataLoggerController extends DccFacade {
 
     /** @type {string} 사이트 지점 ID */
     this.siteUUID = null;
+
+    /** @type {number} DLC 에러 누적 횟수 */
+    this.errorCount = 0;
   }
 
   /**
@@ -402,24 +405,24 @@ class DataLoggerController extends DccFacade {
   onDcError(dcError) {
     process.env.LOG_DLC_ERROR === '1' && super.onDcError(dcError);
 
-    const { E_TIMEOUT } = this.definedOperationError;
+    const { E_RETRY_MAX } = this.definedOperationError;
 
-    const { NEXT, RETRY } = this.definedCommanderResponse;
+    const { RETRY, ERROR } = this.definedCommanderResponse;
 
-    // 타임 아웃이 발생하였을 경우 재시도
-    if (_.eq(dcError.errorInfo, E_TIMEOUT)) {
+    // 재시도 횟수가 누적되지 않았다면 재시도
+    if (!_.eq(dcError.errorInfo, E_RETRY_MAX)) {
       return this.requestTakeAction(RETRY);
     }
 
-    // 에러가 발생하였다면 빈 센서 데이터 객체를 전달.
-    if (dcError) {
-      this.tempStorage = this.converter.BaseModel;
-    }
+    // 빈 센서 데이터 객체를 전달.
+    // this.model.onPartData(this.converter.BaseModel);
+    // this.tempStorage = this.converter.BaseModel;
 
-    // Error가 발생하면 추적 중인 데이터는 폐기
     // (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
     this.converter.resetTrackingDataBuffer();
-    this.requestTakeAction(NEXT);
+
+    // 현재 진행 중인 명령 객체를 삭제 요청
+    this.requestTakeAction(ERROR);
     // Observer가 해당 메소드를 가지고 있다면 전송
     _.forEach(this.observerList, observer => {
       if (_.get(observer, 'notifyDeviceError')) {
@@ -448,6 +451,7 @@ class DataLoggerController extends DccFacade {
       // 명령 수행이 완료
       // 현재 데이터 업데이트, 명령 목록에서 해당 명령 제거
       case COMMANDSET_EXECUTION_TERMINATE:
+      case COMMANDSET_DELETE:
         // BU.CLI(this.model.tempStorage);
         renewalNodeList = this.model.completeOnData();
         this.model.completeRequestCommandSet(dcMessage.commandSet);
@@ -455,13 +459,11 @@ class DataLoggerController extends DccFacade {
       // 현재 데이터 업데이트
       case COMMANDSET_MOVE_DELAYSET:
         renewalNodeList = this.model.completeOnData();
-        this.model.completeOnData();
         break;
       // 명령 목록에서 해당 명령 제거
-      case COMMANDSET_DELETE:
-        this.model.tempStorage = this.converter.BaseModel;
-        this.model.completeRequestCommandSet(dcMessage.commandSet);
-        break;
+      // this.model.tempStorage = this.converter.BaseModel;
+      // this.model.completeRequestCommandSet(dcMessage.commandSet);
+      // break;
       default:
         break;
     }
@@ -517,6 +519,8 @@ class DataLoggerController extends DccFacade {
       }
       // 데이터가 정상적이라면
       if (eventCode === DONE) {
+        // DLC 에러 카운트 초기화
+        this.errorCount = 0;
         // Device Client로 해당 이벤트 Code를 보냄
         // 수신 받은 데이터 저장
         this.model.onPartData(data);
