@@ -409,8 +409,12 @@ class DataLoggerController extends DccFacade {
 
     const { RETRY, ERROR } = this.definedCommanderResponse;
 
-    // 재시도 횟수가 누적되지 않았다면 재시도
-    if (!_.eq(dcError.errorInfo, E_RETRY_MAX)) {
+    // 재시도 횟수가 설정되어 있고 재시도 횟수 제한에 걸리지 않았다면 재시도
+    if (
+      this.commander.setRetryChance > 0 &&
+      !_.eq(_.get(dcError, 'errorInfo.message'), E_RETRY_MAX)
+    ) {
+      // BU.CLI(this.commander.setRetryChance, dcError.errorInfo.message);
       return this.requestTakeAction(RETRY);
     }
 
