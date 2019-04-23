@@ -30,7 +30,7 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       // control.orderOperation({
       //   nodeId: 'GV_001',
-      //   controlValue: 2,
+      //   singleControlType: 2,
       //   wrapCmdId: 'TEST',
       // });
       control.requestDefaultCommand({});
@@ -54,7 +54,7 @@ if (require !== undefined && require.main === module) {
   //   // Node 조회
   //   control.orderOperation({
   //     nodeId: 'V_001',
-  //     controlValue: 2,
+  //     singleControlType: 2,
   //     wrapCmdId: 'TEST',
   //   });
   // }, 1000);

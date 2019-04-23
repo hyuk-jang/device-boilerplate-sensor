@@ -13,7 +13,7 @@ const Promise = require('bluebird');
 
 const {
   reqWrapCmdType,
-  contractCmdStatus,
+  contractCmdStep,
   nodePickKey,
 } = require('../../../default-intelligence').dcmConfigModel;
 const { transmitToServerCommandType } = require('../../../default-intelligence').dcmWsModel;
@@ -219,13 +219,13 @@ async function transmitOrderScenario() {
   const controlCmdProceed = _.set(
     _.cloneDeep(controlCmdNew),
     'data[0].complexCmdStep',
-    contractCmdStatus.PROCEED,
+    contractCmdStep.PROCEED,
   );
 
   const controlCmdComplete = _.set(
     _.cloneDeep(controlCmdNew),
     'data[0].complexCmdStep',
-    contractCmdStatus.COMPLETE,
+    contractCmdStep.COMPLETE,
   );
 
   // Cancel
@@ -233,12 +233,12 @@ async function transmitOrderScenario() {
   const cancelCmdProceed = _.set(
     _.cloneDeep(cancelCmdNew),
     'data[0].complexCmdStep',
-    contractCmdStatus.PROCEED,
+    contractCmdStep.PROCEED,
   );
   const cancelCmdComplete = _.set(
     _.cloneDeep(cancelCmdNew),
     'data[0].complexCmdStep',
-    contractCmdStatus.COMPLETE,
+    contractCmdStep.COMPLETE,
   );
 
   // Measure
@@ -246,12 +246,12 @@ async function transmitOrderScenario() {
   const measureCmdProceed = _.set(
     _.cloneDeep(measureCmdNew),
     'data[0].complexCmdStep',
-    contractCmdStatus.PROCEED,
+    contractCmdStep.PROCEED,
   );
   const measureCmdComplete = _.set(
     _.cloneDeep(measureCmdNew),
     'data[0].complexCmdStep',
-    contractCmdStatus.COMPLETE,
+    contractCmdStep.COMPLETE,
   );
 
   // New 명령 등록

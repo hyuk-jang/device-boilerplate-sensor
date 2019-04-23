@@ -134,6 +134,10 @@ class Control extends EventEmitter {
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
+
+    // FIXME: 접속반 DPC가 없기 때문에 제거 처리 함.
+    _.remove(this.dataLoggerList, { dld_target_prefix: 'D_CNT' });
+
     // BU.CLI(this.dataLoggerList)
     this.nodeList = await biModule.getTable('v_dv_node', where);
 
@@ -463,7 +467,7 @@ class Control extends EventEmitter {
     // const {COMMANDSET_EXECUTION_START, COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE} = dataLoggerController.definedCommandSetMessage;
     // const commandSet = dcMessage.commandSet;
 
-    this.model.manageComplexStorage(dataLoggerController, dcMessage);
+    this.model.manageComplexCommand(dataLoggerController, dcMessage);
   }
 
   /**

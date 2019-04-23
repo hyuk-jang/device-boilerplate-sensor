@@ -8,19 +8,9 @@ const ControlDBS = require('./Control');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
-const {
-  complexCmdStep,
-  reqWrapCmdType,
-  contractCmdStatus,
-  nodePickKey,
-  nodeDataType,
-} = dcmConfigModel;
+const { complexCmdStep, nodePickKey, nodeDataType } = dcmConfigModel;
 
 const { transmitToServerCommandType } = dcmWsModel;
-
-// const NODE_DATA = ['node_seq', 'data', 'writeDate'];
-
-// const map = require('../config/map');
 
 class Model {
   /**
@@ -31,22 +21,19 @@ class Model {
   constructor(controller) {
     this.controller = controller;
 
-    const { config, dataLoggerControllerList, dataLoggerList, nodeList, mainUUID } = controller;
-
-    this.config = config;
+    const { config, dataLoggerControllerList, dataLoggerList, nodeList } = controller;
 
     this.dataLoggerControllerList = dataLoggerControllerList;
     this.dataLoggerList = dataLoggerList;
     this.nodeList = nodeList;
 
-    this.mainUUID = mainUUID;
+    /** @type {complexCmdWrapInfo[]} 복합 명령 실행 목록 */
+    this.complexCmdList = [];
 
-    this.initComplexCmdStorage();
+    /** @type {contractCmdInfo[]} 복합 명령 축약 Ver 목록 */
+    this.contractCmdList = [];
 
     this.biModule = new BM(config.dbInfo);
-
-    /** @type {contractCmdInfo[]} */
-    this.contractCmdList = [];
 
     // 정기 조회 Count
     this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);
@@ -54,219 +41,38 @@ class Model {
 
     this.deviceMap = controller.deviceMap;
 
-    // this.excuteControlList = map.controlList;
     // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
+
+    this.initOverapControlNode();
+  }
+
+  /** Overlap Control Storage List 초기화 */
+  initOverapControlNode() {
+    BU.CLIN(this.nodeList);
+    // 노드 목록 중 장치만을 가져옴
+    /** @type {csOverlapControlStorage[]} */
+    this.overlapControlStorageList = _(this.nodeList)
+      .filter(nodeInfo => _.eq(nodeInfo.is_sensor, 0))
+      .map(nodeInfo => {
+        return {
+          nodeInfo,
+          overlapControlList: [],
+        };
+      })
+      .value();
   }
 
   /**
-   * 복합 명령 저장소를 초기화
+   * API 서버로 축약해서 명령을 보냄.
    */
-  initComplexCmdStorage() {
-    /** @type {complexCmdIntegratedStorage} */
-    const complexStorage = {
-      controlStorage: {
-        waitingList: [],
-        proceedingList: [],
-        runningList: [],
-      },
-      cancelStorage: {
-        waitingList: [],
-        proceedingList: [],
-      },
-      measureStorage: {
-        waitingList: [],
-        proceedingList: [],
-      },
-    };
-    this.complexCmdIntegratedStorage = complexStorage;
-  }
-
-  /**
-   * 신규 contractCmdInfo가 생성되었을 경우
-   * @param {contractCmdInfo} contractCmdInfo
-   * @return {boolean} 정상적인 신규 데이터 삽입이 이루어지면 true, 아니면 false
-   */
-  addContractCmdInfo(contractCmdInfo) {
-    const foundIt = _.find(this.contractCmdList, { uuid: contractCmdInfo.uuid });
-    // 기존에 없을 경우에만 삽입
-    if (!foundIt) {
-      // 신규 삽입
-      this.contractCmdList.push(contractCmdInfo);
-
-      // 신규 알림
-      this.controller.apiClient.transmitDataToServer({
-        commandType: transmitToServerCommandType.COMMAND,
-        data: [contractCmdInfo],
-      });
-    }
-  }
-
-  /**
-   * 기존에 존재하던 명령의 수정이 이루어 질때
-   * @param {string} uuid
-   * @param {string} strComplexCmdStep complexCmdStep
-   * @return {boolean} 갱신이 이루어지면 true, 아니면 false
-   */
-  updateContractCmdInfo(uuid, strComplexCmdStep) {
-    const contractCmdInfo = _.find(this.contractCmdList, { uuid });
-    // BU.CLI(complexCmdStep, contractCmdInfo);
-    // 데이터가 존재한다면 해당 명령의 변화가 생긴 것
-    if (contractCmdInfo) {
-      // complexCmdStep 가 정상적인 데이터이고 기존 데이터와 다르다면
-      if (
-        _(contractCmdStatus)
-          .values()
-          .includes(strComplexCmdStep) &&
-        !_.isEqual(contractCmdInfo.complexCmdStep, strComplexCmdStep)
-      ) {
-        contractCmdInfo.complexCmdStep = strComplexCmdStep;
-
-        // 명령이 완료됐다면 Simple Order List에서 삭제
-        if (strComplexCmdStep === contractCmdStatus.COMPLETE) {
-          _.pullAllWith(this.contractCmdList, [contractCmdInfo], _.isEqual);
-        }
-
-        // BU.CLI(this.contractCmdList);
-
-        // const dlc = this.findDataLoggerController('V_001');
-        // BU.CLIN(dlc.nodeList);
-
-        // 접속이 이루어져있을 경우 보냄
-        // if (this.controller.apiClient.isConnect) {
-        // if (_.isEmpty(_.get(this, 'controller.apiClient.client'))) {
-        // 업데이트 알림 (통째로 보내버림)
-        this.controller.apiClient.transmitDataToServer({
-          commandType: transmitToServerCommandType.COMMAND,
-          data: this.contractCmdList,
-        });
-        // }
-      }
-    }
-  }
-
-  /**
-   * 명령을 기반으로 Order Storage 내용 반환
-   * @param {string} storageUUID 명령을 내릴 때 해당 명령의 고유 ID(mode5, mode3, ...)
-   */
-  findAllComplexCmdByStorageUUID(storageUUID) {
-    const returnValue = {
-      complexCmdIntegratedStorageKey: '',
-      /** @type {complexCmdStorage} */
-      complexCmdStorage: {},
-      complexCmdStorageStepKey: '',
-      cmdWrapListIndex: -1,
-      /** @type {complexCmdWrapInfo[]} */
-      cmdWrapList: [],
-      /** @type {complexCmdWrapInfo} */
-      cmdWrapInfo: {},
-    };
-
-    const hasFined = false;
-    // 저장소를 순회
-    _.forEach(this.complexCmdIntegratedStorage, (complexCmdStorage, cmdStep) => {
-      if (hasFined) return false;
-      // 각 저장소의 대기, 진행, 실행 목록 순회
-      _.forEach(complexCmdStorage, (complexCmdWrapList, strCmdStorageStep) => {
-        if (hasFined) return false;
-        // 해당 명령을 가진 complexCmdWrapInfo 검색
-        const foundIndex = _.findIndex(complexCmdWrapList, {
-          uuid: storageUUID,
-        });
-        // 0 이상이면 해당 배열에 존재한다는 것
-        if (foundIndex >= 0) {
-          returnValue.complexCmdIntegratedStorageKey = cmdStep;
-          returnValue.complexCmdStorage = complexCmdStorage;
-          returnValue.complexCmdStorageStepKey = strCmdStorageStep;
-          returnValue.cmdWrapListIndex = foundIndex;
-          returnValue.cmdWrapList = complexCmdWrapList;
-          returnValue.cmdWrapInfo = _.nth(complexCmdWrapList, foundIndex);
-        }
-      });
+  transmitComplexCommandStatus() {
+    const contractCommandList = _.map(this.complexCmdList, _.omit('containerCmdList'));
+    // 업데이트 알림 (통째로 보내버림)
+    this.controller.apiClient.transmitDataToServer({
+      commandType: transmitToServerCommandType.COMMAND,
+      data: contractCommandList,
     });
-
-    return returnValue;
-  }
-
-  /**
-   * UUID에 해당하는 Order Storage 내용 반환
-   * @param {string} cmdEleUUID UUID. 유일 키로 명령 요청 시 동적으로 생성 및 부여
-   */
-  findAllComplexCmdByElementInfo(cmdEleUUID) {
-    const returnValue = {
-      complexCmdIntegratedStorageKey: '',
-      /** @type {complexCmdStorage} */
-      complexCmdStorage: {},
-      complexCmdStorageStepKey: '',
-      /** @type {complexCmdWrapInfo[]} */
-      cmdWrapList: [],
-      /** @type {complexCmdWrapInfo} */
-      cmdWrapInfo: {},
-      /** @type {complexCmdContainerInfo} */
-      cmdContainerInfo: {},
-      /** @type {complexCmdEleInfo} */
-      cmdEleInfo: {},
-    };
-
-    let hasFined = false;
-    // 저장소를 순회
-    _.forEach(this.complexCmdIntegratedStorage, (complexCmdStorage, complexStorageType) => {
-      if (hasFined) return false;
-      // 각 저장소의 대기, 진행, 실행 목록 순회
-      _.forEach(complexCmdStorage, (complexCmdWrapList, strCmdStorageStep) => {
-        if (hasFined) return false;
-        // 저장소에 저장된 명령 리스트 목록 순회
-        _.forEach(complexCmdWrapList, complexCmdWrapInfo => {
-          if (hasFined) return false;
-          // 제어 목록별 명령 순회
-          _.forEach(complexCmdWrapInfo.complexCmdContainerList, cmdContainerInfo => {
-            if (hasFined) return false;
-            // 해당 ID를 가진 complexCmdWrapInfo 검색
-            const foundIt = _.find(cmdContainerInfo.complexEleList, { uuid: cmdEleUUID });
-            if (foundIt) {
-              hasFined = true;
-              returnValue.complexCmdIntegratedStorageKey = complexStorageType;
-              returnValue.complexCmdStorage = complexCmdStorage;
-              returnValue.complexCmdStorageStepKey = strCmdStorageStep;
-              returnValue.cmdWrapList = complexCmdWrapList;
-              returnValue.cmdWrapInfo = complexCmdWrapInfo;
-              returnValue.cmdContainerInfo = cmdContainerInfo;
-              returnValue.cmdEleInfo = foundIt;
-            }
-          });
-        });
-      });
-    });
-
-    return returnValue;
-  }
-
-  /**
-   * @desc Find Step 1
-   * 명령 요청에 따라 '제어', '취소', '계측' 저장소 리스트 반환
-   * @param {string} complexCmdIntegratedStorageType CONTROL, CANCEL, MEASURE
-   * @return {complexCmdStorage}
-   */
-  findComplexCmdStorage(complexCmdIntegratedStorageType) {
-    //
-    const { controlStorage, cancelStorage, measureStorage } = this.complexCmdIntegratedStorage;
-    let complexCmd;
-    switch (complexCmdIntegratedStorageType) {
-      case reqWrapCmdType.CONTROL:
-        complexCmd = controlStorage;
-        break;
-      case reqWrapCmdType.CANCEL:
-        complexCmd = cancelStorage;
-        break;
-      case reqWrapCmdType.MEASURE:
-        complexCmd = measureStorage;
-        break;
-      default:
-        complexCmd = measureStorage;
-        break;
-    }
-
-    return complexCmd;
   }
 
   /**
@@ -308,198 +114,109 @@ class Model {
    * 저장소 데이터 관리. Data Logger Controller 객체로 부터 Message를 받은 경우 msgCode에 따라서 관리
    * @example
    * Device Client로부터 Message 수신
-   * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
+   * @param {DataLoggerControl} dataLoggerController Data Logger Controller 객체
    * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
-  manageComplexStorage(dataLoggerController, dcMessage) {
+  manageComplexCommand(dataLoggerController, dcMessage) {
     const {
       COMMANDSET_EXECUTION_START,
       COMMANDSET_EXECUTION_TERMINATE,
       COMMANDSET_DELETE,
     } = dataLoggerController.definedCommandSetMessage;
 
+    // BU.CLIN(dcMessage);
+
     const {
       commandSet: {
-        commandId: dcCommandId,
-        commandType: dcCommandType,
-        integratedUUID: dcIntegratedUUID,
-        uuid: dcUuid,
+        commandId: dcWrapCmdId,
+        commandType: dcWrapCmdType,
+        wrapCmdUUID: dcWrapCmdUUID,
+        uuid: dcCmdUUID,
       },
       msgCode: dcMsgCode,
     } = dcMessage;
 
-    // 명령 타입에 따라서 저장소를 가져옴(Control, Cancel, Measure)
+    const foundComplexCmdInfo = _.find(this.complexCmdList, { wrapCmdUUID: dcWrapCmdUUID });
+
+    // 통합 명령 UUID가 없을 경우
+    if (!foundComplexCmdInfo) {
+      throw new Error(`wrapCmdUUID: ${dcWrapCmdUUID} is not exist.`);
+    }
 
     const {
-      complexCmdIntegratedStorageKey,
-      complexCmdStorageStepKey,
-      complexCmdStorage,
-      cmdWrapList,
-      cmdWrapListIndex,
-      cmdWrapInfo,
-    } = this.findAllComplexCmdByStorageUUID(dcIntegratedUUID);
+      wrapCmdStep,
+      wrapCmdId,
+      wrapCmdName,
+      wrapCmdType,
+      containerCmdList,
+    } = foundComplexCmdInfo;
 
-    // Storage UUID와 일치하는 Complex CMD Storage가 없을 경우
-    if (!complexCmdIntegratedStorageKey.length) {
-      // BU.CLIN(resComplexStorageInfo);
-      throw new Error(`wrapCmdType: ${dcCommandType} is not exist.`);
-    }
-
-    // ComplexCmdWrapInfo 가 없을 경우
-    if (_.isEmpty(cmdWrapInfo)) {
-      throw new Error(`wrapCmdId: ${dcCommandId} is not exist.`);
-    }
-
-    // 복합 명령 현황 저장소 key 형태를 보고 명령 타입을 정의
-    // TODO: complexStorageType에 따라 명령 요청, 취소 요청 처리 필요
-    // let complexStorageType = '';
-    // switch (complexCmdIntegratedStorageKey) {
-    //   case 'controlStorage':
-    //     complexStorageType = reqWrapCmdType.CONTROL;
-    //     break;
-    //   case 'cancelStorage':
-    //     complexStorageType = reqWrapCmdType.CANCEL;
-    //     break;
-    //   case 'measureStorage':
-    //     complexStorageType = reqWrapCmdType.MEASURE;
-    //     break;
-    //   default:
-    //     break;
-    // }
-
-    // BU.CLIN(commandSet);
-    // BU.CLIN(commandId, uuid);
-
-    // 명령 코드가 COMMANDSET_EXECUTION_START 이고 아직 complexCmdStep.WAIT 상태라면 PROCEEDING 상태로 이동하고 종료
-    if (
-      dcMsgCode === COMMANDSET_EXECUTION_START &&
-      complexCmdStorageStepKey === complexCmdStep.WAIT
-    ) {
-      BU.CLI(`${this.mainUUID} ${cmdWrapInfo.wrapCmdId} 작업 시작`);
-      // watingList에서 해당 명령 제거. pullAt은 배열 형태로 리턴하므로 첫번째 인자 가져옴.
-      const complexCmdWrapInfo = _.head(
-        _.pullAt(cmdWrapList, cmdWrapListIndex),
-        // _.pullAt(complexCmdStorage[complexCmdStorageStepKey], cmdWrapListIndex),
-      );
-      // Wating CMD Wrap 이 없을 경우
-      if (complexCmdWrapInfo === undefined) {
-        throw new Error('해당 객체는 존재하지 않습니다.');
+    // DC Message: COMMANDSET_EXECUTION_START && complexCmdStep !== WAIT ===> Change PROCEED Step
+    // DCC 명령이 수행중
+    if (_.eq(dcMsgCode, COMMANDSET_EXECUTION_START)) {
+      if (_.eq(wrapCmdStep, complexCmdStep.WAIT)) {
+        foundComplexCmdInfo.wrapCmdStep = complexCmdStep.PROCEED;
+        // 상태 변경된 명령 목록 API Server로 전송
+        this.transmitComplexCommandStatus();
       }
-
-      // 진행중 명령 저장소 목록에 삽입
-      complexCmdStorage.proceedingList.push(complexCmdWrapInfo);
-      // contractCmdList 갱신
-      this.updateContractCmdInfo(cmdWrapInfo.uuid, contractCmdStatus.PROCEED);
-      return false;
+      return true;
     }
-    // 명령 코드가 완료(COMMANDSET_EXECUTION_TERMINATE), 삭제(COMMANDSET_DELETE) 일 경우
-    const completeKeyList = [COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE];
-    // 작업 완료로 교체
-    if (completeKeyList.includes(dcMsgCode)) {
-      // BU.CLI(
-      //   '작업 완료',
-      //   `${cmdWrapInfo.wrapCmdId} ${nodeId}`,
-      // );
-      // orderElement를 가져옴
 
-      // controlValue에 상관없이 flatten 형태로 모두 가져옴
-      const flatOrderElementList = _(cmdWrapInfo.complexCmdContainerList)
-        .map('complexEleList')
-        .flatten()
-        .value();
+    // 명령 코드가 완료(COMMANDSET_EXECUTION_TERMINATE), 삭제(COMMANDSET_DELETE)가 아니라면 종료
+    if (!_.includes([COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE], dcMsgCode)) return false;
 
-      // 가져온 flatten 리스트에서 uuid가 동일한 객체 검색
-      // const orderElementInfo = _.find(flatOrderElementList, {
-      //   uuid: uuid,
-      // });
+    // DLC에서 수신된 메시지가 명령 완료, 명령 삭제 완료 중 하나 일 경우
+    // 컨테이너 안에 있는 Ele 요소 중 dcUUID와 동일한 개체 조회
+    const allComplexEleCmdList = _(containerCmdList)
+      .map('eleCmdList')
+      .flatten()
+      .value();
 
-      _.set(
-        _.find(flatOrderElementList, {
-          uuid: dcUuid,
-        }),
-        'hasComplete',
-        true,
-      );
+    // FIXME: Ele가 존재하지 않는다면 명령 삭제 처리 필요 (DCC Error 로 넘어가게됨.)
+    if (!allComplexEleCmdList.length) {
+      throw new Error(`wrapCmdId(${dcWrapCmdId}) does not exist in the Complex Command List.`);
+    }
 
-      // BU.CLI('NodeID', orderElementInfo.nodeId);
+    // dcCmdUUID가 동일한 Complex Command를 찾음
+    const foundEleInfo = _.find(allComplexEleCmdList, { uuid: dcCmdUUID });
 
-      // 완료 처리
-      // if (orderElementInfo) {
-      //   orderElementInfo.hasComplete = true;
-      //   // NOTE: 한개의 동작이 완료 됐을 때 특별한 동작을 하고 싶을 경우 이하 작성
-      // }
+    // Ele가 존재하지 않는다면 종료
+    if (!foundEleInfo) {
+      throw new Error(`dcCmdUUID(${dcCmdUUID}) does not exist in the Complex Command List.`);
+    }
 
-      // TEST: 작업 세부 과정의 최종 완료 여부를 콘솔에서 확인하기 위해 간단히 가져옴
-      // const flatSimpleList = _.map(flatOrderElementList, ele =>
-      //   _.pick(ele, ['hasComplete', 'nodeId']),
-      // );
-      // BU.CLI(cmdWrapInfo.wrapCmdId, flatSimpleList);
+    // 해당 단위 명령 완료 처리
+    foundEleInfo.hasComplete = true;
 
-      // 모든 장치의 제어가 완료됐다면
-      if (_.every(flatOrderElementList, 'hasComplete')) {
-        BU.CLI(`M.UUID: ${this.mainUUID || ''}`, `Complete CMD: ${dcCommandId}`);
-        // proceedingList에서 제거
-        const completeOrderInfo = _.head(_.pullAt(cmdWrapList, cmdWrapListIndex));
-        // Proceeding CMD Wrap 이 없을 경우
-        if (completeOrderInfo === undefined) {
-          throw new Error('해당 객체는 존재하지 않습니다.');
-        }
+    // 모든 장치의 제어가 완료됐다면
+    if (_.every(allComplexEleCmdList, 'hasComplete')) {
+      BU.CLI(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete CMD: ${wrapCmdId}`);
 
-        if (cmdWrapInfo.wrapCmdId === 'inquiryAllDeviceStatus') {
-          // BU.CLI('Comlete inquiryAllDeviceStatus');
-          this.controller.emit('completeInquiryAllDeviceStatus', dcCommandId);
-          this.completeInquiryDeviceStatus();
-        } else {
-          // FIXME: 일반 명령 completeOrder이 완료되었을 경우 처리할 필요가 있다면 작성
-          this.controller.emit('completeOrder', dcCommandId);
-        }
+      // FIXME: 수동 자동? 처리?
+      foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;
+      this.transmitComplexCommandStatus();
 
-        // FIXME: 명령 제어에 대한 자세한 논리가 나오지 않았기 때문에 runningList로 이동하지 않음. (2018-07-23)
-        // FIXME: RUNNING 리스트 없이 무조건 완료 처리함. 실행 중인 명령을 추적하고자 할경우 추가적인 논리 필요
-        this.updateContractCmdInfo(cmdWrapInfo.uuid, contractCmdStatus.COMPLETE);
-
-        // 명령 제어 요청일 경우 runningList로 이동
-        // if (commandType === wrapCmdType.CONTROL) {
-        //   complexCmdStorage.runningList.push(completeOrderInfo);
-        // }
-
-        // BU.CLI(complexCmdStorage);
-
-        // TODO: 명령이 모두 완료 되었을 때 하고 싶은 행동 이하 작성
+      if (wrapCmdId === 'inquiryAllDeviceStatus') {
+        // BU.CLI('Comlete inquiryAllDeviceStatus');
+        this.controller.emit('completeInquiryAllDeviceStatus', dcWrapCmdId);
+        this.completeInquiryDeviceStatus();
+      } else {
+        // FIXME: 일반 명령 completeCommand이 완료되었을 경우 처리할 필요가 있다면 작성
+        this.controller.emit('completeCommand', dcWrapCmdId);
       }
-
-      // TODO: DB 입력
     }
-
-    // // Message에 따라서 행동 개시
-    // switch (dcMsgCode) {
-    //   case COMMANDSET_EXECUTION_START:
-    //     complexCmdKey === complexCmdStep.WAIT ?
-    //       case this.definedCommandSetMessage.COMMANDSET_EXECUTION_TERMINATE:
-    //   case this.definedCommandSetMessage.COMMANDSET_DELETE:
-    //     // BU.CLIN(this.model.requestCommandSetList);
-    //     this.model.completeRequestCommandSet(commandSet);
-    //     // Observer가 해당 메소드를 가지고 있다면 전송
-    //     // this.observerList.forEach(observer => {
-    //     //   if (_.get(observer, 'notifyCompleteOrder')) {
-    //     //     observer.notifyCompleteOrder(this, commandSet);
-    //     //   }
-    //     // });
-    //     // BU.CLIN(this.model.requestCommandSetList);
-    //     break;
-    //   default:
-    //     break;
-    // }
   }
 
   /** 정기 계측 조회 명령 완료 결과 반영 */
   async completeInquiryDeviceStatus() {
-    process.env.LOG_DBS_INQUIRY_COMPLETE === '1' && BU.CLI(`${this.mainUUID} Comlete inquiry`);
+    process.env.LOG_DBS_INQUIRY_COMPLETE === '1' &&
+      BU.CLI(`${this.controller.mainUUID} Comlete inquiry`);
 
     // 정기 계측 카운팅 증가
     this.inquirySchedulerCurrCount += 1;
 
     // 정기 계측 저장 간격 수와 현재 수행된 정기 계측 명령 수가 같지 않다면 데이터 저장 X
+    // 1분당 간격이 아닌 더 적은 인터벌 계측이 이루어 질 경우
     if (this.inquirySchedulerIntervalSaveCnt !== this.inquirySchedulerCurrCount) {
       return false;
     }
@@ -515,17 +232,9 @@ class Model {
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
-    // FIXME: 정기 계측을 완료한 후 데이터를 보내야할 지 결정.
-    // 정기 계측이 완료되면 현재 데이터를 전송.
-    // this.controller.apiClient.transmitDataToServer({
-    //   commandType: transmitToServerCommandType.NODE,
-    //   data: this.getAllNodeStatus(nodePickKey.FOR_SERVER),
-    // });
-
     // BU.CLIN(validNodeList);
-    if (process.env.LOG_DBS_INQUIRY_RESULT === '1') {
+    process.env.LOG_DBS_INQUIRY_RESULT === '1' &&
       BU.CLI(this.getAllNodeStatus(nodePickKey.FOR_DATA));
-    }
 
     await this.insertNodeDataToDB(validNodeList, {
       hasSensor: process.env.DBS_SAVE_SENSOR !== '0',
@@ -535,55 +244,25 @@ class Model {
 
   /**
    * 복합 명령을 저장
-   * @param {string} wrapCmdType 저장할 타입 CONTROL, CANCEL
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @return {boolean} 명령을 등록한다면 true, 아니라면 false
    */
-  saveComplexCmd(wrapCmdType = reqWrapCmdType.MEASURE, complexCmdWrapInfo) {
-    // BU.CLI('saveComplexCmd');
+  saveComplexCmd(complexCmdWrapInfo) {
+    complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
 
-    // 아무런 명령을 내릴 것이 없다면 등록하지 않음
-    // BU.CLI(complexCmdWrapInfo.complexCmdContainerList);
-    const hasNonCommand = _.every(
-      complexCmdWrapInfo.complexCmdContainerList,
-      info => info.complexEleList.length === 0,
-    );
-    if (hasNonCommand) {
+    // 명령을 내릴 것이 없다면 등록하지 않음
+    if (
+      !_(complexCmdWrapInfo)
+        .map('containerCmdList')
+        .flatten()
+        .value().length
+    ) {
       return false;
     }
-    /**
-     * Socket Server로 전송하기 위한 명령 추가 객체 생성
-     * @type {contractCmdInfo}
-     */
-    const contractCmd = {
-      reqWrapCmdType: wrapCmdType,
-      complexCmdStep: contractCmdStatus.NEW,
-      commandId: complexCmdWrapInfo.wrapCmdId,
-      commandName: complexCmdWrapInfo.wrapCmdName,
-      uuid: complexCmdWrapInfo.uuid,
-    };
 
-    const { CONTROL, CANCEL, MEASURE } = reqWrapCmdType;
+    this.complexCmdList.push(complexCmdWrapInfo);
 
-    let storage;
-    switch (wrapCmdType) {
-      case CONTROL:
-        storage = this.complexCmdIntegratedStorage.controlStorage;
-        break;
-      case CANCEL:
-        storage = this.complexCmdIntegratedStorage.cancelStorage;
-        break;
-      case MEASURE:
-      default:
-        storage = this.complexCmdIntegratedStorage.measureStorage;
-        break;
-    }
-
-    storage.waitingList.push(complexCmdWrapInfo);
-    // 새로 생성된 명령 추가
-    this.addContractCmdInfo(contractCmd);
-    // BU.CLIN(this.complexCmdIntegratedStorage, 5);
-    return true;
+    this.transmitComplexCommandStatus();
   }
 
   /**

@@ -29,10 +29,10 @@ class CommandExecManager {
   /**
    * @abstract
    * @param {nodeInfo} nodeInfo
-   * @param {string} controlValue
+   * @param {string} singleControlType
    */
-  convertControlValueToString(nodeInfo, controlValue) {
-    controlValue = Number(controlValue);
+  convertControlValueToString(nodeInfo, singleControlType) {
+    singleControlType = Number(singleControlType);
     let strControlValue = '';
     const onOffList = ['pump'];
     const openCloseList = ['valve', 'waterDoor'];
@@ -49,7 +49,7 @@ class CommandExecManager {
       strFalse = 'Close';
     }
 
-    switch (controlValue) {
+    switch (singleControlType) {
       case requestDeviceControlType.FALSE:
         strControlValue = strFalse;
         break;
@@ -78,9 +78,9 @@ class CommandExecManager {
     process.env.LOG_DBS_EXEC_SC === '1' && BU.CLIN(reqSingleCmdInfo);
 
     const {
-      wrapCmdType,
+      wrapCmdType = reqWrapCmdType.CONTROL,
       nodeId,
-      controlValue,
+      singleControlType,
       controlSetValue,
       rank = definedCommandSetRank.SECOND,
     } = reqSingleCmdInfo;
@@ -88,7 +88,7 @@ class CommandExecManager {
 
     try {
       // 사용자가 알 수 있는 제어 구문으로 변경
-      const cmdName = this.convertControlValueToString(nodeInfo, controlValue);
+      const cmdName = this.convertControlValueToString(nodeInfo, singleControlType);
 
       // 설정 제어 값이 존재하고 현재 노드 값과 같다면 추가적으로 제어하지 않음
       if (!_.isNil(controlSetValue) && _.eq(nodeInfo.data, controlSetValue)) {
@@ -103,7 +103,7 @@ class CommandExecManager {
       }
 
       /** @type {reqCmdEleInfo} 단일 제어 구문을 wrapCmd Ele 요소로 정의 */
-      const reqCmdEle = { nodeId, controlValue, controlSetValue, rank };
+      const reqCmdEle = { nodeId, singleControlType, controlSetValue, rank };
       /** @type {reqComplexCmdInfo} 복합 명령으로 정의 */
       const reqComplexCmd = {
         wrapCmdId: `${nodeId}_${cmdName}`,
@@ -177,7 +177,7 @@ class CommandExecManager {
     // 장치 True 요청
     if (trueList.length) {
       reqComplexCmd.reqCmdEleList.push({
-        controlValue: requestDeviceControlType.TRUE,
+        singleControlType: requestDeviceControlType.TRUE,
         nodeId: trueList,
         rank: definedCommandSetRank.SECOND,
       });
@@ -186,7 +186,7 @@ class CommandExecManager {
     // 장치 False 요청
     if (falseList.length) {
       reqComplexCmd.reqCmdEleList.push({
-        controlValue: requestDeviceControlType.FALSE,
+        singleControlType: requestDeviceControlType.FALSE,
         nodeId: falseList,
         rank: definedCommandSetRank.SECOND,
       });
@@ -214,7 +214,7 @@ class CommandExecManager {
     // 장치 False 요청 (켜져 있는 장치만 끔)
     if (trueList.length) {
       reqComplexCmd.reqCmdEleList.push({
-        controlValue: requestDeviceControlType.FALSE,
+        singleControlType: requestDeviceControlType.FALSE,
         nodeId: _.reverse(trueList),
         rank: definedCommandSetRank.SECOND,
       });
@@ -224,7 +224,7 @@ class CommandExecManager {
     // 장치 True 요청
     // if (falseList.length) {
     //   reqComplexCmd.reqCmdEleList.push({
-    //     controlValue: requestDeviceControlType.TRUE,
+    //     singleControlType: requestDeviceControlType.TRUE,
     //     nodeId: _.reverse(falseList),
     //     rank: 2,
     //   });
@@ -234,7 +234,7 @@ class CommandExecManager {
   }
 
   /**
-   * 복합 명령 실행 요청
+   * 최종적으로 명령 생성 및 실행 요청
    * @param {reqComplexCmdInfo} reqComplexCmd
    * @return {boolean} 명령 요청 여부
    */
@@ -243,40 +243,49 @@ class CommandExecManager {
     process.env.LOG_DBS_EXEC_CO_HEADER === '1' && BU.CLI('execCombineOrder', reqComplexCmd);
 
     // 복합 명령을 해체하여 정의
-    const { wrapCmdId, wrapCmdType, wrapCmdName, reqCmdEleList } = reqComplexCmd;
+    const {
+      wrapCmdId,
+      wrapCmdType = reqWrapCmdType.MEASURE,
+      wrapCmdName,
+      reqCmdEleList,
+    } = reqComplexCmd;
 
     /** @type {complexCmdWrapInfo} */
-    const complexCmdWrap = {
-      uuid: uuidv4(),
+    const wrapCmdInfo = {
+      wrapCmdUUID: uuidv4(),
       wrapCmdId,
       wrapCmdType,
       wrapCmdName,
-      complexCmdContainerList: [],
+      containerCmdList: [],
     };
 
     // 요청 복합 명령 객체의 요청 리스트를 순회하면서 complexCmdContainerInfo 객체를 만들고 삽입
     reqCmdEleList.forEach(reqCmdEleInfo => {
       const {
         nodeId,
-        controlValue = requestDeviceControlType.MEASURE,
+        singleControlType = requestDeviceControlType.MEASURE,
         controlSetValue,
         rank = definedCommandSetRank.THIRD,
       } = reqCmdEleInfo;
       // nodeId가 string이라면 배열생성 후 집어넣음
       const nodeList = _.isArray(nodeId) ? nodeId : [nodeId];
 
-      // 해당 controlValue가 complexEleList 기존재하는지 체크
-      let foundRemainInfo = _.find(complexCmdWrap.complexCmdContainerList, {
-        controlValue,
-      });
-      // 없다면
+      // 설정 값(controlSetValue)가 존재한다면 해당 값 AND 조건 추가 탐색
+      const findWhere = _.isEmpty(controlSetValue)
+        ? { singleControlType }
+        : { singleControlType, controlSetValue };
+
+      // 해당 singleControlType가 eleCmdList 기존재하는지 체크
+      let foundRemainInfo = _.find(wrapCmdInfo.containerCmdList, findWhere);
+
+      // 없다면 생성
       if (!foundRemainInfo) {
         foundRemainInfo = {
-          controlValue,
+          singleControlType,
           controlSetValue,
-          complexEleList: [],
+          eleCmdList: [],
         };
-        complexCmdWrap.complexCmdContainerList.push(foundRemainInfo);
+        wrapCmdInfo.containerCmdList.push(foundRemainInfo);
       }
 
       // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
@@ -299,7 +308,7 @@ class CommandExecManager {
           //   'executeComplexCmd',
           //   `mainUUID: ${
           //     this.mainUUID
-          //   } nodeId: ${currNodeId} controlValue: ${controlValue} msg: ${errMsg}`,
+          //   } nodeId: ${currNodeId} singleControlType: ${singleControlType} msg: ${errMsg}`,
           // );
         } else {
           /** @type {complexCmdEleInfo} */
@@ -310,19 +319,20 @@ class CommandExecManager {
             uuid: uuidv4(),
           };
 
-          foundRemainInfo.complexEleList.push(elementInfo);
+          foundRemainInfo.eleCmdList.push(elementInfo);
         }
       });
     });
 
-    process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(complexCmdWrap, 2);
+    process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(wrapCmdInfo, 2);
 
     // 복합 명령 저장
-    const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, complexCmdWrap);
+    const hasSaved = this.model.saveComplexCmd(wrapCmdInfo);
+    // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
 
     // 복합 명령 실행 요청
     // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
-    this.executeCommandToDLC(complexCmdWrap);
+    this.executeCommandToDLC(wrapCmdInfo);
 
     return hasSaved;
   }
@@ -336,23 +346,23 @@ class CommandExecManager {
     // BU.CLI(complexCmdWrapInfo)
     process.env.LOG_DBS_TRANS_ORDER === '1' && BU.CLI('transferRequestOr', complexCmdWrapInfo);
 
-    const { uuid: integratedUUID, wrapCmdId, wrapCmdName, wrapCmdType } = complexCmdWrapInfo;
+    const { wrapCmdUUID, wrapCmdId, wrapCmdName, wrapCmdType } = complexCmdWrapInfo;
 
-    // 아직 요청 전이므로 complexCmdContainerList 순회하면서 명령 생성 및 요청
-    complexCmdWrapInfo.complexCmdContainerList.forEach(complexCmdContainerInfo => {
-      const { controlValue, controlSetValue } = complexCmdContainerInfo;
+    // 아직 요청 전이므로 containerCmdList 순회하면서 명령 생성 및 요청
+    complexCmdWrapInfo.containerCmdList.forEach(complexCmdContainerInfo => {
+      const { singleControlType, controlSetValue } = complexCmdContainerInfo;
 
       // const hasFirst = true;
-      complexCmdContainerInfo.complexEleList.forEach(complexCmdEleInfo => {
+      complexCmdContainerInfo.eleCmdList.forEach(complexCmdEleInfo => {
         const { nodeId, rank, uuid } = complexCmdEleInfo;
         // if (hasFirst) {
         /** @type {executeCmdInfo} */
         const executeCmd = {
-          integratedUUID,
+          wrapCmdUUID,
           wrapCmdId,
           wrapCmdName,
           wrapCmdType,
-          controlValue,
+          singleControlType,
           controlSetValue,
           nodeId,
           rank,

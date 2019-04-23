@@ -265,11 +265,11 @@ class DataLoggerController extends DccFacade {
     }
     try {
       const {
-        integratedUUID,
+        wrapCmdUUID,
         wrapCmdId,
         wrapCmdType,
         uuid,
-        controlValue,
+        singleControlType,
         nodeId = '',
         rank = this.definedCommandSetRank.THIRD,
       } = executeCmdInfo;
@@ -292,13 +292,13 @@ class DataLoggerController extends DccFacade {
 
       const cmdList = this.converter.generationCommand({
         key: nodeInfo.nd_target_id,
-        value: controlValue,
+        value: singleControlType,
       });
 
-      const commandName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${controlValue}`;
+      const commandName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${singleControlType}`;
 
       const commandSet = this.generationManualCommand({
-        integratedUUID,
+        wrapCmdUUID,
         cmdList,
         commandId: wrapCmdId,
         commandName,
@@ -325,7 +325,7 @@ class DataLoggerController extends DccFacade {
    */
   requestDefaultCommand(executeCmd) {
     const {
-      integratedUUID,
+      wrapCmdUUID,
       uuid,
       wrapCmdId = `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
       wrapCmdType = reqWrapCmdType.MEASURE,
@@ -345,7 +345,7 @@ class DataLoggerController extends DccFacade {
       } Type: ${wrapCmdType}`;
 
       const commandSet = this.generationManualCommand({
-        integratedUUID,
+        wrapCmdUUID,
         cmdList,
         commandId: wrapCmdId,
         commandName: cmdName,
@@ -444,6 +444,7 @@ class DataLoggerController extends DccFacade {
     process.env.LOG_DLC_MESSAGE === '1' && super.onDcMessage(dcMessage);
     // 명령 완료, 명령 삭제, 지연 명령 대기열로 이동
     const {
+      // COMMANDSET_EXECUTION_START,
       COMMANDSET_EXECUTION_TERMINATE,
       COMMANDSET_DELETE,
       COMMANDSET_MOVE_DELAYSET,

@@ -100,7 +100,7 @@ function checkDumpCmd2() {
   }
 }
 
-control.on('completeOrder', commandId => {
+control.on('completeCommand', commandId => {
   if (commandId === testDumpCmd.cmdName) {
     checkDumpCmd();
   } else if (commandId === testDumpCmd2.cmdName) {
