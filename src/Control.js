@@ -324,11 +324,35 @@ class Control extends EventEmitter {
   }
 
   /**
+   * @desc 수동 모드에서만 사용 가능
    * 외부에서 단일 명령을 내릴경우
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
   executeSingleControl(reqSingleCmdInfo) {
-    return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
+    try {
+      if (this.controlMode !== controlMode.MANUAL) {
+        throw new Error('Single control is only possible in manual mode.');
+      }
+      this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * @desc 자동 모드에서만 사용 가능
+   * 저장된 명령 요청 수행
+   * @param {wsExecCommandInfo} savedCommandInfo 저장된 명령 ID
+   */
+  executeSavedCommand(savedCommandInfo) {
+    try {
+      if (this.controlMode !== controlMode.AUTOMATIC) {
+        throw new Error('Saved control is only possible in automatic mode.');
+      }
+      this.commandExecManager.executeSavedCommand(savedCommandInfo);
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -345,32 +369,6 @@ class Control extends EventEmitter {
    */
   cancelAutomaticControl(controlInfo) {
     return this.commandExecManager.cancelAutomaticControl(controlInfo);
-  }
-
-  /**
-   * 저장된 명령 요청 수행
-   * @param {{savedCommandId: string, wrapCmdType: string }} savedCommandInfo 저장된 명령 ID
-   */
-  executeSavedCommand(savedCommandInfo) {
-    return this.commandExecManager.executeSavedCommand(savedCommandInfo);
-  }
-
-  /**
-   * 복합 명령 실행 요청
-   * @param {reqComplexCmdInfo} reqComplexCmd
-   * @return {boolean} 명령 요청 여부
-   */
-  executeComplexCmd(reqComplexCmd) {
-    return this.commandExecManager.executeComplexCommand(reqComplexCmd);
-  }
-
-  /**
-   * Data Logger Controller로 실제로 명령을 요청하는 메소드
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @memberof Control
-   */
-  executeCommandToDLC(complexCmdWrapInfo) {
-    return this.commandExecManager.executeCommandToDLC(complexCmdWrapInfo);
   }
 
   /**

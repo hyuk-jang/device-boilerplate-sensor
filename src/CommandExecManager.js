@@ -69,6 +69,7 @@ class CommandExecManager {
   }
 
   /**
+   * @desc 수동 모드에서만 사용 가능
    * 외부에서 단일 명령을 내릴경우
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
@@ -84,23 +85,75 @@ class CommandExecManager {
       rank = definedCommandSetRank.SECOND,
     } = reqSingleCmdInfo;
     const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+
     try {
-      /** @type {reqComplexCmdInfo} */
+      // 사용자가 알 수 있는 제어 구문으로 변경
+      const cmdName = this.convertControlValueToString(nodeInfo, controlValue);
+
+      // 설정 제어 값이 존재하고 현재 노드 값과 같다면 추가적으로 제어하지 않음
+      if (!_.isNil(controlSetValue) && _.eq(nodeInfo.data, controlSetValue)) {
+        throw new Error(
+          `${nodeId}: ${controlSetValue} is the same as current value.(${nodeInfo.data}) `,
+        );
+      }
+
+      // node 현재 값과 동일하다면 제어 요청하지 않음
+      if (_.isNil(controlSetValue) && _.eq(nodeInfo.data, cmdName)) {
+        throw new Error(`${nodeId}: ${cmdName} is the same as current value.(${nodeInfo.data}) `);
+      }
+
+      /** @type {reqCmdEleInfo} 단일 제어 구문을 wrapCmd Ele 요소로 정의 */
+      const reqCmdEle = { nodeId, controlValue, controlSetValue, rank };
+      /** @type {reqComplexCmdInfo} 복합 명령으로 정의 */
       const reqComplexCmd = {
-        wrapCmdId: `S_${nodeId}_${this.convertControlValueToString(nodeInfo, controlValue)}`,
-        wrapCmdName: '',
+        wrapCmdId: `${nodeId}_${cmdName}`,
+        wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
         wrapCmdType,
-        reqCmdEleList: [],
+        reqCmdEleList: [reqCmdEle],
       };
 
-      /** @type {reqCmdEleInfo} */
-      const reqCmdEle = { nodeId, controlValue, controlSetValue, rank };
+      // TODO:  ICCS에 wrapCmdId를 가진 명령이 존재하는 체크. 있다면 이미 등록된 명령 처리
 
-      reqComplexCmd.reqCmdEleList.push(reqCmdEle);
+      // FIXME: 현재 상태와 반대 명령이 ICCS에 등록되어 있을 경우 삭제할 지 여부 개별 구현??
 
       return this.executeComplexCommand(reqComplexCmd);
     } catch (error) {
       BU.errorLog('excuteControl', 'Error', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 저장된 명령 요청 수행
+   * @param {wsExecCommandInfo} savedCommandInfo 저장된 명령 ID
+   */
+  executeSavedCommand(savedCommandInfo) {
+    try {
+      const { savedCommandId, wrapCmdType } = savedCommandInfo;
+      const foundIt = _.find(this.model.excuteControlList, { cmdName: savedCommandId });
+      if (foundIt) {
+        const { trueList = [], falseList = [] } = foundIt;
+        // 명령 제어 요청 일 경우
+        if (wrapCmdType === reqWrapCmdType.CONTROL) {
+          return this.executeAutomaticControl({
+            cmdName: savedCommandId,
+            trueList,
+            falseList,
+          });
+        }
+        if (wrapCmdType === reqWrapCmdType.CANCEL) {
+          // 명령 취소 일 경우
+          return this.cancelAutomaticControl({
+            cmdName: savedCommandId,
+            trueList,
+            falseList,
+          });
+        }
+        throw new Error(`commandType: ${wrapCmdType} can not be identified. `);
+      }
+      throw new Error(`commandId: ${savedCommandId} does not exist.`);
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -178,40 +231,6 @@ class CommandExecManager {
     // }
 
     return this.executeComplexCommand(reqComplexCmd);
-  }
-
-  /**
-   * 저장된 명령 요청 수행
-   * @param {wsExecCommandInfo} savedCommandInfo 저장된 명령 ID
-   */
-  executeSavedCommand(savedCommandInfo) {
-    try {
-      const { savedCommandId, wrapCmdType } = savedCommandInfo;
-      const foundIt = _.find(this.model.excuteControlList, { cmdName: savedCommandId });
-      if (foundIt) {
-        const { trueList = [], falseList = [] } = foundIt;
-        // 명령 제어 요청 일 경우
-        if (wrapCmdType === reqWrapCmdType.CONTROL) {
-          return this.executeAutomaticControl({
-            cmdName: savedCommandId,
-            trueList,
-            falseList,
-          });
-        }
-        if (wrapCmdType === reqWrapCmdType.CANCEL) {
-          // 명령 취소 일 경우
-          return this.cancelAutomaticControl({
-            cmdName: savedCommandId,
-            trueList,
-            falseList,
-          });
-        }
-        throw new Error(`commandType: ${wrapCmdType} can not be identified. `);
-      }
-      throw new Error(`commandId: ${savedCommandId} does not exist.`);
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**

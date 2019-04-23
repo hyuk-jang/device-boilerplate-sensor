@@ -535,7 +535,7 @@ class Model {
 
   /**
    * 복합 명령을 저장
-   * @param {string} wrapCmdType 저장할 타입 ADD, CANCEL, ''
+   * @param {string} wrapCmdType 저장할 타입 CONTROL, CANCEL
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @return {boolean} 명령을 등록한다면 true, 아니라면 false
    */

@@ -60,7 +60,7 @@ class ApiClient extends DeviceManager {
             // 수신 받은 현황판 데이터 전송
             case transmitToServerCommandType.POWER_BOARD:
               this.controller.powerStatusBoard.onDataFromApiClient(
-                responsedDataByServer.errorStack,
+                responsedDataByServer.message,
                 responsedDataByServer.contents,
               );
               break;
@@ -192,9 +192,10 @@ class ApiClient extends DeviceManager {
       commandId,
       uuid,
       isError: 0,
-      errorStack: '',
+      message: '',
       contents: {},
     };
+
     try {
       // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
       if (_.values(transmitToClientCommandType).includes(_.get(dataInfo, 'commandId'))) {
@@ -219,7 +220,7 @@ class ApiClient extends DeviceManager {
       return this.write(encodingMsg);
     } catch (error) {
       responseMsg.isError = 1;
-      responseMsg.errorStack = _.get(error, 'stack');
+      responseMsg.message = _.get(error, 'message');
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
