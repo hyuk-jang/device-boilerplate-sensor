@@ -461,10 +461,10 @@ class DataLoggerController extends DccFacade {
         renewalNodeList = this.model.completeOnData();
         this.model.completeRequestCommandSet(dcMessage.commandSet);
         break;
-      // 현재 데이터 업데이트
-      case COMMANDSET_MOVE_DELAYSET:
-        renewalNodeList = this.model.completeOnData();
-        break;
+      // 지연 명령 수행 처리.
+      // case COMMANDSET_MOVE_DELAYSET:
+      //   renewalNodeList = this.model.completeOnData();
+      //   break;
       // 명령 목록에서 해당 명령 제거
       // this.model.tempStorage = this.converter.BaseModel;
       // this.model.completeRequestCommandSet(dcMessage.commandSet);

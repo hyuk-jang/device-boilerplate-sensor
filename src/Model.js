@@ -8,7 +8,7 @@ const ControlDBS = require('./Control');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
-const { complexCmdStep, nodePickKey, nodeDataType } = dcmConfigModel;
+const { complexCmdStep, nodePickKey, complexCmdPickKey, nodeDataType } = dcmConfigModel;
 
 const { transmitToServerCommandType } = dcmWsModel;
 
@@ -54,12 +54,10 @@ class Model {
     /** @type {csOverlapControlStorage[]} */
     this.overlapControlStorageList = _(this.nodeList)
       .filter(nodeInfo => _.eq(nodeInfo.is_sensor, 0))
-      .map(nodeInfo => {
-        return {
-          nodeInfo,
-          overlapControlList: [],
-        };
-      })
+      .map(nodeInfo => ({
+        nodeInfo,
+        overlapControlList: [],
+      }))
       .value();
   }
 
@@ -150,7 +148,10 @@ class Model {
    * API 서버로 축약해서 명령을 보냄.
    */
   transmitComplexCommandStatus() {
-    const contractCommandList = _.map(this.complexCmdList, _.omit('containerCmdList'));
+    const contractCommandList = _(this.complexCmdList)
+      .map(complexCmdInfo => _.pick(complexCmdInfo, complexCmdPickKey.FOR_SERVER))
+      .value();
+
     // 업데이트 알림 (통째로 보내버림)
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCommandType.COMMAND,
@@ -330,7 +331,8 @@ class Model {
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @return {boolean} 명령을 등록한다면 true, 아니라면 false
    */
-  saveComplexCmd(complexCmdWrapInfo) {
+  saveComplexCommand(complexCmdWrapInfo) {
+    // BU.CLI(complexCmdWrapInfo);
     complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
 
     // 명령을 내릴 것이 없다면 등록하지 않음
@@ -344,6 +346,8 @@ class Model {
     }
 
     this.complexCmdList.push(complexCmdWrapInfo);
+
+    BU.CLIN(this.complexCmdList, 1);
 
     this.transmitComplexCommandStatus();
   }

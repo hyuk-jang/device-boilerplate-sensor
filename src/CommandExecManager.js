@@ -132,6 +132,7 @@ class CommandExecManager {
    * @param {wsExecCommandInfo} savedCommandInfo 저장된 명령 ID
    */
   executeSavedCommand(savedCommandInfo) {
+    // BU.CLI(savedCommandInfo);
     try {
       const { savedCommandId, wrapCmdType } = savedCommandInfo;
       const foundIt = _.find(this.model.excuteControlList, { cmdName: savedCommandId });
@@ -331,7 +332,7 @@ class CommandExecManager {
     process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(wrapCmdInfo, 2);
 
     // 복합 명령 저장
-    const hasSaved = this.model.saveComplexCmd(wrapCmdInfo);
+    const hasSaved = this.model.saveComplexCommand(wrapCmdInfo);
     // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
 
     // 복합 명령 실행 요청

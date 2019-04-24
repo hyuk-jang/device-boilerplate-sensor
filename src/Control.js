@@ -350,9 +350,10 @@ class Control extends EventEmitter {
    */
   executeSavedCommand(savedCommandInfo) {
     try {
-      if (this.controlMode !== controlMode.AUTOMATIC) {
-        throw new Error('Saved control is only possible in automatic mode.');
-      }
+      // FIXME: 개발 모드. 검증 중. 해제
+      // if (this.controlMode !== controlMode.AUTOMATIC) {
+      //   throw new Error('Saved control is only possible in automatic mode.');
+      // }
       this.commandExecManager.executeSavedCommand(savedCommandInfo);
     } catch (error) {
       throw error;
