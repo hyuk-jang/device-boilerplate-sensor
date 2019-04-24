@@ -20,9 +20,9 @@ control
   .init(dbInfo, config.uuid)
   .then(() => {
     BU.CLI('start Program');
-    // control.runFeature();
-    // control.inquiryAllDeviceStatus();
-    // control.runDeviceInquiryScheduler();
+    control.runFeature();
+    control.inquiryAllDeviceStatus();
+    control.runDeviceInquiryScheduler();
   })
   .catch(err => {
     BU.CLI(err);

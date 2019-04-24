@@ -112,7 +112,11 @@ class CommandExecManager {
         reqCmdEleList: [reqCmdEle],
       };
 
-      // TODO:  ICCS에 wrapCmdId를 가진 명령이 존재하는 체크. 있다면 이미 등록된 명령 처리
+      // TODO: overlapControlStorageList에 해당 노드에 대한 명령이 등록되어 있다면 요청하지 않음.
+      const isExistSingleControl = this.model.isExistSingleControl(reqCmdEle);
+      if (isExistSingleControl) {
+        throw new Error(`wrapCmdId: ${reqComplexCmd.wrapCmdId} is exist`);
+      }
 
       // FIXME: 현재 상태와 반대 명령이 ICCS에 등록되어 있을 경우 삭제할 지 여부 개별 구현??
 
@@ -276,16 +280,16 @@ class CommandExecManager {
         : { singleControlType, controlSetValue };
 
       // 해당 singleControlType가 eleCmdList 기존재하는지 체크
-      let foundRemainInfo = _.find(wrapCmdInfo.containerCmdList, findWhere);
+      let foundContainerCmdInfo = _.find(wrapCmdInfo.containerCmdList, findWhere);
 
       // 없다면 생성
-      if (!foundRemainInfo) {
-        foundRemainInfo = {
+      if (!foundContainerCmdInfo) {
+        foundContainerCmdInfo = {
           singleControlType,
           controlSetValue,
           eleCmdList: [],
         };
-        wrapCmdInfo.containerCmdList.push(foundRemainInfo);
+        wrapCmdInfo.containerCmdList.push(foundContainerCmdInfo);
       }
 
       // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
@@ -319,7 +323,7 @@ class CommandExecManager {
             uuid: uuidv4(),
           };
 
-          foundRemainInfo.eleCmdList.push(elementInfo);
+          foundContainerCmdInfo.eleCmdList.push(elementInfo);
         }
       });
     });

@@ -30,9 +30,6 @@ class Model {
     /** @type {complexCmdWrapInfo[]} 복합 명령 실행 목록 */
     this.complexCmdList = [];
 
-    /** @type {contractCmdInfo[]} 복합 명령 축약 Ver 목록 */
-    this.contractCmdList = [];
-
     this.biModule = new BM(config.dbInfo);
 
     // 정기 조회 Count
@@ -45,12 +42,15 @@ class Model {
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
 
     this.initOverapControlNode();
+
+    this.findOverlapControlNode({
+      nodeId: 'V_006',
+    });
   }
 
   /** Overlap Control Storage List 초기화 */
   initOverapControlNode() {
-    BU.CLIN(this.nodeList);
-    // 노드 목록 중 장치만을 가져옴
+    // 노드 목록 중 장치만을 누적 제어 카운팅 목록으로 만듬
     /** @type {csOverlapControlStorage[]} */
     this.overlapControlStorageList = _(this.nodeList)
       .filter(nodeInfo => _.eq(nodeInfo.is_sensor, 0))
@@ -61,6 +61,89 @@ class Model {
         };
       })
       .value();
+  }
+
+  /**
+   * @param {csOverlapControlHandleConfig} node nodeId or nodeInfo 사용
+   */
+  findOverlapControlStorage(node) {
+    // nodeId가 존재할 경우
+    const { nodeId } = node;
+    // nodeInfo 객체 자체를 넘겨 받을 경우
+    let { nodeInfo } = node;
+    if (_.isString(nodeId)) {
+      const foundNodeInfo = _.find(this.nodeList, { node_id: nodeId });
+      if (foundNodeInfo) {
+        nodeInfo = foundNodeInfo;
+      }
+    }
+    /** @type {csOverlapControlStorage} overlapControl 개체를 찾음 */
+    const overlapControlStorage = _.find(this.overlapControlStorageList, { nodeInfo });
+
+    return overlapControlStorage;
+  }
+
+  /**
+   * @param {csOverlapControlHandleConfig} findInfo OC 존재 체크 용 옵션
+   * @return {csOverlapControlInfo}
+   */
+  findOverlapControlNode(findInfo) {
+    const { singleControlType, controlSetValue } = findInfo;
+    // nodeId가 존재할 경우
+    const overlapControlStorage = this.findOverlapControlStorage(findInfo);
+
+    // OC 저장소가 존재하지 않는다면 종료
+    if (_.isEmpty(overlapControlStorage)) return false;
+
+    // 설정 제어 값이 있을 경우 where 조건 절 추가
+    const overlapWhere = _.isEmpty(controlSetValue)
+      ? { singleControlType }
+      : { singleControlType, controlSetValue };
+
+    // 찾는 조건에 부합하는 overlap Control을 찾음
+    return _.find(overlapControlStorage.overlapControlList, overlapWhere);
+  }
+
+  /**
+   * Overlap Control 신규 추가
+   * @param {csOverlapControlHandleConfig} addOcInfo OC 신규 생성 정보
+   */
+  addOverlapControlNode(addOcInfo) {
+    const { singleControlType, controlSetValue } = addOcInfo;
+    const overlapControlStorage = this.findOverlapControlStorage(addOcInfo);
+
+    // OC 저장소가 존재하지 않는다면 종료
+    if (_.isEmpty(overlapControlStorage)) return false;
+
+    // 저장소가 존재한다면 OC가 존재하는지 체크
+    const overlapControlInfo = this.findOverlapControlNode(addOcInfo);
+
+    // OC가 존재하지 않는다면 종료
+    if (_.isEmpty(overlapControlInfo)) return false;
+
+    // OC 신규 생성 후 추가
+    overlapControlStorage.overlapControlList.push({
+      singleControlType,
+      controlSetValue,
+      overlapWCUs: [],
+      overlapLockWCUs: [],
+      reservedExecWCU: '',
+    });
+  }
+
+  /**
+   * 해당 장치에 대한 동일한 제어가 존재하는지 체크
+   * @param {csOverlapControlHandleConfig} existControlInfo 누적 제어 조회 옵션
+   */
+  isExistSingleControl(existControlInfo) {
+    // 저장소가 존재한다면 OC가 존재하는지 체크
+    const overlapControlInfo = this.findOverlapControlNode(existControlInfo);
+
+    // OC가 존재하지 않는다면 종료
+    if (_.isEmpty(overlapControlInfo)) return false;
+
+    // Wrap Command UUID가 지정되어 있다면 True, 아니라면 False
+    return !!overlapControlInfo.reservedExecWCU.length;
   }
 
   /**
