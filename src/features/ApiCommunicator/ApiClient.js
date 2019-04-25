@@ -219,6 +219,7 @@ class ApiClient extends DeviceManager {
       // DCC에 전송 명령
       return this.write(encodingMsg);
     } catch (error) {
+      BU.CLI(error);
       responseMsg.isError = 1;
       responseMsg.message = _.get(error, 'message');
       // 기본 전송 프레임으로 감쌈.

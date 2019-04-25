@@ -8,7 +8,15 @@ const ControlDBS = require('./Control');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
-const { complexCmdStep, nodePickKey, complexCmdPickKey, nodeDataType } = dcmConfigModel;
+const {
+  complexCmdStep,
+  nodePickKey,
+  complexCmdPickKey,
+  controlMode,
+  goalDataRange,
+  nodeDataType,
+  reqWrapCmdType,
+} = dcmConfigModel;
 
 const { transmitToServerCommandType } = dcmWsModel;
 
@@ -48,7 +56,10 @@ class Model {
     });
   }
 
-  /** Overlap Control Storage List 초기화 */
+  /**
+   * @desc O.C
+   * Overlap Control Storage List 초기화
+   */
   initOverapControlNode() {
     // 노드 목록 중 장치만을 누적 제어 카운팅 목록으로 만듬
     /** @type {csOverlapControlStorage[]} */
@@ -62,6 +73,7 @@ class Model {
   }
 
   /**
+   * @desc O.C
    * @param {csOverlapControlHandleConfig} node nodeId or nodeInfo 사용
    */
   findOverlapControlStorage(node) {
@@ -82,6 +94,7 @@ class Model {
   }
 
   /**
+   * @desc O.C
    * @param {csOverlapControlHandleConfig} findInfo OC 존재 체크 용 옵션
    * @return {csOverlapControlInfo}
    */
@@ -90,8 +103,10 @@ class Model {
     // nodeId가 존재할 경우
     const overlapControlStorage = this.findOverlapControlStorage(findInfo);
 
+    // BU.CLI(overlapControlStorage);
+
     // OC 저장소가 존재하지 않는다면 종료
-    if (_.isEmpty(overlapControlStorage)) return false;
+    if (_.isEmpty(overlapControlStorage)) return undefined;
 
     // 설정 제어 값이 있을 경우 where 조건 절 추가
     const overlapWhere = _.isEmpty(controlSetValue)
@@ -103,45 +118,136 @@ class Model {
   }
 
   /**
+   * @desc O.C
    * Overlap Control 신규 추가
    * @param {csOverlapControlHandleConfig} addOcInfo OC 신규 생성 정보
    */
-  addOverlapControlNode(addOcInfo) {
+  createOverlapControlNode(addOcInfo) {
+    // BU.CLI(addOcInfo);
     const { singleControlType, controlSetValue } = addOcInfo;
     const overlapControlStorage = this.findOverlapControlStorage(addOcInfo);
+
+    // BU.CLI(overlapControlStorage);
 
     // OC 저장소가 존재하지 않는다면 종료
     if (_.isEmpty(overlapControlStorage)) return false;
 
-    // 저장소가 존재한다면 OC가 존재하는지 체크
+    // OC 저장소가 존재한다면 OC가 존재하는지 체크
     const overlapControlInfo = this.findOverlapControlNode(addOcInfo);
 
-    // OC가 존재하지 않는다면 종료
-    if (_.isEmpty(overlapControlInfo)) return false;
+    // BU.CLI(overlapControlInfo);
 
-    // OC 신규 생성 후 추가
-    overlapControlStorage.overlapControlList.push({
+    // OC가 존재한다면 생성할 필요 없으므로 종료
+    if (!_.isEmpty(overlapControlInfo)) return false;
+
+    /** @type {csOverlapControlInfo} 새로이 생성할 제어 OC */
+    const newOverlapControlInfo = {
       singleControlType,
       controlSetValue,
       overlapWCUs: [],
       overlapLockWCUs: [],
       reservedExecWCU: '',
-    });
+    };
+
+    // 제어  OC 신규 생성 후 추가
+    overlapControlStorage.overlapControlList.push(newOverlapControlInfo);
+
+    return newOverlapControlInfo;
   }
 
   /**
+   * @desc O.C
    * 해당 장치에 대한 동일한 제어가 존재하는지 체크
    * @param {csOverlapControlHandleConfig} existControlInfo 누적 제어 조회 옵션
    */
   isExistSingleControl(existControlInfo) {
+    BU.CLI(existControlInfo);
     // 저장소가 존재한다면 OC가 존재하는지 체크
     const overlapControlInfo = this.findOverlapControlNode(existControlInfo);
+
+    BU.CLI(overlapControlInfo);
 
     // OC가 존재하지 않는다면 종료
     if (_.isEmpty(overlapControlInfo)) return false;
 
     // Wrap Command UUID가 지정되어 있다면 True, 아니라면 False
     return !!overlapControlInfo.reservedExecWCU.length;
+  }
+
+  /**
+   * @desc O.C
+   * 생성된 명령의 누적 호출 목록을 추가한다.
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   */
+  addOverlapControlCommand(complexCmdWrapInfo) {
+    // BU.CLIN(complexCmdWrapInfo, 1);
+    const { wrapCmdUUID, containerCmdList, realContainerCmdList } = complexCmdWrapInfo;
+
+    // 수동 모드가 아닐 경우에만 요청 명령 Overlap overlapWCUs 반영
+    if (this.controller.controlMode !== controlMode.MANUAL) {
+      this.updateContainerCommandOC({
+        wrapCmdUUID,
+        isRealCmd: false,
+        containerCmdList,
+      });
+    }
+
+    // 실제 명령 realContainerCmdList 저장 및 Overlap reservedExecWCU 반영
+    this.updateContainerCommandOC({
+      wrapCmdUUID,
+      isRealCmd: true,
+      containerCmdList: realContainerCmdList,
+    });
+
+    BU.CLI(this.overlapControlStorageList);
+  }
+
+  /**
+   * @desc O.C
+   * @param {Object} updateConfigOC
+   * @param {string} updateConfigOC.wrapCmdUUID
+   * @param {boolean} updateConfigOC.isRealCmd 실제 제어 명령 여부
+   * @param {complexCmdContainerInfo[]} updateConfigOC.containerCmdList
+   */
+  updateContainerCommandOC(updateConfigOC) {
+    const { wrapCmdUUID, isRealCmd, containerCmdList } = updateConfigOC;
+
+    _.forEach(containerCmdList, containerCmdInfo => {
+      const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+
+      // 세부 제어 명령 목록을 순회하면서 명령 호출 누적 처리
+      _.forEach(eleCmdList, eleCmdInfo => {
+        /** @type {csOverlapControlHandleConfig} */
+        const overlapControlHandleConfig = {
+          nodeId: eleCmdInfo.nodeId,
+          singleControlType,
+          controlSetValue,
+        };
+        let overlapControlNode = this.findOverlapControlNode(overlapControlHandleConfig);
+        // BU.CLI(overlapControlNode);
+
+        // 존재하지 않는다면 Overlap Control Node 생성
+        if (!overlapControlNode) {
+          overlapControlNode = this.createOverlapControlNode(overlapControlHandleConfig);
+          // OC Storage가 없거나 OC가 존재하지 않으면 종료
+          if (overlapControlNode === false) {
+            throw new Error(
+              `nodeId: ${
+                eleCmdInfo.nodeId
+              }, singleControlType: ${singleControlType} is not exist in OC Storage`,
+            );
+          }
+        }
+
+        if (isRealCmd) {
+          // 실제 제어 WCU 지정
+          overlapControlNode.reservedExecWCU = wrapCmdUUID;
+        } else {
+          // 누적 호출 카운팅
+          overlapControlNode.overlapWCUs.push(wrapCmdUUID);
+        }
+      });
+    });
   }
 
   /**
@@ -332,6 +438,169 @@ class Model {
    * @return {boolean} 명령을 등록한다면 true, 아니라면 false
    */
   saveComplexCommand(complexCmdWrapInfo) {
+    BU.CLI('saveComplexCommand');
+    const {
+      wrapCmdType,
+      wrapCmdId,
+      wrapCmdGoalInfo: { goalDataList } = {},
+      containerCmdList,
+    } = complexCmdWrapInfo;
+
+    const commandName = `wrapCmdId: ${wrapCmdId}, wrapCmdType: ${wrapCmdType}`;
+    // ComplexCommandList에서 동일 Wrap Command Id 가 존재하는지 체크
+    if (_.find(this.complexCmdList, { wrapCmdType, wrapCmdId })) {
+      throw new Error(`${commandName} is exist`);
+    }
+
+    // 수동 모드가 아닐 경우 명령 충돌 검사
+    if (
+      // FIXME: 개발테스트를 위하여 임시 주석
+      // this.controller.controlMode !== controlMode.MANUAL &&
+      this.isConflictCommand(containerCmdList)
+    ) {
+      throw new Error(`${commandName} conflict has occurred.`);
+    }
+
+    // wrapCmdGoalInfo.goalDataList가 존재 할 경우 현재 값과의 목표치 체크. 이미 달성하였다면 실행하지 않음.
+    if (!_.isEmpty(goalDataList) && this.isAchieveCommandGoal(goalDataList)) {
+      throw new Error(`${commandName} already achieved its goal.`);
+    }
+
+    // BU.CLI(containerCmdList);
+
+    // 실제 추가되는 제어 장치 목록(realContainerCmdList) 산출
+
+    // 계측 명령이라면 실제 제어목록 산출하지 않음
+    if (wrapCmdType === reqWrapCmdType.MEASURE) {
+      complexCmdWrapInfo.realContainerCmdList = containerCmdList;
+    } else {
+      const realContainerCmdList = this.produceRealControlCommand(containerCmdList);
+      // 실제 명령이 존재하지 않을 경우 종료
+      if (!realContainerCmdList.length) {
+        throw new Error(`${commandName} real CMD list does not exist.`);
+      }
+
+      // 실제 수행하는 장치 제어 목록 정의
+      complexCmdWrapInfo.realContainerCmdList = realContainerCmdList;
+
+      // 복합 명령 csOverlapControlStorage 반영
+      this.addOverlapControlCommand(complexCmdWrapInfo);
+    }
+
+    // FIXME: wrapCmdGoalInfo가 존재 할 경우 추가 논리
+    // RUNNING 전환 시 limitTimeSec가 존재한다면 복구명령 setTimeout 생성
+    // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
+
+    // BU.CLI(complexCmdWrapInfo);
+    complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
+
+    // 명령을 내릴 것이 없다면 등록하지 않음
+    if (
+      !_(complexCmdWrapInfo)
+        .map('containerCmdList')
+        .flatten()
+        .value().length
+    ) {
+      return false;
+    }
+
+    this.complexCmdList.push(complexCmdWrapInfo);
+
+    // BU.CLIN(this.complexCmdList, 2);
+
+    // this.addOverlapControlNode({})
+
+    this.transmitComplexCommandStatus();
+  }
+
+  /**
+   * 명령 스택을 고려하여 실제 내릴 명령을 산출
+   * @param {complexCmdContainerInfo[]} containerCmdList 명령을 내릴 목록(여는 목록, 닫는 목록, ...)
+   * @return {complexCmdContainerInfo[]} realContainerCmdList
+   */
+  produceRealControlCommand(containerCmdList) {
+    // BU.CLI(containerCmdList);
+    /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
+    const realContainerCmdList = [];
+
+    // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
+    _.forEach(containerCmdList, containerCmdInfo => {
+      const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+
+      // 실제 제어 명령 목록 산출
+      const realEleCmdList = _.filter(eleCmdList, eleCmdInfo => {
+        // 존재하지 않을 경우 true
+        return !this.isExistSingleControl({
+          nodeId: eleCmdInfo.nodeId,
+          singleControlType,
+          controlSetValue,
+        });
+      });
+
+      // 실제 제어 목록이 존재한다면 삽입
+      if (realEleCmdList.length) {
+        realContainerCmdList.push({
+          singleControlType,
+          controlSetValue,
+          eleCmdList: realEleCmdList,
+        });
+      }
+    });
+    return realContainerCmdList;
+  }
+
+  /**
+   * 명령 목표치 달성 여부 체크
+   * @param {Object[]} cmdGoalDataList 해당 명령을 통해 얻고자 하는 값 목록
+   * @param {string} cmdGoalDataList.nodeId 달성하고자 하는 nodeId
+   * @param {string|number} cmdGoalDataList.goalValue 달성 기준치 값
+   * @param {number} cmdGoalDataList.goalRange 기준치 인정 범위.
+   * @return {boolean}
+   */
+  isAchieveCommandGoal(cmdGoalDataList) {
+    // 목표치 설정 기준치
+    const { EQUAL, LOWER, UPPER } = goalDataRange;
+    // 모든 장치에 대한 목표치 조건에 부합한다면 True
+    return _.every(cmdGoalDataList, cmdGoalInfo => {
+      // 각각의 명령 목표 조건 옵션
+      const { nodeId, goalValue, goalRange } = cmdGoalInfo;
+      // 해당 노드가 존재하는지 체크
+      const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+      // 노드가 존재하지 않거나 데이터가 존재하지 않을 경우 종료
+      if (!nodeInfo || _.isEmpty(nodeInfo.data)) return false;
+
+      let verify = false;
+      // 목표 달성 기준 조건 체크
+      switch (goalRange) {
+        case EQUAL:
+          verify = _.eq(goalValue, nodeInfo.data);
+          break;
+        case LOWER:
+          verify = goalValue < nodeInfo.data;
+          break;
+        case UPPER:
+          verify = goalValue > nodeInfo.data;
+          break;
+        default:
+          break;
+      }
+      return verify;
+    });
+  }
+
+  /**
+   * 명령 충돌 체크
+   * @param {complexCmdContainerInfo[]} containerCmdList Complex Command Container List
+   * @return {boolean}
+   */
+  isConflictCommand(containerCmdList) {}
+
+  /**
+   * 복합 명령을 저장
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   * @return {boolean} 명령을 등록한다면 true, 아니라면 false
+   */
+  saveComplexCommand2(complexCmdWrapInfo) {
     // BU.CLI(complexCmdWrapInfo);
     complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
 
@@ -348,6 +617,8 @@ class Model {
     this.complexCmdList.push(complexCmdWrapInfo);
 
     BU.CLIN(this.complexCmdList, 1);
+
+    // this.addOverlapControlNode({})
 
     this.transmitComplexCommandStatus();
   }

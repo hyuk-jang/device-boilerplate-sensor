@@ -74,7 +74,7 @@ class CommandExecManager {
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
   executeSingleControl(reqSingleCmdInfo) {
-    // BU.CLI('executeSingleControl');
+    BU.CLI('executeSingleControl');
     process.env.LOG_DBS_EXEC_SC === '1' && BU.CLIN(reqSingleCmdInfo);
 
     const {
@@ -113,12 +113,26 @@ class CommandExecManager {
       };
 
       // TODO: overlapControlStorageList에 해당 노드에 대한 명령이 등록되어 있다면 요청하지 않음.
-      const isExistSingleControl = this.model.isExistSingleControl(reqCmdEle);
+      const isExistSingleControl = this.model.isExistSingleControl({
+        nodeId,
+        singleControlType,
+        controlSetValue,
+      });
+
       if (isExistSingleControl) {
         throw new Error(`wrapCmdId: ${reqComplexCmd.wrapCmdId} is exist`);
       }
 
       // FIXME: 현재 상태와 반대 명령이 ICCS에 등록되어 있을 경우 삭제할 지 여부 개별 구현??
+      // if (
+      //   this.model.isExistSingleControl({
+      //     nodeId,
+      //     singleControlType,
+      //     controlSetValue,
+      //   })
+      // ) {
+      //   throw new Error(`wrapCmdId: ${reqComplexCmd.wrapCmdId} is exist`);
+      // }
 
       return this.executeComplexCommand(reqComplexCmd);
     } catch (error) {

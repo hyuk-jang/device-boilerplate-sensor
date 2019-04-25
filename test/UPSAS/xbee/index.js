@@ -22,7 +22,7 @@ control
     BU.CLI('start Program');
     control.runFeature();
     control.inquiryAllDeviceStatus();
-    control.runDeviceInquiryScheduler();
+    // control.runDeviceInquiryScheduler();
   })
   .catch(err => {
     BU.CLI(err);
