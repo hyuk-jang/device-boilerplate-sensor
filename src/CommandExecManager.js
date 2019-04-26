@@ -106,7 +106,7 @@ class CommandExecManager {
       const reqCmdEle = { nodeId, singleControlType, controlSetValue, rank };
       /** @type {reqComplexCmdInfo} 복합 명령으로 정의 */
       const reqComplexCmd = {
-        wrapCmdId: `${nodeId}_${cmdName}`,
+        wrapCmdId: `${nodeId}_${cmdName}${_.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`}`,
         wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
         wrapCmdType,
         reqCmdEleList: [reqCmdEle],
@@ -122,17 +122,6 @@ class CommandExecManager {
       if (isExistSingleControl) {
         throw new Error(`wrapCmdId: ${reqComplexCmd.wrapCmdId} is exist`);
       }
-
-      // FIXME: 현재 상태와 반대 명령이 ICCS에 등록되어 있을 경우 삭제할 지 여부 개별 구현??
-      // if (
-      //   this.model.isExistSingleControl({
-      //     nodeId,
-      //     singleControlType,
-      //     controlSetValue,
-      //   })
-      // ) {
-      //   throw new Error(`wrapCmdId: ${reqComplexCmd.wrapCmdId} is exist`);
-      // }
 
       return this.executeComplexCommand(reqComplexCmd);
     } catch (error) {
@@ -259,7 +248,7 @@ class CommandExecManager {
    */
   executeComplexCommand(reqComplexCmd) {
     // BU.CLI(reqComplexCmd);
-    process.env.LOG_DBS_EXEC_CO_HEADER === '1' && BU.CLI('execCombineOrder', reqComplexCmd);
+    process.env.LOG_DBS_EXEC_CO_HEADER === '1' && BU.CLI('executeComplexCommand', reqComplexCmd);
 
     // 복합 명령을 해체하여 정의
     const {
