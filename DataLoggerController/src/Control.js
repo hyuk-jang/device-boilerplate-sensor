@@ -63,6 +63,13 @@ class DataLoggerController extends DccFacade {
   }
 
   /**
+   * DLC에 대한 오류가 3번을 넘을 경우 DLC에 문제가 있는 것으로 판단
+   */
+  get isErrorDLC() {
+    return this.errorCount > 3;
+  }
+
+  /**
    * 조건에 맞는 노드 리스트를 구함
    * @param {nodeInfo} nodeInfo
    */
@@ -417,6 +424,9 @@ class DataLoggerController extends DccFacade {
       // BU.CLI(this.commander.setRetryChance, dcError.errorInfo.message);
       return this.requestTakeAction(RETRY);
     }
+
+    // 에러 카운트 증가
+    this.errorCount += 1;
 
     // 빈 센서 데이터 객체를 전달.
     // this.model.onPartData(this.converter.BaseModel);

@@ -11,7 +11,7 @@ const mainConfig = require('./config');
 
 const { dcmConfigModel, dcmWsModel } = require('../../default-intelligence');
 
-const { controlMode, nodePickKey } = dcmConfigModel;
+const { controlModeInfo, nodePickKey } = dcmConfigModel;
 
 const DataLoggerController = require('../DataLoggerController');
 
@@ -55,7 +55,7 @@ class Control extends EventEmitter {
     this.Model = Model;
 
     /** 제어 모드 종류(수동, 자동, ...) */
-    this.controlMode = controlMode.MANUAL;
+    this.controlMode = controlModeInfo.MANUAL;
 
     // /** @type {DataLoggerController[]} */
     // this.preparingDataLoggerControllerList = [];
@@ -334,7 +334,7 @@ class Control extends EventEmitter {
    */
   executeSingleControl(reqSingleCmdInfo) {
     try {
-      if (this.controlMode !== controlMode.MANUAL) {
+      if (this.controlMode !== controlModeInfo.MANUAL) {
         throw new Error('Single control is only possible in manual mode.');
       }
       this.commandExecManager.executeSingleControl(reqSingleCmdInfo);

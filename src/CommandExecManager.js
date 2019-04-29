@@ -98,7 +98,7 @@ class CommandExecManager {
       }
 
       // node 현재 값과 동일하다면 제어 요청하지 않음
-      if (_.isNil(controlSetValue) && _.eq(nodeInfo.data, cmdName)) {
+      if (_.isNil(controlSetValue) && _.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName))) {
         throw new Error(`${nodeId}: ${cmdName} is the same as current value.(${nodeInfo.data}) `);
       }
 
@@ -112,7 +112,7 @@ class CommandExecManager {
         reqCmdEleList: [reqCmdEle],
       };
 
-      // TODO: overlapControlStorageList에 해당 노드에 대한 명령이 등록되어 있다면 요청하지 않음.
+      // overlapControlStorageList에 해당 노드에 대한 명령이 등록되어 있다면 요청하지 않음.
       const isExistSingleControl = this.model.isExistSingleControl({
         nodeId,
         singleControlType,
@@ -335,14 +335,14 @@ class CommandExecManager {
     process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(wrapCmdInfo, 2);
 
     // 복합 명령 저장
-    const hasSaved = this.model.saveComplexCommand(wrapCmdInfo);
+    const complexCmdWrapInfo = this.model.saveComplexCommand(wrapCmdInfo);
+
+    // BU.CLI(complexCmdWrapInfo);
     // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
 
     // 복합 명령 실행 요청
     // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
     this.executeCommandToDLC(wrapCmdInfo);
-
-    return hasSaved;
   }
 
   /**
@@ -356,8 +356,8 @@ class CommandExecManager {
 
     const { wrapCmdUUID, wrapCmdId, wrapCmdName, wrapCmdType } = complexCmdWrapInfo;
 
-    // 아직 요청 전이므로 containerCmdList 순회하면서 명령 생성 및 요청
-    complexCmdWrapInfo.containerCmdList.forEach(complexCmdContainerInfo => {
+    // 아직 요청 전이므로 realContainerCmdList 순회하면서 명령 생성 및 요청
+    complexCmdWrapInfo.realContainerCmdList.forEach(complexCmdContainerInfo => {
       const { singleControlType, controlSetValue } = complexCmdContainerInfo;
 
       // const hasFirst = true;
