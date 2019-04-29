@@ -27,48 +27,6 @@ class CommandExecManager {
   }
 
   /**
-   * @abstract
-   * @param {nodeInfo} nodeInfo
-   * @param {string} singleControlType
-   */
-  convertControlValueToString(nodeInfo, singleControlType) {
-    singleControlType = Number(singleControlType);
-    let strControlValue = '';
-    const onOffList = ['pump'];
-    const openCloseList = ['valve', 'waterDoor'];
-
-    let strTrue = '';
-    let strFalse = '';
-
-    // Node Class ID를 가져옴. 장치 명에 따라 True, False 개체 명명 변경
-    if (_.includes(onOffList, nodeInfo.nc_target_id)) {
-      strTrue = 'On';
-      strFalse = 'Off';
-    } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
-      strTrue = 'Open';
-      strFalse = 'Close';
-    }
-
-    switch (singleControlType) {
-      case requestDeviceControlType.FALSE:
-        strControlValue = strFalse;
-        break;
-      case requestDeviceControlType.TRUE:
-        strControlValue = strTrue;
-        break;
-      case requestDeviceControlType.MEASURE:
-        strControlValue = 'Measure';
-        break;
-      case requestDeviceControlType.SET:
-        strControlValue = 'Set';
-        break;
-      default:
-        break;
-    }
-    return strControlValue;
-  }
-
-  /**
    * @desc 수동 모드에서만 사용 가능
    * 외부에서 단일 명령을 내릴경우
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
@@ -88,7 +46,7 @@ class CommandExecManager {
 
     try {
       // 사용자가 알 수 있는 제어 구문으로 변경
-      const cmdName = this.convertControlValueToString(nodeInfo, singleControlType);
+      const cmdName = this.model.convertControlValueToString(nodeInfo, singleControlType);
 
       // 설정 제어 값이 존재하고 현재 노드 값과 같다면 추가적으로 제어하지 않음
       if (!_.isNil(controlSetValue) && _.eq(nodeInfo.data, controlSetValue)) {
@@ -244,7 +202,7 @@ class CommandExecManager {
   /**
    * 최종적으로 명령 생성 및 실행 요청
    * @param {reqComplexCmdInfo} reqComplexCmd
-   * @return {boolean} 명령 요청 여부
+   * @return {complexCmdWrapInfo} 명령 요청 여부
    */
   executeComplexCommand(reqComplexCmd) {
     // BU.CLI(reqComplexCmd);
@@ -258,6 +216,8 @@ class CommandExecManager {
       reqCmdEleList,
     } = reqComplexCmd;
 
+    // BU.CLI(reqCmdEleList);
+
     /** @type {complexCmdWrapInfo} */
     const wrapCmdInfo = {
       wrapCmdUUID: uuidv4(),
@@ -265,6 +225,7 @@ class CommandExecManager {
       wrapCmdType,
       wrapCmdName,
       containerCmdList: [],
+      realContainerCmdList: [],
     };
 
     // 요청 복합 명령 객체의 요청 리스트를 순회하면서 complexCmdContainerInfo 객체를 만들고 삽입
@@ -312,6 +273,7 @@ class CommandExecManager {
           // BU.CLI(errMsg);
         }
         if (errMsg.length) {
+          // BU.CLI(errMsg);
           // BU.errorLog(
           //   'executeComplexCmd',
           //   `mainUUID: ${
@@ -334,15 +296,19 @@ class CommandExecManager {
 
     process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(wrapCmdInfo, 2);
 
-    // 복합 명령 저장
-    const complexCmdWrapInfo = this.model.saveComplexCommand(wrapCmdInfo);
+    // BU.CLI(wrapCmdInfo);
 
-    // BU.CLI(complexCmdWrapInfo);
-    // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
+    // 복합 명령 저장
+    this.model.saveComplexCommand(wrapCmdInfo);
 
     // 복합 명령 실행 요청
     // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
     this.executeCommandToDLC(wrapCmdInfo);
+
+    // BU.CLI(complexCmdWrapInfo);
+    // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
+
+    return wrapCmdInfo;
   }
 
   /**
@@ -403,17 +369,36 @@ class CommandExecManager {
     };
 
     // BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
+    // BU.CLI(reqComplexCmd);
+
+    try {
+      const { realContainerCmdList } = this.executeComplexCommand(reqComplexCmd);
+
+      if (
+        !_(realContainerCmdList)
+          .map('eleCmdList')
+          .flatten()
+          .value().length
+      ) {
+        // BU.log(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
+        BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
 
     // 명령 요청
-    const hasTransferInquiryStatus = this.executeComplexCommand(reqComplexCmd);
 
     // BU.CLI(hasTransferInquiryStatus);
 
     // 장치와의 접속이 이루어지지 않을 경우 명령 전송하지 않음
-    if (!hasTransferInquiryStatus) {
-      BU.log(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
-      return false;
-    }
+    // if (!hasTransferInquiryStatus) {
+    //   BU.log(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
+    //   // BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
+    //   return false;
+    // }
 
     // Data Logger 현재 상태 조회
     // this.dataLoggerControllerList.forEach(router => {

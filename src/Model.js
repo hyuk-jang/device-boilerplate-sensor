@@ -556,9 +556,12 @@ class Model {
     // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
   }
 
-  /** Overlap이 존재하는 목록을 불러옴 */
+  /**
+   * Overlap이 존재하는 목록을 불러옴
+   * @return {csOverlapControlInfo[]}
+   */
   findExistOverlapControl() {
-    BU.CLI(this.overlapControlStorageList);
+    // BU.CLI(this.overlapControlStorageList);
     return _(this.overlapControlStorageList)
       .map(overlapStorage => {
         const {
@@ -636,7 +639,7 @@ class Model {
   /**
    * 복합 명령을 저장
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {boolean} 명령을 등록한다면 true, 아니라면 false
+   * @return {complexCmdWrapInfo}
    */
   saveComplexCommand(complexCmdWrapInfo) {
     BU.CLI('saveComplexCommand');
@@ -649,6 +652,7 @@ class Model {
 
     const commandName = `wrapCmdId: ${wrapCmdId}, wrapCmdType: ${wrapCmdType}`;
     // ComplexCommandList에서 동일 Wrap Command Id 가 존재하는지 체크
+    // BU.CLI(this.complexCmdList);
     if (_.find(this.complexCmdList, { wrapCmdType, wrapCmdId })) {
       throw new Error(`${commandName} is exist`);
     }
@@ -706,13 +710,13 @@ class Model {
 
     this.complexCmdList.push(complexCmdWrapInfo);
 
-    // BU.CLIN(this.complexCmdList, 2);
+    // BU.CLIN(this.complexCmdList, 4);
 
     // this.addOverlapControlNode({})
 
     this.transmitComplexCommandStatus();
 
-    BU.CLI(this.findExistOverlapControl());
+    // BU.CLI(this.findExistOverlapControl());
 
     return complexCmdWrapInfo;
   }
@@ -732,14 +736,16 @@ class Model {
       const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
 
       // 실제 제어 명령 목록 산출
-      const realEleCmdList = _.filter(eleCmdList, eleCmdInfo => {
-        // 존재하지 않을 경우 true
-        return !this.isExistSingleControl({
-          nodeId: eleCmdInfo.nodeId,
-          singleControlType,
-          controlSetValue,
-        });
-      });
+      const realEleCmdList = _.filter(
+        eleCmdList,
+        eleCmdInfo =>
+          // 존재하지 않을 경우 true
+          !this.isExistSingleControl({
+            nodeId: eleCmdInfo.nodeId,
+            singleControlType,
+            controlSetValue,
+          }),
+      );
 
       // 실제 제어 목록이 존재한다면 삽입
       if (realEleCmdList.length) {
