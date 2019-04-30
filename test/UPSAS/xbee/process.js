@@ -30,32 +30,12 @@ const main = new Main();
 //   dbInfo: config.dbInfo,
 // });
 const control = main.createControl(config);
-// control.init();
-// control
-//   .init(dbInfo, config.uuid)
-//   .then(() => {
-//     BU.CLI('start Program');
-//     control.runFeature();
-//     control.inquiryAllDeviceStatus();
-//     // control.runDeviceInquiryScheduler();
-//   })
-//   .catch(err => {
-//     BU.CLI(err);
-//   });
 
-/**
- * @desc T.C 1 [수동 모드]
- * @description
- * 1. 수문 5번을 연다.
- * 2. 펌프 1번을 킨다.
- * 3. 동작 중에 1~2번을 한번 더 시도한다.(명령이 등록되지 않아야한다.)
- * 4. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
- */
-
-describe('Step 1', () => {
+describe('Manual Mode', () => {
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
+    control.controlMode = controlModeInfo.MANUAL;
   });
 
   /**
@@ -93,8 +73,43 @@ describe('Step 1', () => {
     expect(measureCmdList.length).to.eq(0);
   });
 
+  /**
+   * @desc T.C 1 [수동 모드]
+   * @description
+   * 1. 수문 5번을 연다.
+   * 2. 펌프 1번을 킨다.
+   * 3. 동작 중에 1~2번을 한번 더 시도한다.(명령이 등록되지 않아야한다.)
+   * 4. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
+   */
   it('setDeviceForDB', async () => {
     expect(control.nodeList.length).to.not.eq(0);
+
+    // * 1. 수문 5번을 연다.
+    control.executeSingleControl({
+      nodeId: 'WD_005',
+      singleControlType: requestDeviceControlType.TRUE,
+    });
+
+    // * 2. 펌프 1번을 킨다.
+    control.executeSingleControl({
+      nodeId: 'P_001',
+      singleControlType: requestDeviceControlType.TRUE,
+    });
+
+    // * 3. 동작 중에 1~2번을 한번 더 시도한다.(명령이 등록되지 않아야한다.)
+    control.executeSingleControl({
+      nodeId: 'WD_005',
+      singleControlType: requestDeviceControlType.TRUE,
+    });
+
+    control.executeSingleControl({
+      nodeId: 'P_001',
+      singleControlType: requestDeviceControlType.TRUE,
+    });
+
+    // 명령이 완료되길 기다린다.
+    const completeWaterDoor = await eventToPromise(control, 'completeCommand');
+
     BU.CLIN(control.nodeList);
   });
 
