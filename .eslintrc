@@ -12,6 +12,7 @@
     "class-methods-use-this": "off",
     "consistent-return": "off",
     "no-unused-vars": "warn",
+    "func-names": "off",
     "prettier/prettier": "error"
   }
 }

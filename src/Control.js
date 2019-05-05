@@ -337,7 +337,7 @@ class Control extends EventEmitter {
       if (this.controlMode !== controlModeInfo.MANUAL) {
         throw new Error('Single control is only possible in manual mode.');
       }
-      this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
+      return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
     } catch (error) {
       throw error;
     }
@@ -354,7 +354,7 @@ class Control extends EventEmitter {
       // if (this.controlMode !== controlMode.AUTOMATIC) {
       //   throw new Error('Saved control is only possible in automatic mode.');
       // }
-      this.commandExecManager.executeSavedCommand(savedCommandInfo);
+      return this.commandExecManager.executeSavedCommand(savedCommandInfo);
     } catch (error) {
       throw error;
     }

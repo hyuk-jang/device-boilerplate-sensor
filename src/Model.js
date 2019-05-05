@@ -403,6 +403,7 @@ class Model {
 
     // 통합 명령 UUID가 없을 경우
     if (!foundComplexCmdInfo) {
+      // BU.CLI(this.complexCmdList);
       throw new Error(`wrapCmdUUID: ${dcWrapCmdUUID} is not exist.`);
     }
 
@@ -469,7 +470,7 @@ class Model {
         this.completeInquiryDeviceStatus();
       } else {
         // FIXME: 일반 명령 completeCommand이 완료되었을 경우 처리할 필요가 있다면 작성
-        this.controller.emit('completeCommand', dcWrapCmdId);
+        this.controller.emit('completeCommand', dcWrapCmdUUID);
       }
     }
   }
@@ -642,7 +643,7 @@ class Model {
    * @return {complexCmdWrapInfo}
    */
   saveComplexCommand(complexCmdWrapInfo) {
-    BU.CLI('saveComplexCommand');
+    // BU.CLI('saveComplexCommand', complexCmdWrapInfo);
     const {
       wrapCmdType,
       wrapCmdId,
@@ -679,6 +680,8 @@ class Model {
       if (!this.isNormalOperation(containerCmdList)) {
         throw new Error(`An abnormal device exists among the ${commandName}`);
       }
+      // 실제 제어할 명령 리스트 산출
+      // BU.CLI(containerCmdList);
       const realContainerCmdList = this.produceRealControlCommand(containerCmdList);
       // 실제 명령이 존재하지 않을 경우 종료
       if (!realContainerCmdList.length) {

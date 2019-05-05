@@ -58,7 +58,7 @@ class Main {
     }
 
     // console.log(MainModel);
-    MainControl.Model = MainModel;
+    // MainControl.Model = MainModel;
 
     const mainControl = new MainControl(config);
     mainControl.Model = MainModel;

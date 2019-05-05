@@ -38,6 +38,8 @@ class DeviceManager extends EventEmitter {
 
       // 이미 접속 중인 객체가 있다면
       if (!_.isEmpty(this.deviceController.client)) {
+        // API Client 인증 여부 처리
+        _.has(this, 'hasCertification') && _.set(this, 'hasCertification', true);
         return this.deviceController;
       }
 

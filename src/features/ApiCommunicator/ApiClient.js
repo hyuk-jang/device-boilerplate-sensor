@@ -138,7 +138,8 @@ class ApiClient extends DeviceManager {
       // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
       // console.trace(error.stack);
-      BU.errorLog('error', 'transmitDataToServer', error);
+      // BU.CLI(error.message);
+      BU.errorLog('error', 'transmitDataToServer', error.message);
     }
   }
 

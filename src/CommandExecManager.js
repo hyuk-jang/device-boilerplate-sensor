@@ -32,7 +32,7 @@ class CommandExecManager {
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
   executeSingleControl(reqSingleCmdInfo) {
-    BU.CLI('executeSingleControl');
+    // BU.CLI('executeSingleControl', reqSingleCmdInfo);
     process.env.LOG_DBS_EXEC_SC === '1' && BU.CLIN(reqSingleCmdInfo);
 
     const {
@@ -206,109 +206,110 @@ class CommandExecManager {
    */
   executeComplexCommand(reqComplexCmd) {
     // BU.CLI(reqComplexCmd);
-    process.env.LOG_DBS_EXEC_CO_HEADER === '1' && BU.CLI('executeComplexCommand', reqComplexCmd);
+    try {
+      process.env.LOG_DBS_EXEC_CO_HEADER === '1' && BU.CLI('executeComplexCommand', reqComplexCmd);
 
-    // 복합 명령을 해체하여 정의
-    const {
-      wrapCmdId,
-      wrapCmdType = reqWrapCmdType.MEASURE,
-      wrapCmdName,
-      reqCmdEleList,
-    } = reqComplexCmd;
-
-    // BU.CLI(reqCmdEleList);
-
-    /** @type {complexCmdWrapInfo} */
-    const wrapCmdInfo = {
-      wrapCmdUUID: uuidv4(),
-      wrapCmdId,
-      wrapCmdType,
-      wrapCmdName,
-      containerCmdList: [],
-      realContainerCmdList: [],
-    };
-
-    // 요청 복합 명령 객체의 요청 리스트를 순회하면서 complexCmdContainerInfo 객체를 만들고 삽입
-    reqCmdEleList.forEach(reqCmdEleInfo => {
+      // 복합 명령을 해체하여 정의
       const {
-        nodeId,
-        singleControlType = requestDeviceControlType.MEASURE,
-        controlSetValue,
-        rank = definedCommandSetRank.THIRD,
-      } = reqCmdEleInfo;
-      // nodeId가 string이라면 배열생성 후 집어넣음
-      const nodeList = _.isArray(nodeId) ? nodeId : [nodeId];
+        wrapCmdId,
+        wrapCmdType = reqWrapCmdType.MEASURE,
+        wrapCmdName,
+        reqCmdEleList,
+      } = reqComplexCmd;
 
-      // 설정 값(controlSetValue)가 존재한다면 해당 값 AND 조건 추가 탐색
-      const findWhere = _.isEmpty(controlSetValue)
-        ? { singleControlType }
-        : { singleControlType, controlSetValue };
+      // BU.CLI(reqCmdEleList);
 
-      // 해당 singleControlType가 eleCmdList 기존재하는지 체크
-      let foundContainerCmdInfo = _.find(wrapCmdInfo.containerCmdList, findWhere);
+      /** @type {complexCmdWrapInfo} */
+      const wrapCmdInfo = {
+        wrapCmdUUID: uuidv4(),
+        wrapCmdId,
+        wrapCmdType,
+        wrapCmdName,
+        containerCmdList: [],
+        realContainerCmdList: [],
+      };
 
-      // 없다면 생성
-      if (!foundContainerCmdInfo) {
-        foundContainerCmdInfo = {
-          singleControlType,
+      // 요청 복합 명령 객체의 요청 리스트를 순회하면서 complexCmdContainerInfo 객체를 만들고 삽입
+      reqCmdEleList.forEach(reqCmdEleInfo => {
+        const {
+          nodeId,
+          singleControlType = requestDeviceControlType.MEASURE,
           controlSetValue,
-          eleCmdList: [],
-        };
-        wrapCmdInfo.containerCmdList.push(foundContainerCmdInfo);
-      }
+          rank = definedCommandSetRank.THIRD,
+        } = reqCmdEleInfo;
+        // nodeId가 string이라면 배열생성 후 집어넣음
+        const nodeList = _.isArray(nodeId) ? nodeId : [nodeId];
 
-      // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
-      _.forEach(nodeList, currNodeId => {
-        // BU.CLI(currNodeId);
-        // 장치와 연결되어 있는 DLC 불러옴
-        const dataLoggerController = this.model.findDataLoggerController(currNodeId);
-        // 해당하는 DLC가 없거나 장치가 비접속이라면 명령을 수행하지 않음
-        // TODO: reqComplexCmd의 실행 가능 여부를 판단하고 명령에서 제외하는 것이 맞는지 검증 필요
-        let errMsg = '';
-        if (_.isUndefined(dataLoggerController)) {
-          errMsg = `DLC: ${currNodeId}가 존재하지 않습니다.`;
-          // BU.CLI(errMsg);
-        } else if (!_.get(dataLoggerController, 'hasConnectedDevice')) {
-          errMsg = `${currNodeId}는 장치와 연결되지 않았습니다.`;
-          // BU.CLI(errMsg);
-        }
-        if (errMsg.length) {
-          // BU.CLI(errMsg);
-          // BU.errorLog(
-          //   'executeComplexCmd',
-          //   `mainUUID: ${
-          //     this.mainUUID
-          //   } nodeId: ${currNodeId} singleControlType: ${singleControlType} msg: ${errMsg}`,
-          // );
-        } else {
-          /** @type {complexCmdEleInfo} */
-          const elementInfo = {
-            hasComplete: false,
-            nodeId: currNodeId,
-            rank,
-            uuid: uuidv4(),
+        // 설정 값(controlSetValue)가 존재한다면 해당 값 AND 조건 추가 탐색
+        const findWhere = _.isEmpty(controlSetValue)
+          ? { singleControlType }
+          : { singleControlType, controlSetValue };
+
+        // 해당 singleControlType가 eleCmdList 기존재하는지 체크
+        let foundContainerCmdInfo = _.find(wrapCmdInfo.containerCmdList, findWhere);
+
+        // 없다면 생성
+        if (!foundContainerCmdInfo) {
+          foundContainerCmdInfo = {
+            singleControlType,
+            controlSetValue,
+            eleCmdList: [],
           };
-
-          foundContainerCmdInfo.eleCmdList.push(elementInfo);
+          wrapCmdInfo.containerCmdList.push(foundContainerCmdInfo);
         }
+
+        // 배열을 반복하면서 element를 생성 후 remainInfo에 삽입
+        _.forEach(nodeList, currNodeId => {
+          // BU.CLI(currNodeId);
+          // 장치와 연결되어 있는 DLC 불러옴
+          const dataLoggerController = this.model.findDataLoggerController(currNodeId);
+          // 해당하는 DLC가 없거나 장치가 비접속이라면 명령을 수행하지 않음
+          // TODO: reqComplexCmd의 실행 가능 여부를 판단하고 명령에서 제외하는 것이 맞는지 검증 필요
+          let errMsg = '';
+          if (_.isUndefined(dataLoggerController)) {
+            errMsg = `DLC: ${currNodeId}가 존재하지 않습니다.`;
+            // BU.CLI(errMsg);
+          } else if (!_.get(dataLoggerController, 'hasConnectedDevice')) {
+            errMsg = `${currNodeId}는 장치와 연결되지 않았습니다.`;
+            // BU.CLI(errMsg);
+          }
+          if (errMsg.length) {
+            // BU.CLI(errMsg);
+            // BU.errorLog(
+            //   'executeComplexCmd',
+            //   `mainUUID: ${
+            //     this.mainUUID
+            //   } nodeId: ${currNodeId} singleControlType: ${singleControlType} msg: ${errMsg}`,
+            // );
+          } else {
+            /** @type {complexCmdEleInfo} */
+            const elementInfo = {
+              hasComplete: false,
+              nodeId: currNodeId,
+              rank,
+              uuid: uuidv4(),
+            };
+
+            foundContainerCmdInfo.eleCmdList.push(elementInfo);
+          }
+        });
       });
-    });
 
-    process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(wrapCmdInfo, 2);
+      process.env.LOG_DBS_EXEC_CO_TAIL === '1' && BU.CLIN(wrapCmdInfo, 2);
 
-    // BU.CLI(wrapCmdInfo);
+      // 복합 명령 저장
+      this.model.saveComplexCommand(wrapCmdInfo);
 
-    // 복합 명령 저장
-    this.model.saveComplexCommand(wrapCmdInfo);
+      // 복합 명령 실행 요청
+      // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
+      this.executeCommandToDLC(wrapCmdInfo);
 
-    // 복합 명령 실행 요청
-    // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
-    this.executeCommandToDLC(wrapCmdInfo);
+      // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
 
-    // BU.CLI(complexCmdWrapInfo);
-    // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
-
-    return wrapCmdInfo;
+      return wrapCmdInfo;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -317,7 +318,7 @@ class CommandExecManager {
    * @memberof Control
    */
   executeCommandToDLC(complexCmdWrapInfo) {
-    // BU.CLI(complexCmdWrapInfo)
+    // BU.CLI(complexCmdWrapInfo);
     process.env.LOG_DBS_TRANS_ORDER === '1' && BU.CLI('transferRequestOr', complexCmdWrapInfo);
 
     const { wrapCmdUUID, wrapCmdId, wrapCmdName, wrapCmdType } = complexCmdWrapInfo;
@@ -386,7 +387,8 @@ class CommandExecManager {
       }
       return true;
     } catch (error) {
-      return false;
+      // return false;
+      throw error;
     }
 
     // 명령 요청
