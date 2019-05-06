@@ -47,16 +47,4 @@
  * @property {nodeInfo[]} tempList 염도 목록
  */
 
-/**
- * @typedef {Object} simpleCommandInfo
- * @property {string} srcPlaceId 시작 장소 ID
- * @property {string} srcPlaceName 시작 장소 명
- * @property {Object[]} destList 목적지 장소 목록
- * @property {string} destList.destPlaceId 목적지 장소 Id
- * @property {string} destList.destPlaceName 목적지 장소 명
- * @property {string} destList.commandId 명령 이름 영어(srcPlaceId_TO_destPlaceId)
- * @property {string} destList.commandName 명령 이름 한글(srcPlaceId → destPlaceId)
- * @property {string} destList.actionType common(에뮬레이터, 실제 동작) or controller(실제 동작) or emulator(에뮬레이터)
- * @property {string[]} destList.trueNodeList Open, On 등 장치 동작 수행
- * @property {string[]} destList.falseNodeList Close, Off 등 장치 동작 정지
- */
+module;

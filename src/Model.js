@@ -31,11 +31,12 @@ class Model {
   constructor(controller) {
     this.controller = controller;
 
-    const { config, dataLoggerControllerList, dataLoggerList, nodeList } = controller;
+    const { config, dataLoggerControllerList, dataLoggerList, nodeList, placeList } = controller;
 
     this.dataLoggerControllerList = dataLoggerControllerList;
     this.dataLoggerList = dataLoggerList;
     this.nodeList = nodeList;
+    this.placeList = placeList;
 
     /** @type {complexCmdWrapInfo[]} 복합 명령 실행 목록 */
     this.complexCmdList = [];
@@ -48,14 +49,18 @@ class Model {
 
     this.deviceMap = controller.deviceMap;
 
+    // BU.CLIN(this.deviceMap, 1);
+
     // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
 
-    this.initOverapControlNode();
+    this.init();
+  }
 
-    this.findOverlapControlNode({
-      nodeId: 'V_006',
-    });
+  /** Model 상세 초기화 */
+  init() {
+    this.initCommand();
+    this.initOverapControlNode();
   }
 
   /**
@@ -76,6 +81,83 @@ class Model {
         overlapControlList: [],
       }))
       .value();
+  }
+
+  // getPlaceByPcId()
+  /**
+   * 명령 제어 내용 초기화
+   * 1. 단순 명령 시작지, 도착지 명 한글화
+   * 2. 단순 명령 ID 코드 생성(srcPlaceId_TO_destPlaceId)
+   */
+  initCommand() {
+    const {
+      controlInfo: { flowCmdList, setCmdList },
+    } = this.deviceMap;
+
+    // 단순 명령을 쉽게 인식하기 위한 한글 명령을 입력
+    flowCmdList.forEach(simpleCommandInfo => {
+      const { srcPlaceId } = simpleCommandInfo;
+
+      // 시작지 한글 이름
+      const srcPlaceName = _.chain(this.placeList)
+        .find({ place_id: srcPlaceId })
+        .get('place_name')
+        .value();
+
+      _.set(simpleCommandInfo, 'srcPlaceName', srcPlaceName);
+
+      simpleCommandInfo.destList.forEach(scDesInfo => {
+        const { destPlaceId } = scDesInfo;
+
+        // 도착지 한글 이름
+        const destPlaceName = _.chain(this.placeList)
+          .find({ place_id: destPlaceId })
+          .get('place_name')
+          .value();
+
+        _.set(simpleCommandInfo, 'destPlaceName', srcPlaceName);
+        // 한글 명령
+        _.set(scDesInfo, 'cmdId', `${srcPlaceId}_TO_${destPlaceId}`);
+        _.set(scDesInfo, 'cmdName', `${srcPlaceName} → ${destPlaceName}`);
+      });
+    });
+
+    // BU.CLI(flowCmdList);
+
+    const mapCmdInfo = {
+      /** @type {flowCmdInfo[]} */
+      flowCmdList,
+      setCmdList,
+    };
+
+    this.mapCmdInfo = mapCmdInfo;
+  }
+
+  /**
+   *
+   * @param {Object} reqFlowCmd
+   * @param {string=} reqFlowCmd.srcPlaceId 시작 장소 ID
+   * @param {string=} reqFlowCmd.destPlaceId 목적지 장소 Id
+   * @param {string=} reqFlowCmd.cmdId 명령 이름 영어(srcPlaceId_TO_destPlaceId)
+   * @return {flowCmdDestInfo} 데이터를 찾을 경우. 아니라면 undefined
+   */
+  findFlowCommand(reqFlowCmd) {
+    const { cmdId = '', srcPlaceId = '', destPlaceId = '' } = reqFlowCmd;
+    // 명령 Full ID로 찾고자 할 경우
+    if (cmdId.length) {
+      return _(this.mapCmdInfo.flowCmdList)
+        .map('destList')
+        .flatten()
+        .find({ cmdId });
+    }
+
+    // 시작지와 목적지가 있을 경우
+    if (srcPlaceId.length && destPlaceId.length) {
+      const flowCmdInfo = _.find(this.mapCmdInfo.flowCmdList, { srcPlaceId });
+      if (flowCmdInfo !== undefined) {
+        return _.find(flowCmdInfo.destList, { destPlaceId });
+      }
+    }
   }
 
   /**

@@ -344,6 +344,22 @@ class Control extends EventEmitter {
   }
 
   /**
+   * @desc 수동 모드에서만 사용 가능
+   * 외부에서 단일 명령을 내릴경우
+   * @param {reqFlowCmdInfo} reqFlowCmdInfo
+   */
+  executeFlowControl(reqFlowCmdInfo) {
+    try {
+      if (this.controlMode === controlModeInfo.MANUAL) {
+        throw new Error('The flow command is not available in manual mode.');
+      }
+      return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * @desc 자동 모드에서만 사용 가능
    * 저장된 명령 요청 수행
    * @param {wsExecCommandInfo} savedCommandInfo 저장된 명령 ID

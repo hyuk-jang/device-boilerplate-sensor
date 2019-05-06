@@ -27,12 +27,12 @@ process.env.NODE_ENV = 'development';
 
 const { dbInfo } = config;
 
-// const main = new Main();
+const main = new Main();
 // const control = main.createControl({
 //   dbInfo: config.dbInfo,
 // });
-// const control = main.createControl(config);
-const control = new MuanControl(config);
+const control = main.createControl(config);
+// const control = new MuanControl(config);
 
 describe('Manual Mode', function() {
   this.timeout(10000);
@@ -47,7 +47,7 @@ describe('Manual Mode', function() {
    * @desc T.C 1 [수동 모드]
    * @description
    * 1. 정기 계측 명령을 요청
-   * 2. 정기 계측 명령을 중복하여 요청(무시되야 함)
+   * 2. 정기 계측 명령을 중복하여 요청(예외 발생:무시되야 함)
    * 3. 정기 계측 명령 처리 시 O.C에는 영향을 미치지 않음
    * 4. 명령 완료하였을 경우 명령 열에서 삭제 처리
    */
@@ -83,7 +83,7 @@ describe('Manual Mode', function() {
   });
 
   /**
-   * @desc T.C 1 [수동 모드]
+   * @desc T.C 2 [수동 모드]
    * @description
    * 1. 수문 5번을 연다.
    * 2. 펌프 1번을 킨다.
@@ -92,7 +92,7 @@ describe('Manual Mode', function() {
    * 5. 명령 완료 순서는 펌프 > 수문 > 밸브
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
-  it('setDeviceForDB', async () => {
+  it.skip('Single Command Flow', async () => {
     expect(control.nodeList.length).to.not.eq(0);
 
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
@@ -153,7 +153,54 @@ describe('Manual Mode', function() {
     // BU.CLIN(control.nodeList);
   });
 
+  /**
+   * @desc T.C 3 [수동 모드]
+   * @description
+   */
   // it('bindingPlaceList', async () => {});
+});
+
+describe('Automatic Mode', function() {
+  this.timeout(10000);
+  before(async () => {
+    await control.init(dbInfo, config.uuid);
+    control.runFeature();
+    control.controlMode = controlModeInfo.AUTOMATIC;
+    // BU.CLI(control.model.complexCmdList);
+  });
+
+  /**
+   * @desc T.C 1 [자동 모드]
+   * 다중 명령을 요청하였을 때 중복 사용하는 장치에 대하여 1회만 다루도록 하여야 한다.
+   * @description
+   * 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
+   * trueList: ['V_006', 'V_001', 'P_002'],
+   * falseList: ['V_002', 'V_003', 'V_004', 'GV_001'],
+   * 2. 저수조 > 증발지 1-B 명령 요청. 실제 제어 추가 확인 V_002
+   * trueList: ['V_006', 'V_002', 'P_002'],
+   * falseList: ['V_001', 'V_003', 'V_004', 'GV_002'],
+   * 3. 저수조 > 증발지 1-A 명령 복원. 'V_001'만 닫아지는 것 확인
+   * 4. 저수조 > 증발지 1-B 명령 복원. 'V_006', 'V_002', 'P_002' 닫아지는 것 확인
+   */
+  it.only('Multi Command Flow', async () => {
+    // 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
+
+    /** @type {reqFlowCmdInfo} 저수조 > 증발지 1-A */
+    const rvTo1A = {
+      srcPlaceId: 'RV',
+      destPlaceId: 'SEB_1_A',
+      wrapCmdType: reqWrapCmdType.CONTROL,
+    };
+
+    /** @type {reqFlowCmdInfo} 저수조 > 증발지 1-A */
+    const rvTo1B = {
+      srcPlaceId: 'RV',
+      destPlaceId: 'SEB_1_B',
+      wrapCmdType: reqWrapCmdType.CONTROL,
+    };
+
+    control.executeFlowControl(rvTo1A);
+  });
 });
 
 // const Converter = require('device-protocol-converter-jh');
