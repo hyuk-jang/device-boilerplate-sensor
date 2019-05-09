@@ -318,7 +318,7 @@ class Model {
 
     // BU.CLI(overlapControlInfo);
 
-    // OC가 존재하지 않는다면 종료
+    // OC가 존재하지 않는다면 실행 중이지 않음
     if (_.isEmpty(overlapControlInfo)) return false;
 
     // Wrap Command UUID가 지정되어 있다면 True, 아니라면 False
@@ -537,7 +537,7 @@ class Model {
 
     // 모든 장치의 제어가 완료됐다면
     if (_.every(allComplexEleCmdList, 'hasComplete')) {
-      BU.CLI(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete CMD: ${wrapCmdId}`);
+      BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
 
       // 명령 완료 처리
       this.completeComplexCommand(foundComplexCmdInfo);
@@ -725,7 +725,7 @@ class Model {
    * @return {complexCmdWrapInfo}
    */
   saveComplexCommand(complexCmdWrapInfo) {
-    // BU.CLI('saveComplexCommand', complexCmdWrapInfo);
+    // BU.CLIN(complexCmdWrapInfo, 1);
     const {
       wrapCmdType,
       wrapCmdId,
@@ -744,7 +744,7 @@ class Model {
     if (
       // FIXME: 개발테스트를 위하여 임시 주석
       // this.controller.controlMode !== controlMode.MANUAL &&
-      this.isConflictCommand(containerCmdList)
+      this.isConflictCommand(complexCmdWrapInfo)
     ) {
       throw new Error(`${commandName} conflict has occurred.`);
     }
@@ -764,7 +764,12 @@ class Model {
       }
       // 실제 제어할 명령 리스트 산출
       // BU.CLI(containerCmdList);
-      const realContainerCmdList = this.produceRealControlCommand(containerCmdList);
+
+      const realContainerCmdList = this.produceRealControlCommand(complexCmdWrapInfo);
+
+      if (wrapCmdType === reqWrapCmdType.RESTORE) {
+        BU.CLI(realContainerCmdList);
+      }
       // 실제 명령이 존재하지 않을 경우 종료
       if (!realContainerCmdList.length) {
         throw new Error(`${commandName} real CMD list does not exist.`);
@@ -808,10 +813,16 @@ class Model {
 
   /**
    * 명령 스택을 고려하여 실제 내릴 명령을 산출
-   * @param {complexCmdContainerInfo[]} containerCmdList 명령을 내릴 목록(여는 목록, 닫는 목록, ...)
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo 명령을 내릴 목록(여는 목록, 닫는 목록, ...)
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
-  produceRealControlCommand(containerCmdList) {
+  produceRealControlCommand(complexCmdWrapInfo) {
+    const { wrapCmdType, containerCmdList } = complexCmdWrapInfo;
+
+    // if(wrapCmdType === reqWrapCmdType.RESTORE) {
+    //  BU.CLI(containerCmdList)
+    // }
+
     // BU.CLI(containerCmdList);
     /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
     const realContainerCmdList = [];
@@ -885,10 +896,56 @@ class Model {
 
   /**
    * 명령 충돌 체크
-   * @param {complexCmdContainerInfo[]} containerCmdList Complex Command Container List
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo Complex Command Container List
    * @return {boolean}
    */
-  isConflictCommand(containerCmdList) {}
+  isConflictCommand(complexCmdWrapInfo) {
+    BU.CLI(complexCmdWrapInfo);
+    try {
+      const { wrapCmdId, containerCmdList } = complexCmdWrapInfo;
+      // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
+      _.forEach(containerCmdList, containerCmdInfo => {
+        const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+
+        // 각 노드들을 확인
+        _.forEach(eleCmdList, eleCmdInfo => {
+          const { nodeId } = eleCmdInfo;
+
+          const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+
+          // BU.CLI(nodeInfo);
+
+          /** @type {csOverlapControlStorage} */
+          const ocStorageInfo = _.find(this.overlapControlStorageList, { nodeInfo });
+          // const ocStorageInfo = _.find(this.overlapControlStorageList, ocStorage =>
+          //   _.isEqual(ocStorage.nodeInfo, nodeInfo),
+          // );
+
+          // BU.CLI(nodeId, ocStorageInfo);
+
+          // 제어하고자 하는 방향에 위배되는지 체크
+          const conflictWCUs = _(ocStorageInfo.overlapControlList)
+            .reject({
+              singleControlType,
+              controlSetValue,
+            })
+            .map('overlapWCUs')
+            .flatten()
+            .value();
+
+            if(wrapCmdId === 'SEB_1_A_TO_BW_1') {
+              BU.CLI(nodeId, conflictWCUs)
+            }
+
+          if (conflictWCUs.length) {
+            throw new Error(`occur conflict ${conflictWCUs}`);
+          }
+        });
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
 
   /**
    * 모든 노드가 가지고 있는 정보 출력

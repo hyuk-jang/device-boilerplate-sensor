@@ -1,5 +1,6 @@
 require('dotenv').config();
 const _ = require('lodash');
+const Promise = require('bluebird');
 const { expect } = require('chai');
 
 const eventToPromise = require('event-to-promise');
@@ -20,7 +21,7 @@ const {
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
-  requestDeviceControlType,
+  requestDeviceControlType: { TRUE, FALSE, SET, MEASURE },
 } = dcmConfigModel;
 
 process.env.NODE_ENV = 'development';
@@ -34,7 +35,7 @@ const main = new Main();
 const control = main.createControl(config);
 // const control = new MuanControl(config);
 
-describe('Manual Mode', function() {
+describe.skip('Manual Mode', function() {
   this.timeout(10000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
@@ -92,25 +93,25 @@ describe('Manual Mode', function() {
    * 5. 명령 완료 순서는 펌프 > 수문 > 밸브
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
-  it.skip('Single Command Flow', async () => {
+  it('Single Command Flow', async () => {
     expect(control.nodeList.length).to.not.eq(0);
 
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {
       nodeId: 'WD_005',
-      singleControlType: requestDeviceControlType.TRUE,
+      singleControlType: TRUE,
     };
 
     /** @type {reqCmdEleInfo} 2. 펌프 1번을 킨다. */
     const openPumpCmd = {
       nodeId: 'P_001',
-      singleControlType: requestDeviceControlType.TRUE,
+      singleControlType: TRUE,
     };
 
     /** @type {reqCmdEleInfo} 3. 밸브 2번을 킨다. */
     const openValveCmd = {
       nodeId: 'V_002',
-      singleControlType: requestDeviceControlType.TRUE,
+      singleControlType: TRUE,
     };
 
     // 장치들 명령 요청
@@ -162,44 +163,195 @@ describe('Manual Mode', function() {
 
 describe('Automatic Mode', function() {
   this.timeout(10000);
+
+  /** @type {reqFlowCmdInfo} 저수조 > 증발지 1-A */
+  const rvToSEB1A = {
+    srcPlaceId: 'RV',
+    destPlaceId: 'SEB_1_A',
+    wrapCmdType: reqWrapCmdType.CONTROL,
+  };
+
+  /** @type {reqFlowCmdInfo} 저수조 > 증발지 1-B */
+  const rvToSEB1B = {
+    srcPlaceId: 'RV',
+    destPlaceId: 'SEB_1_B',
+    wrapCmdType: reqWrapCmdType.CONTROL,
+  };
+
+  /** @type {reqFlowCmdInfo} 저수조 > 증발지 1-B */
+  const SEB1AToBW1 = {
+    srcPlaceId: 'SEB_1_A',
+    destPlaceId: 'BW_1',
+    wrapCmdType: reqWrapCmdType.CONTROL,
+  };
+
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
-    control.controlMode = controlModeInfo.AUTOMATIC;
+    // 설정 명령이  O.C 스택에 올라가지 않도록 하기 위함
+    control.controlMode = controlModeInfo.MANUAL;
+
+    control.executeSetControl({
+      wrapCmdId: 'closeAllDevice',
+      wrapCmdType: reqWrapCmdType.CONTROL,
+    });
     // BU.CLI(control.model.complexCmdList);
   });
 
   /**
    * @desc T.C 1 [자동 모드]
-   * 다중 명령을 요청하였을 때 중복 사용하는 장치에 대하여 1회만 다루도록 하여야 한다.
+   * 다중 흐름 명령을 요청하고 이에 반하는 흐름 명령을 요청하여 충돌 체크가 제대로 동작하는지 확인
+   * @description
+   * 1. 저수조 > 증발지 1-A 명령 요청.
+   * trueNodeList: ['V_006', 'V_001', 'P_002'],
+   * falseNodeList: ['GV_001'],
+   * 2. 저수조 > 증발지 1-B 명령 요청. 명령 충돌 발생 X
+   * trueNodeList: ['V_006', 'V_002', 'P_002'],
+   * falseNodeList: ['GV_002'],
+   * 3. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 O
+   * trueNodeList: ['GV_001', 'WD_013', 'WD_010'],
+   * falseNodeList: ['WD_016'],
+   */
+  it('Multi Flow Command Control & Conflict ', async () => {
+    // 모든 장치 Close 명령이 완료 되길 기다림
+    await eventToPromise(control, 'completeCommand');
+    // 설정 모드를 Automatic 으로 교체
+    control.controlMode = controlModeInfo.AUTOMATIC;
+
+    // 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
+    const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+
+    // 실제 True 장치 목록
+    let realTrueCmd = _.find(cmdRvTo1A.realContainerCmdList, {
+      singleControlType: TRUE,
+    });
+    //  실제 False 장치 목록
+    let realFalseCmd = _.find(cmdRvTo1A.realContainerCmdList, {
+      singleControlType: FALSE,
+    });
+
+    // 실제 False 장치는 없어야 한다. 기존 상태가 모두 False 이기 때문
+    expect(_.isEmpty(realFalseCmd)).to.true;
+
+    let realTrueNodes = _.map(realTrueCmd.eleCmdList, 'nodeId');
+
+    // 실제 여는 장치는 아래와 같아야 한다.
+    expect(_.isEqual(realTrueNodes, ['V_006', 'V_001', 'P_002'])).to.true;
+
+    let existOverlapList = control.model.findExistOverlapControl();
+
+    // True O.C 는 3개, trueList: ['V_006', 'V_001', 'P_002'],
+    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
+    // False O.C 는 1개, trueList: ['GV_001'],
+    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
+
+    // expect(realFalseCmdRvTo1A.).
+
+    // * 2. 저수조 > 증발지 1-B 명령 요청. 실제 제어 추가 확인 V_002
+    // * trueList: ['V_006', 'V_002', 'P_002'],
+    // * falseList: ['GV_002'],
+    // await Promise.delay(100);
+    const cmdRvTo1B = control.executeFlowControl(rvToSEB1B);
+
+    // 실제 True 장치 목록
+    realTrueCmd = _.find(cmdRvTo1B.realContainerCmdList, {
+      singleControlType: TRUE,
+    });
+    //  실제 False 장치 목록
+    realFalseCmd = _.find(cmdRvTo1B.realContainerCmdList, {
+      singleControlType: FALSE,
+    });
+
+    realTrueNodes = _.map(realTrueCmd.eleCmdList, 'nodeId');
+    // 실제 여는 장치는 아래와 같아야 한다.
+    expect(_.isEqual(realTrueNodes, ['V_002'])).to.true;
+    existOverlapList = control.model.findExistOverlapControl();
+
+    // True O.C 는 4개, trueList: ['V_006', 'V_001', 'V_002', 'P_002'],
+    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(4);
+    // False O.C 는 2개, trueList: ['GV_001', 'GV_002'],
+    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(2);
+
+    // // 저수조 > 증발지 1-A 명령 완료.
+    // const firstCompleteWCU = await eventToPromise(control, 'completeCommand');
+    // expect(cmdRvTo1A.wrapCmdUUID).to.eq(firstCompleteWCU);
+
+    // // 저수조 > 증발지 1-B 명령 완료.
+    // const secondCompleteWCU = await eventToPromise(control, 'completeCommand');
+    // expect(cmdRvTo1B.wrapCmdUUID).to.eq(secondCompleteWCU);
+
+    // 현재 실행중인 명령은 2개
+    expect(control.model.complexCmdList).to.length(2);
+
+    // * 3. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 O
+    // * trueNodeList: ['GV_001', 'WD_013', 'WD_010'],
+    // * falseNodeList: ['WD_016'],
+    expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(Error);
+  });
+
+  /**
+   * @desc T.C 1 [자동 모드]
+   * 다중 흐름 명령을 요청 및 복원하였을 때 실제 제어하는 장치는 현 명령 스택을 기준으로 행해져한다.
    * @description
    * 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
-   * trueList: ['V_006', 'V_001', 'P_002'],
-   * falseList: ['V_002', 'V_003', 'V_004', 'GV_001'],
+   * trueNodeList: ['V_006', 'V_001', 'P_002'],
+   * falseNodeList: ['GV_001'],
    * 2. 저수조 > 증발지 1-B 명령 요청. 실제 제어 추가 확인 V_002
-   * trueList: ['V_006', 'V_002', 'P_002'],
-   * falseList: ['V_001', 'V_003', 'V_004', 'GV_002'],
+   * trueNodeList: ['V_006', 'V_002', 'P_002'],
+   * falseNodeList: ['GV_002'],
    * 3. 저수조 > 증발지 1-A 명령 복원. 'V_001'만 닫아지는 것 확인
    * 4. 저수조 > 증발지 1-B 명령 복원. 'V_006', 'V_002', 'P_002' 닫아지는 것 확인
    */
-  it.only('Multi Command Flow', async () => {
+  it.skip('Multi Flow Command Control & Restore ', async () => {
+    // 모든 장치 Close 명령이 완료 되길 기다림
+    await eventToPromise(control, 'completeCommand');
+    // 설정 모드를 Automatic 으로 교체
+    control.controlMode = controlModeInfo.AUTOMATIC;
+
     // 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
+    let cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
 
-    /** @type {reqFlowCmdInfo} 저수조 > 증발지 1-A */
-    const rvTo1A = {
-      srcPlaceId: 'RV',
-      destPlaceId: 'SEB_1_A',
-      wrapCmdType: reqWrapCmdType.CONTROL,
-    };
+    // * 2. 저수조 > 증발지 1-B 명령 요청. 실제 제어 추가 확인 V_002
+    // * trueList: ['V_006', 'V_002', 'P_002'],
+    // * falseList: ['GV_002'],
+    // await Promise.delay(100);
+    const cmdRvTo1B = control.executeFlowControl(rvToSEB1B);
 
-    /** @type {reqFlowCmdInfo} 저수조 > 증발지 1-A */
-    const rvTo1B = {
-      srcPlaceId: 'RV',
-      destPlaceId: 'SEB_1_B',
-      wrapCmdType: reqWrapCmdType.CONTROL,
-    };
+    await Promise.delay(500);
 
-    control.executeFlowControl(rvTo1A);
+    BU.CLI(control.model.findExistOverlapControl());
+
+    //  * 3. 저수조 > 증발지 1-A 명령 복원. 'V_001'만 닫아지는 것 확인
+    rvToSEB1A.wrapCmdType = reqWrapCmdType.RESTORE;
+    cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+
+    // BU.CLI(cmdRvTo1A);
+
+    // // 실제 True 장치 목록
+    // realTrueCmd = _.find(cmdRvTo1A.realContainerCmdList, {
+    //   singleControlType: TRUE,
+    // });
+    // //  실제 False 장치 목록
+    // realFalseCmd = _.find(cmdRvTo1A.realContainerCmdList, {
+    //   singleControlType: FALSE,
+    // });
+
+    // 실제 False 장치는 없어야 한다. 기존 상태가 모두 False 이기 때문
+    // BU.CLI(realTrueCmd);
+    // expect(_.isEmpty(realTrueCmd)).to.true;
+
+    // const realFalseNodes = _.map(realFalseCmd.eleCmdList, 'nodeId');
+    // // 실제 닫는 장치는 아래와 같아야 한다.
+    // expect(_.isEqual(realFalseNodes, ['GV_001'])).to.true;
+
+    // existOverlapList = control.model.findExistOverlapControl();
+
+    // // True O.C 는 3개, trueList: ['V_006', 'V_002', 'P_002'],
+    // expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
+    // // False O.C 는 1개, trueList: ['GV_002'],
+    // expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
+
+    //  * 4. 저수조 > 증발지 1-B 명령 복원. 'V_006', 'V_002', 'P_002' 닫아지는 것 확인
   });
 });
 

@@ -123,7 +123,7 @@ class CommandExecManager {
 
       // 명령을 요청할 경우
       if (_.eq(wrapCmdType, reqWrapCmdType.CONTROL)) {
-        reqComplexCmd.reqCmdEleList = this.makeControlFlowCmd(flowCmdDestInfo, rank);
+        reqComplexCmd.reqCmdEleList = this.makeControlEleCmdList(flowCmdDestInfo, rank);
       } else if (_.eq(wrapCmdType, reqWrapCmdType.RESTORE)) {
         // wrapCmdId를 가진 복합 명령 개체가 있는지 확인
         const compelxCmdInfo = _.find(this.model.complexCmdList, { wrapCmdId });
@@ -135,7 +135,7 @@ class CommandExecManager {
         }
 
         // 제어 요청 명령일 경우에만 복원 가능
-        if (_.eq(compelxCmdInfo.wrapCmdType, reqWrapCmdType.CONTROL)) {
+        if (!_.eq(compelxCmdInfo.wrapCmdType, reqWrapCmdType.CONTROL)) {
           throw new Error('The type of command being executed is not a CONTROL request.');
         }
 
@@ -143,7 +143,7 @@ class CommandExecManager {
         //   throw new Error('The type of command being executed is not a CONTROL request.');
         // }
 
-        reqComplexCmd.reqCmdEleList = this.makeRestoreFlowCmd(flowCmdDestInfo, rank);
+        reqComplexCmd.reqCmdEleList = this.makeRestoreEleCmdList(flowCmdDestInfo, rank);
       }
 
       // BU.CLI(reqComplexCmd);
@@ -154,11 +154,66 @@ class CommandExecManager {
   }
 
   /**
+   * 설정 명령 요청 수행
+   * @param {wsExecCmdInfo} reqSetCmdInfo 저장된 명령 ID
+   */
+  executeSetControl(reqSetCmdInfo) {
+    // BU.CLI(reqSetCmdInfo);
+    try {
+      const { wrapCmdId, wrapCmdType, rank = definedCommandSetRank.SECOND } = reqSetCmdInfo;
+
+      // 설정 명령 조회
+      const setCmdInfo = _.find(this.model.mapCmdInfo.setCmdList, { cmdId: wrapCmdId });
+      // BU.CLI(setCmdInfo);
+
+      if (setCmdInfo) {
+        /** @type {reqComplexCmdInfo} */
+        const reqComplexCmd = {
+          wrapCmdId,
+          wrapCmdName: '',
+          wrapCmdType,
+          reqCmdEleList: [],
+        };
+
+        // 명령을 요청할 경우
+        if (_.eq(wrapCmdType, reqWrapCmdType.CONTROL)) {
+          reqComplexCmd.reqCmdEleList = this.makeControlEleCmdList(setCmdInfo, rank);
+        } else if (_.eq(wrapCmdType, reqWrapCmdType.RESTORE)) {
+          // wrapCmdId를 가진 복합 명령 개체가 있는지 확인
+          const compelxCmdInfo = _.find(this.model.complexCmdList, { wrapCmdId });
+          // 명령이 실행중이지 않는다면 복원 명령을 내릴 수 없음.
+          if (_.isEmpty(compelxCmdInfo)) {
+            throw new Error(
+              `The command(${wrapCmdId}) does not exist and you can not issue a restore command.`,
+            );
+          }
+
+          // 제어 요청 명령일 경우에만 복원 가능
+          if (_.eq(compelxCmdInfo.wrapCmdType, reqWrapCmdType.CONTROL)) {
+            throw new Error('The type of command being executed is not a CONTROL request.');
+          }
+
+          // if (_.eq(compelxCmdInfo.wrapCmdStep, complexCmdStep.RUNNING)) {
+          //   throw new Error('The type of command being executed is not a CONTROL request.');
+          // }
+
+          reqComplexCmd.reqCmdEleList = this.makeRestoreEleCmdList(setCmdInfo, rank);
+        }
+
+        return this.executeComplexCommand(reqComplexCmd);
+      }
+      throw new Error(`wrapCmdId: ${wrapCmdId} does not exist.`);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * 흐름 명령을 세부 제어 목록 반환
    * @param {flowCmdDestInfo} flowCmdDestInfo
    * @param {number} rank
    */
-  makeControlFlowCmd(flowCmdDestInfo, rank) {
+  makeControlEleCmdList(flowCmdDestInfo, rank) {
     /** @type {reqCmdEleInfo[]} */
     const reqCmdEleList = [];
     const { trueNodeList, falseNodeList } = flowCmdDestInfo;
@@ -186,7 +241,7 @@ class CommandExecManager {
    * @param {flowCmdDestInfo} flowCmdDestInfo
    * @param {number} rank
    */
-  makeRestoreFlowCmd(flowCmdDestInfo, rank) {
+  makeRestoreEleCmdList(flowCmdDestInfo, rank) {
     /** @type {reqCmdEleInfo[]} */
     const reqCmdEleList = [];
     const { trueNodeList, falseNodeList } = flowCmdDestInfo;

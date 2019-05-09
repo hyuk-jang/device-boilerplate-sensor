@@ -360,6 +360,22 @@ class Control extends EventEmitter {
   }
 
   /**
+   * 설정 명령 요청 수행
+   * @param {wsExecCmdInfo} reqSetCmdInfo 저장된 명령 ID
+   */
+  executeSetControl(reqSetCmdInfo) {
+    // BU.CLI(savedCommandInfo);
+    try {
+      // if (this.controlMode === controlModeInfo.MANUAL) {
+      //   throw new Error('The flow command is not available in manual mode.');
+      // }
+      return this.commandExecManager.executeSetControl(reqSetCmdInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * @desc 자동 모드에서만 사용 가능
    * 저장된 명령 요청 수행
    * @param {wsExecCommandInfo} savedCommandInfo 저장된 명령 ID
