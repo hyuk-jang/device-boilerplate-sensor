@@ -733,11 +733,11 @@ class Model {
       containerCmdList,
     } = complexCmdWrapInfo;
 
-    const commandName = `wrapCmdId: ${wrapCmdId}, wrapCmdType: ${wrapCmdType}`;
+    const cmdName = `wrapCmdId: ${wrapCmdId}, wrapCmdType: ${wrapCmdType}`;
     // ComplexCommandList에서 동일 Wrap Command Id 가 존재하는지 체크
     // BU.CLI(this.complexCmdList);
     if (_.find(this.complexCmdList, { wrapCmdType, wrapCmdId })) {
-      throw new Error(`${commandName} is exist`);
+      throw new Error(`${cmdName} is exist`);
     }
 
     // 수동 모드가 아닐 경우 명령 충돌 검사
@@ -746,12 +746,12 @@ class Model {
       // this.controller.controlMode !== controlMode.MANUAL &&
       this.isConflictCommand(complexCmdWrapInfo)
     ) {
-      throw new Error(`${commandName} conflict has occurred.`);
+      throw new Error(`${cmdName} conflict has occurred.`);
     }
 
     // wrapCmdGoalInfo.goalDataList가 존재 할 경우 현재 값과의 목표치 체크. 이미 달성하였다면 실행하지 않음.
     if (!_.isEmpty(goalDataList) && this.isAchieveCommandGoal(goalDataList)) {
-      throw new Error(`${commandName} already achieved its goal.`);
+      throw new Error(`${cmdName} already achieved its goal.`);
     }
 
     // 계측 명령이라면 실제 제어목록 산출하지 않음
@@ -760,19 +760,19 @@ class Model {
     } else {
       // 제어하고자 하는 장치 중에 이상있는 장치 여부 검사
       if (!this.isNormalOperation(containerCmdList)) {
-        throw new Error(`An abnormal device exists among the ${commandName}`);
+        throw new Error(`An abnormal device exists among the ${cmdName}`);
       }
       // 실제 제어할 명령 리스트 산출
       // BU.CLI(containerCmdList);
 
       const realContainerCmdList = this.produceRealControlCommand(complexCmdWrapInfo);
 
-      if (wrapCmdType === reqWrapCmdType.RESTORE) {
-        BU.CLI(realContainerCmdList);
-      }
+      // if (wrapCmdType === reqWrapCmdType.RESTORE) {
+      //   BU.CLI(realContainerCmdList);
+      // }
       // 실제 명령이 존재하지 않을 경우 종료
       if (!realContainerCmdList.length) {
-        throw new Error(`${commandName} real CMD list does not exist.`);
+        throw new Error(`${cmdName} real CMD list does not exist.`);
       }
 
       // 실제 수행하는 장치 제어 목록 정의
@@ -817,7 +817,7 @@ class Model {
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
   produceRealControlCommand(complexCmdWrapInfo) {
-    const { wrapCmdType, containerCmdList } = complexCmdWrapInfo;
+    const { controlMode, wrapCmdType, containerCmdList } = complexCmdWrapInfo;
 
     // if(wrapCmdType === reqWrapCmdType.RESTORE) {
     //  BU.CLI(containerCmdList)
@@ -827,31 +827,75 @@ class Model {
     /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
     const realContainerCmdList = [];
 
-    // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
-    _.forEach(containerCmdList, containerCmdInfo => {
-      const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+    // TODO: 수동 모드 일 경우에는 제어 장치 값이 현재와 같거나 reserveExecUU가 있다면 제외
+    if (controlMode === controlModeInfo.MANUAL) {
+      _.forEach(containerCmdList, containerCmdInfo => {
+        const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
 
-      // 실제 제어 명령 목록 산출
-      const realEleCmdList = _.filter(
-        eleCmdList,
-        eleCmdInfo =>
-          // 존재하지 않을 경우 true
-          !this.isExistSingleControl({
-            nodeId: eleCmdInfo.nodeId,
+        // 실제 제어 명령 목록 산출
+        const realEleCmdList = _.filter(
+          eleCmdList,
+          eleCmdInfo =>
+            // 존재하지 않을 경우 true
+            !this.isExistSingleControl({
+              nodeId: eleCmdInfo.nodeId,
+              singleControlType,
+              controlSetValue,
+            }),
+        );
+
+        // 실제 제어 목록이 존재한다면 삽입
+        if (realEleCmdList.length) {
+          realContainerCmdList.push({
             singleControlType,
             controlSetValue,
-          }),
-      );
+            eleCmdList: realEleCmdList,
+          });
+        }
+      });
+    }
 
-      // 실제 제어 목록이 존재한다면 삽입
-      if (realEleCmdList.length) {
-        realContainerCmdList.push({
-          singleControlType,
-          controlSetValue,
-          eleCmdList: realEleCmdList,
+    // TODO: 수동 모드가 아니라면  O.C를 반영하고 새로운 O.C Length가 생길경우 제어 대상으로 선정
+    else {
+      _.forEach(containerCmdList, containerCmdInfo => {
+        const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+
+        // 각 노드들을 확인
+        _.forEach(eleCmdList, eleCmdInfo => {
+          const { nodeId } = eleCmdInfo;
+
+          const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+          // BU.CLI(nodeInfo);
+
+          /** @type {csOverlapControlStorage} */
+          const ocStorageInfo = _.find(this.overlapControlStorageList, { nodeInfo });
+          // BU.CLI(nodeId, ocStorageInfo);
+
+          // Overlap Control 조회
+          const ocControlInfo = this.findOverlapControlNode({
+            nodeId,
+            singleControlType,
+            controlSetValue,
+          });
+
+          // overlapWCUs.length 가 존재하지만 reservedExecUU가 없고 제어 장치값이 다를 경우 추가로 제어구문 생성하고 reservedExecUU가 반영
+
+          // OC 가 없다면 신규 OC
+          if (_.isEmpty(ocControlInfo)) {
+          }
+
+          // if (wrapCmdId === 'SEB_1_A_TO_BW_1') {
+          //   BU.CLI(nodeId, conflictWCUs);
+          // }
+
+          if (conflictWCUs.length) {
+            throw new Error(`A node(${nodeId}) in wrapCmd(${wrapCmdId}) has conflict.`);
+          }
         });
-      }
-    });
+      });
+    }
+
+    // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
     return realContainerCmdList;
   }
 
@@ -896,11 +940,11 @@ class Model {
 
   /**
    * 명령 충돌 체크
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo Complex Command Container List
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo 복합 명령 객체
    * @return {boolean}
    */
   isConflictCommand(complexCmdWrapInfo) {
-    BU.CLI(complexCmdWrapInfo);
+    // BU.CLI(complexCmdWrapInfo);
     try {
       const { wrapCmdId, containerCmdList } = complexCmdWrapInfo;
       // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
@@ -912,15 +956,10 @@ class Model {
           const { nodeId } = eleCmdInfo;
 
           const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
-
           // BU.CLI(nodeInfo);
 
           /** @type {csOverlapControlStorage} */
           const ocStorageInfo = _.find(this.overlapControlStorageList, { nodeInfo });
-          // const ocStorageInfo = _.find(this.overlapControlStorageList, ocStorage =>
-          //   _.isEqual(ocStorage.nodeInfo, nodeInfo),
-          // );
-
           // BU.CLI(nodeId, ocStorageInfo);
 
           // 제어하고자 하는 방향에 위배되는지 체크
@@ -933,15 +972,16 @@ class Model {
             .flatten()
             .value();
 
-            if(wrapCmdId === 'SEB_1_A_TO_BW_1') {
-              BU.CLI(nodeId, conflictWCUs)
-            }
+          // if (wrapCmdId === 'SEB_1_A_TO_BW_1') {
+          //   BU.CLI(nodeId, conflictWCUs);
+          // }
 
           if (conflictWCUs.length) {
-            throw new Error(`occur conflict ${conflictWCUs}`);
+            throw new Error(`A node(${nodeId}) in wrapCmd(${wrapCmdId}) has conflict.`);
           }
         });
       });
+      return false;
     } catch (error) {
       throw error;
     }

@@ -283,10 +283,12 @@ describe('Automatic Mode', function() {
     // 현재 실행중인 명령은 2개
     expect(control.model.complexCmdList).to.length(2);
 
-    // * 3. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 O
+    // * 3. 증발지 1-A > 해주 1 명령 요청. GV_001 명령 충돌 발생 O
     // * trueNodeList: ['GV_001', 'WD_013', 'WD_010'],
     // * falseNodeList: ['WD_016'],
-    expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(Error);
+    expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(
+      'A node(GV_001) in wrapCmd(SEB_1_A_TO_BW_1) has conflict.',
+    );
   });
 
   /**
