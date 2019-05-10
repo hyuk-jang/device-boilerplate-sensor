@@ -5,7 +5,7 @@ const { BU } = require('base-util-jh');
 
 const { dcmConfigModel, dccFlagModel } = require('../../default-intelligence');
 
-const { complexCmdStep, reqWrapCmdType, requestDeviceControlType } = dcmConfigModel;
+const { controlModeInfo, reqWrapCmdType, requestDeviceControlType } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
 
 const ControlDBS = require('./Control');
@@ -204,6 +204,10 @@ class CommandExecManager {
       }
       throw new Error(`wrapCmdId: ${wrapCmdId} does not exist.`);
     } catch (error) {
+      // 수동모드에서 설정 명령을 발송할 경우 예외는 무시
+      if (this.controller.controlMode === controlModeInfo.MANUAL) {
+        return false;
+      }
       throw error;
     }
   }
@@ -478,9 +482,12 @@ class CommandExecManager {
       // 복합 명령 저장
       this.model.saveComplexCommand(wrapCmdInfo);
 
+      // 실제 내릴 명령이 있을 경우에만 요청
+      // if (wrapCmdInfo.realContainerCmdList.length) {
       // 복합 명령 실행 요청
       // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
       this.executeCommandToDLC(wrapCmdInfo);
+      // }
 
       // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
 

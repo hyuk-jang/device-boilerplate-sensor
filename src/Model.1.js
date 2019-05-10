@@ -9,18 +9,18 @@ const ControlDBS = require('./Control');
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
 const {
-  reqWrapCmdType,
   complexCmdStep,
-  contractCmdStep,
   nodePickKey,
+  complexCmdPickKey,
+  controlModeInfo,
+  goalDataRange,
   nodeDataType,
+  reqWrapCmdType,
+  requestDeviceControlType,
 } = dcmConfigModel;
 
-const { transmitToServerCommandType } = dcmWsModel;
-
-// const NODE_DATA = ['node_seq', 'data', 'writeDate'];
-
-// const map = require('../config/map');
+// API Server 와 데이터를 주고 받는 타입
+const { transmitToServerCommandType, transmitToClientCommandType } = dcmWsModel;
 
 class Model {
   /**
@@ -31,20 +31,15 @@ class Model {
   constructor(controller) {
     this.controller = controller;
 
-    const { config, dataLoggerControllerList, dataLoggerList, nodeList } = controller;
+    const { config, dataLoggerControllerList, dataLoggerList, nodeList, placeList } = controller;
 
     this.dataLoggerControllerList = dataLoggerControllerList;
     this.dataLoggerList = dataLoggerList;
     this.nodeList = nodeList;
-
-    // 복합 명령 저장소를 초기화
-    this.initComplexCmdStorage();
+    this.placeList = placeList;
 
     /** @type {complexCmdWrapInfo[]} 복합 명령 실행 목록 */
     this.complexCmdList = [];
-
-    /** @type {contractCmdInfo[]} 복합 명령 축약 Ver 목록 */
-    this.contractCmdList = [];
 
     this.biModule = new BM(config.dbInfo);
 
@@ -54,230 +49,373 @@ class Model {
 
     this.deviceMap = controller.deviceMap;
 
+    // BU.CLIN(this.deviceMap, 1);
+
     // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
+
+    this.init();
+  }
+
+  /** Model 상세 초기화 */
+  init() {
+    this.initCommand();
+    this.initOverapControlNode();
   }
 
   /**
-   * 복합 명령 저장소를 초기화
+   * @desc O.C
+   * Overlap Control Storage List 초기화
    */
-  initComplexCmdStorage() {
-    /** @type {complexCmdIntegratedStorage} */
-    const complexStorage = {
-      controlStorage: {
-        waitingList: [],
-        proceedingList: [],
-        runningList: [],
-      },
-      cancelStorage: {
-        waitingList: [],
-        proceedingList: [],
-      },
-      measureStorage: {
-        waitingList: [],
-        proceedingList: [],
-      },
+  initOverapControlNode() {
+    // 노드 목록 중 장치만을 누적 제어 카운팅 목록으로 만듬
+
+    // /** @type {csOverlapControlInfo[]} 실제 진행중인 누적 명령만을 가진 목록 */
+    // this.processOverlapControlList = [];
+
+    /** @type {csOverlapControlStorage[]} */
+    this.overlapControlStorageList = _(this.nodeList)
+      .filter(nodeInfo => _.eq(nodeInfo.is_sensor, 0))
+      .map(nodeInfo => ({
+        nodeInfo,
+        overlapControlList: [],
+      }))
+      .value();
+  }
+
+  // getPlaceByPcId()
+  /**
+   * 명령 제어 내용 초기화
+   * 1. 단순 명령 시작지, 도착지 명 한글화
+   * 2. 단순 명령 ID 코드 생성(srcPlaceId_TO_destPlaceId)
+   */
+  initCommand() {
+    const {
+      controlInfo: { flowCmdList, setCmdList },
+    } = this.deviceMap;
+
+    // 단순 명령을 쉽게 인식하기 위한 한글 명령을 입력
+    flowCmdList.forEach(simpleCommandInfo => {
+      const { srcPlaceId } = simpleCommandInfo;
+
+      // 시작지 한글 이름
+      const srcPlaceName = _.chain(this.placeList)
+        .find({ place_id: srcPlaceId })
+        .get('place_name')
+        .value();
+
+      _.set(simpleCommandInfo, 'srcPlaceName', srcPlaceName);
+
+      simpleCommandInfo.destList.forEach(scDesInfo => {
+        const { destPlaceId } = scDesInfo;
+
+        // 도착지 한글 이름
+        const destPlaceName = _.chain(this.placeList)
+          .find({ place_id: destPlaceId })
+          .get('place_name')
+          .value();
+
+        _.set(simpleCommandInfo, 'destPlaceName', srcPlaceName);
+        // 한글 명령
+        _.set(scDesInfo, 'cmdId', `${srcPlaceId}_TO_${destPlaceId}`);
+        _.set(scDesInfo, 'cmdName', `${srcPlaceName} → ${destPlaceName}`);
+      });
+    });
+
+    // BU.CLI(flowCmdList);
+
+    const mapCmdInfo = {
+      /** @type {flowCmdInfo[]} */
+      flowCmdList,
+      setCmdList,
     };
-    this.complexCmdIntegratedStorage = complexStorage;
+
+    this.mapCmdInfo = mapCmdInfo;
   }
 
   /**
-   * 신규 contractCmdInfo가 생성되었을 경우
-   * @param {contractCmdInfo} contractCmdInfo
-   * @return {boolean} 정상적인 신규 데이터 삽입이 이루어지면 true, 아니면 false
+   *
+   * @param {Object} reqFlowCmd
+   * @param {string=} reqFlowCmd.srcPlaceId 시작 장소 ID
+   * @param {string=} reqFlowCmd.destPlaceId 목적지 장소 Id
+   * @param {string=} reqFlowCmd.cmdId 명령 이름 영어(srcPlaceId_TO_destPlaceId)
+   * @return {flowCmdDestInfo} 데이터를 찾을 경우. 아니라면 undefined
    */
-  addContractCommand(contractCmdInfo) {
-    const foundIt = _.find(this.contractCmdList, { uuid: contractCmdInfo.uuid });
-    // 기존에 없을 경우에만 삽입
-    if (!foundIt) {
-      // 신규 삽입
-      this.contractCmdList.push(contractCmdInfo);
-
-      // 신규 알림
-      this.controller.apiClient.transmitDataToServer({
-        commandType: transmitToServerCommandType.COMMAND,
-        data: [contractCmdInfo],
-      });
-      return true;
+  findFlowCommand(reqFlowCmd) {
+    const { cmdId = '', srcPlaceId = '', destPlaceId = '' } = reqFlowCmd;
+    // 명령 Full ID로 찾고자 할 경우
+    if (cmdId.length) {
+      return _(this.mapCmdInfo.flowCmdList)
+        .map('destList')
+        .flatten()
+        .find({ cmdId });
     }
-    return false;
+
+    // 시작지와 목적지가 있을 경우
+    if (srcPlaceId.length && destPlaceId.length) {
+      const flowCmdInfo = _.find(this.mapCmdInfo.flowCmdList, { srcPlaceId });
+      if (flowCmdInfo !== undefined) {
+        return _.find(flowCmdInfo.destList, { destPlaceId });
+      }
+    }
   }
 
   /**
-   * 기존에 존재하던 명령의 수정이 이루어 질때
-   * @param {string} uuid
-   * @param {string} strComplexCmdStep complexCmdStep
-   * @return {boolean} 갱신이 이루어지면 true, 아니면 false
+   * @desc O.C
+   * @param {csOverlapControlHandleConfig} node nodeId or nodeInfo 사용
    */
-  updateContractCommand(uuid, strComplexCmdStep) {
-    const contractCmdInfo = _.find(this.contractCmdList, { uuid });
-    // BU.CLI(complexCmdStep, contractCmdInfo);
-    // 데이터가 존재하고 이전 Contract Step과 다를 경우 갱신 처리
-    if (
-      contractCmdInfo &&
-      _(contractCmdStep)
-        .values()
-        .includes(strComplexCmdStep) &&
-      !_.isEqual(contractCmdInfo.complexCmdStep, strComplexCmdStep)
-    ) {
-      contractCmdInfo.complexCmdStep = strComplexCmdStep;
+  findOverlapControlStorage(node) {
+    // nodeId가 존재할 경우
+    const { nodeId } = node;
+    // nodeInfo 객체 자체를 넘겨 받을 경우
+    let { nodeInfo } = node;
+    if (_.isString(nodeId)) {
+      const foundNodeInfo = _.find(this.nodeList, { node_id: nodeId });
+      if (foundNodeInfo) {
+        nodeInfo = foundNodeInfo;
+      }
+    }
+    /** @type {csOverlapControlStorage} overlapControl 개체를 찾음 */
+    const overlapControlStorage = _.find(this.overlapControlStorageList, { nodeInfo });
 
-      // 명령이 완료됐다면 Contract Command List에서 삭제
-      strComplexCmdStep === contractCmdStep.COMPLETE &&
-        _.pullAllWith(this.contractCmdList, [contractCmdInfo], _.isEqual);
+    return overlapControlStorage;
+  }
 
-      // 업데이트 알림 (통째로 보내버림)
-      this.controller.apiClient.transmitDataToServer({
-        commandType: transmitToServerCommandType.COMMAND,
-        data: this.contractCmdList,
-      });
+  /**
+   * @desc O.C
+   * @param {csOverlapControlHandleConfig} findInfo OC 존재 체크 용 옵션
+   * @return {csOverlapControlInfo}
+   */
+  findOverlapControlNode(findInfo) {
+    const { singleControlType, controlSetValue } = findInfo;
+    // nodeId가 존재할 경우
+    const overlapControlStorage = this.findOverlapControlStorage(findInfo);
+
+    // BU.CLI(overlapControlStorage);
+
+    // OC 저장소가 존재하지 않는다면 종료
+    if (_.isEmpty(overlapControlStorage)) return undefined;
+
+    // 설정 제어 값이 있을 경우 where 조건 절 추가
+    const overlapWhere = _.isEmpty(controlSetValue)
+      ? { singleControlType }
+      : { singleControlType, controlSetValue };
+
+    // 찾는 조건에 부합하는 overlap Control을 찾음
+    return _.find(overlapControlStorage.overlapControlList, overlapWhere);
+  }
+
+  /**
+   * @desc O.C
+   * Overlap Control 신규 추가
+   * @param {csOverlapControlHandleConfig} addOcInfo OC 신규 생성 정보
+   */
+  createOverlapControlNode(addOcInfo) {
+    // BU.CLI(addOcInfo);
+    const { singleControlType, controlSetValue } = addOcInfo;
+    const overlapControlStorage = this.findOverlapControlStorage(addOcInfo);
+
+    // BU.CLI(overlapControlStorage);
+
+    // OC 저장소가 존재하지 않는다면 종료
+    if (_.isEmpty(overlapControlStorage)) return false;
+
+    // OC 저장소가 존재한다면 OC가 존재하는지 체크
+    const overlapControlInfo = this.findOverlapControlNode(addOcInfo);
+
+    // BU.CLI(overlapControlInfo);
+
+    // OC가 존재한다면 생성할 필요 없으므로 종료
+    if (!_.isEmpty(overlapControlInfo)) return false;
+
+    /** @type {csOverlapControlInfo} 새로이 생성할 제어 OC */
+    const newOverlapControlInfo = {
+      singleControlType,
+      controlSetValue,
+      overlapWCUs: [],
+      overlapLockWCUs: [],
+      reservedExecUU: '',
+    };
+
+    // 제어  OC 신규 생성 후 추가
+    overlapControlStorage.overlapControlList.push(newOverlapControlInfo);
+
+    return newOverlapControlInfo;
+  }
+
+  /**
+   * @abstract
+   * @param {nodeInfo} nodeInfo
+   * @param {string} singleControlType
+   */
+  convertControlValueToString(nodeInfo, singleControlType) {
+    singleControlType = Number(singleControlType);
+    let strControlValue = '';
+    const onOffList = ['pump'];
+    const openCloseList = ['valve', 'waterDoor'];
+
+    let strTrue = '';
+    let strFalse = '';
+
+    // Node Class ID를 가져옴. 장치 명에 따라 True, False 개체 명명 변경
+    if (_.includes(onOffList, nodeInfo.nc_target_id)) {
+      strTrue = 'On';
+      strFalse = 'Off';
+    } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
+      strTrue = 'Open';
+      strFalse = 'Close';
+    }
+
+    switch (singleControlType) {
+      case requestDeviceControlType.FALSE:
+        strControlValue = strFalse;
+        break;
+      case requestDeviceControlType.TRUE:
+        strControlValue = strTrue;
+        break;
+      case requestDeviceControlType.MEASURE:
+        strControlValue = 'Measure';
+        break;
+      case requestDeviceControlType.SET:
+        strControlValue = 'Set';
+        break;
+      default:
+        break;
+    }
+    return strControlValue;
+  }
+
+  /**
+   * @desc O.C
+   * 해당 장치에 대한 동일한 제어가 존재하는지 체크
+   * @param {csOverlapControlHandleConfig} existControlInfo 누적 제어 조회 옵션
+   * @return {boolean} 현재 값과 동일하거나 예약 명령이 존재할 경우 True, 아니라면 False
+   */
+  isExistSingleControl(existControlInfo) {
+    // BU.CLI(existControlInfo);
+    const { nodeId, singleControlType, controlSetValue } = existControlInfo;
+
+    // 노드 Id가 동일한 노드 객체 가져옴
+    const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+
+    // 만약 노드 객체가 없다면 해당 노드에 관해서 명령 생성하지 않음.
+    if (_.isEmpty(nodeInfo)) return true;
+
+    // 설정 제어 값이 존재하고 현재 노드 값과 같다면 추가적으로 제어하지 않음
+    // FIXME: ControlSetValue와 설정 제어 값을 치환할 경우 상이한 문제가 발생할 것으로 보임. 필요시 수정
+    if (!_.isNil(controlSetValue) && _.eq(nodeInfo.data, controlSetValue)) return true;
+
+    // 사용자가 알 수 있는 제어 구문으로 변경
+    const cmdName = this.convertControlValueToString(nodeInfo, singleControlType);
+
+    // node 현재 값과 동일하다면 제어 요청하지 않음
+    if (_.isNil(controlSetValue) && _.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName))) {
       return true;
     }
-    return false;
+
+    // 저장소가 존재한다면 OC가 존재하는지 체크
+    const overlapControlInfo = this.findOverlapControlNode(existControlInfo);
+
+    // BU.CLI(overlapControlInfo);
+
+    // OC가 존재하지 않는다면 실행 중이지 않음
+    if (_.isEmpty(overlapControlInfo)) return false;
+
+    // Wrap Command UUID가 지정되어 있다면 True, 아니라면 False
+    return !!overlapControlInfo.reservedExecUU.length;
+  }
+
+  /**
+   * @desc O.C
+   * 생성된 명령의 누적 호출 목록을 추가한다.
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   */
+  addOverlapControlCommand(complexCmdWrapInfo) {
+    // BU.CLIN(complexCmdWrapInfo, 1);
+    const { wrapCmdUUID, containerCmdList, realContainerCmdList } = complexCmdWrapInfo;
+
+    // 수동 모드가 아닐 경우에만 요청 명령 Overlap overlapWCUs 반영
+    if (this.controller.controlMode !== controlModeInfo.MANUAL) {
+      this.updateContainerCommandOC({
+        wrapCmdUUID,
+        isRealCmd: false,
+        containerCmdList,
+      });
+    }
+
+    // 실제 명령 realContainerCmdList 저장 및 Overlap reservedExecUU 반영
+    this.updateContainerCommandOC({
+      wrapCmdUUID,
+      isRealCmd: true,
+      containerCmdList: realContainerCmdList,
+    });
+
+    // BU.CLI(this.overlapControlStorageList);
+  }
+
+  /**
+   * @desc O.C
+   * 복합 명령을 추가할 경우 실제 제어 여부에 따라서 WCU 및 ExecWCU를 정의함.
+   * @param {Object} updateConfigOC
+   * @param {string} updateConfigOC.wrapCmdUUID
+   * @param {boolean} updateConfigOC.isRealCmd 실제 제어 명령 여부
+   * @param {complexCmdContainerInfo[]} updateConfigOC.containerCmdList
+   */
+  updateContainerCommandOC(updateConfigOC) {
+    const { wrapCmdUUID, isRealCmd, containerCmdList } = updateConfigOC;
+
+    // 요청 명령 컨테이너 목록만큼 순회
+    _.forEach(containerCmdList, containerCmdInfo => {
+      const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+
+      // 세부 제어 명령 목록을 순회하면서 명령 호출 누적 처리
+      _.forEach(eleCmdList, eleCmdInfo => {
+        /** @type {csOverlapControlHandleConfig} */
+        const overlapControlHandleConfig = {
+          nodeId: eleCmdInfo.nodeId,
+          singleControlType,
+          controlSetValue,
+        };
+        let overlapControlNode = this.findOverlapControlNode(overlapControlHandleConfig);
+        // BU.CLI(overlapControlNode);
+
+        // 존재하지 않는다면 Overlap Control Node 생성
+        if (!overlapControlNode) {
+          overlapControlNode = this.createOverlapControlNode(overlapControlHandleConfig);
+          // OC Storage가 없거나 OC가 존재하지 않으면 종료
+          if (overlapControlNode === false) {
+            throw new Error(
+              `nodeId: ${
+                eleCmdInfo.nodeId
+              }, singleControlType: ${singleControlType} is not exist in OC Storage`,
+            );
+          }
+        }
+
+        if (isRealCmd) {
+          // 실제 제어 WCU 지정
+          overlapControlNode.reservedExecUU = eleCmdInfo.uuid;
+        } else {
+          // 누적 호출 카운팅
+          overlapControlNode.overlapWCUs.push(wrapCmdUUID);
+        }
+      });
+    });
   }
 
   /**
    * API 서버로 축약해서 명령을 보냄.
    */
   transmitComplexCommandStatus() {
-    const contractCommandList = _.map(this.complexCmdList, _.omit('containerCmdList'));
+    const contractCommandList = _(this.complexCmdList)
+      .map(complexCmdInfo => _.pick(complexCmdInfo, complexCmdPickKey.FOR_SERVER))
+      .value();
+
     // 업데이트 알림 (통째로 보내버림)
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCommandType.COMMAND,
       data: contractCommandList,
     });
-  }
-
-  /**
-   *
-   * @param {Object} findOption
-   */
-  getComplexCommand(findOption) {
-    // return _.find(this.complexCmdList, { wrapCmdUUID });
-  }
-
-  /**
-   * 명령을 기반으로 Order Storage 내용 반환
-   * @param {string} wrapCmdUUID 명령을 내릴 때 해당 명령의 고유 ID(mode5, mode3, ...)
-   */
-  findAllComplexCmdByStorageUUID(wrapCmdUUID) {
-    const returnValue = {
-      complexCmdIntegratedStorageKey: '',
-      /** @type {complexCmdStorage} */
-      complexCmdStorage: {},
-      complexCmdStorageStepKey: '',
-      wrapCmdListIndex: -1,
-      /** @type {complexCmdWrapInfo[]} */
-      wrapCmdList: [],
-      /** @type {complexCmdWrapInfo} */
-      wrapCmdInfo: {},
-    };
-
-    const hasFined = false;
-    // 저장소를 순회
-    _.forEach(this.complexCmdIntegratedStorage, (complexCmdStorage, cmdStep) => {
-      if (hasFined) return false;
-      // 각 저장소의 대기, 진행, 실행 목록 순회
-      _.forEach(complexCmdStorage, (complexCmdWrapList, strCmdStorageStep) => {
-        if (hasFined) return false;
-        // 해당 명령을 가진 complexCmdWrapInfo 검색
-        const foundIndex = _.findIndex(complexCmdWrapList, {
-          wrapCmdUUID,
-        });
-        // 0 이상이면 해당 배열에 존재한다는 것
-        if (foundIndex >= 0) {
-          returnValue.complexCmdIntegratedStorageKey = cmdStep;
-          returnValue.complexCmdStorage = complexCmdStorage;
-          returnValue.complexCmdStorageStepKey = strCmdStorageStep;
-          returnValue.wrapCmdListIndex = foundIndex;
-          returnValue.wrapCmdList = complexCmdWrapList;
-          returnValue.wrapCmdInfo = _.nth(complexCmdWrapList, foundIndex);
-        }
-      });
-    });
-
-    return returnValue;
-  }
-
-  /**
-   * UUID에 해당하는 Order Storage 내용 반환
-   * @param {string} cmdEleUUID UUID. 유일 키로 명령 요청 시 동적으로 생성 및 부여
-   */
-  findAllComplexCmdByElementInfo(cmdEleUUID) {
-    const returnValue = {
-      complexCmdIntegratedStorageKey: '',
-      /** @type {complexCmdStorage} */
-      complexCmdStorage: {},
-      complexCmdStorageStepKey: '',
-      /** @type {complexCmdWrapInfo[]} */
-      wrapCmdList: [],
-      /** @type {complexCmdWrapInfo} */
-      wrapCmdInfo: {},
-      /** @type {complexCmdContainerInfo} */
-      containerCmdInfo: {},
-      /** @type {complexCmdEleInfo} */
-      eleCmdInfo: {},
-    };
-
-    let hasFined = false;
-    // 저장소를 순회
-    _.forEach(this.complexCmdIntegratedStorage, (complexCmdStorage, complexStorageType) => {
-      if (hasFined) return false;
-      // 각 저장소의 대기, 진행, 실행 목록 순회
-      _.forEach(complexCmdStorage, (complexCmdWrapList, strCmdStorageStep) => {
-        if (hasFined) return false;
-        // 저장소에 저장된 명령 리스트 목록 순회
-        _.forEach(complexCmdWrapList, complexCmdWrapInfo => {
-          if (hasFined) return false;
-          // 제어 목록별 명령 순회
-          _.forEach(complexCmdWrapInfo.containerCmdList, containerCmdInfo => {
-            if (hasFined) return false;
-            // 해당 ID를 가진 complexCmdWrapInfo 검색
-            const foundIt = _.find(containerCmdInfo.eleCmdList, { uuid: cmdEleUUID });
-            if (foundIt) {
-              hasFined = true;
-              returnValue.complexCmdIntegratedStorageKey = complexStorageType;
-              returnValue.complexCmdStorage = complexCmdStorage;
-              returnValue.complexCmdStorageStepKey = strCmdStorageStep;
-              returnValue.wrapCmdList = complexCmdWrapList;
-              returnValue.wrapCmdInfo = complexCmdWrapInfo;
-              returnValue.containerCmdInfo = containerCmdInfo;
-              returnValue.eleCmdInfo = foundIt;
-            }
-          });
-        });
-      });
-    });
-
-    return returnValue;
-  }
-
-  /**
-   * @desc Find Step 1
-   * 명령 요청에 따라 '제어', '취소', '계측' 저장소 리스트 반환
-   * @param {string} complexCmdIntegratedStorageType CONTROL, CANCEL, MEASURE
-   * @return {complexCmdStorage}
-   */
-  findComplexCmdStorage(complexCmdIntegratedStorageType) {
-    //
-    const { controlStorage, cancelStorage, measureStorage } = this.complexCmdIntegratedStorage;
-    let complexCmd;
-    switch (complexCmdIntegratedStorageType) {
-      case reqWrapCmdType.CONTROL:
-        complexCmd = controlStorage;
-        break;
-      case reqWrapCmdType.CANCEL:
-        complexCmd = cancelStorage;
-        break;
-      case reqWrapCmdType.MEASURE:
-        complexCmd = measureStorage;
-        break;
-      default:
-        complexCmd = measureStorage;
-        break;
-    }
-
-    return complexCmd;
   }
 
   /**
@@ -322,7 +460,7 @@ class Model {
    * @param {DataLoggerControl} dataLoggerController Data Logger Controller 객체
    * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
-  manageComplexStorage(dataLoggerController, dcMessage) {
+  manageComplexCommand(dataLoggerController, dcMessage) {
     const {
       COMMANDSET_EXECUTION_START,
       COMMANDSET_EXECUTION_TERMINATE,
@@ -331,6 +469,7 @@ class Model {
 
     // BU.CLIN(dcMessage);
 
+    // DLC commandId, commandType은 각각 wrapCmdId, wrapCmdType과 매칭됨
     const {
       commandSet: {
         commandId: dcWrapCmdId,
@@ -341,10 +480,12 @@ class Model {
       msgCode: dcMsgCode,
     } = dcMessage;
 
+    /** @type {complexCmdWrapInfo} */
     const foundComplexCmdInfo = _.find(this.complexCmdList, { wrapCmdUUID: dcWrapCmdUUID });
 
     // 통합 명령 UUID가 없을 경우
     if (!foundComplexCmdInfo) {
+      // BU.CLI(this.complexCmdList);
       throw new Error(`wrapCmdUUID: ${dcWrapCmdUUID} is not exist.`);
     }
 
@@ -354,30 +495,28 @@ class Model {
       wrapCmdName,
       wrapCmdType,
       containerCmdList,
+      realContainerCmdList,
     } = foundComplexCmdInfo;
 
     // DC Message: COMMANDSET_EXECUTION_START && complexCmdStep !== WAIT ===> Change PROCEED Step
     // DCC 명령이 수행중
-    if (_.eq(dcMsgCode, COMMANDSET_EXECUTION_START)) {
-      if (_.eq(wrapCmdStep, complexCmdStep.WAIT)) {
-        foundComplexCmdInfo.wrapCmdStep = complexCmdStep.PROCEED;
-        // 상태 변경된 명령 목록 API Server로 전송
-        this.transmitComplexCommandStatus();
-      }
-      return true;
+    if (_.eq(dcMsgCode, COMMANDSET_EXECUTION_START) && _.eq(wrapCmdStep, complexCmdStep.WAIT)) {
+      foundComplexCmdInfo.wrapCmdStep = complexCmdStep.PROCEED;
+      // 상태 변경된 명령 목록 API Server로 전송
+      return this.transmitComplexCommandStatus();
     }
 
     // 명령 코드가 완료(COMMANDSET_EXECUTION_TERMINATE), 삭제(COMMANDSET_DELETE)가 아니라면 종료
     if (!_.includes([COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE], dcMsgCode)) return false;
 
     // DLC에서 수신된 메시지가 명령 완료, 명령 삭제 완료 중 하나 일 경우
-    // 컨테이너 안에 있는 Ele 요소 중 dcUUID와 동일한 개체 조회
-    const allComplexEleCmdList = _(containerCmdList)
+    // 실제 제어 컨테이너 안에 있는 Ele 요소 중 dcUUID와 동일한 개체 조회
+    const allComplexEleCmdList = _(realContainerCmdList)
       .map('eleCmdList')
       .flatten()
       .value();
 
-    // FIXME: Ele가 존재하지 않는다면 명령 삭제 처리 필요
+    // FIXME: Ele가 존재하지 않는다면 명령 삭제 처리 필요 (DCC Error 로 넘어가게됨.)
     if (!allComplexEleCmdList.length) {
       throw new Error(`wrapCmdId(${dcWrapCmdId}) does not exist in the Complex Command List.`);
     }
@@ -393,13 +532,19 @@ class Model {
     // 해당 단위 명령 완료 처리
     foundEleInfo.hasComplete = true;
 
+    // 계측 명령이 아닐 경우 OC 확인
+    wrapCmdType !== reqWrapCmdType.MEASURE && this.completeUnitCommand(dcCmdUUID);
+
     // 모든 장치의 제어가 완료됐다면
     if (_.every(allComplexEleCmdList, 'hasComplete')) {
-      BU.CLI(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete CMD: ${wrapCmdId}`);
+      BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
+
+      // 명령 완료 처리
+      this.completeComplexCommand(foundComplexCmdInfo);
 
       // FIXME: 수동 자동? 처리?
-      foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;
-      this.transmitComplexCommandStatus();
+      // foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;
+      // this.transmitComplexCommandStatus();
 
       if (wrapCmdId === 'inquiryAllDeviceStatus') {
         // BU.CLI('Comlete inquiryAllDeviceStatus');
@@ -407,198 +552,118 @@ class Model {
         this.completeInquiryDeviceStatus();
       } else {
         // FIXME: 일반 명령 completeCommand이 완료되었을 경우 처리할 필요가 있다면 작성
-        this.controller.emit('completeCommand', dcWrapCmdId);
+        this.controller.emit('completeCommand', dcWrapCmdUUID);
       }
     }
   }
 
   /**
-   * 저장소 데이터 관리. Data Logger Controller 객체로 부터 Message를 받은 경우 msgCode에 따라서 관리
-   * @example
-   * Device Client로부터 Message 수신
-   * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
-   * @param {dcMessage} dcMessage 명령 수행 결과 데이터
+   * 단위 명령이 완료되었을 경우 장치 제어 추적 제거
+   * @param {string} dcCmdUUID
    */
-  manageComplexStorage2(dataLoggerController, dcMessage) {
-    const {
-      COMMANDSET_EXECUTION_START,
-      COMMANDSET_EXECUTION_TERMINATE,
-      COMMANDSET_DELETE,
-    } = dataLoggerController.definedCommandSetMessage;
+  completeUnitCommand(dcCmdUUID) {
+    // 단위 명령 상 Data Logger Controller 에서
+    const foundOverlapControlInfo = _(this.overlapControlStorageList)
+      .map('overlapControlList')
+      .flatten()
+      .find({
+        reservedExecUU: dcCmdUUID,
+      });
 
-    const {
-      commandSet: {
-        commandId: dcCommandId,
-        commandType: dcCommandType,
-        wrapCmdUUID: dcIntegratedUUID,
-        uuid: dcUuid,
-      },
-      msgCode: dcMsgCode,
-    } = dcMessage;
+    // BU.CLI(foundOverlapControlInfo);
 
-    // 명령 타입에 따라서 저장소를 가져옴(Control, Cancel, Measure)
-
-    const {
-      complexCmdIntegratedStorageKey,
-      complexCmdStorageStepKey,
-      complexCmdStorage,
-      wrapCmdList,
-      wrapCmdListIndex,
-      wrapCmdInfo,
-    } = this.findAllComplexCmdByStorageUUID(dcIntegratedUUID);
-
-    // Storage UUID와 일치하는 Complex CMD Storage가 없을 경우
-    if (!complexCmdIntegratedStorageKey.length) {
-      // BU.CLIN(resComplexStorageInfo);
-      throw new Error(`wrapCmdType: ${dcCommandType} is not exist.`);
+    if (foundOverlapControlInfo) {
+      foundOverlapControlInfo.reservedExecUU = '';
     }
+    // BU.CLI(foundOverlapControlInfo);
 
-    // ComplexCmdWrapInfo 가 없을 경우
-    if (_.isEmpty(wrapCmdInfo)) {
-      throw new Error(`wrapCmdId: ${dcCommandId} is not exist.`);
-    }
+    // _.find(this.overlapControlStorageList, ocStorage => {
+    //   ocStorage.overlapControlList.forEach(ocControlInfo => {
+    //     if (_.eq(ocControlInfo.reservedExecUU, dcCmdUUID)) {
+    //       ocControlInfo.reservedExecUU = '';
+    //     }
+    //   });
+    // });
+  }
 
-    // 복합 명령 현황 저장소 key 형태를 보고 명령 타입을 정의
-    // TODO: complexStorageType에 따라 명령 요청, 취소 요청 처리 필요
-    // let complexStorageType = '';
-    // switch (complexCmdIntegratedStorageKey) {
-    //   case 'controlStorage':
-    //     complexStorageType = reqWrapCmdType.CONTROL;
-    //     break;
-    //   case 'cancelStorage':
-    //     complexStorageType = reqWrapCmdType.CANCEL;
-    //     break;
-    //   case 'measureStorage':
-    //     complexStorageType = reqWrapCmdType.MEASURE;
-    //     break;
-    //   default:
-    //     break;
-    // }
+  /**
+   * 명령이 완료되었을 경우 처리
+   * @param {complexCmdWrapInfo} complexWrapCmdInfo
+   * @param {boolean=} isAchieveCommandGoal 명령 목표치 달성 여부
+   */
+  completeComplexCommand(complexWrapCmdInfo, isAchieveCommandGoal) {
+    // BU.CLI(this.findExistOverlapControl());
+    // O.C reservedExecUU 제거
+    // TODO: Prev.Single >> Curr.Single 명령 제거
+    // TODO: Prev.Single >> !Curr.Single 명령 제거
+    // TODO: !Prev.Single >> Curr.Single 명령 제거
 
-    // BU.CLIN(commandSet);
-    // BU.CLIN(commandId, uuid);
+    const { MANUAL } = controlModeInfo;
 
-    // 명령 코드가 COMMANDSET_EXECUTION_START 이고 아직 complexCmdStep.WAIT 상태라면 PROCEEDING 상태로 이동하고 종료
-    if (
-      dcMsgCode === COMMANDSET_EXECUTION_START &&
-      complexCmdStorageStepKey === complexCmdStep.WAIT
-    ) {
-      BU.CLI(`${this.controller.mainUUID} ${wrapCmdInfo.wrapCmdId} 작업 시작`);
-      // watingList에서 해당 명령 제거. pullAt은 배열 형태로 리턴하므로 첫번째 인자 가져옴.
-      const complexCmdWrapInfo = _.head(
-        _.pullAt(wrapCmdList, wrapCmdListIndex),
-        // _.pullAt(complexCmdStorage[complexCmdStorageStepKey], wrapCmdListIndex),
-      );
-      // Wating CMD Wrap 이 없을 경우
-      if (complexCmdWrapInfo === undefined) {
-        throw new Error('해당 객체는 존재하지 않습니다.');
+    const { MEASURE, CONTROL } = reqWrapCmdType;
+
+    const { RUNNING } = complexCmdStep;
+
+    let isDeleteCmd = true;
+
+    const { controlMode, wrapCmdType, wrapCmdUUID } = complexWrapCmdInfo;
+
+    // 제어 명령일 경우에만 RUNNING 여부 체크
+    if (wrapCmdType === CONTROL) {
+      // TODO: !Prev.Single >> !Curr.Single 명령 RUNNING 상태 변경
+      if (controlMode !== MANUAL && this.controller.controlMode !== MANUAL) {
+        complexWrapCmdInfo.wrapCmdStep = RUNNING;
+        isDeleteCmd = false;
       }
-
-      // 진행중 명령 저장소 목록에 삽입
-      complexCmdStorage.proceedingList.push(complexCmdWrapInfo);
-      // contractCmdList 갱신
-      this.updateContractCommand(wrapCmdInfo.wrapCmdUUID, contractCmdStep.PROCEED);
-      return false;
     }
 
-    // 명령 코드가 완료(COMMANDSET_EXECUTION_TERMINATE), 삭제(COMMANDSET_DELETE) 일 경우
-    const completeKeyList = [COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE];
-    // 작업 완료로 교체
-    if (completeKeyList.includes(dcMsgCode)) {
-      // BU.CLI(
-      //   '작업 완료',
-      //   `${wrapCmdInfo.wrapCmdId} ${nodeId}`,
-      // );
-      // orderElement를 가져옴
-
-      // singleControlType에 상관없이 flatten 형태로 모두 가져옴
-      const flatOrderElementList = _(wrapCmdInfo.containerCmdList)
-        .map('eleCmdList')
+    // 명령 삭제 처리를 해야할 경우
+    if (isDeleteCmd) {
+      // wrapCmdUUID를 가진 O.C 제거
+      _(this.overlapControlStorageList)
+        .map('overlapControlList')
         .flatten()
-        .value();
+        .forEach(overlapControlInfo => {
+          _.pull(overlapControlInfo.overlapWCUs, wrapCmdUUID);
+        });
 
-      // 가져온 flatten 리스트에서 uuid가 동일한 객체 검색
-      // const orderElementInfo = _.find(flatOrderElementList, {
-      //   uuid: uuid,
-      // });
-
-      _.set(
-        _.find(flatOrderElementList, {
-          uuid: dcUuid,
-        }),
-        'hasComplete',
-        true,
-      );
-
-      // BU.CLI('NodeID', orderElementInfo.nodeId);
-
-      // 완료 처리
-      // if (orderElementInfo) {
-      //   orderElementInfo.hasComplete = true;
-      //   // NOTE: 한개의 동작이 완료 됐을 때 특별한 동작을 하고 싶을 경우 이하 작성
-      // }
-
-      // TEST: 작업 세부 과정의 최종 완료 여부를 콘솔에서 확인하기 위해 간단히 가져옴
-      // const flatSimpleList = _.map(flatOrderElementList, ele =>
-      //   _.pick(ele, ['hasComplete', 'nodeId']),
-      // );
-      // BU.CLI(wrapCmdInfo.wrapCmdId, flatSimpleList);
-
-      // 모든 장치의 제어가 완료됐다면
-      if (_.every(flatOrderElementList, 'hasComplete')) {
-        BU.CLI(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete CMD: ${dcCommandId}`);
-        // proceedingList에서 제거
-        const completeCommandInfo = _.head(_.pullAt(wrapCmdList, wrapCmdListIndex));
-        // Proceeding CMD Wrap 이 없을 경우
-        if (completeCommandInfo === undefined) {
-          throw new Error('해당 객체는 존재하지 않습니다.');
-        }
-
-        if (wrapCmdInfo.wrapCmdId === 'inquiryAllDeviceStatus') {
-          // BU.CLI('Comlete inquiryAllDeviceStatus');
-          this.controller.emit('completeInquiryAllDeviceStatus', dcCommandId);
-          this.completeInquiryDeviceStatus();
-        } else {
-          // FIXME: 일반 명령 completeCommand이 완료되었을 경우 처리할 필요가 있다면 작성
-          this.controller.emit('completeCommand', dcCommandId);
-        }
-
-        // FIXME: 명령 제어에 대한 자세한 논리가 나오지 않았기 때문에 runningList로 이동하지 않음. (2018-07-23)
-        // FIXME: RUNNING 리스트 없이 무조건 완료 처리함. 실행 중인 명령을 추적하고자 할경우 추가적인 논리 필요
-        this.updateContractCommand(wrapCmdInfo.wrapCmdUUID, contractCmdStep.COMPLETE);
-
-        // 명령 제어 요청일 경우 runningList로 이동
-        // if (commandType === wrapCmdType.CONTROL) {
-        //   complexCmdStorage.runningList.push(completeCommandInfo);
-        // }
-
-        // BU.CLI(complexCmdStorage);
-
-        // TODO: 명령이 모두 완료 되었을 때 하고 싶은 행동 이하 작성
-      }
-
-      // TODO: DB 입력
+      // Complex Command List 에서 제거
+      _.remove(this.complexCmdList, { wrapCmdUUID });
     }
 
-    // // Message에 따라서 행동 개시
-    // switch (dcMsgCode) {
-    //   case COMMANDSET_EXECUTION_START:
-    //     complexCmdKey === complexCmdStep.WAIT ?
-    //       case this.definedCommandSetMessage.COMMANDSET_EXECUTION_TERMINATE:
-    //   case this.definedCommandSetMessage.COMMANDSET_DELETE:
-    //     // BU.CLIN(this.model.requestCommandSetList);
-    //     this.model.completeRequestCommandSet(commandSet);
-    //     // Observer가 해당 메소드를 가지고 있다면 전송
-    //     // this.observerList.forEach(observer => {
-    //     //   if (_.get(observer, 'notifyCompleteOrder')) {
-    //     //     observer.notifyCompleteOrder(this, commandSet);
-    //     //   }
-    //     // });
-    //     // BU.CLIN(this.model.requestCommandSetList);
-    //     break;
-    //   default:
-    //     break;
-    // }
+    this.transmitComplexCommandStatus();
+
+    // OC 변경
+    // FIXME: wrapCmdGoalInfo가 존재 할 경우 추가 논리
+    // RUNNING 전환 시 limitTimeSec가 존재한다면 복구명령 setTimeout 생성
+    // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
+  }
+
+  /**
+   * Overlap이 존재하는 목록을 불러옴
+   * @return {csOverlapControlInfo[]}
+   */
+  findExistOverlapControl() {
+    // BU.CLI(this.overlapControlStorageList);
+    return _(this.overlapControlStorageList)
+      .map(overlapStorage => {
+        const {
+          nodeInfo: { node_id: nodeId },
+          overlapControlList,
+        } = overlapStorage;
+
+        const existOverlapControlList = [];
+
+        _.forEach(overlapControlList, overlapControlInfo => {
+          if (overlapControlInfo.overlapWCUs.length) {
+            // BU.CLI(overlapControlInfo);
+            existOverlapControlList.push(_.assign({ nodeId }, overlapControlInfo));
+          }
+        });
+        return existOverlapControlList;
+      })
+      .flatten()
+      .value();
   }
 
   /** 정기 계측 조회 명령 완료 결과 반영 */
@@ -627,9 +692,8 @@ class Model {
     );
 
     // BU.CLIN(validNodeList);
-    if (process.env.LOG_DBS_INQUIRY_RESULT === '1') {
+    process.env.LOG_DBS_INQUIRY_RESULT === '1' &&
       BU.CLI(this.getAllNodeStatus(nodePickKey.FOR_DATA));
-    }
 
     await this.insertNodeDataToDB(validNodeList, {
       hasSensor: process.env.DBS_SAVE_SENSOR !== '0',
@@ -638,67 +702,289 @@ class Model {
   }
 
   /**
-   * 복합 명령을 저장
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {boolean} 명령을 등록한다면 true, 아니라면 false
+   * 명령상에 있는 장치 제어 중에 이상이 있는 장치 점검. 이상이 있을 경우 수행 불가
+   * @param {complexCmdContainerInfo[]} containerCmdList
    */
-  saveComplexCmd(complexCmdWrapInfo) {
-    complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
-
-    this.complexCmdList.push(complexCmdWrapInfo);
+  isNormalOperation(containerCmdList) {
+    // 제어하고자 하는 모든 장치를 순회하며 이상 여부를 점검.
+    return _.every(containerCmdList, containerCmdInfo => {
+      const { eleCmdList } = containerCmdInfo;
+      const result = _.every(eleCmdList, eleCmdInfo => {
+        const foundDataLoggerController = this.findDataLoggerController(eleCmdInfo.nodeId);
+        // 데이터로거가 존재하고 해당 데이터 로거가 에러 상태가 아닐 경우 True
+        return _.isObject(foundDataLoggerController) && !foundDataLoggerController.isErrorDLC;
+      });
+      // BU.CLI(result);
+      return result;
+    });
   }
 
   /**
    * 복합 명령을 저장
-   * @param {string} wrapCmdType 저장할 타입 CONTROL, CANCEL
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {boolean} 명령을 등록한다면 true, 아니라면 false
+   * @return {complexCmdWrapInfo}
    */
-  saveComplexCmd2(wrapCmdType = reqWrapCmdType.MEASURE, complexCmdWrapInfo) {
-    // BU.CLI('saveComplexCmd');
+  saveComplexCommand(complexCmdWrapInfo) {
+    // BU.CLIN(complexCmdWrapInfo, 1);
+    const {
+      wrapCmdType,
+      wrapCmdId,
+      wrapCmdGoalInfo: { goalDataList } = {},
+      containerCmdList,
+    } = complexCmdWrapInfo;
 
-    // 아무런 명령을 내릴 것이 없다면 등록하지 않음
-    // BU.CLI(complexCmdWrapInfo.containerCmdList);
-    const hasNonCommand = _.every(
-      complexCmdWrapInfo.containerCmdList,
-      info => info.eleCmdList.length === 0,
-    );
-    if (hasNonCommand) {
+    const cmdName = `wrapCmdId: ${wrapCmdId}, wrapCmdType: ${wrapCmdType}`;
+    // ComplexCommandList에서 동일 Wrap Command Id 가 존재하는지 체크
+    // BU.CLI(this.complexCmdList);
+    if (_.find(this.complexCmdList, { wrapCmdType, wrapCmdId })) {
+      throw new Error(`${cmdName} is exist`);
+    }
+
+    // 수동 모드가 아닐 경우 명령 충돌 검사
+    if (
+      // FIXME: 개발테스트를 위하여 임시 주석
+      // this.controller.controlMode !== controlMode.MANUAL &&
+      this.isConflictCommand(complexCmdWrapInfo)
+    ) {
+      throw new Error(`${cmdName} conflict has occurred.`);
+    }
+
+    // wrapCmdGoalInfo.goalDataList가 존재 할 경우 현재 값과의 목표치 체크. 이미 달성하였다면 실행하지 않음.
+    if (!_.isEmpty(goalDataList) && this.isAchieveCommandGoal(goalDataList)) {
+      throw new Error(`${cmdName} already achieved its goal.`);
+    }
+
+    // 계측 명령이라면 실제 제어목록 산출하지 않음
+    if (wrapCmdType === reqWrapCmdType.MEASURE) {
+      complexCmdWrapInfo.realContainerCmdList = containerCmdList;
+    } else {
+      // 제어하고자 하는 장치 중에 이상있는 장치 여부 검사
+      if (!this.isNormalOperation(containerCmdList)) {
+        throw new Error(`An abnormal device exists among the ${cmdName}`);
+      }
+      // 실제 제어할 명령 리스트 산출
+      // BU.CLI(containerCmdList);
+
+      const realContainerCmdList = this.produceRealControlCommand(complexCmdWrapInfo);
+
+      // if (wrapCmdType === reqWrapCmdType.RESTORE) {
+      //   BU.CLI(realContainerCmdList);
+      // }
+      // 실제 명령이 존재하지 않을 경우 종료
+      if (!realContainerCmdList.length) {
+        throw new Error(`${cmdName} real CMD list does not exist.`);
+      }
+
+      // 실제 수행하는 장치 제어 목록 정의
+      complexCmdWrapInfo.realContainerCmdList = realContainerCmdList;
+
+      // 복합 명령 csOverlapControlStorage 반영
+      this.addOverlapControlCommand(complexCmdWrapInfo);
+    }
+
+    // BU.CLI(complexCmdWrapInfo);
+    complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
+
+    // 명령을 내릴 것이 없다면 등록하지 않음
+    if (
+      !_(complexCmdWrapInfo)
+        .map('containerCmdList')
+        .flatten()
+        .value().length
+    ) {
       return false;
     }
-    /**
-     * Socket Server로 전송하기 위한 명령 추가 객체 생성
-     * @type {contractCmdInfo}
-     */
-    const contractCmd = {
-      reqWrapCmdType: wrapCmdType,
-      complexCmdStep: contractCmdStep.NEW,
-      commandId: complexCmdWrapInfo.wrapCmdId,
-      commandName: complexCmdWrapInfo.wrapCmdName,
-      uuid: complexCmdWrapInfo.wrapCmdUUID,
-    };
 
-    const { CONTROL, CANCEL, MEASURE } = reqWrapCmdType;
+    // 명령을 요청한 시점에서의 제어 모드
+    complexCmdWrapInfo.controlMode = this.controller.controlMode;
 
-    let storage;
-    switch (wrapCmdType) {
-      case CONTROL:
-        storage = this.complexCmdIntegratedStorage.controlStorage;
-        break;
-      case CANCEL:
-        storage = this.complexCmdIntegratedStorage.cancelStorage;
-        break;
-      case MEASURE:
-      default:
-        storage = this.complexCmdIntegratedStorage.measureStorage;
-        break;
+    this.complexCmdList.push(complexCmdWrapInfo);
+
+    // BU.CLIN(this.complexCmdList, 4);
+
+    // this.addOverlapControlNode({})
+
+    this.transmitComplexCommandStatus();
+
+    // BU.CLI(this.findExistOverlapControl());
+
+    return complexCmdWrapInfo;
+  }
+
+  /**
+   * 명령 스택을 고려하여 실제 내릴 명령을 산출
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo 명령을 내릴 목록(여는 목록, 닫는 목록, ...)
+   * @return {complexCmdContainerInfo[]} realContainerCmdList
+   */
+  produceRealControlCommand(complexCmdWrapInfo) {
+    const { controlMode, wrapCmdType, containerCmdList } = complexCmdWrapInfo;
+
+    // if(wrapCmdType === reqWrapCmdType.RESTORE) {
+    //  BU.CLI(containerCmdList)
+    // }
+
+    // BU.CLI(containerCmdList);
+    /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
+    const realContainerCmdList = [];
+
+    // TODO: 수동 모드 일 경우에는 제어 장치 값이 현재와 같거나 reserveExecUU가 있다면 제외
+    if (controlMode === controlModeInfo.MANUAL) {
+      _.forEach(containerCmdList, containerCmdInfo => {
+        const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+
+        // 실제 제어 명령 목록 산출
+        const realEleCmdList = _.filter(
+          eleCmdList,
+          eleCmdInfo =>
+            // 존재하지 않을 경우 true
+            !this.isExistSingleControl({
+              nodeId: eleCmdInfo.nodeId,
+              singleControlType,
+              controlSetValue,
+            }),
+        );
+
+        // 실제 제어 목록이 존재한다면 삽입
+        if (realEleCmdList.length) {
+          realContainerCmdList.push({
+            singleControlType,
+            controlSetValue,
+            eleCmdList: realEleCmdList,
+          });
+        }
+      });
     }
 
-    storage.waitingList.push(complexCmdWrapInfo);
-    // 새로 생성된 명령 추가
-    this.addContractCommand(contractCmd);
-    // BU.CLIN(this.complexCmdIntegratedStorage, 5);
-    return true;
+    // TODO: 수동 모드가 아니라면  O.C를 반영하고 새로운 O.C Length가 생길경우 제어 대상으로 선정
+    else {
+      _.forEach(containerCmdList, containerCmdInfo => {
+        const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+
+        // 각 노드들을 확인
+        _.forEach(eleCmdList, eleCmdInfo => {
+          const { nodeId } = eleCmdInfo;
+
+          const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+          // BU.CLI(nodeInfo);
+
+          /** @type {csOverlapControlStorage} */
+          const ocStorageInfo = _.find(this.overlapControlStorageList, { nodeInfo });
+          // BU.CLI(nodeId, ocStorageInfo);
+
+          // Overlap Control 조회
+          const ocControlInfo = this.findOverlapControlNode({
+            nodeId,
+            singleControlType,
+            controlSetValue,
+          });
+
+          // overlapWCUs.length 가 존재하지만 reservedExecUU가 없고 제어 장치값이 다를 경우 추가로 제어구문 생성하고 reservedExecUU가 반영
+
+          // OC 가 없다면 신규 OC
+          if (_.isEmpty(ocControlInfo)) {
+          }
+
+          // if (wrapCmdId === 'SEB_1_A_TO_BW_1') {
+          //   BU.CLI(nodeId, conflictWCUs);
+          // }
+
+          if (conflictWCUs.length) {
+            throw new Error(`A node(${nodeId}) in wrapCmd(${wrapCmdId}) has conflict.`);
+          }
+        });
+      });
+    }
+
+    // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
+    return realContainerCmdList;
+  }
+
+  /**
+   * 명령 목표치 달성 여부 체크
+   * @param {Object[]} cmdGoalDataList 해당 명령을 통해 얻고자 하는 값 목록
+   * @param {string} cmdGoalDataList.nodeId 달성하고자 하는 nodeId
+   * @param {string|number} cmdGoalDataList.goalValue 달성 기준치 값
+   * @param {number} cmdGoalDataList.goalRange 기준치 인정 범위.
+   * @return {boolean}
+   */
+  isAchieveCommandGoal(cmdGoalDataList) {
+    // 목표치 설정 기준치
+    const { EQUAL, LOWER, UPPER } = goalDataRange;
+    // 모든 장치에 대한 목표치 조건에 부합한다면 True
+    return _.every(cmdGoalDataList, cmdGoalInfo => {
+      // 각각의 명령 목표 조건 옵션
+      const { nodeId, goalValue, goalRange } = cmdGoalInfo;
+      // 해당 노드가 존재하는지 체크
+      const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+      // 노드가 존재하지 않거나 데이터가 존재하지 않을 경우 종료
+      if (!nodeInfo || _.isEmpty(nodeInfo.data)) return false;
+
+      let verify = false;
+      // 목표 달성 기준 조건 체크
+      switch (goalRange) {
+        case EQUAL:
+          verify = _.eq(goalValue, nodeInfo.data);
+          break;
+        case LOWER:
+          verify = goalValue < nodeInfo.data;
+          break;
+        case UPPER:
+          verify = goalValue > nodeInfo.data;
+          break;
+        default:
+          break;
+      }
+      return verify;
+    });
+  }
+
+  /**
+   * 명령 충돌 체크
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo 복합 명령 객체
+   * @return {boolean}
+   */
+  isConflictCommand(complexCmdWrapInfo) {
+    // BU.CLI(complexCmdWrapInfo);
+    try {
+      const { wrapCmdId, containerCmdList } = complexCmdWrapInfo;
+      // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
+      _.forEach(containerCmdList, containerCmdInfo => {
+        const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+
+        // 각 노드들을 확인
+        _.forEach(eleCmdList, eleCmdInfo => {
+          const { nodeId } = eleCmdInfo;
+
+          const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+          // BU.CLI(nodeInfo);
+
+          /** @type {csOverlapControlStorage} */
+          const ocStorageInfo = _.find(this.overlapControlStorageList, { nodeInfo });
+          // BU.CLI(nodeId, ocStorageInfo);
+
+          // 제어하고자 하는 방향에 위배되는지 체크
+          const conflictWCUs = _(ocStorageInfo.overlapControlList)
+            .reject({
+              singleControlType,
+              controlSetValue,
+            })
+            .map('overlapWCUs')
+            .flatten()
+            .value();
+
+          // if (wrapCmdId === 'SEB_1_A_TO_BW_1') {
+          //   BU.CLI(nodeId, conflictWCUs);
+          // }
+
+          if (conflictWCUs.length) {
+            throw new Error(`A node(${nodeId}) in wrapCmd(${wrapCmdId}) has conflict.`);
+          }
+        });
+      });
+      return false;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**

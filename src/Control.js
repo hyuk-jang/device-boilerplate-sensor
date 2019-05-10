@@ -18,6 +18,10 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
+/** 명령 처리를 위함 */
+const ManualCmdManager = require('./CommandManager/ManualCmdManager');
+const AutoCmdManager = require('./CommandManager/AutoCmdManager');
+
 /** Main Socket Server와 통신을 수행하기 위한 Class */
 const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');
 /** 정해진 시나리오대로 진행하기 위한 Class */
@@ -89,6 +93,9 @@ class Control extends EventEmitter {
 
       // Binding Feature
       this.bindingFeature();
+
+      // 제어 모드 설정
+      this.changeControlMode();
     } catch (error) {
       BU.CLI(error);
       BU.errorLog('init', error);
@@ -317,6 +324,33 @@ class Control extends EventEmitter {
     // client를 binding 처리
     fountIt.bindingPassiveClient(mainUUID, passiveClient);
     return true;
+  }
+
+  /**
+   * 제어 모드를 변경할 경우
+   * @param {string} conMode
+   */
+  changeControlMode(conMode) {
+    let CmdManager;
+
+    switch (conMode) {
+      // 수동 모드
+      case controlModeInfo.MANUAL:
+        CmdManager = ManualCmdManager;
+        break;
+      // 자동 모드
+      case controlModeInfo.AUTOMATIC:
+        CmdManager = AutoCmdManager;
+        break;
+      // 기본: 수동 모드
+      default:
+        CmdManager = ManualCmdManager;
+        break;
+    }
+
+    this.model.cmdManager = new CmdManager(this);
+
+    // BU.CLIN(this.model.cmdManager, 1);
   }
 
   /**

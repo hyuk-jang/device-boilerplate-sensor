@@ -94,7 +94,13 @@ describe.skip('Manual Mode', function() {
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
   it('Single Command Flow', async () => {
-    expect(control.nodeList.length).to.not.eq(0);
+    // 제어 중인 장치가 있을 경우 Close 명령
+    control.executeSetControl({
+      wrapCmdId: 'closeAllDevice',
+      wrapCmdType: reqWrapCmdType.CONTROL,
+    });
+    // 모든 장치 Close 명령이 완료 되길 기다림
+    await eventToPromise(control, 'completeCommand');
 
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {

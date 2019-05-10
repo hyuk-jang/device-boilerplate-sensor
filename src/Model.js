@@ -6,6 +6,8 @@ const { BM } = require('base-model-jh');
 
 const ControlDBS = require('./Control');
 
+const CmdManager = require('./CommandManager/AbstCmdManager');
+
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
 const {
@@ -42,6 +44,9 @@ class Model {
     this.complexCmdList = [];
 
     this.biModule = new BM(config.dbInfo);
+
+    /** @type {CmdManager} */
+    this.cmdManager;
 
     // 정기 조회 Count
     this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);
@@ -249,43 +254,11 @@ class Model {
    * @param {string} singleControlType
    */
   convertControlValueToString(nodeInfo, singleControlType) {
-    singleControlType = Number(singleControlType);
-    let strControlValue = '';
-    const onOffList = ['pump'];
-    const openCloseList = ['valve', 'waterDoor'];
-
-    let strTrue = '';
-    let strFalse = '';
-
-    // Node Class ID를 가져옴. 장치 명에 따라 True, False 개체 명명 변경
-    if (_.includes(onOffList, nodeInfo.nc_target_id)) {
-      strTrue = 'On';
-      strFalse = 'Off';
-    } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
-      strTrue = 'Open';
-      strFalse = 'Close';
-    }
-
-    switch (singleControlType) {
-      case requestDeviceControlType.FALSE:
-        strControlValue = strFalse;
-        break;
-      case requestDeviceControlType.TRUE:
-        strControlValue = strTrue;
-        break;
-      case requestDeviceControlType.MEASURE:
-        strControlValue = 'Measure';
-        break;
-      case requestDeviceControlType.SET:
-        strControlValue = 'Set';
-        break;
-      default:
-        break;
-    }
-    return strControlValue;
+    return this.cmdManager.convertControlValueToString(nodeInfo, singleControlType)
   }
 
   /**
+   * FIXME: TEMP
    * @desc O.C
    * 해당 장치에 대한 동일한 제어가 존재하는지 체크
    * @param {csOverlapControlHandleConfig} existControlInfo 누적 제어 조회 옵션
@@ -726,89 +699,18 @@ class Model {
    */
   saveComplexCommand(complexCmdWrapInfo) {
     // BU.CLIN(complexCmdWrapInfo, 1);
-    const {
-      wrapCmdType,
-      wrapCmdId,
-      wrapCmdGoalInfo: { goalDataList } = {},
-      containerCmdList,
-    } = complexCmdWrapInfo;
 
-    const cmdName = `wrapCmdId: ${wrapCmdId}, wrapCmdType: ${wrapCmdType}`;
-    // ComplexCommandList에서 동일 Wrap Command Id 가 존재하는지 체크
-    // BU.CLI(this.complexCmdList);
-    if (_.find(this.complexCmdList, { wrapCmdType, wrapCmdId })) {
-      throw new Error(`${cmdName} is exist`);
+    try {
+      this.cmdManager.saveComplexCommand(complexCmdWrapInfo);
+
+      // BU.CLIN(this.cmdManager);
+
+      this.transmitComplexCommandStatus();
+
+      return complexCmdWrapInfo;
+    } catch (error) {
+      throw error;
     }
-
-    // 수동 모드가 아닐 경우 명령 충돌 검사
-    if (
-      // FIXME: 개발테스트를 위하여 임시 주석
-      // this.controller.controlMode !== controlMode.MANUAL &&
-      this.isConflictCommand(complexCmdWrapInfo)
-    ) {
-      throw new Error(`${cmdName} conflict has occurred.`);
-    }
-
-    // wrapCmdGoalInfo.goalDataList가 존재 할 경우 현재 값과의 목표치 체크. 이미 달성하였다면 실행하지 않음.
-    if (!_.isEmpty(goalDataList) && this.isAchieveCommandGoal(goalDataList)) {
-      throw new Error(`${cmdName} already achieved its goal.`);
-    }
-
-    // 계측 명령이라면 실제 제어목록 산출하지 않음
-    if (wrapCmdType === reqWrapCmdType.MEASURE) {
-      complexCmdWrapInfo.realContainerCmdList = containerCmdList;
-    } else {
-      // 제어하고자 하는 장치 중에 이상있는 장치 여부 검사
-      if (!this.isNormalOperation(containerCmdList)) {
-        throw new Error(`An abnormal device exists among the ${cmdName}`);
-      }
-      // 실제 제어할 명령 리스트 산출
-      // BU.CLI(containerCmdList);
-
-      const realContainerCmdList = this.produceRealControlCommand(complexCmdWrapInfo);
-
-      // if (wrapCmdType === reqWrapCmdType.RESTORE) {
-      //   BU.CLI(realContainerCmdList);
-      // }
-      // 실제 명령이 존재하지 않을 경우 종료
-      if (!realContainerCmdList.length) {
-        throw new Error(`${cmdName} real CMD list does not exist.`);
-      }
-
-      // 실제 수행하는 장치 제어 목록 정의
-      complexCmdWrapInfo.realContainerCmdList = realContainerCmdList;
-
-      // 복합 명령 csOverlapControlStorage 반영
-      this.addOverlapControlCommand(complexCmdWrapInfo);
-    }
-
-    // BU.CLI(complexCmdWrapInfo);
-    complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
-
-    // 명령을 내릴 것이 없다면 등록하지 않음
-    if (
-      !_(complexCmdWrapInfo)
-        .map('containerCmdList')
-        .flatten()
-        .value().length
-    ) {
-      return false;
-    }
-
-    // 명령을 요청한 시점에서의 제어 모드
-    complexCmdWrapInfo.controlMode = this.controller.controlMode;
-
-    this.complexCmdList.push(complexCmdWrapInfo);
-
-    // BU.CLIN(this.complexCmdList, 4);
-
-    // this.addOverlapControlNode({})
-
-    this.transmitComplexCommandStatus();
-
-    // BU.CLI(this.findExistOverlapControl());
-
-    return complexCmdWrapInfo;
   }
 
   /**
