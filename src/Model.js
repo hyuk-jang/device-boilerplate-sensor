@@ -254,7 +254,7 @@ class Model {
    * @param {string} singleControlType
    */
   convertControlValueToString(nodeInfo, singleControlType) {
-    return this.cmdManager.convertControlValueToString(nodeInfo, singleControlType)
+    return this.cmdManager.convertControlValueToString(nodeInfo, singleControlType);
   }
 
   /**

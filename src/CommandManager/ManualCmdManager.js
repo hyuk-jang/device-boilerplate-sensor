@@ -13,7 +13,7 @@ const {
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
-  requestDeviceControlType,
+  reqDeviceControlType,
 } = dcmConfigModel;
 
 class ManualCmdManager extends AbstCmdManager {
@@ -34,6 +34,7 @@ class ManualCmdManager extends AbstCmdManager {
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
   produceRealControlCommand(complexCmdWrapInfo) {
+    BU.CLI('produceRealControlCommand');
     const { controlMode, wrapCmdType, containerCmdList } = complexCmdWrapInfo;
 
     /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */

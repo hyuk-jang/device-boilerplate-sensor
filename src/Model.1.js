@@ -16,7 +16,7 @@ const {
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
-  requestDeviceControlType,
+  reqDeviceControlType,
 } = dcmConfigModel;
 
 // API Server 와 데이터를 주고 받는 타입
@@ -267,16 +267,16 @@ class Model {
     }
 
     switch (singleControlType) {
-      case requestDeviceControlType.FALSE:
+      case reqDeviceControlType.FALSE:
         strControlValue = strFalse;
         break;
-      case requestDeviceControlType.TRUE:
+      case reqDeviceControlType.TRUE:
         strControlValue = strTrue;
         break;
-      case requestDeviceControlType.MEASURE:
+      case reqDeviceControlType.MEASURE:
         strControlValue = 'Measure';
         break;
-      case requestDeviceControlType.SET:
+      case reqDeviceControlType.SET:
         strControlValue = 'Set';
         break;
       default:

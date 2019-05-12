@@ -12,7 +12,7 @@ const { MainConverter } = require('../../../device-protocol-converter-jh');
 
 const {
   reqWrapCmdType,
-  requestDeviceControlType,
+  reqDeviceControlType,
 } = require('../../../default-intelligence').dcmConfigModel;
 
 class DataLoggerController extends DccFacade {
@@ -334,7 +334,7 @@ class DataLoggerController extends DccFacade {
     const {
       wrapCmdUUID,
       uuid,
-      wrapCmdId = `${this.dataLoggerInfo.dl_id} ${requestDeviceControlType.MEASURE}`,
+      wrapCmdId = `${this.dataLoggerInfo.dl_id} ${reqDeviceControlType.MEASURE}`,
       wrapCmdType = reqWrapCmdType.MEASURE,
       rank = this.definedCommandSetRank.THIRD,
     } = executeCmd;
@@ -345,7 +345,7 @@ class DataLoggerController extends DccFacade {
       }
       const cmdList = this.converter.generationCommand({
         key: 'DEFAULT',
-        value: requestDeviceControlType.MEASURE,
+        value: reqDeviceControlType.MEASURE,
       });
       const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${
         this.config.dataLoggerInfo.dl_target_code

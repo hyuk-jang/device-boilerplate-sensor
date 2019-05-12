@@ -5,7 +5,7 @@ const { BU } = require('base-util-jh');
 
 const { dcmConfigModel, dccFlagModel } = require('../../default-intelligence');
 
-const { controlModeInfo, reqWrapCmdType, requestDeviceControlType } = dcmConfigModel;
+const { controlModeInfo, reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
 
 const ControlDBS = require('./Control');
@@ -68,6 +68,7 @@ class CommandExecManager {
         wrapCmdId: `${nodeId}_${cmdName}${_.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`}`,
         wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
         wrapCmdType,
+        wrapCmdFormat: reqWrapCmdFormat.SINGLE,
         reqCmdEleList: [reqCmdEle],
       };
 
@@ -118,25 +119,27 @@ class CommandExecManager {
         wrapCmdId,
         wrapCmdName: cmdName,
         wrapCmdType,
+        wrapCmdFormat: reqWrapCmdFormat.FLOW,
+        srcPlaceId,
+        destPlaceId,
+        wrapCmdGoalInfo,
         reqCmdEleList: [],
       };
 
       // 명령을 요청할 경우
       if (_.eq(wrapCmdType, reqWrapCmdType.CONTROL)) {
         reqComplexCmd.reqCmdEleList = this.makeControlEleCmdList(flowCmdDestInfo, rank);
-      } else if (_.eq(wrapCmdType, reqWrapCmdType.RESTORE)) {
+      } else if (_.eq(wrapCmdType, reqWrapCmdType.CANCEL)) {
         // wrapCmdId를 가진 복합 명령 개체가 있는지 확인
-        const compelxCmdInfo = _.find(this.model.complexCmdList, { wrapCmdId });
+        const compelxCmdInfo = _.find(this.model.complexCmdList, {
+          wrapCmdId,
+          wrapCmdType: reqWrapCmdType.CONTROL,
+        });
         // 명령이 실행중이지 않는다면 복원 명령을 내릴 수 없음.
         if (_.isEmpty(compelxCmdInfo)) {
           throw new Error(
-            `The command(${wrapCmdId}) does not exist and you can not issue a restore command.`,
+            `The command(${wrapCmdId}) does not exist and you can not issue a CANCEL command.`,
           );
-        }
-
-        // 제어 요청 명령일 경우에만 복원 가능
-        if (!_.eq(compelxCmdInfo.wrapCmdType, reqWrapCmdType.CONTROL)) {
-          throw new Error('The type of command being executed is not a CONTROL request.');
         }
 
         // if (_.eq(compelxCmdInfo.wrapCmdStep, complexCmdStep.RUNNING)) {
@@ -172,6 +175,7 @@ class CommandExecManager {
           wrapCmdId,
           wrapCmdName: '',
           wrapCmdType,
+          wrapCmdFormat: reqWrapCmdFormat.SET,
           reqCmdEleList: [],
         };
 
@@ -223,7 +227,7 @@ class CommandExecManager {
     const { trueNodeList, falseNodeList } = flowCmdDestInfo;
     if (trueNodeList.length) {
       reqCmdEleList.push({
-        singleControlType: requestDeviceControlType.TRUE,
+        singleControlType: reqDeviceControlType.TRUE,
         nodeId: trueNodeList,
         rank,
       });
@@ -232,7 +236,7 @@ class CommandExecManager {
     // 장치 False 요청
     if (falseNodeList.length) {
       reqCmdEleList.push({
-        singleControlType: requestDeviceControlType.FALSE,
+        singleControlType: reqDeviceControlType.FALSE,
         nodeId: falseNodeList,
         rank,
       });
@@ -251,7 +255,7 @@ class CommandExecManager {
     const { trueNodeList, falseNodeList } = flowCmdDestInfo;
     if (trueNodeList.length) {
       reqCmdEleList.push({
-        singleControlType: requestDeviceControlType.FALSE,
+        singleControlType: reqDeviceControlType.FALSE,
         nodeId: _.reverse(trueNodeList),
         rank,
       });
@@ -260,7 +264,7 @@ class CommandExecManager {
     // 장치 False 요청
     if (falseNodeList.length) {
       reqCmdEleList.push({
-        singleControlType: requestDeviceControlType.TRUE,
+        singleControlType: reqDeviceControlType.TRUE,
         nodeId: _.reverse(falseNodeList),
         rank,
       });
@@ -323,7 +327,7 @@ class CommandExecManager {
     // 장치 True 요청
     if (trueList.length) {
       reqComplexCmd.reqCmdEleList.push({
-        singleControlType: requestDeviceControlType.TRUE,
+        singleControlType: reqDeviceControlType.TRUE,
         nodeId: trueList,
         rank: definedCommandSetRank.SECOND,
       });
@@ -332,7 +336,7 @@ class CommandExecManager {
     // 장치 False 요청
     if (falseList.length) {
       reqComplexCmd.reqCmdEleList.push({
-        singleControlType: requestDeviceControlType.FALSE,
+        singleControlType: reqDeviceControlType.FALSE,
         nodeId: falseList,
         rank: definedCommandSetRank.SECOND,
       });
@@ -360,7 +364,7 @@ class CommandExecManager {
     // 장치 False 요청 (켜져 있는 장치만 끔)
     if (trueList.length) {
       reqComplexCmd.reqCmdEleList.push({
-        singleControlType: requestDeviceControlType.FALSE,
+        singleControlType: reqDeviceControlType.FALSE,
         nodeId: _.reverse(trueList),
         rank: definedCommandSetRank.SECOND,
       });
@@ -370,7 +374,7 @@ class CommandExecManager {
     // 장치 True 요청
     // if (falseList.length) {
     //   reqComplexCmd.reqCmdEleList.push({
-    //     singleControlType: requestDeviceControlType.TRUE,
+    //     singleControlType: reqDeviceControlType.TRUE,
     //     nodeId: _.reverse(falseList),
     //     rank: 2,
     //   });
@@ -394,6 +398,9 @@ class CommandExecManager {
         wrapCmdId,
         wrapCmdType = reqWrapCmdType.MEASURE,
         wrapCmdName,
+        wrapCmdFormat,
+        srcPlaceId,
+        destPlaceId,
         wrapCmdGoalInfo,
         reqCmdEleList,
       } = reqComplexCmd;
@@ -406,6 +413,9 @@ class CommandExecManager {
         wrapCmdId,
         wrapCmdType,
         wrapCmdName,
+        wrapCmdFormat,
+        srcPlaceId,
+        destPlaceId,
         wrapCmdGoalInfo,
         containerCmdList: [],
         realContainerCmdList: [],
@@ -415,7 +425,7 @@ class CommandExecManager {
       reqCmdEleList.forEach(reqCmdEleInfo => {
         const {
           nodeId,
-          singleControlType = requestDeviceControlType.MEASURE,
+          singleControlType = reqDeviceControlType.MEASURE,
           controlSetValue,
           rank = definedCommandSetRank.THIRD,
         } = reqCmdEleInfo;

@@ -11,7 +11,7 @@ const {
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
-  requestDeviceControlType,
+  reqDeviceControlType,
 } = dcmConfigModel;
 
 class AbstCmdManager {
@@ -57,16 +57,16 @@ class AbstCmdManager {
     }
 
     switch (singleControlType) {
-      case requestDeviceControlType.FALSE:
+      case reqDeviceControlType.FALSE:
         strControlValue = strFalse;
         break;
-      case requestDeviceControlType.TRUE:
+      case reqDeviceControlType.TRUE:
         strControlValue = strTrue;
         break;
-      case requestDeviceControlType.MEASURE:
+      case reqDeviceControlType.MEASURE:
         strControlValue = 'Measure';
         break;
-      case requestDeviceControlType.SET:
+      case reqDeviceControlType.SET:
         strControlValue = 'Set';
         break;
       default:
@@ -321,7 +321,6 @@ class AbstCmdManager {
       }
 
       complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
-      BU.CLI('@@@@@@');
       // 명령을 내릴 것이 없다면 등록하지 않음
       if (
         !_(complexCmdWrapInfo)

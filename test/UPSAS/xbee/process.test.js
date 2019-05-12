@@ -21,7 +21,7 @@ const {
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
-  requestDeviceControlType: { TRUE, FALSE, SET, MEASURE },
+  reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
 } = dcmConfigModel;
 
 process.env.NODE_ENV = 'development';
@@ -217,12 +217,20 @@ describe('Automatic Mode', function() {
    * 3. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 O
    * trueNodeList: ['GV_001', 'WD_013', 'WD_010'],
    * falseNodeList: ['WD_016'],
+   * 4. 증발지 1-A > 해주 1 명령 요청. 존재하지 않으므로 X
+   * 5. 저수조 > 증발지 1-A 명령 취소.
+   * 'V_001' 닫힘. 'GV_001' OC 해제
+   * 6. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 X
+   * 7. 저수조 > 증발지 1-B 명령 취소.
+   * 'P_002', 'V_002', 'V_006' 순으로 닫힘. OC 해제
+   * 8. 증발지 1-A > 해주 1 명령 취소.
+   * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
    */
   it('Multi Flow Command Control & Conflict ', async () => {
     // 모든 장치 Close 명령이 완료 되길 기다림
     await eventToPromise(control, 'completeCommand');
     // 설정 모드를 Automatic 으로 교체
-    control.controlMode = controlModeInfo.AUTOMATIC;
+    control.changeControlMode(controlModeInfo.AUTOMATIC);
 
     // 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
     const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
@@ -278,13 +286,13 @@ describe('Automatic Mode', function() {
     // False O.C 는 2개, trueList: ['GV_001', 'GV_002'],
     expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(2);
 
-    // // 저수조 > 증발지 1-A 명령 완료.
-    // const firstCompleteWCU = await eventToPromise(control, 'completeCommand');
-    // expect(cmdRvTo1A.wrapCmdUUID).to.eq(firstCompleteWCU);
+    // 저수조 > 증발지 1-A 명령 완료.
+    const firstCompleteWCU = await eventToPromise(control, 'completeCommand');
+    expect(cmdRvTo1A.wrapCmdUUID).to.eq(firstCompleteWCU);
 
-    // // 저수조 > 증발지 1-B 명령 완료.
-    // const secondCompleteWCU = await eventToPromise(control, 'completeCommand');
-    // expect(cmdRvTo1B.wrapCmdUUID).to.eq(secondCompleteWCU);
+    // 저수조 > 증발지 1-B 명령 완료.
+    const secondCompleteWCU = await eventToPromise(control, 'completeCommand');
+    expect(cmdRvTo1B.wrapCmdUUID).to.eq(secondCompleteWCU);
 
     // 현재 실행중인 명령은 2개
     expect(control.model.complexCmdList).to.length(2);
@@ -295,13 +303,40 @@ describe('Automatic Mode', function() {
     expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(
       'A node(GV_001) in wrapCmd(SEB_1_A_TO_BW_1) has conflict.',
     );
+
+    // * 4. 증발지 1-A > 해주 1 명령 요청. 존재하지 않으므로 X
+    SEB1AToBW1.wrapCmdType = reqWrapCmdType.CANCEL;
+    expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(
+      'The command(SEB_1_A_TO_BW_1) does not exist and you can not issue a CANCEL command.',
+    );
+
+    // * 5. 저수조 > 증발지 1-A 명령 취소.
+    rvToSEB1A.wrapCmdType = reqWrapCmdType.CANCEL;
+    const cancelCmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+
+    // 실제 True 장치 목록
+    realTrueCmd = _.find(cancelCmdRvTo1A.realContainerCmdList, {
+      singleControlType: TRUE,
+    });
+    //  실제 False 장치 목록
+    realFalseCmd = _.find(cancelCmdRvTo1A.realContainerCmdList, {
+      singleControlType: FALSE,
+    });
+
+    // 실제 True 장치는 없어야 한다. 명령 취소를 한 것이기 때문
+    expect(_.isEmpty(realTrueCmd)).to.true;
+
+    const realFalseNodes = _.map(realFalseCmd.eleCmdList, 'nodeId');
+
+    // 실제 닫는 장치는 아래와 같아야 한다.
+    expect(realFalseNodes).to.be.equal(['V_001']);
   });
 
   /**
-   * @desc T.C 1 [자동 모드]
-   * 다중 흐름 명령을 요청 및 복원하였을 때 실제 제어하는 장치는 현 명령 스택을 기준으로 행해져한다.
+   * @desc T.C 2 [자동 모드]
+   * 다중 흐름 명령을 요청 및 취소하였을 때 실제 제어하는 장치는 현 명령 스택을 기준으로 행해져한다.
    * @description
-   * 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
+   * 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1. 실제 제어 true 확인 및 overlap 확인
    * trueNodeList: ['V_006', 'V_001', 'P_002'],
    * falseNodeList: ['GV_001'],
    * 2. 저수조 > 증발지 1-B 명령 요청. 실제 제어 추가 확인 V_002
@@ -310,7 +345,7 @@ describe('Automatic Mode', function() {
    * 3. 저수조 > 증발지 1-A 명령 복원. 'V_001'만 닫아지는 것 확인
    * 4. 저수조 > 증발지 1-B 명령 복원. 'V_006', 'V_002', 'P_002' 닫아지는 것 확인
    */
-  it.skip('Multi Flow Command Control & Restore ', async () => {
+  it.skip('Multi Flow Command Control & Cancel ', async () => {
     // 모든 장치 Close 명령이 완료 되길 기다림
     await eventToPromise(control, 'completeCommand');
     // 설정 모드를 Automatic 으로 교체
