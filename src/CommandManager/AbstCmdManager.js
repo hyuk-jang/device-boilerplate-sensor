@@ -76,33 +76,6 @@ class AbstCmdManager {
   }
 
   /**
-   *
-   * @param {Object} reqFlowCmd
-   * @param {string=} reqFlowCmd.srcPlaceId 시작 장소 ID
-   * @param {string=} reqFlowCmd.destPlaceId 목적지 장소 Id
-   * @param {string=} reqFlowCmd.cmdId 명령 이름 영어(srcPlaceId_TO_destPlaceId)
-   * @return {flowCmdDestInfo} 데이터를 찾을 경우. 아니라면 undefined
-   */
-  findFlowCommand(reqFlowCmd) {
-    const { cmdId = '', srcPlaceId = '', destPlaceId = '' } = reqFlowCmd;
-    // 명령 Full ID로 찾고자 할 경우
-    if (cmdId.length) {
-      return _(this.mapCmdInfo.flowCmdList)
-        .map('destList')
-        .flatten()
-        .find({ cmdId });
-    }
-
-    // 시작지와 목적지가 있을 경우
-    if (srcPlaceId.length && destPlaceId.length) {
-      const flowCmdInfo = _.find(this.mapCmdInfo.flowCmdList, { srcPlaceId });
-      if (flowCmdInfo !== undefined) {
-        return _.find(flowCmdInfo.destList, { destPlaceId });
-      }
-    }
-  }
-
-  /**
    * @desc O.C
    * @param {csOverlapControlHandleConfig} node nodeId or nodeInfo 사용
    */
@@ -145,6 +118,33 @@ class AbstCmdManager {
 
     // 찾는 조건에 부합하는 overlap Control을 찾음
     return _.find(overlapControlStorage.overlapControlList, overlapWhere);
+  }
+
+  /**
+   * Overlap이 존재하는 목록을 불러옴
+   * @return {csOverlapControlInfo[]}
+   */
+  findExistOverlapControl() {
+    // BU.CLI(this.overlapControlStorageList);
+    return _(this.overlapControlStorageList)
+      .map(overlapStorage => {
+        const {
+          nodeInfo: { node_id: nodeId },
+          overlapControlList,
+        } = overlapStorage;
+
+        const existOverlapControlList = [];
+
+        _.forEach(overlapControlList, overlapControlInfo => {
+          if (overlapControlInfo.overlapWCUs.length) {
+            // BU.CLI(overlapControlInfo);
+            existOverlapControlList.push(_.assign({ nodeId }, overlapControlInfo));
+          }
+        });
+        return existOverlapControlList;
+      })
+      .flatten()
+      .value();
   }
 
   /**
@@ -191,13 +191,33 @@ class AbstCmdManager {
    * 생성된 명령의 누적 호출 목록을 추가한다.
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    */
-  addOverlapControlCommand(complexCmdWrapInfo) {
+  updateOverlapControlCommand(complexCmdWrapInfo) {
     // BU.CLIN(complexCmdWrapInfo, 1);
-    const { wrapCmdUUID, containerCmdList, realContainerCmdList } = complexCmdWrapInfo;
+    const {
+      wrapCmdId,
+      wrapCmdUUID,
+      wrapCmdType,
+      containerCmdList,
+      realContainerCmdList,
+    } = complexCmdWrapInfo;
 
+    // 명령 취소일 경우 누적 카운팅 제거
+    if (wrapCmdType === reqWrapCmdType.CANCEL) {
+      // 실행 중인 Wrap Command 를 가져옴
+      const runningWrapCmdInfo = _.find(this.model.complexCmdList, { wrapCmdId });
+
+      // wrapCmdUUID를 가진 O.C 제거
+      _(this.model.overlapControlStorageList)
+        .map('overlapControlList')
+        .flatten()
+        .forEach(overlapControlInfo => {
+          _.pull(overlapControlInfo.overlapWCUs, runningWrapCmdInfo.wrapCmdUUID);
+        });
+    }
     // 수동 모드가 아닐 경우에만 요청 명령 Overlap overlapWCUs 반영
-    if (this.controller.controlMode !== controlModeInfo.MANUAL) {
+    else if (this.controller.controlMode !== controlModeInfo.MANUAL) {
       this.updateContainerCommandOC({
+        wrapCmdType,
         wrapCmdUUID,
         isRealCmd: false,
         containerCmdList,
@@ -298,9 +318,8 @@ class AbstCmdManager {
         if (!this.isNormalOperation(containerCmdList)) {
           throw new Error(`An abnormal device exists among the ${cmdName}`);
         }
-        // 실제 제어할 명령 리스트 산출
-        // BU.CLI(containerCmdList);
 
+        // 실제 제어할 명령 리스트 산출
         const realContainerCmdList = this.produceRealControlCommand(complexCmdWrapInfo);
 
         // BU.CLI(realContainerCmdList);
@@ -317,18 +336,15 @@ class AbstCmdManager {
         complexCmdWrapInfo.realContainerCmdList = realContainerCmdList;
 
         // 복합 명령 csOverlapControlStorage 반영
-        this.addOverlapControlCommand(complexCmdWrapInfo);
+        this.updateOverlapControlCommand(complexCmdWrapInfo);
       }
 
       complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
-      // 명령을 내릴 것이 없다면 등록하지 않음
-      if (
-        !_(complexCmdWrapInfo)
-          .map('containerCmdList')
-          .flatten()
-          .value().length
-      ) {
-        return false;
+
+      // 명령 취소가 요청이 정상적으로 처리되었다면 기존 제어 명령은 제거 처리
+      if (wrapCmdType === reqWrapCmdType.CANCEL) {
+        _.remove(this.complexCmdList, { wrapCmdId, wrapCmdType: reqWrapCmdType.CONTROL });
+        // TODO: CC가 있을 경우 제거 처리
       }
 
       // 명령을 요청한 시점에서의 제어 모드

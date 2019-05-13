@@ -137,14 +137,16 @@ describe.skip('Manual Mode', function() {
 
     // * 4. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
     // 첫번째 명령 완료: 펌프 >> O.C reservedExecUU는 삭제
-    expect(control.model.findOverlapControlNode(openPumpCmd).reservedExecUU).to.eq('');
+    expect(control.model.cmdManager.findOverlapControlNode(openPumpCmd).reservedExecUU).to.eq('');
     // 첫번째 명령 완료: 수문은 >> O.C reservedExecUU는 유지
-    expect(control.model.findOverlapControlNode(openGateCmd).reservedExecUU).to.not.eq('');
+    expect(control.model.cmdManager.findOverlapControlNode(openGateCmd).reservedExecUU).to.not.eq(
+      '',
+    );
 
     const secondCompleteWCU = await eventToPromise(control, 'completeCommand');
 
     // 첫번째 명령 완료: 수문은 >> O.C reservedExecUU는 유지
-    expect(control.model.findOverlapControlNode(openGateCmd).reservedExecUU).to.eq('');
+    expect(control.model.cmdManager.findOverlapControlNode(openGateCmd).reservedExecUU).to.eq('');
 
     const thirdCompleteWCU = await eventToPromise(control, 'completeCommand');
 
@@ -184,7 +186,7 @@ describe('Automatic Mode', function() {
     wrapCmdType: reqWrapCmdType.CONTROL,
   };
 
-  /** @type {reqFlowCmdInfo} 저수조 > 증발지 1-B */
+  /** @type {reqFlowCmdInfo} 증발지 1-A > 해주 1 */
   const SEB1AToBW1 = {
     srcPlaceId: 'SEB_1_A',
     destPlaceId: 'BW_1',
@@ -217,7 +219,7 @@ describe('Automatic Mode', function() {
    * 3. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 O
    * trueNodeList: ['GV_001', 'WD_013', 'WD_010'],
    * falseNodeList: ['WD_016'],
-   * 4. 증발지 1-A > 해주 1 명령 요청. 존재하지 않으므로 X
+   * 4. 증발지 1-A > 해주 1 명령 취소. 존재하지 않으므로 X
    * 5. 저수조 > 증발지 1-A 명령 취소.
    * 'V_001' 닫힘. 'GV_001' OC 해제
    * 6. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 X
@@ -250,9 +252,9 @@ describe('Automatic Mode', function() {
     let realTrueNodes = _.map(realTrueCmd.eleCmdList, 'nodeId');
 
     // 실제 여는 장치는 아래와 같아야 한다.
-    expect(_.isEqual(realTrueNodes, ['V_006', 'V_001', 'P_002'])).to.true;
+    expect(realTrueNodes).to.deep.equal(['V_006', 'V_001', 'P_002']);
 
-    let existOverlapList = control.model.findExistOverlapControl();
+    let existOverlapList = control.model.cmdManager.findExistOverlapControl();
 
     // True O.C 는 3개, trueList: ['V_006', 'V_001', 'P_002'],
     expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
@@ -278,8 +280,8 @@ describe('Automatic Mode', function() {
 
     realTrueNodes = _.map(realTrueCmd.eleCmdList, 'nodeId');
     // 실제 여는 장치는 아래와 같아야 한다.
-    expect(_.isEqual(realTrueNodes, ['V_002'])).to.true;
-    existOverlapList = control.model.findExistOverlapControl();
+    expect(realTrueNodes).to.deep.equal(['V_002']);
+    existOverlapList = control.model.cmdManager.findExistOverlapControl();
 
     // True O.C 는 4개, trueList: ['V_006', 'V_001', 'V_002', 'P_002'],
     expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(4);
@@ -288,11 +290,11 @@ describe('Automatic Mode', function() {
 
     // 저수조 > 증발지 1-A 명령 완료.
     const firstCompleteWCU = await eventToPromise(control, 'completeCommand');
-    expect(cmdRvTo1A.wrapCmdUUID).to.eq(firstCompleteWCU);
+    // expect(cmdRvTo1A.wrapCmdUUID).to.eq(firstCompleteWCU);
 
     // 저수조 > 증발지 1-B 명령 완료.
     const secondCompleteWCU = await eventToPromise(control, 'completeCommand');
-    expect(cmdRvTo1B.wrapCmdUUID).to.eq(secondCompleteWCU);
+    // expect(cmdRvTo1B.wrapCmdUUID).to.eq(secondCompleteWCU);
 
     // 현재 실행중인 명령은 2개
     expect(control.model.complexCmdList).to.length(2);
@@ -323,13 +325,109 @@ describe('Automatic Mode', function() {
       singleControlType: FALSE,
     });
 
+    // BU.CLI(realTrueCmd);
+    // BU.CLI(realFalseCmd);
     // 실제 True 장치는 없어야 한다. 명령 취소를 한 것이기 때문
     expect(_.isEmpty(realTrueCmd)).to.true;
 
     const realFalseNodes = _.map(realFalseCmd.eleCmdList, 'nodeId');
 
     // 실제 닫는 장치는 아래와 같아야 한다.
-    expect(realFalseNodes).to.be.equal(['V_001']);
+    expect(realFalseNodes).to.deep.equal(['V_001']);
+
+    // 실행 중인 OC 를 가져옴
+    existOverlapList = control.model.cmdManager.findExistOverlapControl();
+
+    // True O.C 는 3개, trueList: ['V_006', 'V_002', 'P_002'],
+    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
+
+    // False O.C 는 2개, trueList: ['GV_002'],
+    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
+
+    await eventToPromise(control, 'completeCommand');
+
+    // * 6. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 X
+    SEB1AToBW1.wrapCmdType = reqWrapCmdType.CONTROL;
+    const cmdSEB1AToBW1 = control.executeFlowControl(SEB1AToBW1);
+
+    // 실제 True 장치 목록
+    realTrueCmd = _.find(cmdSEB1AToBW1.realContainerCmdList, {
+      singleControlType: TRUE,
+    });
+    //  실제 False 장치 목록
+    realFalseCmd = _.find(cmdSEB1AToBW1.realContainerCmdList, {
+      singleControlType: FALSE,
+    });
+
+    // 실제 여는 장치는 아래와 같아야 한다.
+    expect(_.map(realTrueCmd.eleCmdList, 'nodeId')).to.deep.equal(['GV_001', 'WD_013', 'WD_010']);
+
+    existOverlapList = control.model.cmdManager.findExistOverlapControl();
+
+    // True O.C 는 6개, trueList: ['V_006', 'V_002', 'P_002', 'GV_001', 'WD_010', 'WD_013'],
+    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(6);
+    // False O.C 는 2개, trueList: ['GV_002', 'WD_016'],
+    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(2);
+
+    await eventToPromise(control, 'completeCommand');
+
+    // * 7. 저수조 > 증발지 1-B 명령 취소.
+    // * 'P_002', 'V_002', 'V_006' 순으로 닫힘. OC 해제
+    rvToSEB1B.wrapCmdType = reqWrapCmdType.CANCEL;
+    const cancelCmdRvTo1B = control.executeFlowControl(rvToSEB1B);
+
+    // 실제 True 장치 목록
+    realTrueCmd = _.find(cancelCmdRvTo1B.realContainerCmdList, {
+      singleControlType: TRUE,
+    });
+    //  실제 False 장치 목록
+    realFalseCmd = _.find(cancelCmdRvTo1B.realContainerCmdList, {
+      singleControlType: FALSE,
+    });
+
+    // 실제 True 장치는 없어야 한다. 명령 취소를 한 것이기 때문
+    expect(_.isEmpty(realTrueCmd)).to.true;
+
+    // 실제 닫는 장치는 아래와 같아야 한다.
+    expect(_.map(realFalseCmd.eleCmdList, 'nodeId')).to.deep.equal(['P_002', 'V_002', 'V_006']);
+
+    // 실행 중인 OC 를 가져옴
+    existOverlapList = control.model.cmdManager.findExistOverlapControl();
+
+    // True O.C 는 3개, trueList: ['GV_001', 'WD_010', 'WD_013'],
+    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
+
+    // False O.C 는 2개, trueList: ['WD_016'],
+    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
+
+    await eventToPromise(control, 'completeCommand');
+
+    // * 8. 증발지 1-A > 해주 1 명령 취소.
+    // * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
+    SEB1AToBW1.wrapCmdType = reqWrapCmdType.CANCEL;
+    const cancelCmdSEB1AToBW1 = control.executeFlowControl(SEB1AToBW1);
+
+    // 실제 True 장치 목록
+    realTrueCmd = _.find(cancelCmdSEB1AToBW1.realContainerCmdList, {
+      singleControlType: TRUE,
+    });
+    //  실제 False 장치 목록
+    realFalseCmd = _.find(cancelCmdSEB1AToBW1.realContainerCmdList, {
+      singleControlType: FALSE,
+    });
+
+    // 실제 True 장치는 없어야 한다. 명령 취소를 한 것이기 때문
+    expect(_.isEmpty(realTrueCmd)).to.true;
+
+    // 실제 닫는 장치는 아래와 같아야 한다.
+    expect(_.map(realFalseCmd.eleCmdList, 'nodeId')).to.deep.equal(['WD_010', 'WD_013', 'GV_001']);
+
+    await eventToPromise(control, 'completeCommand');
+
+    // 모든 명령은 수행되었고 O.C 는 존재하지 않음
+    expect(control.model.cmdManager.findExistOverlapControl()).to.length(0);
+
+    expect(control.model.complexCmdList).to.length(0);
   });
 
   /**

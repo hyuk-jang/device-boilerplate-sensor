@@ -123,13 +123,14 @@ class CommandExecManager {
         srcPlaceId,
         destPlaceId,
         wrapCmdGoalInfo,
-        reqCmdEleList: [],
+        reqCmdEleList: this.makeControlEleCmdList(flowCmdDestInfo, rank),
       };
 
       // 명령을 요청할 경우
-      if (_.eq(wrapCmdType, reqWrapCmdType.CONTROL)) {
-        reqComplexCmd.reqCmdEleList = this.makeControlEleCmdList(flowCmdDestInfo, rank);
-      } else if (_.eq(wrapCmdType, reqWrapCmdType.CANCEL)) {
+      // if (_.eq(wrapCmdType, reqWrapCmdType.CONTROL)) {
+      //   reqComplexCmd.reqCmdEleList = this.makeControlEleCmdList(flowCmdDestInfo, rank);
+      // } else
+      if (_.eq(wrapCmdType, reqWrapCmdType.CANCEL)) {
         // wrapCmdId를 가진 복합 명령 개체가 있는지 확인
         const compelxCmdInfo = _.find(this.model.complexCmdList, {
           wrapCmdId,
@@ -146,7 +147,7 @@ class CommandExecManager {
         //   throw new Error('The type of command being executed is not a CONTROL request.');
         // }
 
-        reqComplexCmd.reqCmdEleList = this.makeRestoreEleCmdList(flowCmdDestInfo, rank);
+        // reqComplexCmd.reqCmdEleList = this.makeRestoreEleCmdList(flowCmdDestInfo, rank);
       }
 
       // BU.CLI(reqComplexCmd);

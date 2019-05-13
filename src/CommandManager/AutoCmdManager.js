@@ -1,4 +1,6 @@
 const _ = require('lodash');
+const uuidv4 = require('uuid/v4');
+
 const { BU } = require('base-util-jh');
 
 const AbstCmdManager = require('./AbstCmdManager');
@@ -158,82 +160,121 @@ class AutoCmdManager extends AbstCmdManager {
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
   produceCancelCommand(complexCmdWrapInfo) {
-    // TODO: 실행 중인 Wrap Command 를 가져옴
+    BU.CLI('produceCancelCommand');
+    try {
+      // TODO: 명령 삭제 처리 후 Real Control 목록 산출
 
-    // TODO: Wrap Command Step이 RUNNING이 아니라면 DCC 명령 이동, 명령 삭제
+      // TODO: OC 계산 후 제어 변동 시 실제 제어 장치 추가
+      // BU.CLI(complexCmdWrapInfo);
+      const {
+        controlMode,
+        wrapCmdType,
+        wrapCmdId,
+        wrapCmdUUID,
+        containerCmdList,
+      } = complexCmdWrapInfo;
 
-    // TODO: 명령 삭제 처리 후 Real Control 목록 산출
+      // 실행 중인 Wrap Command 를 가져옴
+      const runningWrapCmdInfo = _.find(this.model.complexCmdList, { wrapCmdId });
 
-    // TODO: OC 계산 후 제어 변동 시 실제 제어 장치 추가
-    // BU.CLI(complexCmdWrapInfo);
-    const { controlMode, wrapCmdType, wrapCmdId, containerCmdList } = complexCmdWrapInfo;
+      // TODO: Wrap Command Step이 RUNNING이 아니라면 DCC 명령 이동, 명령 삭제
+      if (runningWrapCmdInfo.wrapCmdStep !== complexCmdStep.RUNNING) {
+        this.cancelRunningCommand(runningWrapCmdInfo);
+      }
 
-    /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
-    const realContainerCmdList = [];
+      const { wrapCmdUUID: runningWCU } = runningWrapCmdInfo;
 
-    // 명령 컨테이너를 순회
-    _.forEach(containerCmdList, containerCmdInfo => {
-      const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
+      /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
+      const realContainerCmdList = [
+        {
+          singleControlType: reqDeviceControlType.TRUE,
+          eleCmdList: [],
+        },
+        {
+          singleControlType: reqDeviceControlType.FALSE,
+          eleCmdList: [],
+        },
+      ];
 
-      // 각 노드들을 확인
-      const realEleCmdList = _.filter(eleCmdList, eleCmdInfo => {
-        const { nodeId } = eleCmdInfo;
+      // 명령 컨테이너를 순회
+      _.forEach(containerCmdList, containerCmdInfo => {
+        const { singleControlType, controlSetValue, eleCmdList } = containerCmdInfo;
 
-        // 노드 정보를 불러옴
-        const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
-        // BU.CLI(nodeInfo);
-        /** @type {csOverlapControlHandleConfig} */
-        const overlapControlHandleConfig = {
-          nodeId: eleCmdInfo.nodeId,
-          singleControlType,
-          controlSetValue,
-        };
+        // 각 노드들을 확인
+        _.forEach(eleCmdList, eleCmdInfo => {
+          const { nodeId } = eleCmdInfo;
 
-        // Overlap Control 조회
-        let overlapControlNode = this.findOverlapControlNode(overlapControlHandleConfig);
+          // 노드 정보를 불러옴
+          const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+          // BU.CLI(nodeInfo);
+          /** @type {csOverlapControlHandleConfig} */
+          const overlapControlHandleConfig = {
+            nodeId,
+            singleControlType,
+            controlSetValue,
+          };
 
-        // overlapWCUs.length 가 존재하지만 reservedExecUU가 없고 제어 장치값이 다를 경우 추가로 제어구문 생성하고 reservedExecUU가 반영
+          // Overlap Control 조회
+          const overlapControlNode = this.findOverlapControlNode(overlapControlHandleConfig);
 
-        // OC 가 없다면 신규 OC. 새로 생성 함.
-        if (_.isEmpty(overlapControlNode)) {
-          overlapControlNode = this.createOverlapControlNode(overlapControlHandleConfig);
-          // OC Storage가 없거나 OC가 존재하지 않으면 종료
-          if (overlapControlNode === false) {
-            throw new Error(
-              `nodeId: ${
-                eleCmdInfo.nodeId
-              }, singleControlType: ${singleControlType} is not exist in OC Storage`,
-            );
+          // OC 기존 CONTROL 추가 시 문제가 있는 것으로 판단
+          if (_.isEmpty(overlapControlNode)) {
+            throw new Error(`nodeId: ${eleCmdInfo.nodeId} is not exist O.C`);
           }
-        }
 
-        // 이미 제어하는 명령이 존재한다면 추가하지 않음
-        if (overlapControlNode.reservedExecUU.length) {
-          return false;
-        }
+          // 누적 WCU를 가져옴
+          const { overlapWCUs } = overlapControlNode;
 
-        // 제어하고자 하는 데이터 값
-        const strNodeData = _.lowerCase(
-          this.convertControlValueToString(nodeInfo, singleControlType),
-        );
+          // 현재 장치 상태가 어떤지 확인
+          const strNodeData = _.lowerCase(
+            this.convertControlValueToString(nodeInfo, singleControlType),
+          );
 
-        // 제어 변동은 없으나 현 상태 값과 틀리는 장치가 발견될 경우 제어 추가
-        if (!_.isNil(nodeInfo.data) && !_.eq(strNodeData, _.lowerCase(nodeInfo.data))) {
-          return true;
-        }
+          // 유일한 누적 카운팅이 제거되는 것이라면 장치 상태 변동이 일어 난 것으로 판단
+          if (overlapWCUs.length === 1 && _.eq(_.head(overlapWCUs), runningWCU)) {
+            // 바꾸고자 하는 장치 값 가져옴
+            const expectStrNodeData = _.lowerCase(
+              this.convertControlValueToString(nodeInfo, reqDeviceControlType.FALSE),
+            );
+            // False 상태로 바꿀려는 Node Id 추가
+            if (expectStrNodeData !== strNodeData) {
+              const realContainerCmd = _.find(realContainerCmdList, {
+                singleControlType: reqDeviceControlType.FALSE,
+              });
+              realContainerCmd.eleCmdList.push(eleCmdInfo);
+            }
+          }
+          // 제어 변동은 있고 현 상태 값과 틀리는 장치가 발견될 경우 제어 추가
+          else if (!_.isNil(nodeInfo.data) && !_.eq(strNodeData, _.lowerCase(nodeInfo.data))) {
+            const realContainerCmd = _.find(realContainerCmdList, {
+              singleControlType,
+            });
+
+            realContainerCmd.eleCmdList.push(eleCmdInfo);
+          }
+        });
       });
 
-      // 실제 제어 목록이 존재한다면 삽입
-      if (realEleCmdList.length) {
-        realContainerCmdList.push({
-          singleControlType,
-          controlSetValue,
-          eleCmdList: realEleCmdList,
-        });
+      const realContainerCmd = _.find(realContainerCmdList, {
+        singleControlType: reqDeviceControlType.FALSE,
+      });
+
+      if (realContainerCmd.eleCmdList.length) {
+        realContainerCmd.eleCmdList = _.reverse(realContainerCmd.eleCmdList);
       }
-    });
-    return realContainerCmdList;
+
+      return _.filter(realContainerCmdList, realContainer => realContainer.eleCmdList.length);
+    } catch (error) {
+      throw error;
+    }
   }
+
+  /**
+   * 실행 중인 명령이 Running Step이 아닐 경우 아직 실행하지 않은 명령들에 대해 취소 처리를 함
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   * @return {complexCmdContainerInfo[]} realContainerCmdList
+   */
+  cancelRunningCommand(complexCmdWrapInfo) {}
 
   /**
    * FIXME: TEMP
