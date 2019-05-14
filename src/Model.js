@@ -264,6 +264,24 @@ class Model {
   }
 
   /**
+   * 복합 명령을 저장
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   * @return {complexCmdWrapInfo}
+   */
+  saveComplexCommand(complexCmdWrapInfo) {
+    // BU.CLIN(complexCmdWrapInfo, 1);
+    try {
+      this.cmdManager.saveComplexCommand(complexCmdWrapInfo);
+
+      this.transmitComplexCommandStatus();
+
+      return complexCmdWrapInfo;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * 저장소 데이터 관리. Data Logger Controller 객체로 부터 Message를 받은 경우 msgCode에 따라서 관리
    * @example
    * Device Client로부터 Message 수신
@@ -271,182 +289,11 @@ class Model {
    * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
   manageComplexCommand(dataLoggerController, dcMessage) {
-    const {
-      COMMANDSET_EXECUTION_START,
-      COMMANDSET_EXECUTION_TERMINATE,
-      COMMANDSET_DELETE,
-    } = dataLoggerController.definedCommandSetMessage;
-
-    // BU.CLIN(dcMessage);
-
-    // DLC commandId, commandType은 각각 wrapCmdId, wrapCmdType과 매칭됨
-    const {
-      commandSet: {
-        commandId: dcWrapCmdId,
-        commandType: dcWrapCmdType,
-        wrapCmdUUID: dcWrapCmdUUID,
-        uuid: dcCmdUUID,
-      },
-      msgCode: dcMsgCode,
-    } = dcMessage;
-
-    /** @type {complexCmdWrapInfo} */
-    const foundComplexCmdInfo = _.find(this.complexCmdList, { wrapCmdUUID: dcWrapCmdUUID });
-
-    // 통합 명령 UUID가 없을 경우
-    if (!foundComplexCmdInfo) {
-      // BU.CLI(this.complexCmdList);
-      throw new Error(`wrapCmdUUID: ${dcWrapCmdUUID} is not exist.`);
+    try {
+      this.cmdManager.manageComplexCommand(dataLoggerController, dcMessage);
+    } catch (error) {
+      throw error;
     }
-
-    const {
-      wrapCmdStep,
-      wrapCmdId,
-      wrapCmdName,
-      wrapCmdType,
-      containerCmdList,
-      realContainerCmdList,
-    } = foundComplexCmdInfo;
-
-    // DC Message: COMMANDSET_EXECUTION_START && complexCmdStep !== WAIT ===> Change PROCEED Step
-    // DCC 명령이 수행중
-    if (_.eq(dcMsgCode, COMMANDSET_EXECUTION_START) && _.eq(wrapCmdStep, complexCmdStep.WAIT)) {
-      foundComplexCmdInfo.wrapCmdStep = complexCmdStep.PROCEED;
-      // 상태 변경된 명령 목록 API Server로 전송
-      return this.transmitComplexCommandStatus();
-    }
-
-    // 명령 코드가 완료(COMMANDSET_EXECUTION_TERMINATE), 삭제(COMMANDSET_DELETE)가 아니라면 종료
-    if (!_.includes([COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE], dcMsgCode)) return false;
-
-    // DLC에서 수신된 메시지가 명령 완료, 명령 삭제 완료 중 하나 일 경우
-    // 실제 제어 컨테이너 안에 있는 Ele 요소 중 dcUUID와 동일한 개체 조회
-    const allComplexEleCmdList = _(realContainerCmdList)
-      .map('eleCmdList')
-      .flatten()
-      .value();
-
-    // FIXME: Ele가 존재하지 않는다면 명령 삭제 처리 필요 (DCC Error 로 넘어가게됨.)
-    if (!allComplexEleCmdList.length) {
-      throw new Error(`wrapCmdId(${dcWrapCmdId}) does not exist in the Complex Command List.`);
-    }
-
-    // dcCmdUUID가 동일한 Complex Command를 찾음
-    const foundEleInfo = _.find(allComplexEleCmdList, { uuid: dcCmdUUID });
-
-    // Ele가 존재하지 않는다면 종료
-    if (!foundEleInfo) {
-      throw new Error(`dcCmdUUID(${dcCmdUUID}) does not exist in the Complex Command List.`);
-    }
-
-    // 해당 단위 명령 완료 처리
-    foundEleInfo.hasComplete = true;
-
-    // 계측 명령이 아닐 경우 OC 확인
-    wrapCmdType !== reqWrapCmdType.MEASURE && this.completeUnitCommand(dcCmdUUID);
-
-    // 모든 장치의 제어가 완료됐다면
-    if (_.every(allComplexEleCmdList, 'hasComplete')) {
-      BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
-
-      // 명령 완료 처리
-      this.completeComplexCommand(foundComplexCmdInfo);
-
-      // FIXME: 수동 자동? 처리?
-      // foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;
-      // this.transmitComplexCommandStatus();
-
-      if (wrapCmdId === 'inquiryAllDeviceStatus') {
-        // BU.CLI('Comlete inquiryAllDeviceStatus');
-        this.controller.emit('completeInquiryAllDeviceStatus', dcWrapCmdId);
-        this.completeInquiryDeviceStatus();
-      } else {
-        // FIXME: 일반 명령 completeCommand이 완료되었을 경우 처리할 필요가 있다면 작성
-        this.controller.emit('completeCommand', dcWrapCmdUUID);
-      }
-    }
-  }
-
-  /**
-   * 단위 명령이 완료되었을 경우 장치 제어 추적 제거
-   * @param {string} dcCmdUUID
-   */
-  completeUnitCommand(dcCmdUUID) {
-    // 단위 명령 상 Data Logger Controller 에서
-    const foundOverlapControlInfo = _(this.overlapControlStorageList)
-      .map('overlapControlList')
-      .flatten()
-      .find({
-        reservedExecUU: dcCmdUUID,
-      });
-
-    // BU.CLI(foundOverlapControlInfo);
-
-    if (foundOverlapControlInfo) {
-      foundOverlapControlInfo.reservedExecUU = '';
-    }
-    // BU.CLI(foundOverlapControlInfo);
-
-    // _.find(this.overlapControlStorageList, ocStorage => {
-    //   ocStorage.overlapControlList.forEach(ocControlInfo => {
-    //     if (_.eq(ocControlInfo.reservedExecUU, dcCmdUUID)) {
-    //       ocControlInfo.reservedExecUU = '';
-    //     }
-    //   });
-    // });
-  }
-
-  /**
-   * 명령이 완료되었을 경우 처리
-   * @param {complexCmdWrapInfo} complexWrapCmdInfo
-   * @param {boolean=} isAchieveCommandGoal 명령 목표치 달성 여부
-   */
-  completeComplexCommand(complexWrapCmdInfo, isAchieveCommandGoal) {
-    // BU.CLI(this.findExistOverlapControl());
-    // O.C reservedExecUU 제거
-    // TODO: Prev.Single >> Curr.Single 명령 제거
-    // TODO: Prev.Single >> !Curr.Single 명령 제거
-    // TODO: !Prev.Single >> Curr.Single 명령 제거
-
-    const { MANUAL } = controlModeInfo;
-
-    const { MEASURE, CONTROL } = reqWrapCmdType;
-
-    const { RUNNING } = complexCmdStep;
-
-    let isDeleteCmd = true;
-
-    const { controlMode, wrapCmdType, wrapCmdUUID } = complexWrapCmdInfo;
-
-    // 제어 명령일 경우에만 RUNNING 여부 체크
-    if (wrapCmdType === CONTROL) {
-      // TODO: !Prev.Single >> !Curr.Single 명령 RUNNING 상태 변경
-      if (controlMode !== MANUAL && this.controller.controlMode !== MANUAL) {
-        complexWrapCmdInfo.wrapCmdStep = RUNNING;
-        isDeleteCmd = false;
-      }
-    }
-
-    // 명령 삭제 처리를 해야할 경우
-    if (isDeleteCmd) {
-      // wrapCmdUUID를 가진 O.C 제거
-      _(this.overlapControlStorageList)
-        .map('overlapControlList')
-        .flatten()
-        .forEach(overlapControlInfo => {
-          _.pull(overlapControlInfo.overlapWCUs, wrapCmdUUID);
-        });
-
-      // Complex Command List 에서 제거
-      _.remove(this.complexCmdList, { wrapCmdUUID });
-    }
-
-    this.transmitComplexCommandStatus();
-
-    // OC 변경
-    // FIXME: wrapCmdGoalInfo가 존재 할 경우 추가 논리
-    // RUNNING 전환 시 limitTimeSec가 존재한다면 복구명령 setTimeout 생성
-    // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
   }
 
   /** 정기 계측 조회 명령 완료 결과 반영 */
@@ -481,66 +328,6 @@ class Model {
     await this.insertNodeDataToDB(validNodeList, {
       hasSensor: process.env.DBS_SAVE_SENSOR !== '0',
       hasDevice: process.env.DBS_SAVE_DEVICE !== '0',
-    });
-  }
-
-  /**
-   * 복합 명령을 저장
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {complexCmdWrapInfo}
-   */
-  saveComplexCommand(complexCmdWrapInfo) {
-    // BU.CLIN(complexCmdWrapInfo, 1);
-
-    try {
-      this.cmdManager.saveComplexCommand(complexCmdWrapInfo);
-
-      // BU.CLIN(this.cmdManager);
-
-      this.transmitComplexCommandStatus();
-
-      return complexCmdWrapInfo;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 명령 목표치 달성 여부 체크
-   * @param {Object[]} cmdGoalDataList 해당 명령을 통해 얻고자 하는 값 목록
-   * @param {string} cmdGoalDataList.nodeId 달성하고자 하는 nodeId
-   * @param {string|number} cmdGoalDataList.goalValue 달성 기준치 값
-   * @param {number} cmdGoalDataList.goalRange 기준치 인정 범위.
-   * @return {boolean}
-   */
-  isAchieveCommandGoal(cmdGoalDataList) {
-    // 목표치 설정 기준치
-    const { EQUAL, LOWER, UPPER } = goalDataRange;
-    // 모든 장치에 대한 목표치 조건에 부합한다면 True
-    return _.every(cmdGoalDataList, cmdGoalInfo => {
-      // 각각의 명령 목표 조건 옵션
-      const { nodeId, goalValue, goalRange } = cmdGoalInfo;
-      // 해당 노드가 존재하는지 체크
-      const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
-      // 노드가 존재하지 않거나 데이터가 존재하지 않을 경우 종료
-      if (!nodeInfo || _.isEmpty(nodeInfo.data)) return false;
-
-      let verify = false;
-      // 목표 달성 기준 조건 체크
-      switch (goalRange) {
-        case EQUAL:
-          verify = _.eq(goalValue, nodeInfo.data);
-          break;
-        case LOWER:
-          verify = goalValue < nodeInfo.data;
-          break;
-        case UPPER:
-          verify = goalValue > nodeInfo.data;
-          break;
-        default:
-          break;
-      }
-      return verify;
     });
   }
 

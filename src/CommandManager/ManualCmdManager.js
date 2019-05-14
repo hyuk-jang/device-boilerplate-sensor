@@ -23,8 +23,6 @@ class ManualCmdManager extends AbstCmdManager {
 
     // 컨트롤러 제어 모드 변경
     controller.controlMode = controlModeInfo.MANUAL;
-
-    this.controlMode = controlModeInfo.MANUAL;
   }
 
   /**

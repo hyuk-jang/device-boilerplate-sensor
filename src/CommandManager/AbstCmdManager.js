@@ -33,49 +33,6 @@ class AbstCmdManager {
   }
 
   /**
-   * FIXME: TEMP
-   * @abstract
-   * @param {nodeInfo} nodeInfo
-   * @param {string} singleControlType
-   */
-  convertControlValueToString(nodeInfo, singleControlType) {
-    singleControlType = Number(singleControlType);
-    let strControlValue = '';
-    const onOffList = ['pump'];
-    const openCloseList = ['valve', 'waterDoor'];
-
-    let strTrue = '';
-    let strFalse = '';
-
-    // Node Class ID를 가져옴. 장치 명에 따라 True, False 개체 명명 변경
-    if (_.includes(onOffList, nodeInfo.nc_target_id)) {
-      strTrue = 'On';
-      strFalse = 'Off';
-    } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
-      strTrue = 'Open';
-      strFalse = 'Close';
-    }
-
-    switch (singleControlType) {
-      case reqDeviceControlType.FALSE:
-        strControlValue = strFalse;
-        break;
-      case reqDeviceControlType.TRUE:
-        strControlValue = strTrue;
-        break;
-      case reqDeviceControlType.MEASURE:
-        strControlValue = 'Measure';
-        break;
-      case reqDeviceControlType.SET:
-        strControlValue = 'Set';
-        break;
-      default:
-        break;
-    }
-    return strControlValue;
-  }
-
-  /**
    * @desc O.C
    * @param {csOverlapControlHandleConfig} node nodeId or nodeInfo 사용
    */
@@ -121,6 +78,7 @@ class AbstCmdManager {
   }
 
   /**
+   * @desc O.C
    * Overlap이 존재하는 목록을 불러옴
    * @return {csOverlapControlInfo[]}
    */
@@ -204,10 +162,10 @@ class AbstCmdManager {
     // 명령 취소일 경우 누적 카운팅 제거
     if (wrapCmdType === reqWrapCmdType.CANCEL) {
       // 실행 중인 Wrap Command 를 가져옴
-      const runningWrapCmdInfo = _.find(this.model.complexCmdList, { wrapCmdId });
+      const runningWrapCmdInfo = _.find(this.complexCmdList, { wrapCmdId });
 
       // wrapCmdUUID를 가진 O.C 제거
-      _(this.model.overlapControlStorageList)
+      _(this.overlapControlStorageList)
         .map('overlapControlList')
         .flatten()
         .forEach(overlapControlInfo => {
@@ -285,6 +243,23 @@ class AbstCmdManager {
   }
 
   /**
+   * @abstract
+   * 각 제어 모드 별로 체크하고자 하는 내용 체크
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   */
+  isPossibleSaveComplexCommand(complexCmdWrapInfo) {
+    return true;
+  }
+
+  /**
+   * @interface
+   * 명령 스택을 고려하여 실제 내릴 명령을 산출
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   * @return {complexCmdContainerInfo[]} realContainerCmdList
+   */
+  produceRealControlCommand(complexCmdWrapInfo) {}
+
+  /**
    * 복합 명령을 저장
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @return {complexCmdWrapInfo}
@@ -308,7 +283,8 @@ class AbstCmdManager {
       }
 
       // 요청한 명령이 현재 모드에서 실행 가능한지 체크
-      this.checkSaveComplexCommand(complexCmdWrapInfo);
+      if (!this.isPossibleSaveComplexCommand(complexCmdWrapInfo)) {
+      }
 
       // 계측 명령이라면 실제 제어목록 산출하지 않음
       if (wrapCmdType === reqWrapCmdType.MEASURE) {
@@ -359,21 +335,192 @@ class AbstCmdManager {
   }
 
   /**
-   * @abstract
-   * 각 제어 모드 별로 체크하고자 하는 내용 체크
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   * 저장소 데이터 관리. Data Logger Controller 객체로 부터 Message를 받은 경우 msgCode에 따라서 관리
+   * @example
+   * Device Client로부터 Message 수신
+   * @param {DataLoggerControl} dataLoggerController Data Logger Controller 객체
+   * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
-  checkSaveComplexCommand(complexCmdWrapInfo) {
-    return false;
+  manageComplexCommand(dataLoggerController, dcMessage) {
+    const {
+      COMMANDSET_EXECUTION_START,
+      COMMANDSET_EXECUTION_TERMINATE,
+      COMMANDSET_DELETE,
+    } = dataLoggerController.definedCommandSetMessage;
+
+    // BU.CLIN(dcMessage);
+
+    // DLC commandId, commandType은 각각 wrapCmdId, wrapCmdType과 매칭됨
+    const {
+      commandSet: {
+        commandId: dcWrapCmdId,
+        commandType: dcWrapCmdType,
+        wrapCmdUUID: dcWrapCmdUUID,
+        uuid: dcCmdUUID,
+      },
+      msgCode: dcMsgCode,
+    } = dcMessage;
+
+    /** @type {complexCmdWrapInfo} */
+    const foundComplexCmdInfo = _.find(this.complexCmdList, { wrapCmdUUID: dcWrapCmdUUID });
+
+    // 통합 명령 UUID가 없을 경우
+    if (!foundComplexCmdInfo) {
+      // BU.CLI(this.complexCmdList);
+      throw new Error(`wrapCmdUUID: ${dcWrapCmdUUID} is not exist.`);
+    }
+
+    const {
+      wrapCmdStep,
+      wrapCmdId,
+      wrapCmdName,
+      wrapCmdType,
+      containerCmdList,
+      realContainerCmdList,
+    } = foundComplexCmdInfo;
+
+    // DC Message: COMMANDSET_EXECUTION_START && complexCmdStep !== WAIT ===> Change PROCEED Step
+    // DCC 명령이 수행중
+    if (_.eq(dcMsgCode, COMMANDSET_EXECUTION_START) && _.eq(wrapCmdStep, complexCmdStep.WAIT)) {
+      foundComplexCmdInfo.wrapCmdStep = complexCmdStep.PROCEED;
+      // 상태 변경된 명령 목록 API Server로 전송
+      return this.model.transmitComplexCommandStatus();
+    }
+
+    // 명령 코드가 완료(COMMANDSET_EXECUTION_TERMINATE), 삭제(COMMANDSET_DELETE)가 아니라면 종료
+    if (!_.includes([COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE], dcMsgCode)) return false;
+
+    // DLC에서 수신된 메시지가 명령 완료, 명령 삭제 완료 중 하나 일 경우
+    // 실제 제어 컨테이너 안에 있는 Ele 요소 중 dcUUID와 동일한 개체 조회
+    const allComplexEleCmdList = _(realContainerCmdList)
+      .map('eleCmdList')
+      .flatten()
+      .value();
+
+    // FIXME: Ele가 존재하지 않는다면 명령 삭제 처리 필요 (DCC Error 로 넘어가게됨.)
+    if (!allComplexEleCmdList.length) {
+      throw new Error(`wrapCmdId(${dcWrapCmdId}) does not exist in the Complex Command List.`);
+    }
+
+    // dcCmdUUID가 동일한 Complex Command를 찾음
+    const foundEleInfo = _.find(allComplexEleCmdList, { uuid: dcCmdUUID });
+
+    // Ele가 존재하지 않는다면 종료
+    if (!foundEleInfo) {
+      throw new Error(`dcCmdUUID(${dcCmdUUID}) does not exist in the Complex Command List.`);
+    }
+
+    // 해당 단위 명령 완료 처리
+    foundEleInfo.hasComplete = true;
+
+    // 계측 명령이 아닐 경우 OC 확인
+    wrapCmdType !== reqWrapCmdType.MEASURE && this.completeUnitCommand(dcCmdUUID);
+
+    // 모든 장치의 제어가 완료됐다면
+    if (_.every(allComplexEleCmdList, 'hasComplete')) {
+      BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
+
+      // 명령 완료 처리
+      this.completeComplexCommand(foundComplexCmdInfo);
+
+      // FIXME: 수동 자동? 처리?
+      // foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;
+      // this.transmitComplexCommandStatus();
+
+      if (wrapCmdId === 'inquiryAllDeviceStatus') {
+        // BU.CLI('Comlete inquiryAllDeviceStatus');
+        this.controller.emit('completeInquiryAllDeviceStatus', dcWrapCmdId);
+        this.model.completeInquiryDeviceStatus();
+      } else {
+        // FIXME: 일반 명령 completeCommand이 완료되었을 경우 처리할 필요가 있다면 작성
+        this.controller.emit('completeCommand', dcWrapCmdUUID);
+      }
+    }
   }
 
   /**
-   * @interface
-   * 명령 스택을 고려하여 실제 내릴 명령을 산출
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {complexCmdContainerInfo[]} realContainerCmdList
+   * 단위 명령이 완료되었을 경우 장치 제어 추적 제거
+   * @param {string} dcCmdUUID
    */
-  produceRealControlCommand(complexCmdWrapInfo) {}
+  completeUnitCommand(dcCmdUUID) {
+    // 단위 명령 상 Data Logger Controller 에서
+    const foundOverlapControlInfo = _(this.overlapControlStorageList)
+      .map('overlapControlList')
+      .flatten()
+      .find({
+        reservedExecUU: dcCmdUUID,
+      });
+
+    // BU.CLI(foundOverlapControlInfo);
+
+    if (foundOverlapControlInfo) {
+      foundOverlapControlInfo.reservedExecUU = '';
+    }
+    // BU.CLI(foundOverlapControlInfo);
+
+    // _.find(this.overlapControlStorageList, ocStorage => {
+    //   ocStorage.overlapControlList.forEach(ocControlInfo => {
+    //     if (_.eq(ocControlInfo.reservedExecUU, dcCmdUUID)) {
+    //       ocControlInfo.reservedExecUU = '';
+    //     }
+    //   });
+    // });
+  }
+
+  /**
+   * 명령이 완료되었을 경우 처리
+   * @param {complexCmdWrapInfo} complexWrapCmdInfo
+   * @param {boolean=} isAchieveCommandGoal 명령 목표치 달성 여부
+   */
+  completeComplexCommand(complexWrapCmdInfo, isAchieveCommandGoal) {
+    try {
+      // BU.CLI(this.findExistOverlapControl());
+      // O.C reservedExecUU 제거
+      // TODO: Prev.Single >> Curr.Single 명령 제거
+      // TODO: Prev.Single >> !Curr.Single 명령 제거
+      // TODO: !Prev.Single >> Curr.Single 명령 제거
+
+      const { MANUAL } = controlModeInfo;
+
+      const { MEASURE, CONTROL } = reqWrapCmdType;
+
+      const { RUNNING } = complexCmdStep;
+
+      let isDeleteCmd = true;
+
+      const { controlMode, wrapCmdType, wrapCmdUUID } = complexWrapCmdInfo;
+
+      // 제어 명령일 경우에만 RUNNING 여부 체크
+      if (wrapCmdType === CONTROL) {
+        // TODO: !Prev.Single >> !Curr.Single 명령 RUNNING 상태 변경
+        if (controlMode !== MANUAL && this.controller.controlMode !== MANUAL) {
+          complexWrapCmdInfo.wrapCmdStep = RUNNING;
+          isDeleteCmd = false;
+        }
+      }
+
+      // 명령 삭제 처리를 해야할 경우
+      if (isDeleteCmd) {
+        // wrapCmdUUID를 가진 O.C 제거
+        _(this.overlapControlStorageList)
+          .map('overlapControlList')
+          .flatten()
+          .forEach(overlapControlInfo => {
+            _.pull(overlapControlInfo.overlapWCUs, wrapCmdUUID);
+          });
+
+        // Complex Command List 에서 제거
+        _.remove(this.complexCmdList, { wrapCmdUUID });
+      }
+    } catch (error) {
+      throw error;
+    }
+
+    // OC 변경
+    // FIXME: wrapCmdGoalInfo가 존재 할 경우 추가 논리
+    // RUNNING 전환 시 limitTimeSec가 존재한다면 복구명령 setTimeout 생성
+    // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
+  }
 
   /**
    * 명령상에 있는 장치 제어 중에 이상이 있는 장치 점검. 이상이 있을 경우 수행 불가
@@ -392,28 +539,6 @@ class AbstCmdManager {
       return result;
     });
   }
-
-  /**
-   * 저장소 데이터 관리. Data Logger Controller 객체로 부터 Message를 받은 경우 msgCode에 따라서 관리
-   * @example
-   * Device Client로부터 Message 수신
-   * @param {DataLoggerControl} dataLoggerController Data Logger Controller 객체
-   * @param {dcMessage} dcMessage 명령 수행 결과 데이터
-   */
-  manageComplexCommand(dataLoggerController, dcMessage) {}
-
-  /**
-   * 명령이 완료되었을 경우 처리
-   * @param {complexCmdWrapInfo} complexWrapCmdInfo
-   * @param {boolean=} isAchieveCommandGoal 명령 목표치 달성 여부
-   */
-  completeComplexCommand(complexWrapCmdInfo, isAchieveCommandGoal) {}
-
-  /**
-   * 단위 명령이 완료되었을 경우 장치 제어 추적 제거
-   * @param {string} dcCmdUUID
-   */
-  completeUnitCommand(dcCmdUUID) {}
 
   /**
    * 명령 목표치 달성 여부 체크

@@ -33,15 +33,15 @@ class AutoCmdManager extends AbstCmdManager {
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @return {boolean} 충돌 true, 아닐 경우 false
    */
-  checkSaveComplexCommand(complexCmdWrapInfo) {
+  isPossibleSaveComplexCommand(complexCmdWrapInfo) {
     try {
       const { wrapCmdType } = complexCmdWrapInfo;
       // 제어 요청일 경우에 충돌 체크
       if (wrapCmdType === reqWrapCmdType.CONTROL) {
         // 명령 충돌 체크
-        return this.isConflictCommand(complexCmdWrapInfo);
+        return !this.isConflictCommand(complexCmdWrapInfo);
       }
-      return false;
+      return true;
     } catch (error) {
       throw error;
     }
@@ -162,26 +162,17 @@ class AutoCmdManager extends AbstCmdManager {
   produceCancelCommand(complexCmdWrapInfo) {
     BU.CLI('produceCancelCommand');
     try {
-      // TODO: 명령 삭제 처리 후 Real Control 목록 산출
-
-      // TODO: OC 계산 후 제어 변동 시 실제 제어 장치 추가
-      // BU.CLI(complexCmdWrapInfo);
-      const {
-        controlMode,
-        wrapCmdType,
-        wrapCmdId,
-        wrapCmdUUID,
-        containerCmdList,
-      } = complexCmdWrapInfo;
+      const { wrapCmdId, containerCmdList } = complexCmdWrapInfo;
 
       // 실행 중인 Wrap Command 를 가져옴
-      const runningWrapCmdInfo = _.find(this.model.complexCmdList, { wrapCmdId });
+      const runningWrapCmdInfo = _.find(this.complexCmdList, { wrapCmdId });
 
       // TODO: Wrap Command Step이 RUNNING이 아니라면 DCC 명령 이동, 명령 삭제
       if (runningWrapCmdInfo.wrapCmdStep !== complexCmdStep.RUNNING) {
         this.cancelRunningCommand(runningWrapCmdInfo);
       }
 
+      // 기존 실행 중인 Wrap Command Wrap UUID를 가져옴
       const { wrapCmdUUID: runningWCU } = runningWrapCmdInfo;
 
       /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
@@ -206,7 +197,7 @@ class AutoCmdManager extends AbstCmdManager {
 
           // 노드 정보를 불러옴
           const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
-          // BU.CLI(nodeInfo);
+
           /** @type {csOverlapControlHandleConfig} */
           const overlapControlHandleConfig = {
             nodeId,
@@ -255,14 +246,17 @@ class AutoCmdManager extends AbstCmdManager {
         });
       });
 
+      // 실제 False 명령 요청을 할 컨테이너를 찾음
       const realContainerCmd = _.find(realContainerCmdList, {
         singleControlType: reqDeviceControlType.FALSE,
       });
 
+      // 내릴 명령이 존재한다면 명령의 역순으로 요청 처리. (Control 할때는 밸브 > 펌프, Cancel 할때는 펌프 > 밸브 순으로 해야 장치가 안전)
       if (realContainerCmd.eleCmdList.length) {
         realContainerCmd.eleCmdList = _.reverse(realContainerCmd.eleCmdList);
       }
 
+      // 명령 엘리먼트가 있을 경우에만 컨테이너를 포함하여 반환
       return _.filter(realContainerCmdList, realContainer => realContainer.eleCmdList.length);
     } catch (error) {
       throw error;
@@ -275,46 +269,5 @@ class AutoCmdManager extends AbstCmdManager {
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
   cancelRunningCommand(complexCmdWrapInfo) {}
-
-  /**
-   * FIXME: TEMP
-   * @desc O.C
-   * 해당 장치에 대한 동일한 제어가 존재하는지 체크
-   * @param {csOverlapControlHandleConfig} existControlInfo 누적 제어 조회 옵션
-   * @return {boolean} 현재 값과 동일하거나 예약 명령이 존재할 경우 True, 아니라면 False
-   */
-  isExistSingleControl(existControlInfo) {
-    // BU.CLI(existControlInfo);
-    const { nodeId, singleControlType, controlSetValue } = existControlInfo;
-
-    // 노드 Id가 동일한 노드 객체 가져옴
-    const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
-
-    // 만약 노드 객체가 없다면 해당 노드에 관해서 명령 생성하지 않음.
-    if (_.isEmpty(nodeInfo)) return true;
-
-    // 설정 제어 값이 존재하고 현재 노드 값과 같다면 추가적으로 제어하지 않음
-    // FIXME: ControlSetValue와 설정 제어 값을 치환할 경우 상이한 문제가 발생할 것으로 보임. 필요시 수정
-    if (!_.isNil(controlSetValue) && _.eq(nodeInfo.data, controlSetValue)) return true;
-
-    // 사용자가 알 수 있는 제어 구문으로 변경
-    const cmdName = this.convertControlValueToString(nodeInfo, singleControlType);
-
-    // node 현재 값과 동일하다면 제어 요청하지 않음
-    if (_.isNil(controlSetValue) && _.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName))) {
-      return true;
-    }
-
-    // 저장소가 존재한다면 OC가 존재하는지 체크
-    const overlapControlInfo = this.findOverlapControlNode(existControlInfo);
-
-    // BU.CLI(overlapControlInfo);
-
-    // OC가 존재하지 않는다면 실행 중이지 않음
-    if (_.isEmpty(overlapControlInfo)) return false;
-
-    // Wrap Command UUID가 지정되어 있다면 True, 아니라면 False
-    return !!overlapControlInfo.reservedExecUU.length;
-  }
 }
 module.exports = AutoCmdManager;
