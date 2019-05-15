@@ -5,7 +5,7 @@ const { BU } = require('base-util-jh');
 
 const AbstCmdManager = require('./AbstCmdManager');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../default-intelligence');
+const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
 const {
   complexCmdStep,

@@ -228,7 +228,7 @@ describe('Automatic Mode', function() {
    * 8. 증발지 1-A > 해주 1 명령 취소.
    * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
    */
-  it('Multi Flow Command Control & Conflict ', async () => {
+  it('Multi Flow Command Control & Conflict & Cancel ', async () => {
     // 모든 장치 Close 명령이 완료 되길 기다림
     await eventToPromise(control, 'completeCommand');
     // 설정 모드를 Automatic 으로 교체
@@ -432,67 +432,25 @@ describe('Automatic Mode', function() {
 
   /**
    * @desc T.C 2 [자동 모드]
-   * 다중 흐름 명령을 요청 및 취소하였을 때 실제 제어하는 장치는 현 명령 스택을 기준으로 행해져한다.
+   * @desc 이 TC는 Echo Server와 함께 수행해야 한다.
+   * 달성 목표가 있는 명령은 목표가 완료되었을 때 명령 스택에서 사라져야 한다.
    * @description
-   * 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1. 실제 제어 true 확인 및 overlap 확인
-   * trueNodeList: ['V_006', 'V_001', 'P_002'],
-   * falseNodeList: ['GV_001'],
-   * 2. 저수조 > 증발지 1-B 명령 요청. 실제 제어 추가 확인 V_002
-   * trueNodeList: ['V_006', 'V_002', 'P_002'],
-   * falseNodeList: ['GV_002'],
-   * 3. 저수조 > 증발지 1-A 명령 복원. 'V_001'만 닫아지는 것 확인
-   * 4. 저수조 > 증발지 1-B 명령 복원. 'V_006', 'V_002', 'P_002' 닫아지는 것 확인
+   * 1. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 수위 조작 후 명령 삭제 확인.
+   * 2. 저수조 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
+   * 3. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it.skip('Multi Flow Command Control & Cancel ', async () => {
+  it.skip('Critical Command ', async () => {
     // 모든 장치 Close 명령이 완료 되길 기다림
     await eventToPromise(control, 'completeCommand');
     // 설정 모드를 Automatic 으로 교체
     control.controlMode = controlModeInfo.AUTOMATIC;
 
-    // 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
-    let cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+    // * 1. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 수위 조작 후 명령 삭제 확인.
+    // const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
 
-    // * 2. 저수조 > 증발지 1-B 명령 요청. 실제 제어 추가 확인 V_002
-    // * trueList: ['V_006', 'V_002', 'P_002'],
-    // * falseList: ['GV_002'],
-    // await Promise.delay(100);
-    const cmdRvTo1B = control.executeFlowControl(rvToSEB1B);
+    // * 2. 저수조 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
 
-    await Promise.delay(500);
-
-    BU.CLI(control.model.findExistOverlapControl());
-
-    //  * 3. 저수조 > 증발지 1-A 명령 복원. 'V_001'만 닫아지는 것 확인
-    rvToSEB1A.wrapCmdType = reqWrapCmdType.RESTORE;
-    cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
-
-    // BU.CLI(cmdRvTo1A);
-
-    // // 실제 True 장치 목록
-    // realTrueCmd = _.find(cmdRvTo1A.realContainerCmdList, {
-    //   singleControlType: TRUE,
-    // });
-    // //  실제 False 장치 목록
-    // realFalseCmd = _.find(cmdRvTo1A.realContainerCmdList, {
-    //   singleControlType: FALSE,
-    // });
-
-    // 실제 False 장치는 없어야 한다. 기존 상태가 모두 False 이기 때문
-    // BU.CLI(realTrueCmd);
-    // expect(_.isEmpty(realTrueCmd)).to.true;
-
-    // const realFalseNodes = _.map(realFalseCmd.eleCmdList, 'nodeId');
-    // // 실제 닫는 장치는 아래와 같아야 한다.
-    // expect(_.isEqual(realFalseNodes, ['GV_001'])).to.true;
-
-    // existOverlapList = control.model.findExistOverlapControl();
-
-    // // True O.C 는 3개, trueList: ['V_006', 'V_002', 'P_002'],
-    // expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
-    // // False O.C 는 1개, trueList: ['GV_002'],
-    // expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
-
-    //  * 4. 저수조 > 증발지 1-B 명령 복원. 'V_006', 'V_002', 'P_002' 닫아지는 것 확인
+    // * 3. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
   });
 });
 

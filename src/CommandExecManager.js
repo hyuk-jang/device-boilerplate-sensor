@@ -210,9 +210,9 @@ class CommandExecManager {
       throw new Error(`wrapCmdId: ${wrapCmdId} does not exist.`);
     } catch (error) {
       // 수동모드에서 설정 명령을 발송할 경우 예외는 무시
-      if (this.controller.controlMode === controlModeInfo.MANUAL) {
-        return false;
-      }
+      // if (this.controller.controlMode === controlModeInfo.MANUAL) {
+      //   return false;
+      // }
       throw error;
     }
   }

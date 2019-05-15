@@ -19,8 +19,8 @@ const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
 /** 명령 처리를 위함 */
-const ManualCmdManager = require('./CommandManager/ManualCmdManager');
-const AutoCmdManager = require('./CommandManager/AutoCmdManager');
+const ManualCmdManager = require('./core/CommandManager/ManualCmdManager');
+const AutoCmdManager = require('./core/CommandManager/AutoCmdManager');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
 const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');

@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../default-intelligence');
+const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
 const {
   complexCmdStep,
@@ -30,6 +30,48 @@ class AbstCmdManager {
     this.overlapControlStorageList = overlapControlStorageList;
 
     this.mapCmdInfo = mapCmdInfo;
+  }
+
+  /**
+   * @abstract
+   * @param {nodeInfo} nodeInfo
+   * @param {string} singleControlType
+   */
+  convertControlValueToString(nodeInfo, singleControlType) {
+    singleControlType = Number(singleControlType);
+    let strControlValue = '';
+    const onOffList = ['pump'];
+    const openCloseList = ['valve', 'waterDoor'];
+
+    let strTrue = '';
+    let strFalse = '';
+
+    // Node Class ID를 가져옴. 장치 명에 따라 True, False 개체 명명 변경
+    if (_.includes(onOffList, nodeInfo.nc_target_id)) {
+      strTrue = 'On';
+      strFalse = 'Off';
+    } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
+      strTrue = 'Open';
+      strFalse = 'Close';
+    }
+
+    switch (singleControlType) {
+      case reqDeviceControlType.FALSE:
+        strControlValue = strFalse;
+        break;
+      case reqDeviceControlType.TRUE:
+        strControlValue = strTrue;
+        break;
+      case reqDeviceControlType.MEASURE:
+        strControlValue = 'Measure';
+        break;
+      case reqDeviceControlType.SET:
+        strControlValue = 'Set';
+        break;
+      default:
+        break;
+    }
+    return strControlValue;
   }
 
   /**
@@ -282,9 +324,8 @@ class AbstCmdManager {
         throw new Error(`${cmdName} is exist`);
       }
 
-      // 요청한 명령이 현재 모드에서 실행 가능한지 체크
-      if (!this.isPossibleSaveComplexCommand(complexCmdWrapInfo)) {
-      }
+      // 요청한 명령이 현재 모드에서 실행 가능한지 체크. 처리가 불가능 하다면 예외 발생
+      this.isPossibleSaveComplexCommand(complexCmdWrapInfo);
 
       // 계측 명령이라면 실제 제어목록 산출하지 않음
       if (wrapCmdType === reqWrapCmdType.MEASURE) {
@@ -422,6 +463,7 @@ class AbstCmdManager {
 
       // 명령 완료 처리
       this.completeComplexCommand(foundComplexCmdInfo);
+      this.model.transmitComplexCommandStatus();
 
       // FIXME: 수동 자동? 처리?
       // foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;

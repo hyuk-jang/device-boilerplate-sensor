@@ -6,7 +6,7 @@ const { BM } = require('base-model-jh');
 
 const ControlDBS = require('./Control');
 
-const CmdManager = require('./CommandManager/AbstCmdManager');
+const CmdManager = require('./core/CommandManager/AbstCmdManager');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
