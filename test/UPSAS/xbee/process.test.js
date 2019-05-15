@@ -228,7 +228,7 @@ describe('Automatic Mode', function() {
    * 8. 증발지 1-A > 해주 1 명령 취소.
    * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
    */
-  it('Multi Flow Command Control & Conflict & Cancel ', async () => {
+  it.skip('Multi Flow Command Control & Conflict & Cancel ', async () => {
     // 모든 장치 Close 명령이 완료 되길 기다림
     await eventToPromise(control, 'completeCommand');
     // 설정 모드를 Automatic 으로 교체
@@ -341,7 +341,7 @@ describe('Automatic Mode', function() {
     // True O.C 는 3개, trueList: ['V_006', 'V_002', 'P_002'],
     expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
 
-    // False O.C 는 2개, trueList: ['GV_002'],
+    // False O.C 는 1개, trueList: ['GV_002'],
     expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
 
     await eventToPromise(control, 'completeCommand');
@@ -397,7 +397,7 @@ describe('Automatic Mode', function() {
     // True O.C 는 3개, trueList: ['GV_001', 'WD_010', 'WD_013'],
     expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
 
-    // False O.C 는 2개, trueList: ['WD_016'],
+    // False O.C 는 1개, trueList: ['WD_016'],
     expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
 
     await eventToPromise(control, 'completeCommand');
@@ -439,7 +439,7 @@ describe('Automatic Mode', function() {
    * 2. 저수조 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it.skip('Critical Command ', async () => {
+  it('Critical Command ', async () => {
     // 모든 장치 Close 명령이 완료 되길 기다림
     await eventToPromise(control, 'completeCommand');
     // 설정 모드를 Automatic 으로 교체

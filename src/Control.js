@@ -499,6 +499,8 @@ class Control extends EventEmitter {
         return false;
       }
 
+      this.model.updateNodeList(renewalNodeList);
+
       const dataList = this.model.getAllNodeStatus(
         nodePickKey.FOR_SERVER,
         renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),

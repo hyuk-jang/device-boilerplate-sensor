@@ -7,6 +7,7 @@ const { BM } = require('base-model-jh');
 const ControlDBS = require('./Control');
 
 const CmdManager = require('./core/CommandManager/AbstCmdManager');
+const CriticalManager = require('./core/CriticalManager/AbstCriticalManager');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
@@ -47,6 +48,9 @@ class Model {
     /** @type {CmdManager} */
     this.cmdManager;
 
+    /** @type {{nodeId: string, observers: CriticalManager[]}[]} */
+    this.criticalObserverStorageList = [];
+
     // 정기 조회 Count
     this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);
     this.inquirySchedulerCurrCount = 0;
@@ -63,21 +67,21 @@ class Model {
 
   /** Model 상세 초기화 */
   init() {
-    this.initCommand();
+    // 명령 추적을 위한 Overlap Control Storage List 초기화.
     this.initOverapControlNode();
+    // Map에 기록된 명령을 해석하여 상세한 명령으로 생성하여 MapInfo 에 정의
+    this.initCommand();
+    // 기존 Node List 목록을 순회하면서 새로운 Critical Update Manager를 생성.
+    this.initUpdateNode();
   }
 
   /**
    * @desc O.C
-   * Overlap Control Storage List 초기화
+   * 명령 추적을 위한 Overlap Control Storage List 초기화.
+   * @description 센서는 추적 대상에서 제외
    */
   initOverapControlNode() {
-    // 노드 목록 중 장치만을 누적 제어 카운팅 목록으로 만듬
-
-    // /** @type {csOverlapControlInfo[]} 실제 진행중인 누적 명령만을 가진 목록 */
-    // this.processOverlapControlList = [];
-
-    /** @type {csOverlapControlStorage[]} */
+    /** @type {csOverlapControlStorage[]} 노드 목록 중 장치만을 누적 제어 카운팅 목록으로 만듬 */
     this.overlapControlStorageList = _(this.nodeList)
       .filter(nodeInfo => _.eq(nodeInfo.is_sensor, 0))
       .map(nodeInfo => ({
@@ -88,8 +92,8 @@ class Model {
   }
 
   /**
-   * 명령 제어 내용 초기화
-   * 1. 단순 명령 시작지, 도착지 명 한글화
+   * Map에 기록된 명령을 해석하여 상세한 명령으로 생성하여 MapInfo 에 정의
+   * 1. 단순 명령 출발지, 목적지 명 한글화
    * 2. 단순 명령 ID 코드 생성(srcPlaceId_TO_destPlaceId)
    */
   initCommand() {
@@ -101,39 +105,57 @@ class Model {
     flowCmdList.forEach(simpleCommandInfo => {
       const { srcPlaceId } = simpleCommandInfo;
 
-      // 시작지 한글 이름
+      // 출발지 한글 이름
       const srcPlaceName = _.chain(this.placeList)
         .find({ place_id: srcPlaceId })
         .get('place_name')
         .value();
-
+      // 출발지 한글이름 추가
       _.set(simpleCommandInfo, 'srcPlaceName', srcPlaceName);
-
+      // 목적지 목록을 순회하면서 상세 명령 정보 정의
       simpleCommandInfo.destList.forEach(scDesInfo => {
         const { destPlaceId } = scDesInfo;
-
-        // 도착지 한글 이름
+        // 목적지 한글 이름
         const destPlaceName = _.chain(this.placeList)
           .find({ place_id: destPlaceId })
           .get('place_name')
           .value();
-
+        // 목적지 한글이름 추가 및 명령 정보 정의
         _.set(simpleCommandInfo, 'destPlaceName', srcPlaceName);
-        // 한글 명령
         _.set(scDesInfo, 'cmdId', `${srcPlaceId}_TO_${destPlaceId}`);
         _.set(scDesInfo, 'cmdName', `${srcPlaceName} → ${destPlaceName}`);
       });
     });
 
-    // BU.CLI(flowCmdList);
-
     const mapCmdInfo = {
-      /** @type {flowCmdInfo[]} */
+      /** @type {flowCmdInfo[]} 기존 Map에 있는 Flow Command를 변형 처리 */
       flowCmdList,
       setCmdList,
     };
 
     this.mapCmdInfo = mapCmdInfo;
+  }
+
+  /**
+   * @desc C.C (Critical Command)
+   * 기존 Node List 목록을 순회하면서 새로운 Critical Update Manager를 생성.
+   */
+  initUpdateNode() {
+    this.nodeList.forEach(nodeInfo => {
+      /** @type {{nodeId: string, observers: CriticalManager[]}} */
+      const criticalObserverStorage = {
+        nodeId: nodeInfo.node_id,
+        observers: [],
+      };
+
+      this.criticalObserverStorageList.push(criticalObserverStorage);
+
+      _.set(nodeInfo, 'ciriticalObservers', observer => {
+        if (observer instanceof CriticalManager) {
+          observer.updateNodeInfo(nodeInfo);
+        }
+      });
+    });
   }
 
   /**
@@ -180,8 +202,8 @@ class Model {
   /**
    *
    * @param {Object} reqFlowCmd
-   * @param {string=} reqFlowCmd.srcPlaceId 시작 장소 ID
-   * @param {string=} reqFlowCmd.destPlaceId 목적지 장소 Id
+   * @param {string=} reqFlowCmd.srcPlaceId 출발지 ID
+   * @param {string=} reqFlowCmd.destPlaceId 목적지 Id
    * @param {string=} reqFlowCmd.cmdId 명령 이름 영어(srcPlaceId_TO_destPlaceId)
    * @return {flowCmdDestInfo} 데이터를 찾을 경우. 아니라면 undefined
    */
@@ -195,7 +217,7 @@ class Model {
         .find({ cmdId });
     }
 
-    // 시작지와 목적지가 있을 경우
+    // 출발지와 목적지가 있을 경우
     if (srcPlaceId.length && destPlaceId.length) {
       const flowCmdInfo = _.find(this.mapCmdInfo.flowCmdList, { srcPlaceId });
       if (flowCmdInfo !== undefined) {
@@ -261,6 +283,78 @@ class Model {
     return _.find(this.dataLoggerControllerList, router =>
       _.isEqual(router.dataLoggerInfo, searchValue),
     );
+  }
+
+  /**
+   * @desc C.C (Critical Command)
+   * Node의 데이터가 갱신되었고 임계치 옵저버가 존재할 경우 전파
+   * @param {nodeInfo[]} nodeList Renewal Node List
+   */
+  updateNodeList(nodeList) {
+    nodeList.forEach(nodeInfo => {
+      // 크리티컬 옵저버 저장소를 가져옴
+      const criticalObserverStorage = _.find(this.criticalObserverStorageList, {
+        nodeId: nodeInfo.node_id,
+      });
+      // 옵저버에게 갱신된 노드를 전파
+      criticalObserverStorage.observers.forEach(observer => {
+        observer.updateNodeInfo(nodeInfo);
+      });
+    });
+  }
+
+  /**
+   * @desc C.C (Critical Command)
+   * 데이터가 갱신될 때 데이터를 수신할 임계치 옵저버 추가 메소드
+   * @param {string} nodeId
+   * @param {CriticalManager} ciriticalManager
+   * @return {void} 추가 실패시 예외 발생
+   */
+  addCriticalObserver(nodeId, ciriticalManager) {
+    const criticalObserverStorage = _.find(this.criticalObserverStorageList, { nodeId });
+
+    if (criticalObserverStorage) {
+      const { observers } = criticalObserverStorage;
+
+      if (_.find(observers, observer => _.isEqual(observer, ciriticalManager))) {
+        throw new Error('The Critical Manager already exists.');
+      }
+
+      // 임계치 관리자 형태를 가질 경우에만 추가
+      if (ciriticalManager instanceof CriticalManager) {
+        observers.push(ciriticalManager);
+      } else {
+        throw new Error('this Critical Manager is not Critical Manager.');
+      }
+    } else {
+      throw new Error('The Critical Manager does not exist.');
+    }
+  }
+
+  /**
+   * @desc C.C (Critical Command)
+   * 데이터가 갱신될 때 데이터를 수신할 임계치 옵저버 추가 메소드
+   * @param {string} nodeId
+   * @param {AbstCriticalManager} ciriticalManager
+   * @return {void} 삭제 실패 시 예외 발생
+   */
+  deleteCriticalObserver(nodeId, ciriticalManager) {
+    const criticalObserverStorage = _.find(this.criticalObserverStorageList, { nodeId });
+
+    if (criticalObserverStorage) {
+      const { observers } = criticalObserverStorage;
+      // 해당 크리티컬 매니저가 존재하는 Index를 가져옴
+      const foundIndex = _.findIndex(observers, observer => _.isEqual(observer, ciriticalManager));
+
+      // 존재하지 않을 경우 false
+      if (foundIndex !== -1) {
+        throw new Error('The Critical Manager does not exist.');
+      }
+
+      // 존재한다면 삭제하고 true 반환
+      return _.pullAt(observers, [foundIndex]) && true;
+    }
+    throw new Error(`nodeId: ${nodeId} is not exist.`);
   }
 
   /**
