@@ -360,14 +360,26 @@ class AbstCmdManager {
 
       // 명령 취소가 요청이 정상적으로 처리되었다면 기존 제어 명령은 제거 처리
       if (wrapCmdType === reqWrapCmdType.CANCEL) {
-        _.remove(this.complexCmdList, { wrapCmdId, wrapCmdType: reqWrapCmdType.CONTROL });
-        // TODO: CC가 있을 경우 제거 처리
+        // 명령이 존재하는 index 조회
+        const foundIndex = _.findIndex(this.complexCmdList, {
+          wrapCmdId,
+          wrapCmdType: reqWrapCmdType.CONTROL,
+        });
+
+        // 만약 CC가 존재한다면 제거
+        this.model.criticalManager.removeCriticalStorage(this.complexCmdList[foundIndex]);
+        // 기존 복합 명령 제거
+        _.pullAt(this.complexCmdList, [foundIndex]);
+        // _.remove(this.complexCmdList, { wrapCmdId, wrapCmdType: reqWrapCmdType.CONTROL });
       }
 
       // 명령을 요청한 시점에서의 제어 모드
       complexCmdWrapInfo.controlMode = this.controller.controlMode;
 
       this.complexCmdList.push(complexCmdWrapInfo);
+
+      // 명령 스택이 정상적으로 처리되었으므로 API Client에게 전송
+      this.model.transmitComplexCommandStatus();
 
       return complexCmdWrapInfo;
     } catch (error) {
@@ -416,6 +428,7 @@ class AbstCmdManager {
       wrapCmdId,
       wrapCmdName,
       wrapCmdType,
+      wrapCmdGoalInfo,
       containerCmdList,
       realContainerCmdList,
     } = foundComplexCmdInfo;
@@ -463,7 +476,6 @@ class AbstCmdManager {
 
       // 명령 완료 처리
       this.completeComplexCommand(foundComplexCmdInfo);
-      this.model.transmitComplexCommandStatus();
 
       // FIXME: 수동 자동? 처리?
       // foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;
@@ -524,13 +536,13 @@ class AbstCmdManager {
 
       const { MANUAL } = controlModeInfo;
 
-      const { MEASURE, CONTROL } = reqWrapCmdType;
+      const { MEASURE, CONTROL, CANCEL } = reqWrapCmdType;
 
       const { RUNNING } = complexCmdStep;
 
       let isDeleteCmd = true;
 
-      const { controlMode, wrapCmdType, wrapCmdUUID } = complexWrapCmdInfo;
+      const { controlMode, wrapCmdType, wrapCmdUUID, wrapCmdGoalInfo } = complexWrapCmdInfo;
 
       // 제어 명령일 경우에만 RUNNING 여부 체크
       if (wrapCmdType === CONTROL) {
@@ -538,7 +550,13 @@ class AbstCmdManager {
         if (controlMode !== MANUAL && this.controller.controlMode !== MANUAL) {
           complexWrapCmdInfo.wrapCmdStep = RUNNING;
           isDeleteCmd = false;
+
+          // 제어 명령에 달성 목표가 있다면 임계치 관리자 생성
+          if (!_.isEmpty(wrapCmdGoalInfo)) {
+            this.model.criticalManager.addCriticalStorage(complexWrapCmdInfo);
+          }
         }
+      } else if (wrapCmdType === CANCEL) {
       }
 
       // 명령 삭제 처리를 해야할 경우
@@ -554,6 +572,8 @@ class AbstCmdManager {
         // Complex Command List 에서 제거
         _.remove(this.complexCmdList, { wrapCmdUUID });
       }
+
+      this.model.transmitComplexCommandStatus();
     } catch (error) {
       throw error;
     }

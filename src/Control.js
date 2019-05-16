@@ -499,7 +499,7 @@ class Control extends EventEmitter {
         return false;
       }
 
-      this.model.updateNodeList(renewalNodeList);
+      this.model.criticalManager.updateNodeList(renewalNodeList);
 
       const dataList = this.model.getAllNodeStatus(
         nodePickKey.FOR_SERVER,

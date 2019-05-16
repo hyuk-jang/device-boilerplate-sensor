@@ -7,7 +7,7 @@ const { BM } = require('base-model-jh');
 const ControlDBS = require('./Control');
 
 const CmdManager = require('./core/CommandManager/AbstCmdManager');
-const CriticalManager = require('./core/CriticalManager/AbstCriticalManager');
+const CriticalManager = require('./core/CriticalManager/CriticalManager');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
@@ -45,11 +45,11 @@ class Model {
 
     this.biModule = new BM(config.dbInfo);
 
-    /** @type {CmdManager} */
+    /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
     this.cmdManager;
 
-    /** @type {{nodeId: string, observers: CriticalManager[]}[]} */
-    this.criticalObserverStorageList = [];
+    /** @type {CriticalManager} 임계치 관리자 */
+    this.criticalManager = new CriticalManager(controller);
 
     // 정기 조회 Count
     this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);
@@ -71,8 +71,6 @@ class Model {
     this.initOverapControlNode();
     // Map에 기록된 명령을 해석하여 상세한 명령으로 생성하여 MapInfo 에 정의
     this.initCommand();
-    // 기존 Node List 목록을 순회하면서 새로운 Critical Update Manager를 생성.
-    this.initUpdateNode();
   }
 
   /**
@@ -134,28 +132,6 @@ class Model {
     };
 
     this.mapCmdInfo = mapCmdInfo;
-  }
-
-  /**
-   * @desc C.C (Critical Command)
-   * 기존 Node List 목록을 순회하면서 새로운 Critical Update Manager를 생성.
-   */
-  initUpdateNode() {
-    this.nodeList.forEach(nodeInfo => {
-      /** @type {{nodeId: string, observers: CriticalManager[]}} */
-      const criticalObserverStorage = {
-        nodeId: nodeInfo.node_id,
-        observers: [],
-      };
-
-      this.criticalObserverStorageList.push(criticalObserverStorage);
-
-      _.set(nodeInfo, 'ciriticalObservers', observer => {
-        if (observer instanceof CriticalManager) {
-          observer.updateNodeInfo(nodeInfo);
-        }
-      });
-    });
   }
 
   /**
@@ -283,78 +259,6 @@ class Model {
     return _.find(this.dataLoggerControllerList, router =>
       _.isEqual(router.dataLoggerInfo, searchValue),
     );
-  }
-
-  /**
-   * @desc C.C (Critical Command)
-   * Node의 데이터가 갱신되었고 임계치 옵저버가 존재할 경우 전파
-   * @param {nodeInfo[]} nodeList Renewal Node List
-   */
-  updateNodeList(nodeList) {
-    nodeList.forEach(nodeInfo => {
-      // 크리티컬 옵저버 저장소를 가져옴
-      const criticalObserverStorage = _.find(this.criticalObserverStorageList, {
-        nodeId: nodeInfo.node_id,
-      });
-      // 옵저버에게 갱신된 노드를 전파
-      criticalObserverStorage.observers.forEach(observer => {
-        observer.updateNodeInfo(nodeInfo);
-      });
-    });
-  }
-
-  /**
-   * @desc C.C (Critical Command)
-   * 데이터가 갱신될 때 데이터를 수신할 임계치 옵저버 추가 메소드
-   * @param {string} nodeId
-   * @param {CriticalManager} ciriticalManager
-   * @return {void} 추가 실패시 예외 발생
-   */
-  addCriticalObserver(nodeId, ciriticalManager) {
-    const criticalObserverStorage = _.find(this.criticalObserverStorageList, { nodeId });
-
-    if (criticalObserverStorage) {
-      const { observers } = criticalObserverStorage;
-
-      if (_.find(observers, observer => _.isEqual(observer, ciriticalManager))) {
-        throw new Error('The Critical Manager already exists.');
-      }
-
-      // 임계치 관리자 형태를 가질 경우에만 추가
-      if (ciriticalManager instanceof CriticalManager) {
-        observers.push(ciriticalManager);
-      } else {
-        throw new Error('this Critical Manager is not Critical Manager.');
-      }
-    } else {
-      throw new Error('The Critical Manager does not exist.');
-    }
-  }
-
-  /**
-   * @desc C.C (Critical Command)
-   * 데이터가 갱신될 때 데이터를 수신할 임계치 옵저버 추가 메소드
-   * @param {string} nodeId
-   * @param {AbstCriticalManager} ciriticalManager
-   * @return {void} 삭제 실패 시 예외 발생
-   */
-  deleteCriticalObserver(nodeId, ciriticalManager) {
-    const criticalObserverStorage = _.find(this.criticalObserverStorageList, { nodeId });
-
-    if (criticalObserverStorage) {
-      const { observers } = criticalObserverStorage;
-      // 해당 크리티컬 매니저가 존재하는 Index를 가져옴
-      const foundIndex = _.findIndex(observers, observer => _.isEqual(observer, ciriticalManager));
-
-      // 존재하지 않을 경우 false
-      if (foundIndex !== -1) {
-        throw new Error('The Critical Manager does not exist.');
-      }
-
-      // 존재한다면 삭제하고 true 반환
-      return _.pullAt(observers, [foundIndex]) && true;
-    }
-    throw new Error(`nodeId: ${nodeId} is not exist.`);
   }
 
   /**

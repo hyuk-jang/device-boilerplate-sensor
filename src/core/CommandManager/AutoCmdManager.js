@@ -79,13 +79,13 @@ class AutoCmdManager extends AbstCmdManager {
   }
 
   /**
-   * 제어할 경우
+   * 실제 제어하는 장치를 구해 컨테이너 목록 반환
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
   produceControlCommand(complexCmdWrapInfo) {
-    // BU.CLI(complexCmdWrapInfo);9
-    const { controlMode, wrapCmdType, wrapCmdId, containerCmdList } = complexCmdWrapInfo;
+    // BU.CLI(complexCmdWrapInfo);
+    const { containerCmdList } = complexCmdWrapInfo;
 
     /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
     const realContainerCmdList = [];
