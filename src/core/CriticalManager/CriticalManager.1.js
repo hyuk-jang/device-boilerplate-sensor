@@ -2,9 +2,8 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const CriticalComponent = require('./CriticalComponent');
-const CriticalComposite = require('./CriticalComposite');
-const CriticalLeaf = require('./CriticalLeaf');
+const CriticalStorage = require('./CriticalStorage');
+const CriticalGoal = require('./CriticalGoal');
 
 const { dcmConfigModel, dccFlagModel } = require('../../../../default-intelligence');
 
@@ -16,9 +15,7 @@ class CriticalManager {
   constructor(controller) {
     this.controller = controller;
 
-    // this.criticalComponent = new CriticalComponent();
-
-    /** @type {CriticalComposite[]} */
+    /** @type {CriticalStorage[]} */
     this.criticalStorageList = [];
 
     /** @type {{nodeId: string, observers: CriticalGoal[]}[]} Node List Node Id에 Critical Observers 정의 */
@@ -84,27 +81,19 @@ class CriticalManager {
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    */
   addCriticalStorage(complexCmdWrapInfo) {
-    const {
-      wrapCmdGoalInfo: { goalDataList, limitTimeSec },
-    } = complexCmdWrapInfo;
-
-    // 새로운 임계치 저장소 생성
-    const criticalStorage = new CriticalComposite(complexCmdWrapInfo);
-    // 설정 타이머가 존재한다면 제한 시간 타이머 동작
-    if (_.isNumber(limitTimeSec)) {
-      criticalStorage.startLimiter(limitTimeSec);
-    }
-
-    // 세부 달성 목록 목표만큼 객체 생성 후 옵저버 등록
-    goalDataList.forEach(goalInfo => {
-      const criticalGoal = new CriticalLeaf(goalInfo);
-      // Update Node 정보를 받을 옵저버 등록
-      this.attachObserver(criticalGoal);
-      // 세부 달성 목표 추가
-      criticalStorage.addComponent(criticalGoal);
-    });
+    const foundIndex = _.findIndex(this.criticalStorageList, { complexCmdWrapInfo });
+    // 해당 Critical Storage가 존재한다면 추가 실패
+    if (foundIndex !== -1) return false;
+    // 추가 후 true 반환
+    const criticalStorage = new CriticalStorage(this, complexCmdWrapInfo);
+    criticalStorage.init();
 
     this.criticalStorageList.push(criticalStorage);
+
+    // Update Node 정보를 받을 옵저버 등록
+    criticalStorage.criticalGoalList.forEach(criticalGoal => {
+      this.attachObserver(criticalGoal);
+    });
   }
 
   /**
@@ -123,7 +112,7 @@ class CriticalManager {
     criticalStorage.criticalLimitTimer && clearTimeout(criticalStorage.criticalLimitTimer);
 
     // Update Node 정보를 받는 옵저버 해제
-    criticalStorage.children.forEach(criticalGoal => {
+    criticalStorage.criticalGoalList.forEach(criticalGoal => {
       this.dettachObserver(criticalGoal);
     });
 

@@ -197,7 +197,7 @@ describe('Automatic Mode', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
     // 설정 명령이  O.C 스택에 올라가지 않도록 하기 위함
-    control.controlMode = controlModeInfo.MANUAL;
+    // control.controlMode = controlModeInfo.MANUAL;
 
     control.executeSetControl({
       wrapCmdId: 'closeAllDevice',
@@ -445,8 +445,33 @@ describe('Automatic Mode', function() {
     // 설정 모드를 Automatic 으로 교체
     control.controlMode = controlModeInfo.AUTOMATIC;
 
+    const { criticalManager } = control.model;
+
     // * 1. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 수위 조작 후 명령 삭제 확인.
-    // const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+    rvToSEB1A.wrapCmdGoalInfo = {
+      goalDataList: [
+        {
+          goalValue: 10,
+          goalRange: goalDataRange.UPPER,
+          nodeId: 'BT_001',
+        },
+      ],
+    };
+    // 저수조 > 증발지 1-A 명령 요청
+    const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+
+    // 명령이 완료되기를 기다림
+    await eventToPromise(control, 'completeCommand');
+
+    // 저수조 > 증발지 1-A 임계치 저장소 가져옴
+    const criStoRvTo1A = criticalManager.getCriticalStorage(cmdRvTo1A);
+    const criGoalRvTo1A = _.head(criStoRvTo1A.goalDataList);
+
+    // 새로운 임계치 명령이 등록되야함.
+    expect(criStoRvTo1A.goalDataList).length(1);
+    expect(criGoalRvTo1A.nodeId).to.eq('BT_001');
+    // Node Id BT_001 에는 옵저버가 1개 등록되어야 한다.
+    expect(criticalManager.getCriticalObserver('BT_001', criGoalRvTo1A)).to.equal(criGoalRvTo1A);
 
     // * 2. 저수조 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
 

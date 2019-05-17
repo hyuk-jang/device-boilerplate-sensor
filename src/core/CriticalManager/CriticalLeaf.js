@@ -2,7 +2,7 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const CriticalStorage = require('./CriticalStorage');
+const CriticalComponent = require('./CriticalComponent');
 
 const {
   dcmConfigModel: { goalDataRange },
@@ -12,15 +12,12 @@ const {
  * 명령 달성 목표가 생성될 때 마다 객체를 생성.
  * 데이터가 갱신될 때 마다 해당 달성 목표가 처리 되었는지 확인.
  */
-class CriticalGoal {
+class CriticalLeaf extends CriticalComponent {
   /**
-   * @param {CriticalStorage} criticalStorage
    * @param {csCmdGoalInfo} csCmdGoalInfo
    */
-  constructor(criticalStorage, csCmdGoalInfo) {
-    // 세부 Goal을 달성하였을 때 알릴 상위 개체
-    this.criticalStorage = criticalStorage;
-
+  constructor(csCmdGoalInfo) {
+    super();
     const { nodeId, goalValue, goalRange, isCompleteClear = false } = csCmdGoalInfo;
     // 임계치 모니터링 Node 객체 Id
     this.nodeId = nodeId;
@@ -32,8 +29,6 @@ class CriticalGoal {
     this.isCompleteClear = isCompleteClear;
     // 달성 목표 성공 여부
     this.isClear = false;
-    // 조건 클리어 시 전파할 개체
-    this.setObserver(criticalStorage);
   }
 
   /**
@@ -56,18 +51,11 @@ class CriticalGoal {
         break;
     }
 
-    // if (_.isNumber(data)) {
-    //   isClear = this.updateNumValue(data);
-    // } else if (_.isString(data)) {
-    //   isClear = this.updateStrValue(data);
-    // }
-
     // 성공하지 못한 상태에서 성공 상태로 넘어갔을 경우에만 전파
     if (isClear === true && this.isClear === false) {
       this.isClear = isClear;
 
-      // 매니저에게 나 완료되었다고 알림
-      this.criticalStorage.notifyClear(this);
+      this.notifyClear(this);
     }
   }
 
@@ -106,4 +94,4 @@ class CriticalGoal {
   }
 }
 
-module.exports = CriticalGoal;
+module.exports = CriticalLeaf;

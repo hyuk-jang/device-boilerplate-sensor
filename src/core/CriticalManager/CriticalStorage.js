@@ -47,8 +47,6 @@ class CriticalStorage {
     this.criticalGoalList = this.goalDataList.map(goalInfo => new CriticalGoal(this, goalInfo));
   }
 
-  failCriticalCommand() {}
-
   /**
    * 세부 목표를 완료했다고 알려 올 세부 객체
    * @param {CriticalGoal} criticalGoal
