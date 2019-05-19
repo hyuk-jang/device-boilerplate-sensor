@@ -443,7 +443,13 @@ describe('Automatic Mode', function() {
     // 모든 장치 Close 명령이 완료 되길 기다림
     await eventToPromise(control, 'completeCommand');
     // 설정 모드를 Automatic 으로 교체
-    control.controlMode = controlModeInfo.AUTOMATIC;
+    control.changeControlMode(controlModeInfo.AUTOMATIC);
+    // control.controlMode = controlModeInfo.AUTOMATIC;
+
+    const NODE_BT_001 = 'BT_001';
+    const nodeInfo = _.find(control.nodeList, { node_id: NODE_BT_001 });
+    // 최초 수위는 3으로 설정
+    nodeInfo.data = 3;
 
     const { criticalManager } = control.model;
 
@@ -453,7 +459,7 @@ describe('Automatic Mode', function() {
         {
           goalValue: 10,
           goalRange: goalDataRange.UPPER,
-          nodeId: 'BT_001',
+          nodeId: NODE_BT_001,
         },
       ],
     };
@@ -463,16 +469,32 @@ describe('Automatic Mode', function() {
     // 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
 
+    console.time('Step 1');
+
     // 저수조 > 증발지 1-A 임계치 저장소 가져옴
-    const criStoRvTo1A = criticalManager.getCriticalStorage(cmdRvTo1A);
-    const criGoalRvTo1A = _.head(criStoRvTo1A.goalDataList);
+    const criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
+    const criGoalRvTo1A = criStoRvTo1A.getCriticalComponent(NODE_BT_001);
 
     // 새로운 임계치 명령이 등록되야함.
-    expect(criStoRvTo1A.goalDataList).length(1);
-    expect(criGoalRvTo1A.nodeId).to.eq('BT_001');
+    expect(criStoRvTo1A.children).length(1);
+    expect(criGoalRvTo1A.nodeId).to.eq(NODE_BT_001);
     // Node Id BT_001 에는 옵저버가 1개 등록되어야 한다.
-    expect(criticalManager.getCriticalObserver('BT_001', criGoalRvTo1A)).to.equal(criGoalRvTo1A);
+    expect(criticalManager.getCriticalObserver(NODE_BT_001, criGoalRvTo1A)).to.equal(criGoalRvTo1A);
 
+    // 딜레이 타이머
+    await Promise.delay(1000);
+
+    // BT_011 를 가져오고 값을 설정한 후 데이터 갱신 이벤트를 발생 시킴
+    nodeInfo.data = 11;
+
+    control.notifyDeviceData(null, [nodeInfo]);
+
+    expect(criStoRvTo1A.children).length(0);
+    expect(criGoalRvTo1A.nodeId).to.eq(NODE_BT_001);
+    // Node Id BT_001 에는 옵저버가 1개 등록되어야 한다.
+    expect(criticalManager.getCriticalObserver(NODE_BT_001, criGoalRvTo1A)).to.equal(criGoalRvTo1A);
+
+    console.timeEnd('Step 1');
     // * 2. 저수조 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
 
     // * 3. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.

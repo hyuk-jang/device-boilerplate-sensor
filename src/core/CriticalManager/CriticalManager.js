@@ -3,20 +3,24 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const CriticalComponent = require('./CriticalComponent');
-const CriticalComposite = require('./CriticalComposite');
-const CriticalLeaf = require('./CriticalLeaf');
+const CriticalStorage = require('./CriticalStorage');
+const CriticalGoal = require('./CriticalGoal');
 
 const { dcmConfigModel, dccFlagModel } = require('../../../../default-intelligence');
 
 const { controlModeInfo, reqWrapCmdType, reqWrapCmdFormat } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
 
-class CriticalManager {
+/**
+ * Cmd Manager에서 임계치 정보가 있을 경우 등록 및 관리하는 역할 수행
+ * 임계치 관리 총 마스터. Manager > Storage > Goal 순으로 Tree 구조를 가짐
+ * 데이터가 갱신 되었을 때 Goal로 Node 정보를 보내는 역할 수행.
+ */
+class CriticalManager extends CriticalComponent {
   /** @param {MainControl} controller */
   constructor(controller) {
+    super();
     this.controller = controller;
-
-    // this.criticalComponent = new CriticalComponent();
 
     /** @type {CriticalComposite[]} */
     this.criticalStorageList = [];
@@ -31,12 +35,77 @@ class CriticalManager {
     });
   }
 
+  // setSuccessor() {}
+
   /**
+   * @desc Critical Component
    * 임계치 저장소를 조회하고자 할 경우
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   * @return {CriticalStorage}
    */
-  getCriticalStorage(complexCmdWrapInfo) {
+  getCriticalComponent(complexCmdWrapInfo) {
     return _.find(this.criticalStorageList, { complexCmdWrapInfo });
+  }
+
+  /**
+   * @desc Critical Component
+   * @param {CriticalStorage} criticalStorage
+   */
+  addComponent(criticalStorage) {
+    this.criticalStorageList.push(criticalStorage);
+  }
+
+  /**
+   * @desc Critical Component
+   * @param {CriticalStorage} criticalStorage
+   */
+  removeComponent(criticalStorage) {
+    const foundIndex = _.findIndex(this.criticalStorageList, child =>
+      _.isEqual(child, criticalStorage),
+    );
+
+    if (foundIndex === -1) return false;
+
+    // 삭제 및 참 반환
+    return _.pullAt(this.criticalStorageList, [foundIndex]) && true;
+  }
+
+  /**
+   * 임계치 명령을 성공했을 경우
+   * @desc Critical Component
+   * @param {CriticalComposite} criticalStorage
+   * @return {boolean} 삭제 성공 시 true, 아니라면 false
+   */
+  notifyClear(criticalStorage) {
+    // BU.CLI('notifyClear');
+    const {
+      complexCmdWrapInfo,
+      complexCmdWrapInfo: { wrapCmdId, wrapCmdFormat, srcPlaceId, destPlaceId },
+    } = criticalStorage;
+
+    const isRemoved = this.removeCriticalCommand(complexCmdWrapInfo);
+
+    // BU.CLI(isRemoved);
+
+    // 삭제를 성공하였을 경우에만 취소 명령 요청
+    if (isRemoved) {
+      // 흐름 명령 취소 요청
+      if (wrapCmdFormat === reqWrapCmdFormat.FLOW) {
+        this.controller.executeFlowControl({
+          wrapCmdType: reqWrapCmdType.CANCEL,
+          srcPlaceId,
+          destPlaceId,
+          rank: definedCommandSetRank.FIRST,
+        });
+      } else if (wrapCmdFormat === reqWrapCmdFormat.SET) {
+        // 설정 명령 취소 요청
+        this.controller.executeSetControl({
+          wrapCmdType: reqWrapCmdType.CANCEL,
+          wrapCmdId,
+          rank: definedCommandSetRank.FIRST,
+        });
+      }
+    }
   }
 
   /**
@@ -47,15 +116,17 @@ class CriticalManager {
    */
   getCriticalObserver(nodeId, criticalGoal) {
     try {
+      BU.CLI('nodeId', nodeId);
       // nodeId에 맞는 임계치 옵저버 객체를 가져옴
-      const criticalObserver = _.find(this.criticalObserverList, { nodeId });
-      BU.CLIN(criticalObserver.observers[0]);
-      BU.CLIN(criticalGoal);
+      const criticalObserver = _.find(this.c9riticalObserverList, { nodeId });
+      // BU.CLIN(criticalGoal);
+      // BU.CLIN(criticalObserver.observers[0]);
+      // BU.CLIN(criticalGoal);
       // 조회할려는 세부 임계치 목표 관리 객체를 찾아 반환
       const returnValue = _.find(criticalObserver.observers, observer =>
         _.isEqual(observer, criticalGoal),
       );
-      BU.CLIN(returnValue);
+      // BU.CLIN(returnValue);
       return returnValue;
     } catch (error) {
       return {};
@@ -80,16 +151,19 @@ class CriticalManager {
   }
 
   /**
-   * 임계치 명령을 추가하고자 할 경우
+   * 임계치 명령이 추가되어 달성 목표 관리 객체를 추가하고자 할 경우
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    */
-  addCriticalStorage(complexCmdWrapInfo) {
+  addCriticalCommand(complexCmdWrapInfo) {
+    // BU.CLI('addCriticalCommand');
     const {
       wrapCmdGoalInfo: { goalDataList, limitTimeSec },
     } = complexCmdWrapInfo;
 
     // 새로운 임계치 저장소 생성
-    const criticalStorage = new CriticalComposite(complexCmdWrapInfo);
+    const criticalStorage = new CriticalStorage(complexCmdWrapInfo);
+    // 매니저를 Successor로 등록
+    criticalStorage.setSuccessor(this);
     // 설정 타이머가 존재한다면 제한 시간 타이머 동작
     if (_.isNumber(limitTimeSec)) {
       criticalStorage.startLimiter(limitTimeSec);
@@ -97,7 +171,9 @@ class CriticalManager {
 
     // 세부 달성 목록 목표만큼 객체 생성 후 옵저버 등록
     goalDataList.forEach(goalInfo => {
-      const criticalGoal = new CriticalLeaf(goalInfo);
+      const criticalGoal = new CriticalGoal(goalInfo);
+      // 저장소를 Successor로 등록
+      criticalGoal.setSuccessor(criticalStorage);
       // Update Node 정보를 받을 옵저버 등록
       this.attachObserver(criticalGoal);
       // 세부 달성 목표 추가
@@ -108,17 +184,10 @@ class CriticalManager {
   }
 
   /**
-   * 임계치 명령을 삭제 할 경우
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {boolean} 삭제 성공 시 true, 아니라면 false
+   * Critical Storage에 걸려있는 임계치 타이머 삭제 및 Observer를 해제 후 삭제 처리
+   * @param {CriticalStorage} criticalStorage
    */
-  removeCriticalStorage(complexCmdWrapInfo) {
-    const foundIndex = _.findIndex(this.criticalStorageList, { complexCmdWrapInfo });
-    // 해당 Critical Storage를 찾지 못하였다면 삭제 실패
-    if (foundIndex === -1) return false;
-
-    const criticalStorage = this.criticalStorageList[foundIndex];
-
+  removeCriticalStorage(criticalStorage) {
     // 타이머가 동작 중이라면 타이머 해제
     criticalStorage.criticalLimitTimer && clearTimeout(criticalStorage.criticalLimitTimer);
 
@@ -128,38 +197,20 @@ class CriticalManager {
     });
 
     // 해당 임계치 저장소 삭제 및 true 반환
-    return _.pullAt(this.criticalStorageList, [foundIndex]) && true;
+    return this.removeComponent(criticalStorage);
   }
 
   /**
-   * 임계치 명령을 성공하고 취소 명령을 발송할 경우
+   * 임계치 목표 관리 객체를 삭제 할 경우
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    * @return {boolean} 삭제 성공 시 true, 아니라면 false
    */
-  achieveGoal(complexCmdWrapInfo) {
-    const { wrapCmdId, wrapCmdFormat, srcPlaceId, destPlaceId } = complexCmdWrapInfo;
+  removeCriticalCommand(complexCmdWrapInfo) {
+    const criticalStorage = this.getCriticalComponent(complexCmdWrapInfo);
+    // 해당 Critical Storage를 찾지 못하였다면 삭제 실패
+    if (_.isEmpty(criticalStorage)) return false;
 
-    const isRemoved = this.removeCriticalStorage(complexCmdWrapInfo);
-
-    // 삭제를 성공하였을 경우에만 취소 명령 요청
-    if (isRemoved) {
-      // 흐름 명령 취소 요청
-      if (wrapCmdFormat === reqWrapCmdFormat.FLOW) {
-        this.controller.executeFlowControl({
-          wrapCmdType: reqWrapCmdType.CANCEL,
-          srcPlaceId,
-          destPlaceId,
-          rank: definedCommandSetRank.FIRST,
-        });
-      } else if (wrapCmdFormat === reqWrapCmdFormat.SET) {
-        // 설정 명령 취소 요청
-        this.controller.executeSetControl({
-          wrapCmdType: reqWrapCmdType.CANCEL,
-          wrapCmdId,
-          rank: definedCommandSetRank.FIRST,
-        });
-      }
-    }
+    return this.removeCriticalStorage(criticalStorage);
   }
 
   /**
@@ -195,7 +246,10 @@ class CriticalManager {
    * @return {void} 삭제 실패 시 예외 발생
    */
   dettachObserver(criticalGoal) {
+    // BU.CLIN(criticalGoal);
     const { nodeId } = criticalGoal;
+
+    // BU.CLIN(this.criticalObserverList);
 
     const criticalObserverStorage = _.find(this.criticalObserverList, { nodeId });
 
@@ -205,7 +259,7 @@ class CriticalManager {
       // 해당 크리티컬 매니저가 존재하는 Index를 가져옴
       const foundIndex = _.findIndex(observers, observer => _.isEqual(observer, criticalGoal));
 
-      if (foundIndex !== -1) {
+      if (foundIndex === -1) {
         throw new Error('The Critical Goal does not exist.');
       }
       // 존재한다면 삭제

@@ -1,10 +1,3 @@
-const _ = require('lodash');
-
-const { BU } = require('base-util-jh');
-
-const CriticalManager = require('./CriticalManager');
-const CriticalGoal = require('./CriticalGoal');
-
 /**
  * @interface
  * 명령 달성 목표가 생성될 때 마다 객체를 생성.
@@ -12,29 +5,26 @@ const CriticalGoal = require('./CriticalGoal');
  */
 class CriticalComponent {
   /**
-   * 제한 시간이 존재한다면 SetTimer 등록 및 세부 달성 목표 개체 정의
+   * notifyClear을 성공하였을 경우 알릴 Successor
+   * @param {CriticalComponent} criticalComponent
    */
-  init() {}
+  setSuccessor(criticalComponent) {}
 
-  startLimiter() {}
+  /** @param {CriticalComponent} criticalComponent */
+  addComponent(criticalComponent) {}
 
-  addComponent() {}
+  /** @param {CriticalComponent} criticalComponent */
+  removeComponent(criticalComponent) {}
 
-  removeComponent() {}
-
-  /**
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {CriticalComponent}
-   */
-  getCriticalGoal(complexCmdWrapInfo) {}
-
-  achieveGoal() {}
+  /** @return {CriticalComponent} */
+  getCriticalComponent() {}
 
   /**
    * 세부 목표를 완료했다고 알려 올 세부 객체
-   * @param {CriticalComponent} criticalGoal
+   * @param {CriticalComponent} criticalComponent
+   * @return {CriticalComponent}
    */
-  notifyClear(criticalGoal) {}
+  notifyClear(criticalComponent) {}
 }
 
 module.exports = CriticalComponent;

@@ -2,25 +2,22 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const CriticalStorage = require('./CriticalStorage');
+const CriticalComponent = require('./CriticalComponent');
 
 const {
   dcmConfigModel: { goalDataRange },
 } = require('../../../../default-intelligence');
 
 /**
- * 명령 달성 목표가 생성될 때 마다 객체를 생성.
- * 데이터가 갱신될 때 마다 해당 달성 목표가 처리 되었는지 확인.
+ * 세부 달성 목표가 있을 경우 생성
+ * Node 정보가 갱신되었을 경우 현재의 달성 목표를 비교하고 성공 시 Successor에게 전파
  */
-class CriticalGoal {
+class CriticalGoal extends CriticalComponent {
   /**
-   * @param {CriticalStorage} criticalStorage
    * @param {csCmdGoalInfo} csCmdGoalInfo
    */
-  constructor(criticalStorage, csCmdGoalInfo) {
-    // 세부 Goal을 달성하였을 때 알릴 상위 개체
-    this.criticalStorage = criticalStorage;
-
+  constructor(csCmdGoalInfo) {
+    super();
     const { nodeId, goalValue, goalRange, isCompleteClear = false } = csCmdGoalInfo;
     // 임계치 모니터링 Node 객체 Id
     this.nodeId = nodeId;
@@ -32,42 +29,41 @@ class CriticalGoal {
     this.isCompleteClear = isCompleteClear;
     // 달성 목표 성공 여부
     this.isClear = false;
-    // 조건 클리어 시 전파할 개체
-    this.setObserver(criticalStorage);
+  }
+
+  /** @param {CriticalComponent} criticalComponent */
+
+  /**
+   * Goal을 성공하였을 경우 알릴 Successor
+   * @param {CriticalComponent} criticalComponent
+   */
+  setSuccessor(criticalComponent) {
+    // Critical Storage
+    this.successor = criticalComponent;
   }
 
   /**
-   *
+   * Critical Manager에서 업데이트된 Node 정보를 전달해옴.
+   * 데이터가 달성 목표에 도달하였다면 Critical Stroage에 알림.
    * @param {nodeInfo} nodeInfo
    */
   notifyNodeInfo(nodeInfo) {
+    // BU.CLIN(nodeInfo);
     const { data } = nodeInfo;
 
     let isClear = false;
 
-    switch (data) {
-      case _.isNumber(data):
-        isClear = this.updateNumValue(data);
-        break;
-      case _.isString(data):
-        isClear = this.updateStrValue(data);
-        break;
-      default:
-        break;
+    if (_.isNumber(data)) {
+      isClear = this.updateNumValue(data);
+    } else if (_.isString(data)) {
+      isClear = this.updateStrValue(data);
     }
-
-    // if (_.isNumber(data)) {
-    //   isClear = this.updateNumValue(data);
-    // } else if (_.isString(data)) {
-    //   isClear = this.updateStrValue(data);
-    // }
 
     // 성공하지 못한 상태에서 성공 상태로 넘어갔을 경우에만 전파
     if (isClear === true && this.isClear === false) {
       this.isClear = isClear;
 
-      // 매니저에게 나 완료되었다고 알림
-      this.criticalStorage.notifyClear(this);
+      this.successor.notifyClear(this);
     }
   }
 
@@ -75,6 +71,7 @@ class CriticalGoal {
    * @param {number} deviceData number 형식 데이터
    */
   updateNumValue(deviceData) {
+    // BU.CLI(deviceData, this.goalRange);
     let isClear = false;
 
     switch (this.goalRange) {

@@ -367,7 +367,7 @@ class AbstCmdManager {
         });
 
         // 만약 CC가 존재한다면 제거
-        this.model.criticalManager.removeCriticalStorage(this.complexCmdList[foundIndex]);
+        this.model.criticalManager.removeCriticalCommand(this.complexCmdList[foundIndex]);
         // 기존 복합 명령 제거
         _.pullAt(this.complexCmdList, [foundIndex]);
         // _.remove(this.complexCmdList, { wrapCmdId, wrapCmdType: reqWrapCmdType.CONTROL });
@@ -553,7 +553,7 @@ class AbstCmdManager {
 
           // 제어 명령에 달성 목표가 있다면 임계치 관리자 생성
           if (!_.isEmpty(wrapCmdGoalInfo)) {
-            this.model.criticalManager.addCriticalStorage(complexWrapCmdInfo);
+            this.model.criticalManager.addCriticalCommand(complexWrapCmdInfo);
           }
         }
       } else if (wrapCmdType === CANCEL) {
