@@ -160,7 +160,7 @@ class AutoCmdManager extends AbstCmdManager {
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
   produceCancelCommand(complexCmdWrapInfo) {
-    BU.CLI('produceCancelCommand');
+    // BU.CLI('produceCancelCommand');
     try {
       const { wrapCmdId, containerCmdList } = complexCmdWrapInfo;
 

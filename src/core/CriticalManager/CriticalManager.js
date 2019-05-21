@@ -85,8 +85,6 @@ class CriticalManager extends CriticalComponent {
 
     const isRemoved = this.removeCriticalCommand(complexCmdWrapInfo);
 
-    // BU.CLI(isRemoved);
-
     // 삭제를 성공하였을 경우에만 취소 명령 요청
     if (isRemoved) {
       // 흐름 명령 취소 요청
@@ -118,7 +116,7 @@ class CriticalManager extends CriticalComponent {
     try {
       BU.CLI('nodeId', nodeId);
       // nodeId에 맞는 임계치 옵저버 객체를 가져옴
-      const criticalObserver = _.find(this.c9riticalObserverList, { nodeId });
+      const criticalObserver = _.find(this.criticalObserverList, { nodeId });
       // BU.CLIN(criticalGoal);
       // BU.CLIN(criticalObserver.observers[0]);
       // BU.CLIN(criticalGoal);
@@ -129,6 +127,7 @@ class CriticalManager extends CriticalComponent {
       // BU.CLIN(returnValue);
       return returnValue;
     } catch (error) {
+      BU.CLI(error);
       return {};
     }
   }

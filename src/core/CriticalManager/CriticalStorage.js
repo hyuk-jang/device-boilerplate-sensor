@@ -46,7 +46,7 @@ class CriticalStorage extends CriticalComponent {
   startLimiter(limitTimeSec) {
     this.criticalLimitTimer = setTimeout(() => {
       // 제한 시간 초과로 달성 목표를 이루었다고 판단
-      this.notifyClear(this);
+      this.successor.notifyClear(this);
     }, limitTimeSec * 1000);
   }
 

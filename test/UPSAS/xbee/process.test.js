@@ -62,7 +62,7 @@ describe.skip('Manual Mode', function() {
     expect(() => control.inquiryAllDeviceStatus()).to.throw(Error);
 
     // // * 3. 정기 계측 명령 처리 시 O.C에는 영향을 미치지 않음
-    const ocLength = control.model.findExistOverlapControl();
+    const ocLength = control.model.cmdManager.findExistOverlapControl();
     expect(ocLength.length).to.eq(0);
 
     // BU.CLI(ocLength);
@@ -196,14 +196,22 @@ describe('Automatic Mode', function() {
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
-    // 설정 명령이  O.C 스택에 올라가지 않도록 하기 위함
-    // control.controlMode = controlModeInfo.MANUAL;
 
-    control.executeSetControl({
-      wrapCmdId: 'closeAllDevice',
-      wrapCmdType: reqWrapCmdType.CONTROL,
-    });
-    // BU.CLI(control.model.complexCmdList);
+    control.inquiryAllDeviceStatus();
+    await eventToPromise(control, 'completeInquiryAllDeviceStatus');
+  });
+
+  beforeEach(async () => {
+    control.controlMode = controlModeInfo.MANUAL;
+    if (control.model.cmdManager.findExistOverlapControl().length) {
+      control.executeSetControl({
+        wrapCmdId: 'closeAllDevice',
+        wrapCmdType: reqWrapCmdType.CONTROL,
+      });
+
+      await eventToPromise(control, 'completeCommand');
+    }
+    control.changeControlMode(controlModeInfo.AUTOMATIC);
   });
 
   /**
@@ -228,12 +236,8 @@ describe('Automatic Mode', function() {
    * 8. 증발지 1-A > 해주 1 명령 취소.
    * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
    */
-  it.skip('Multi Flow Command Control & Conflict & Cancel ', async () => {
-    // 모든 장치 Close 명령이 완료 되길 기다림
-    await eventToPromise(control, 'completeCommand');
-    // 설정 모드를 Automatic 으로 교체
-    control.changeControlMode(controlModeInfo.AUTOMATIC);
-
+  it('Multi Flow Command Control & Conflict & Cancel', async () => {
+    // BU.CLI('Multi Flow Command Control & Conflict & Cancel');
     // 1. 저수조 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
     const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
 
@@ -440,12 +444,7 @@ describe('Automatic Mode', function() {
    * 3. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
   it('Critical Command ', async () => {
-    // 모든 장치 Close 명령이 완료 되길 기다림
-    await eventToPromise(control, 'completeCommand');
-    // 설정 모드를 Automatic 으로 교체
-    control.changeControlMode(controlModeInfo.AUTOMATIC);
-    // control.controlMode = controlModeInfo.AUTOMATIC;
-
+    // BU.CLI('Critical Command');
     const NODE_BT_001 = 'BT_001';
     const nodeInfo = _.find(control.nodeList, { node_id: NODE_BT_001 });
     // 최초 수위는 3으로 설정
@@ -454,6 +453,7 @@ describe('Automatic Mode', function() {
     const { criticalManager } = control.model;
 
     // * 1. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 수위 조작 후 명령 삭제 확인.
+    rvToSEB1A.wrapCmdType = reqWrapCmdType.CONTROL;
     rvToSEB1A.wrapCmdGoalInfo = {
       goalDataList: [
         {
@@ -463,41 +463,90 @@ describe('Automatic Mode', function() {
         },
       ],
     };
-    // 저수조 > 증발지 1-A 명령 요청
-    const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
 
+    // 저수조 > 증발지 1-A 명령 요청
+    let cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
     // 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
-
     console.time('Step 1');
 
     // 저수조 > 증발지 1-A 임계치 저장소 가져옴
-    const criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
-    const criGoalRvTo1A = criStoRvTo1A.getCriticalComponent(NODE_BT_001);
-
+    let criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
+    let criGoalRvTo1A = criStoRvTo1A.getCriticalComponent(NODE_BT_001);
     // 새로운 임계치 명령이 등록되야함.
     expect(criStoRvTo1A.children).length(1);
     expect(criGoalRvTo1A.nodeId).to.eq(NODE_BT_001);
     // Node Id BT_001 에는 옵저버가 1개 등록되어야 한다.
     expect(criticalManager.getCriticalObserver(NODE_BT_001, criGoalRvTo1A)).to.equal(criGoalRvTo1A);
-
     // 딜레이 타이머
     await Promise.delay(1000);
 
     // BT_011 를 가져오고 값을 설정한 후 데이터 갱신 이벤트를 발생 시킴
     nodeInfo.data = 11;
-
     control.notifyDeviceData(null, [nodeInfo]);
 
-    expect(criStoRvTo1A.children).length(0);
-    expect(criGoalRvTo1A.nodeId).to.eq(NODE_BT_001);
-    // Node Id BT_001 에는 옵저버가 1개 등록되어야 한다.
-    expect(criticalManager.getCriticalObserver(NODE_BT_001, criGoalRvTo1A)).to.equal(criGoalRvTo1A);
+    // 임계치 명령 삭제
+    criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
+    // 삭제가 되었기 때문에 저장소는 삭제가 되어 임계치 관리 객체를 가져올 수 없음
+    expect(criStoRvTo1A).to.undefined;
+
+    // 수위 10cm 세부 달성 임계치 목표 객체는 Dettach 처리 및 소멸되어 있음
+    expect(criticalManager.getCriticalObserver(NODE_BT_001, criGoalRvTo1A)).to.undefined;
+
+    // Node Id BT_001 에는 옵저버가 0개 등록되어야 한다.
+    expect(
+      _.find(criticalManager.criticalObserverList, { nodeId: NODE_BT_001 }).observers,
+    ).to.length(0);
 
     console.timeEnd('Step 1');
-    // * 2. 저수조 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
 
-    // * 3. 저수조 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm [Echo]. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
+    // 임계치에 도달했기 때문에 CANCEL 명령 발송됨. 명령이 완료되기를 기다림
+    await eventToPromise(control, 'completeCommand');
+
+    expect(control.model.complexCmdList).to.length(0);
+
+    // * 2. 저수조 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
+    rvToSEB1A.wrapCmdGoalInfo = {
+      limitTimeSec: 1,
+      goalDataList: [
+        {
+          goalValue: 10,
+          goalRange: goalDataRange.UPPER,
+          nodeId: NODE_BT_001,
+        },
+      ],
+    };
+
+    cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+
+    // 제어 명령이 완료되기를 기다림
+    await eventToPromise(control, 'completeCommand');
+
+    criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
+    criGoalRvTo1A = criStoRvTo1A.getCriticalComponent(NODE_BT_001);
+
+    // 새로운 임계치 명령이 등록되야함.
+    expect(criStoRvTo1A.children).length(1);
+
+    // 딜레이 타이머만큼 기다림.
+    await Promise.delay(2000);
+
+    // 제한 시간 초과로 인한 임계치 명령 삭제
+    criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
+
+    // 삭제가 되었기 때문에 저장소는 삭제가 되어 임계치 관리 객체를 가져올 수 없음
+    expect(criStoRvTo1A).to.undefined;
+
+    // 취소 명령이 완료되기를 기다림
+    expect(
+      _.find(criticalManager.criticalObserverList, { nodeId: NODE_BT_001 }).observers,
+    ).to.length(0);
+
+    // 현재 진행 중인 명령은 존재하지 않음
+    expect(control.model.complexCmdList).to.length(0);
+
+    // 현재 누적 OC는 존재하지 않음
+    expect(control.model.cmdManager.findExistOverlapControl()).to.length(0);
   });
 });
 
