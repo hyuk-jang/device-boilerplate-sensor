@@ -18,7 +18,9 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
-const ControlModeUpdator = require('./core/Updator/ControlModeUpdator');
+/** 명령 처리를 위함 */
+const ManualCmdManager = require('./core/CommandManager/ManualCmdManager');
+const AutoCmdManager = require('./core/CommandManager/AutoCmdManager');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
 const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');
@@ -35,8 +37,6 @@ class Control extends EventEmitter {
     super();
     this.config = config;
     // BU.CLI(this.config);
-
-    this.controlModeUpdator = new ControlModeUpdator();
 
     /** @type {placeInfo[]} */
     this.placeList = [];
@@ -331,27 +331,24 @@ class Control extends EventEmitter {
    * @param {string} conMode
    */
   changeControlMode(conMode) {
-    BU.CLI('changeControlMode');
-    this.controlModeUpdator.notifyObserver(conMode);
+    let CmdManager;
 
-    // let CmdManager;
+    switch (conMode) {
+      // 수동 모드
+      case controlModeInfo.MANUAL:
+        CmdManager = ManualCmdManager;
+        break;
+      // 자동 모드
+      case controlModeInfo.AUTOMATIC:
+        CmdManager = AutoCmdManager;
+        break;
+      // 기본: 수동 모드
+      default:
+        CmdManager = ManualCmdManager;
+        break;
+    }
 
-    // switch (conMode) {
-    //   // 수동 모드
-    //   case controlModeInfo.MANUAL:
-    //     CmdManager = ManualCmdManager;
-    //     break;
-    //   // 자동 모드
-    //   case controlModeInfo.AUTOMATIC:
-    //     CmdManager = AutoCmdManager;
-    //     break;
-    //   // 기본: 수동 모드
-    //   default:
-    //     CmdManager = ManualCmdManager;
-    //     break;
-    // }
-
-    // this.model.cmdManager = new CmdManager(this);
+    this.model.cmdManager = new CmdManager(this);
 
     // BU.CLIN(this.model.cmdManager, 1);
   }

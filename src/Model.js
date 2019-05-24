@@ -6,7 +6,7 @@ const { BM } = require('base-model-jh');
 
 const ControlDBS = require('./Control');
 
-const CmdManager = require('./core/CommandManager/AbstCmdManager');
+const CmdManager = require('./core/CommandManager/CommandManager');
 const CriticalManager = require('./core/CriticalManager/CriticalManager');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
@@ -46,7 +46,7 @@ class Model {
     this.biModule = new BM(config.dbInfo);
 
     /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
-    this.cmdManager;
+    this.cmdManager = new CmdManager(this);
 
     /** @type {CriticalManager} 임계치 관리자 */
     this.criticalManager = new CriticalManager(controller);
@@ -67,6 +67,9 @@ class Model {
 
   /** Model 상세 초기화 */
   init() {
+    // 명령 관리자 초기화 진행
+    this.cmdManager.init();
+
     // 명령 추적을 위한 Overlap Control Storage List 초기화.
     this.initOverapControlNode();
     // Map에 기록된 명령을 해석하여 상세한 명령으로 생성하여 MapInfo 에 정의

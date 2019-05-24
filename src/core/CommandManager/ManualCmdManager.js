@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const AbstCmdManager = require('./AbstCmdManager');
+const CmdStrategist = require('./CmdStrategist');
 
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
@@ -16,13 +16,17 @@ const {
   reqDeviceControlType,
 } = dcmConfigModel;
 
-class ManualCmdManager extends AbstCmdManager {
-  /** @param {MainControl} controller */
-  constructor(controller) {
-    super(controller);
+class ManualCmdManager extends CmdStrategist {
+  /** @param {CommandManager} cmdManager */
+  constructor(cmdManager) {
+    super(cmdManager);
+
+    this.cmdManager = cmdManager;
+
+    this.hi = 'hi';
 
     // 컨트롤러 제어 모드 변경
-    controller.controlMode = controlModeInfo.MANUAL;
+    // controller.controlMode = controlModeInfo.MANUAL;
   }
 
   /**
@@ -46,7 +50,7 @@ class ManualCmdManager extends AbstCmdManager {
         eleCmdList,
         eleCmdInfo =>
           // 존재하지 않을 경우 true
-          !this.model.isExistSingleControl({
+          !this.cmdManager.model.isExistSingleControl({
             nodeId: eleCmdInfo.nodeId,
             singleControlType,
             controlSetValue,

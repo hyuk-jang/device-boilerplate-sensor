@@ -3,7 +3,8 @@ const uuidv4 = require('uuid/v4');
 
 const { BU } = require('base-util-jh');
 
-const AbstCmdManager = require('./AbstCmdManager');
+// const CommandManager = require('./CommandManager');
+const CmdStrategist = require('./CmdStrategist');
 
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
@@ -18,14 +19,14 @@ const {
   reqDeviceControlType,
 } = dcmConfigModel;
 
-class AutoCmdManager extends AbstCmdManager {
-  /** @param {MainControl} controller */
-  constructor(controller) {
-    super(controller);
+class AutoCmdManager extends CmdStrategist {
+  // /** @param {MainControl} controller */
+  // constructor(controller) {
+  //   super(controller);
 
-    // 컨트롤러 제어 모드 변경
-    controller.controlMode = controlModeInfo.AUTOMATIC;
-  }
+  //   // 컨트롤러 제어 모드 변경
+  //   controller.controlMode = controlModeInfo.AUTOMATIC;
+  // }
 
   /**
    * @abstract
@@ -39,7 +40,7 @@ class AutoCmdManager extends AbstCmdManager {
       // 제어 요청일 경우에 충돌 체크
       if (wrapCmdType === reqWrapCmdType.CONTROL) {
         // 명령 충돌 체크
-        return !this.isConflictCommand(complexCmdWrapInfo);
+        return !this.cmdManager.isConflictCommand(complexCmdWrapInfo);
       }
       return true;
     } catch (error) {
@@ -109,13 +110,15 @@ class AutoCmdManager extends AbstCmdManager {
         };
 
         // Overlap Control 조회
-        let overlapControlNode = this.findOverlapControlNode(overlapControlHandleConfig);
+        let overlapControlNode = this.cmdManager.model.findOverlapControlNode(
+          overlapControlHandleConfig,
+        );
 
         // overlapWCUs.length 가 존재하지만 reservedExecUU가 없고 제어 장치값이 다를 경우 추가로 제어구문 생성하고 reservedExecUU가 반영
 
         // OC 가 없다면 신규 OC. 새로 생성 함.
         if (_.isEmpty(overlapControlNode)) {
-          overlapControlNode = this.createOverlapControlNode(overlapControlHandleConfig);
+          overlapControlNode = this.cmdManager.createOverlapControlNode(overlapControlHandleConfig);
           // OC Storage가 없거나 OC가 존재하지 않으면 종료
           if (overlapControlNode === false) {
             throw new Error(
@@ -206,7 +209,9 @@ class AutoCmdManager extends AbstCmdManager {
           };
 
           // Overlap Control 조회
-          const overlapControlNode = this.findOverlapControlNode(overlapControlHandleConfig);
+          const overlapControlNode = this.cmdManager.findOverlapControlNode(
+            overlapControlHandleConfig,
+          );
 
           // OC 기존 CONTROL 추가 시 문제가 있는 것으로 판단
           if (_.isEmpty(overlapControlNode)) {

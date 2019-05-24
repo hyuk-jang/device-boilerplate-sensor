@@ -1,6 +1,8 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
+const CmdStrategist = require('./CmdStrategist');
+
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
 const {
@@ -14,64 +16,53 @@ const {
   reqDeviceControlType,
 } = dcmConfigModel;
 
-class AbstCmdManager {
-  /** @param {MainControl} controller */
-  constructor(controller) {
-    this.controller = controller;
-
-    const { model, nodeList } = this.controller;
-    const { complexCmdList, overlapControlStorageList, mapCmdInfo } = model;
-
-    this.nodeList = nodeList;
+class CommandManager {
+  /** @param {Model} model */
+  constructor(model) {
+    const { controller, complexCmdList, overlapControlStorageList, mapCmdInfo, nodeList } = model;
 
     this.model = model;
+    this.controller = controller;
+
+    this.nodeList = nodeList;
 
     this.complexCmdList = complexCmdList;
     this.overlapControlStorageList = overlapControlStorageList;
 
     this.mapCmdInfo = mapCmdInfo;
+
+    // 명령 전략가 등록
+    this.cmdStrategist = new CmdStrategist(this);
+  }
+
+  init() {
+    // 제어 모드가 변경될 경우 수신 받을 옵저버 추가
+    this.controller.controlModeUpdator.attachObserver(this);
   }
 
   /**
-   * @abstract
+   * 명령 전략가를 교체할 경우
+   * @description Bridge Pattern
+   * @param {CmdStrategist} cmdStrategist
+   */
+  setCommandStrategist(cmdStrategist) {
+    this.cmdStrategist = cmdStrategist;
+  }
+
+  /**
+   * 제어모드가 변경되었을 경우 값에 따라 Command Manager를 교체
+   * @param {number} controlMode 제어모드
+   */
+  updateControlMode(controlMode) {
+    this.cmdStrategist.updateControlMode(controlMode);
+  }
+
+  /**
    * @param {nodeInfo} nodeInfo
    * @param {string} singleControlType
    */
   convertControlValueToString(nodeInfo, singleControlType) {
-    singleControlType = Number(singleControlType);
-    let strControlValue = '';
-    const onOffList = ['pump'];
-    const openCloseList = ['valve', 'waterDoor'];
-
-    let strTrue = '';
-    let strFalse = '';
-
-    // Node Class ID를 가져옴. 장치 명에 따라 True, False 개체 명명 변경
-    if (_.includes(onOffList, nodeInfo.nc_target_id)) {
-      strTrue = 'On';
-      strFalse = 'Off';
-    } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
-      strTrue = 'Open';
-      strFalse = 'Close';
-    }
-
-    switch (singleControlType) {
-      case reqDeviceControlType.FALSE:
-        strControlValue = strFalse;
-        break;
-      case reqDeviceControlType.TRUE:
-        strControlValue = strTrue;
-        break;
-      case reqDeviceControlType.MEASURE:
-        strControlValue = 'Measure';
-        break;
-      case reqDeviceControlType.SET:
-        strControlValue = 'Set';
-        break;
-      default:
-        break;
-    }
-    return strControlValue;
+    return this.cmdStrategist.convertControlValueToString(nodeInfo, singleControlType);
   }
 
   /**
@@ -337,7 +328,9 @@ class AbstCmdManager {
         }
 
         // 실제 제어할 명령 리스트 산출
-        const realContainerCmdList = this.produceRealControlCommand(complexCmdWrapInfo);
+        const realContainerCmdList = this.cmdStrategist.produceRealControlCommand(
+          complexCmdWrapInfo,
+        );
 
         // BU.CLI(realContainerCmdList);
 
@@ -661,4 +654,4 @@ class AbstCmdManager {
     }
   }
 }
-module.exports = AbstCmdManager;
+module.exports = CommandManager;

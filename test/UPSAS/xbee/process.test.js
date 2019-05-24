@@ -35,13 +35,25 @@ const main = new Main();
 const control = main.createControl(config);
 // const control = new MuanControl(config);
 
-describe.skip('Manual Mode', function() {
+describe('Manual Mode', function() {
   this.timeout(10000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
     control.controlMode = controlModeInfo.MANUAL;
     // BU.CLI(control.model.complexCmdList);
+  });
+
+  beforeEach(async () => {
+    control.controlMode = controlModeInfo.MANUAL;
+    if (control.model.cmdManager.findExistOverlapControl().length) {
+      control.executeSetControl({
+        wrapCmdId: 'closeAllDevice',
+        wrapCmdType: reqWrapCmdType.CONTROL,
+      });
+
+      await eventToPromise(control, 'completeCommand');
+    }
   });
 
   /**
@@ -93,15 +105,7 @@ describe.skip('Manual Mode', function() {
    * 5. 명령 완료 순서는 펌프 > 수문 > 밸브
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
-  it('Single Command Flow', async () => {
-    // 제어 중인 장치가 있을 경우 Close 명령
-    control.executeSetControl({
-      wrapCmdId: 'closeAllDevice',
-      wrapCmdType: reqWrapCmdType.CONTROL,
-    });
-    // 모든 장치 Close 명령이 완료 되길 기다림
-    await eventToPromise(control, 'completeCommand');
-
+  it.skip('Single Command Flow', async () => {
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {
       nodeId: 'WD_005',
@@ -169,7 +173,7 @@ describe.skip('Manual Mode', function() {
   // it('bindingPlaceList', async () => {});
 });
 
-describe('Automatic Mode', function() {
+describe.skip('Automatic Mode', function() {
   this.timeout(10000);
 
   /** @type {reqFlowCmdInfo} 저수지 > 증발지 1-A */
@@ -442,7 +446,7 @@ describe('Automatic Mode', function() {
    * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it('Critical Command ', async () => {
+  it.skip('Critical Command ', async () => {
     // BU.CLI('Critical Command');
     const NODE_BT_001 = 'BT_001';
     const nodeInfo = _.find(control.nodeList, { node_id: NODE_BT_001 });
@@ -568,7 +572,7 @@ describe('Automatic Mode', function() {
    * 2. 수위: 5cm, 염도: (수중 증발지: 3도, 일반 증발지 4: 10도), 모듈 온도: 30도, 해주 및 저수지 수위: 1m로 설정한다.
    * 3. 1초 대기 후 WL_001의 수위를 하한 수위 1cm로 조작한다. 장소 임계치 설정에 의한 [저수지 > 증발지 1-A] 명령 요청
    * 4. 1초 대기 후 WL_002의 수위를 상한 수위 11cm로 조작한다. 장소 임계치 설정에 의한 [증발지 1-B > 해주 1] 명령 요청
-   * 5. 1초 대기 후 
+   * 5. 1초 대기 후
    * 5. 1초 대기 후 MRT_003의 온도를 50도로 올리고
    * 5. 1초 대기 후 WL_001의 수위를 상한 수위 7cm로 조작한다. 임계치 명령 달성 조건 충족으로 [저수지 > 증발지 1-A] 명령 취소
    * 6. 1초 대기 후 WL_002의 수위를 적정 수위 5cm로 조작한다. 임계치 명령 달성 조건 충족으로 [증발지 1-B > 해주 1] 명령 취소
