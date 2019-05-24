@@ -45,9 +45,6 @@ class Model {
 
     this.biModule = new BM(config.dbInfo);
 
-    /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
-    this.cmdManager = new CmdManager(this);
-
     /** @type {CriticalManager} 임계치 관리자 */
     this.criticalManager = new CriticalManager(controller);
 
@@ -61,19 +58,21 @@ class Model {
 
     // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
-
-    this.init();
   }
 
   /** Model 상세 초기화 */
   init() {
-    // 명령 관리자 초기화 진행
-    this.cmdManager.init();
-
     // 명령 추적을 위한 Overlap Control Storage List 초기화.
     this.initOverapControlNode();
     // Map에 기록된 명령을 해석하여 상세한 명령으로 생성하여 MapInfo 에 정의
     this.initCommand();
+
+    // 모델 초기화가 완료 된후 집합 객체 생성
+
+    // 명령 관리자 초기화 진행
+    /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
+    this.cmdManager = new CmdManager(this);
+    this.cmdManager.init();
   }
 
   /**

@@ -268,6 +268,7 @@ class Control extends EventEmitter {
 
       /** @type {Model} */
       this.model = new this.Model(this);
+      this.model.init();
 
       this.commandExecManager = new CommandExecManager(this);
 

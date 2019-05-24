@@ -1,9 +1,9 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const CmdStrategist = require('./CmdStrategist');
+const CmdStrategy = require('./CmdStrategy');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
+const { dcmWsModel, dcmConfigModel } = require('../../../../../default-intelligence');
 
 const {
   complexCmdStep,
@@ -16,19 +16,7 @@ const {
   reqDeviceControlType,
 } = dcmConfigModel;
 
-class ManualCmdManager extends CmdStrategist {
-  /** @param {CommandManager} cmdManager */
-  constructor(cmdManager) {
-    super(cmdManager);
-
-    this.cmdManager = cmdManager;
-
-    this.hi = 'hi';
-
-    // 컨트롤러 제어 모드 변경
-    // controller.controlMode = controlModeInfo.MANUAL;
-  }
-
+class ManualCmdStrategy extends CmdStrategy {
   /**
    * @implements
    * 현재 값과 틀리거나 장치 제어 예약이 없는 경우 실제 제어 목록으로 산출
@@ -70,4 +58,4 @@ class ManualCmdManager extends CmdStrategist {
     return realContainerCmdList;
   }
 }
-module.exports = ManualCmdManager;
+module.exports = ManualCmdStrategy;

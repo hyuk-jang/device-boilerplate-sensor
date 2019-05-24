@@ -44,17 +44,17 @@ describe('Manual Mode', function() {
     // BU.CLI(control.model.complexCmdList);
   });
 
-  beforeEach(async () => {
-    control.controlMode = controlModeInfo.MANUAL;
-    if (control.model.cmdManager.findExistOverlapControl().length) {
-      control.executeSetControl({
-        wrapCmdId: 'closeAllDevice',
-        wrapCmdType: reqWrapCmdType.CONTROL,
-      });
+  // beforeEach(async () => {
+  //   control.controlMode = controlModeInfo.MANUAL;
+  //   // if (control.model.cmdManager.findExistOverlapControl().length) {
+  //   control.executeSetControl({
+  //     wrapCmdId: 'closeAllDevice',
+  //     wrapCmdType: reqWrapCmdType.CONTROL,
+  //   });
 
-      await eventToPromise(control, 'completeCommand');
-    }
-  });
+  //   await eventToPromise(control, 'completeCommand');
+  //   // }
+  // });
 
   /**
    * @desc T.C 1 [수동 모드]
@@ -105,7 +105,14 @@ describe('Manual Mode', function() {
    * 5. 명령 완료 순서는 펌프 > 수문 > 밸브
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
-  it.skip('Single Command Flow', async () => {
+  it('Single Command Flow', async () => {
+    control.executeSetControl({
+      wrapCmdId: 'closeAllDevice',
+      wrapCmdType: reqWrapCmdType.CONTROL,
+    });
+
+    await eventToPromise(control, 'completeCommand');
+
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {
       nodeId: 'WD_005',

@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const CmdStrategist = require('./CmdStrategist');
+const CmdStrategySetter = require('./CmdStrategySetter');
 
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
@@ -32,21 +32,21 @@ class CommandManager {
     this.mapCmdInfo = mapCmdInfo;
 
     // 명령 전략가 등록
-    this.cmdStrategist = new CmdStrategist(this);
+    this.cmdStrategy;
   }
 
   init() {
+    this.cmdStrategySetter = new CmdStrategySetter(this);
     // 제어 모드가 변경될 경우 수신 받을 옵저버 추가
     this.controller.controlModeUpdator.attachObserver(this);
   }
 
   /**
-   * 명령 전략가를 교체할 경우
-   * @description Bridge Pattern
-   * @param {CmdStrategist} cmdStrategist
+   * cmdSetter를 교체할 경우
+   * @param {CmdSetter} cmdSetter
    */
-  setCommandStrategist(cmdStrategist) {
-    this.cmdStrategist = cmdStrategist;
+  setCmdSetter(cmdSetter) {
+    this.cmdStrategySetter = cmdSetter;
   }
 
   /**
@@ -54,7 +54,16 @@ class CommandManager {
    * @param {number} controlMode 제어모드
    */
   updateControlMode(controlMode) {
-    this.cmdStrategist.updateControlMode(controlMode);
+    this.cmdStrategySetter.updateControlMode(controlMode);
+  }
+
+  /**
+   * 명령 전략을 교체할 경우
+   * @description Bridge Pattern
+   * @param {CmdStrategy} cmdStrategy
+   */
+  setCommandStrategy(cmdStrategy) {
+    this.cmdStrategy = cmdStrategy;
   }
 
   /**
@@ -62,7 +71,7 @@ class CommandManager {
    * @param {string} singleControlType
    */
   convertControlValueToString(nodeInfo, singleControlType) {
-    return this.cmdStrategist.convertControlValueToString(nodeInfo, singleControlType);
+    return this.cmdStrategy.convertControlValueToString(nodeInfo, singleControlType);
   }
 
   /**
@@ -255,6 +264,7 @@ class CommandManager {
         if (!overlapControlNode) {
           overlapControlNode = this.createOverlapControlNode(overlapControlHandleConfig);
           // OC Storage가 없거나 OC가 존재하지 않으면 종료
+
           if (overlapControlNode === false) {
             throw new Error(
               `nodeId: ${
@@ -328,9 +338,7 @@ class CommandManager {
         }
 
         // 실제 제어할 명령 리스트 산출
-        const realContainerCmdList = this.cmdStrategist.produceRealControlCommand(
-          complexCmdWrapInfo,
-        );
+        const realContainerCmdList = this.cmdStrategy.produceRealControlCommand(complexCmdWrapInfo);
 
         // BU.CLI(realContainerCmdList);
 

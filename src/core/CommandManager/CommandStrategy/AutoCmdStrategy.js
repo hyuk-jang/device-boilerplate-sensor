@@ -3,10 +3,9 @@ const uuidv4 = require('uuid/v4');
 
 const { BU } = require('base-util-jh');
 
-// const CommandManager = require('./CommandManager');
-const CmdStrategist = require('./CmdStrategist');
+const CmdStrategy = require('./CmdStrategy');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
+const { dcmWsModel, dcmConfigModel } = require('../../../../../default-intelligence');
 
 const {
   complexCmdStep,
@@ -19,15 +18,7 @@ const {
   reqDeviceControlType,
 } = dcmConfigModel;
 
-class AutoCmdManager extends CmdStrategist {
-  // /** @param {MainControl} controller */
-  // constructor(controller) {
-  //   super(controller);
-
-  //   // 컨트롤러 제어 모드 변경
-  //   controller.controlMode = controlModeInfo.AUTOMATIC;
-  // }
-
+class AutoCmdStrategy extends CmdStrategy {
   /**
    * @abstract
    * 각 제어 모드 별로 체크하고자 하는 내용 체크
@@ -275,4 +266,4 @@ class AutoCmdManager extends CmdStrategist {
    */
   cancelRunningCommand(complexCmdWrapInfo) {}
 }
-module.exports = AutoCmdManager;
+module.exports = AutoCmdStrategy;
