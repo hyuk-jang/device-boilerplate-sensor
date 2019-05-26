@@ -57,5 +57,37 @@ class ManualCmdStrategy extends CmdStrategy {
 
     return realContainerCmdList;
   }
+
+  /**
+   * 명령이 완료되었을 경우 처리
+   * @param {complexCmdWrapInfo} complexWrapCmdInfo
+   * @param {boolean=} isAchieveCommandGoal 명령 목표치 달성 여부
+   */
+  completeComplexCommand(complexWrapCmdInfo) {
+    try {
+      const { wrapCmdUUID } = complexWrapCmdInfo;
+
+      // 명령 삭제 처리를 해야할 경우
+      // wrapCmdUUID를 가진 O.C 제거
+      _(this.overlapControlStorageList)
+        .map('overlapControlList')
+        .flatten()
+        .forEach(overlapControlInfo => {
+          _.pull(overlapControlInfo.overlapWCUs, wrapCmdUUID);
+        });
+
+      // Complex Command List 에서 제거
+      _.remove(this.cmdManager.complexCmdList, { wrapCmdUUID });
+
+      this.cmdManager.model.transmitComplexCommandStatus();
+    } catch (error) {
+      throw error;
+    }
+
+    // OC 변경
+    // FIXME: wrapCmdGoalInfo가 존재 할 경우 추가 논리
+    // RUNNING 전환 시 limitTimeSec가 존재한다면 복구명령 setTimeout 생성
+    // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
+  }
 }
 module.exports = ManualCmdStrategy;

@@ -36,6 +36,7 @@ class CommandManager {
   }
 
   init() {
+    // 기본 제공되는 명령 전략 세터를 등록한다. 프로젝트에 따라 Bridge 패턴으로 setCommandStrategy에 재정의 한다.
     this.cmdStrategySetter = new CmdStrategySetter(this);
     // 제어 모드가 변경될 경우 수신 받을 옵저버 추가
     this.controller.controlModeUpdator.attachObserver(this);
@@ -215,7 +216,7 @@ class CommandManager {
         });
     }
     // 수동 모드가 아닐 경우에만 요청 명령 Overlap overlapWCUs 반영
-    else if (this.controller.controlMode !== controlModeInfo.MANUAL) {
+    else if (this.controller.controlModeUpdator.controlMode !== controlModeInfo.MANUAL) {
       this.updateContainerCommandOC({
         wrapCmdType,
         wrapCmdUUID,
@@ -286,15 +287,6 @@ class CommandManager {
   }
 
   /**
-   * @abstract
-   * 각 제어 모드 별로 체크하고자 하는 내용 체크
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   */
-  isPossibleSaveComplexCommand(complexCmdWrapInfo) {
-    return true;
-  }
-
-  /**
    * @interface
    * 명령 스택을 고려하여 실제 내릴 명령을 산출
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
@@ -326,7 +318,7 @@ class CommandManager {
       }
 
       // 요청한 명령이 현재 모드에서 실행 가능한지 체크. 처리가 불가능 하다면 예외 발생
-      this.isPossibleSaveComplexCommand(complexCmdWrapInfo);
+      this.cmdStrategy.isPossibleSaveComplexCommand(complexCmdWrapInfo);
 
       // 계측 명령이라면 실제 제어목록 산출하지 않음
       if (wrapCmdType === reqWrapCmdType.MEASURE) {
@@ -375,7 +367,7 @@ class CommandManager {
       }
 
       // 명령을 요청한 시점에서의 제어 모드
-      complexCmdWrapInfo.controlMode = this.controller.controlMode;
+      complexCmdWrapInfo.controlMode = this.controller.controlModeUpdator.controlMode;
 
       this.complexCmdList.push(complexCmdWrapInfo);
 
@@ -476,7 +468,7 @@ class CommandManager {
       BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
 
       // 명령 완료 처리
-      this.completeComplexCommand(foundComplexCmdInfo);
+      this.cmdStrategy.completeComplexCommand(foundComplexCmdInfo);
 
       // FIXME: 수동 자동? 처리?
       // foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;
@@ -520,69 +512,6 @@ class CommandManager {
     //     }
     //   });
     // });
-  }
-
-  /**
-   * 명령이 완료되었을 경우 처리
-   * @param {complexCmdWrapInfo} complexWrapCmdInfo
-   * @param {boolean=} isAchieveCommandGoal 명령 목표치 달성 여부
-   */
-  completeComplexCommand(complexWrapCmdInfo, isAchieveCommandGoal) {
-    try {
-      // BU.CLI(this.findExistOverlapControl());
-      // O.C reservedExecUU 제거
-      // TODO: Prev.Single >> Curr.Single 명령 제거
-      // TODO: Prev.Single >> !Curr.Single 명령 제거
-      // TODO: !Prev.Single >> Curr.Single 명령 제거
-
-      const { MANUAL } = controlModeInfo;
-
-      const { MEASURE, CONTROL, CANCEL } = reqWrapCmdType;
-
-      const { RUNNING } = complexCmdStep;
-
-      let isDeleteCmd = true;
-
-      const { controlMode, wrapCmdType, wrapCmdUUID, wrapCmdGoalInfo } = complexWrapCmdInfo;
-
-      // 제어 명령일 경우에만 RUNNING 여부 체크
-      if (wrapCmdType === CONTROL) {
-        // TODO: !Prev.Single >> !Curr.Single 명령 RUNNING 상태 변경
-        if (controlMode !== MANUAL && this.controller.controlMode !== MANUAL) {
-          complexWrapCmdInfo.wrapCmdStep = RUNNING;
-          isDeleteCmd = false;
-
-          // 제어 명령에 달성 목표가 있다면 임계치 관리자 생성
-          if (!_.isEmpty(wrapCmdGoalInfo)) {
-            this.model.criticalManager.addCriticalCommand(complexWrapCmdInfo);
-          }
-        }
-      } else if (wrapCmdType === CANCEL) {
-      }
-
-      // 명령 삭제 처리를 해야할 경우
-      if (isDeleteCmd) {
-        // wrapCmdUUID를 가진 O.C 제거
-        _(this.overlapControlStorageList)
-          .map('overlapControlList')
-          .flatten()
-          .forEach(overlapControlInfo => {
-            _.pull(overlapControlInfo.overlapWCUs, wrapCmdUUID);
-          });
-
-        // Complex Command List 에서 제거
-        _.remove(this.complexCmdList, { wrapCmdUUID });
-      }
-
-      this.model.transmitComplexCommandStatus();
-    } catch (error) {
-      throw error;
-    }
-
-    // OC 변경
-    // FIXME: wrapCmdGoalInfo가 존재 할 경우 추가 논리
-    // RUNNING 전환 시 limitTimeSec가 존재한다면 복구명령 setTimeout 생성
-    // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
   }
 
   /**

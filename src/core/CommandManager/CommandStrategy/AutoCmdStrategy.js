@@ -91,7 +91,7 @@ class AutoCmdStrategy extends CmdStrategy {
         const { nodeId } = eleCmdInfo;
 
         // 노드 정보를 불러옴
-        const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+        const nodeInfo = _.find(this.cmdManager.nodeList, { node_id: nodeId });
         // BU.CLI(nodeInfo);
         /** @type {csOverlapControlHandleConfig} */
         const overlapControlHandleConfig = {
@@ -101,9 +101,7 @@ class AutoCmdStrategy extends CmdStrategy {
         };
 
         // Overlap Control 조회
-        let overlapControlNode = this.cmdManager.model.findOverlapControlNode(
-          overlapControlHandleConfig,
-        );
+        let overlapControlNode = this.cmdManager.findOverlapControlNode(overlapControlHandleConfig);
 
         // overlapWCUs.length 가 존재하지만 reservedExecUU가 없고 제어 장치값이 다를 경우 추가로 제어구문 생성하고 reservedExecUU가 반영
 
@@ -159,7 +157,7 @@ class AutoCmdStrategy extends CmdStrategy {
       const { wrapCmdId, containerCmdList } = complexCmdWrapInfo;
 
       // 실행 중인 Wrap Command 를 가져옴
-      const runningWrapCmdInfo = _.find(this.complexCmdList, { wrapCmdId });
+      const runningWrapCmdInfo = _.find(this.cmdManager.complexCmdList, { wrapCmdId });
 
       // TODO: Wrap Command Step이 RUNNING이 아니라면 DCC 명령 이동, 명령 삭제
       if (runningWrapCmdInfo.wrapCmdStep !== complexCmdStep.RUNNING) {
@@ -190,7 +188,7 @@ class AutoCmdStrategy extends CmdStrategy {
           const { nodeId } = eleCmdInfo;
 
           // 노드 정보를 불러옴
-          const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+          const nodeInfo = _.find(this.cmdManager.nodeList, { node_id: nodeId });
 
           /** @type {csOverlapControlHandleConfig} */
           const overlapControlHandleConfig = {
@@ -265,5 +263,64 @@ class AutoCmdStrategy extends CmdStrategy {
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
   cancelRunningCommand(complexCmdWrapInfo) {}
+
+  /**
+   * 명령이 완료되었을 경우 처리
+   * @param {complexCmdWrapInfo} complexWrapCmdInfo
+   * @param {boolean=} isAchieveCommandGoal 명령 목표치 달성 여부
+   */
+  completeComplexCommand(complexWrapCmdInfo, isAchieveCommandGoal) {
+    try {
+      // BU.CLI(this.findExistOverlapControl());
+      // O.C reservedExecUU 제거
+      // TODO: Prev.Single >> Curr.Single 명령 제거
+      // TODO: Prev.Single >> !Curr.Single 명령 제거
+      // TODO: !Prev.Single >> Curr.Single 명령 제거
+
+      const { MANUAL } = controlModeInfo;
+
+      const { MEASURE, CONTROL, CANCEL } = reqWrapCmdType;
+
+      const { RUNNING } = complexCmdStep;
+
+      let isDeleteCmd = true;
+
+      const { controlMode, wrapCmdType, wrapCmdUUID, wrapCmdGoalInfo } = complexWrapCmdInfo;
+
+      // 제어 명령일 경우에만 RUNNING 여부 체크
+      if (wrapCmdType === CONTROL && controlMode !== MANUAL) {
+        // 명령 RUNNING 상태 변경
+        complexWrapCmdInfo.wrapCmdStep = RUNNING;
+        isDeleteCmd = false;
+
+        // TODO: 제어 명령에 달성 목표가 있다면 임계치 관리자 생성
+        if (!_.isEmpty(wrapCmdGoalInfo)) {
+        }
+      }
+
+      // 명령 삭제 처리를 해야할 경우
+      if (isDeleteCmd) {
+        // wrapCmdUUID를 가진 O.C 제거
+        _(this.cmdManager.overlapControlStorageList)
+          .map('overlapControlList')
+          .flatten()
+          .forEach(overlapControlInfo => {
+            _.pull(overlapControlInfo.overlapWCUs, wrapCmdUUID);
+          });
+
+        // Complex Command List 에서 제거
+        _.remove(this.cmdManager.complexCmdList, { wrapCmdUUID });
+      }
+
+      this.cmdManager.model.transmitComplexCommandStatus();
+    } catch (error) {
+      throw error;
+    }
+
+    // OC 변경
+    // FIXME: wrapCmdGoalInfo가 존재 할 경우 추가 논리
+    // RUNNING 전환 시 limitTimeSec가 존재한다면 복구명령 setTimeout 생성
+    // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
+  }
 }
 module.exports = AutoCmdStrategy;

@@ -35,26 +35,26 @@ const main = new Main();
 const control = main.createControl(config);
 // const control = new MuanControl(config);
 
-describe('Manual Mode', function() {
+describe.skip('Manual Mode', function() {
   this.timeout(10000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
-    control.controlMode = controlModeInfo.MANUAL;
+    control.changeControlMode(controlModeInfo.MANUAL);
     // BU.CLI(control.model.complexCmdList);
   });
 
-  // beforeEach(async () => {
-  //   control.controlMode = controlModeInfo.MANUAL;
-  //   // if (control.model.cmdManager.findExistOverlapControl().length) {
-  //   control.executeSetControl({
-  //     wrapCmdId: 'closeAllDevice',
-  //     wrapCmdType: reqWrapCmdType.CONTROL,
-  //   });
-
-  //   await eventToPromise(control, 'completeCommand');
-  //   // }
-  // });
+  beforeEach(async () => {
+    try {
+      control.executeSetControl({
+        wrapCmdId: 'closeAllDevice',
+        wrapCmdType: reqWrapCmdType.CONTROL,
+      });
+      await eventToPromise(control, 'completeCommand');
+    } catch (error) {
+      BU.error(error.message);
+    }
+  });
 
   /**
    * @desc T.C 1 [수동 모드]
@@ -180,7 +180,7 @@ describe('Manual Mode', function() {
   // it('bindingPlaceList', async () => {});
 });
 
-describe.skip('Automatic Mode', function() {
+describe('Automatic Mode', function() {
   this.timeout(10000);
 
   /** @type {reqFlowCmdInfo} 저수지 > 증발지 1-A */
@@ -208,20 +208,24 @@ describe.skip('Automatic Mode', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
+    control.changeControlMode(controlModeInfo.AUTOMATIC);
+
     control.inquiryAllDeviceStatus();
     await eventToPromise(control, 'completeInquiryAllDeviceStatus');
   });
 
   beforeEach(async () => {
-    control.controlMode = controlModeInfo.MANUAL;
-    if (control.model.cmdManager.findExistOverlapControl().length) {
+    try {
+      control.controlModeUpdator.controlMode = controlModeInfo.MANUAL;
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWrapCmdType.CONTROL,
       });
-
       await eventToPromise(control, 'completeCommand');
+    } catch (error) {
+      BU.error(error.message);
     }
+
     control.changeControlMode(controlModeInfo.AUTOMATIC);
   });
 

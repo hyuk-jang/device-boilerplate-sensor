@@ -18,7 +18,8 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
-const ControlModeUpdator = require('./core/Updator/ControlModeUpdator');
+const ControlModeUpdator = require('./core/Updator/ControlModeUpdator/ControlModeUpdator');
+const NodeUpdatorManager = require('./core/Updator/NodeUpdator/NodeUpdatorManager');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
 const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');
@@ -35,8 +36,6 @@ class Control extends EventEmitter {
     super();
     this.config = config;
     // BU.CLI(this.config);
-
-    this.controlModeUpdator = new ControlModeUpdator();
 
     /** @type {placeInfo[]} */
     this.placeList = [];
@@ -57,9 +56,6 @@ class Control extends EventEmitter {
     this.dcmConfigModel = dcmConfigModel;
 
     this.Model = Model;
-
-    /** 제어 모드 종류(수동, 자동, ...) */
-    this.controlMode = controlModeInfo.MANUAL;
 
     // /** @type {DataLoggerController[]} */
     // this.preparingDataLoggerControllerList = [];
@@ -84,18 +80,19 @@ class Control extends EventEmitter {
       // init Step: 1 DB 정보를 기초로 nodeList, dataLoggerList, placeList 구성
       await this.initSetProperty(dbInfo, mainUUID);
 
-      // init Step: 2 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
+      // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
+      this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
+      this.controlModeUpdator = new ControlModeUpdator();
+
+      // init Step: 3 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
       this.initMakeConfigForDLC();
 
-      // init Step: 3 DLC 객체를 Constuction And Operation
+      // init Step: 4 DLC 객체를 Constuction And Operation
       // DLC ConOps는 Async이나 성공 유무를 기다리지 않고 Feature를 Binding 함
       await this.initCreateOpsDLC();
 
       // Binding Feature
       this.bindingFeature();
-
-      // 제어 모드 설정
-      this.changeControlMode();
     } catch (error) {
       BU.CLI(error);
       BU.errorLog('init', error);
@@ -333,7 +330,7 @@ class Control extends EventEmitter {
    */
   changeControlMode(conMode) {
     BU.CLI('changeControlMode');
-    this.controlModeUpdator.notifyObserver(conMode);
+    this.controlModeUpdator.updateControlMode(conMode);
 
     // let CmdManager;
 
@@ -372,7 +369,7 @@ class Control extends EventEmitter {
    */
   executeSingleControl(reqSingleCmdInfo) {
     try {
-      if (this.controlMode !== controlModeInfo.MANUAL) {
+      if (this.controlModeUpdator.controlMode !== controlModeInfo.MANUAL) {
         throw new Error('Single control is only possible in manual mode.');
       }
       return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
@@ -387,8 +384,9 @@ class Control extends EventEmitter {
    * @param {reqFlowCmdInfo} reqFlowCmdInfo
    */
   executeFlowControl(reqFlowCmdInfo) {
+    // BU.CLI(this.controlModeUpdator.controlMode);
     try {
-      if (this.controlMode === controlModeInfo.MANUAL) {
+      if (this.controlModeUpdator.controlMode === controlModeInfo.MANUAL) {
         throw new Error('The flow command is not available in manual mode.');
       }
       return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);
@@ -404,7 +402,7 @@ class Control extends EventEmitter {
   executeSetControl(reqSetCmdInfo) {
     // BU.CLI(savedCommandInfo);
     try {
-      // if (this.controlMode === controlModeInfo.MANUAL) {
+      // if (this.controlModeUpdator.controlMode === controlModeInfo.MANUAL) {
       //   throw new Error('The flow command is not available in manual mode.');
       // }
       return this.commandExecManager.executeSetControl(reqSetCmdInfo);
@@ -421,7 +419,7 @@ class Control extends EventEmitter {
   executeSavedCommand(savedCommandInfo) {
     try {
       // FIXME: 개발 모드. 검증 중. 해제
-      // if (this.controlMode !== controlMode.AUTOMATIC) {
+      // if (this.controlModeUpdator.controlMode !== controlMode.AUTOMATIC) {
       //   throw new Error('Saved control is only possible in automatic mode.');
       // }
       return this.commandExecManager.executeSavedCommand(savedCommandInfo);
@@ -503,7 +501,10 @@ class Control extends EventEmitter {
         return false;
       }
 
-      this.model.criticalManager.updateNodeList(renewalNodeList);
+      // 노드 갱신 매니저에게 갱신된 노드 목록을 알림
+      this.nodeUpdatorManager.updateNodeList(renewalNodeList);
+
+      // this.model.criticalManager.updateNodeList(renewalNodeList);
 
       const dataList = this.model.getAllNodeStatus(
         nodePickKey.FOR_SERVER,
