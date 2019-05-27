@@ -7,23 +7,37 @@ const {
 } = require('../../../../../default-intelligence');
 
 class NodeUpdatorManager {
-  /** @param {NodeUpdator[]} nodeList */
+  /** @param {nodeInfo[]} nodeList */
   constructor(nodeList) {
+    this.nodeList = nodeList;
+
     this.nodeUpdatorList = nodeList.map(nodeInfo => {
       return new NodeUpdator(nodeInfo);
     });
   }
 
   /**
+   * Node Id를 가진 Node 객체 반환
+   * @param {string} nodeId Node Id
+   */
+  getNodeInfo(nodeId) {
+    return _.find(this.nodeList, { node_id: nodeId });
+  }
+
+  /**
    * 노드 정보를 가진 Node Updator 조회
-   * @param {nodeInfo} nodeInfo
+   * @param {nodeInfo|string} nodeInfo nodeId or nodeInfo 객체
    */
   getNodeUpdator(nodeInfo) {
+    if (_.isString(nodeInfo)) {
+      nodeInfo = this.getNodeInfo(nodeInfo);
+    }
+
     return _.find(this.nodeUpdatorList, nodeUpdator => _.isEqual(nodeUpdator.nodeInfo, nodeInfo));
   }
 
   /**
-   * @param {nodeInfo} nodeInfo 노드 객체 정보
+   * @param {nodeInfo|string} nodeInfo nodeId or nodeInfo 객체
    * @param {Observer} observer 옵저버 추가
    * */
   attachNodeObserver(nodeInfo, observer) {
@@ -42,7 +56,7 @@ class NodeUpdatorManager {
   }
 
   /**
-   * @param {nodeInfo} nodeInfo
+   * @param {nodeInfo|string} nodeInfo nodeId or nodeInfo 객체
    * @param {Observer} observer 옵저버 제거
    */
   dettachNodeObserver(nodeInfo, observer) {

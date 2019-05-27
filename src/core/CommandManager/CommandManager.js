@@ -2,6 +2,7 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const CmdStrategySetter = require('./CmdStrategySetter');
+const ThreCmdManager = require('./ThresholdCommand/ThreCmdManager');
 
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
@@ -36,6 +37,9 @@ class CommandManager {
   }
 
   init() {
+    // 임계치 명령을 관리할 매니저 등록
+    this.threCmdManager = new ThreCmdManager(this);
+
     // 기본 제공되는 명령 전략 세터를 등록한다. 프로젝트에 따라 Bridge 패턴으로 setCommandStrategy에 재정의 한다.
     this.cmdStrategySetter = new CmdStrategySetter(this);
     // 제어 모드가 변경될 경우 수신 받을 옵저버 추가

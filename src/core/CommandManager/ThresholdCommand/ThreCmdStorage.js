@@ -16,7 +16,7 @@ class ThreCmdStorage extends ThreCmdComponent {
   constructor(complexCmdWrapInfo) {
     super();
 
-    /** @type {CriticalComponent[]} */
+    /** @type {ThreCmdComponent[]} */
     this.children = [];
 
     this.complexCmdWrapInfo = complexCmdWrapInfo;
@@ -43,14 +43,31 @@ class ThreCmdStorage extends ThreCmdComponent {
     }, limitTimeSec * 1000);
   }
 
-  /** @param {ThreCmdComponent} thresholdCommand */
-  addThreCmd(thresholdCommand) {
-    this.children.push(thresholdCommand);
+  /** @param {ThreCmdComponent} threCmdGoal */
+  addThreCmdGoal(threCmdGoal) {
+    this.children.push(threCmdGoal);
   }
 
-  /** @param {ThreCmdComponent} thresholdCommand */
-  removeThreCmd(thresholdCommand) {
-    _.remove(this.children, child => _.isEqual(child, thresholdCommand));
+  /** @param {ThreCmdComponent} threCmdGoal */
+  removeThreCmdGoal(threCmdGoal) {
+    _.remove(this.children, child => _.isEqual(child, threCmdGoal));
+  }
+
+  /**
+   * 임계치 저장소를 조회하고자 할 경우
+   * @param {string} nodeId Node ID
+   * @return {ThreCmdComponent}
+   */
+  getThreCmdGoal(nodeId) {
+    return _.find(this.children, { nodeId });
+  }
+
+  /**
+   * 저장소에 연결된 임계치 목표 객체 목록 반환
+   * @return {ThreCmdComponent[]}
+   */
+  get threCmdGoalList() {
+    return this.children;
   }
 
   /**

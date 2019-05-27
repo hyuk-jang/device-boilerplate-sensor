@@ -12,6 +12,14 @@ class NodeUpdator extends Updator {
     this.nodeObservers = [];
   }
 
+  /**
+   * 존재하는 옵저버 중 해당 옵저버를 추출
+   * @param {*} observer
+   */
+  getObserver(observer) {
+    return _.find(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));
+  }
+
   /** @param {Observer} observer 옵저버 추가 */
   attachObserver(observer) {
     const foundIndex = _.findIndex(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));

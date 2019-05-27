@@ -35,7 +35,7 @@ const main = new Main();
 const control = main.createControl(config);
 // const control = new MuanControl(config);
 
-describe.skip('Manual Mode', function() {
+describe('Manual Mode', function() {
   this.timeout(10000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
@@ -106,13 +106,6 @@ describe.skip('Manual Mode', function() {
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
   it('Single Command Flow', async () => {
-    control.executeSetControl({
-      wrapCmdId: 'closeAllDevice',
-      wrapCmdType: reqWrapCmdType.CONTROL,
-    });
-
-    await eventToPromise(control, 'completeCommand');
-
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {
       nodeId: 'WD_005',
@@ -181,7 +174,7 @@ describe.skip('Manual Mode', function() {
 });
 
 describe('Automatic Mode', function() {
-  this.timeout(10000);
+  this.timeout(5000);
 
   /** @type {reqFlowCmdInfo} 저수지 > 증발지 1-A */
   const rvToSEB1A = {
@@ -457,14 +450,14 @@ describe('Automatic Mode', function() {
    * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it.skip('Critical Command ', async () => {
+  it('Threshold Command ', async () => {
     // BU.CLI('Critical Command');
     const NODE_BT_001 = 'BT_001';
     const nodeInfo = _.find(control.nodeList, { node_id: NODE_BT_001 });
     // 최초 수위는 3으로 설정
     nodeInfo.data = 3;
 
-    const { criticalManager } = control.model;
+    const { threCmdManager } = control.model.cmdManager;
 
     // * 1. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 수위 조작 후 명령 삭제 확인.
     rvToSEB1A.wrapCmdType = reqWrapCmdType.CONTROL;
@@ -478,20 +471,30 @@ describe('Automatic Mode', function() {
       ],
     };
 
+    /**
+     * wc : Wrap Command
+     * tcm: Threshold Command Manager
+     * tcs: Threshold Command Storage
+     * tcg: Threshold Command Goal
+     * nu: Node Updator
+     */
+
     // 저수지 > 증발지 1-A 명령 요청
-    let cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+    let wcRvTo1A = control.executeFlowControl(rvToSEB1A);
     // 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
     console.time('Step 1');
 
     // 저수지 > 증발지 1-A 임계치 저장소 가져옴
-    let criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
-    let criGoalRvTo1A = criStoRvTo1A.getCriticalComponent(NODE_BT_001);
+    let tcsRvTo1A = threCmdManager.getThreCmdStorage(wcRvTo1A);
+    let tcgGoalRvTo1A = tcsRvTo1A.getThreCmdGoal(NODE_BT_001);
     // 새로운 임계치 명령이 등록되야함.
-    expect(criStoRvTo1A.children).length(1);
-    expect(criGoalRvTo1A.nodeId).to.eq(NODE_BT_001);
+    expect(tcsRvTo1A.threCmdGoalList).length(1);
+    expect(tcgGoalRvTo1A.threCmdGoalId).to.eq(NODE_BT_001);
     // Node Id BT_001 에는 옵저버가 1개 등록되어야 한다.
-    expect(criticalManager.getCriticalObserver(NODE_BT_001, criGoalRvTo1A)).to.equal(criGoalRvTo1A);
+    const nuBT001 = control.nodeUpdatorManager.getNodeUpdator(NODE_BT_001);
+
+    expect(nuBT001.getObserver(tcgGoalRvTo1A)).to.equal(tcgGoalRvTo1A);
     // 딜레이 타이머
     await Promise.delay(1000);
 
@@ -500,24 +503,20 @@ describe('Automatic Mode', function() {
     control.notifyDeviceData(null, [nodeInfo]);
 
     // 임계치 명령 삭제
-    criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
+    tcsRvTo1A = threCmdManager.getThreCmdStorage(wcRvTo1A);
     // 삭제가 되었기 때문에 저장소는 삭제가 되어 임계치 관리 객체를 가져올 수 없음
-    expect(criStoRvTo1A).to.undefined;
-
-    // 수위 10cm 세부 달성 임계치 목표 객체는 Dettach 처리 및 소멸되어 있음
-    expect(criticalManager.getCriticalObserver(NODE_BT_001, criGoalRvTo1A)).to.undefined;
+    expect(tcsRvTo1A).to.undefined;
 
     // Node Id BT_001 에는 옵저버가 0개 등록되어야 한다.
-    expect(
-      _.find(criticalManager.criticalObserverList, { nodeId: NODE_BT_001 }).observers,
-    ).to.length(0);
-
-    console.timeEnd('Step 1');
+    expect(nuBT001.nodeObservers).to.length(0);
 
     // 임계치에 도달했기 때문에 CANCEL 명령 발송됨. 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
+    console.timeEnd('Step 1');
 
     expect(control.model.complexCmdList).to.length(0);
+
+    console.time('Step 2');
 
     // * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
     rvToSEB1A.wrapCmdGoalInfo = {
@@ -531,36 +530,35 @@ describe('Automatic Mode', function() {
       ],
     };
 
-    cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+    wcRvTo1A = control.executeFlowControl(rvToSEB1A);
 
     // 제어 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
 
-    criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
-    criGoalRvTo1A = criStoRvTo1A.getCriticalComponent(NODE_BT_001);
+    tcsRvTo1A = threCmdManager.getThreCmdStorage(wcRvTo1A);
+    tcgGoalRvTo1A = tcsRvTo1A.getThreCmdGoal(NODE_BT_001);
 
     // 새로운 임계치 명령이 등록되야함.
-    expect(criStoRvTo1A.children).length(1);
+    expect(tcsRvTo1A.children).length(1);
 
     // 딜레이 타이머만큼 기다림.
     await Promise.delay(2000);
 
     // 제한 시간 초과로 인한 임계치 명령 삭제
-    criStoRvTo1A = criticalManager.getCriticalComponent(cmdRvTo1A);
+    tcsRvTo1A = threCmdManager.getThreCmdStorage(wcRvTo1A);
 
     // 삭제가 되었기 때문에 저장소는 삭제가 되어 임계치 관리 객체를 가져올 수 없음
-    expect(criStoRvTo1A).to.undefined;
+    expect(tcsRvTo1A).to.undefined;
 
     // 취소 명령이 완료되기를 기다림
-    expect(
-      _.find(criticalManager.criticalObserverList, { nodeId: NODE_BT_001 }).observers,
-    ).to.length(0);
+    expect(nuBT001.nodeObservers).to.length(0);
 
     // 현재 진행 중인 명령은 존재하지 않음
     expect(control.model.complexCmdList).to.length(0);
 
     // 현재 누적 OC는 존재하지 않음
     expect(control.model.cmdManager.findExistOverlapControl()).to.length(0);
+    console.timeEnd('Step 2');
   });
 
   /**

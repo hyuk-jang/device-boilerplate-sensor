@@ -12,7 +12,7 @@ class ControlModeUpdator extends Updator {
     this.children = [];
 
     /** @type {number} 컨트롤 제어 모드 */
-    this.controlMode = controlModeInfo.MANUAL;
+    this.controlMode;
   }
 
   /** @param {Observer} observer 옵저버 추가 */
@@ -43,7 +43,7 @@ class ControlModeUpdator extends Updator {
 
   /** @param {number} controlMode 제어 모드 변경 */
   updateControlMode(controlMode) {
-    // console.log('controlMode', controlMode);
+    console.log('controlMode', controlMode, this.controlMode);
     // 기존 제어모드에서 변경이 있을 경우 알림
     if (this.controlMode !== controlMode) {
       this.controlMode = controlMode;

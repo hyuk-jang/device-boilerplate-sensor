@@ -33,6 +33,14 @@ class ThreCmdGoal extends ThreCmdComponent {
   }
 
   /**
+   * 저장소에 연결된 임계치 목표 객체 Node ID 반환
+   * @return {string} nodeId
+   */
+  get threCmdGoalId() {
+    return this.nodeId;
+  }
+
+  /**
    * Goal을 성공하였을 경우 알릴 Successor
    * @param {ThreCmdComponent} thresholdCommand Threshold Command Storage
    */
