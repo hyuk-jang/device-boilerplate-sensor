@@ -22,6 +22,7 @@ class ThreCmdStorage extends ThreCmdComponent {
     this.complexCmdWrapInfo = complexCmdWrapInfo;
 
     this.threCmdLimitTimer;
+    this.successor;
   }
 
   /**

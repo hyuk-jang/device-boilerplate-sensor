@@ -15,6 +15,9 @@ class CmdStrategist {
     this.cmdManager = cmdManager;
   }
 
+  /** 제어 모드가 변경되었을 경우 선행 작업이 이루어져야 할 내용이 있다면 작성 */
+  init() {}
+
   /**
    * @abstract
    * @param {nodeInfo} nodeInfo
