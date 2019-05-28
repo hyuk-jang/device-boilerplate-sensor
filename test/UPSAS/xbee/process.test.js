@@ -35,7 +35,7 @@ const main = new Main();
 const control = main.createControl(config);
 // const control = new MuanControl(config);
 
-describe('Manual Mode', function() {
+describe.skip('Manual Mode', function() {
   this.timeout(10000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
@@ -244,7 +244,7 @@ describe('Automatic Mode', function() {
    * 8. 증발지 1-A > 해주 1 명령 취소.
    * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
    */
-  it('Multi Flow Command Control & Conflict & Cancel', async () => {
+  it.skip('Multi Flow Command Control & Conflict & Cancel', async () => {
     // BU.CLI('Multi Flow Command Control & Conflict & Cancel');
     // 1. 저수지 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
     const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);

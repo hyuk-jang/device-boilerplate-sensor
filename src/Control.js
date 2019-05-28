@@ -504,8 +504,6 @@ class Control extends EventEmitter {
       // 노드 갱신 매니저에게 갱신된 노드 목록을 알림
       this.nodeUpdatorManager.updateNodeList(renewalNodeList);
 
-      // this.model.criticalManager.updateNodeList(renewalNodeList);
-
       const dataList = this.model.getAllNodeStatus(
         nodePickKey.FOR_SERVER,
         renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),

@@ -7,7 +7,6 @@ const { BM } = require('base-model-jh');
 const ControlDBS = require('./Control');
 
 const CmdManager = require('./core/CommandManager/CommandManager');
-const CriticalManager = require('./core/CriticalManager/CriticalManager');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
@@ -44,9 +43,6 @@ class Model {
     this.complexCmdList = [];
 
     this.biModule = new BM(config.dbInfo);
-
-    /** @type {CriticalManager} 임계치 관리자 */
-    this.criticalManager = new CriticalManager(controller);
 
     // 정기 조회 Count
     this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);

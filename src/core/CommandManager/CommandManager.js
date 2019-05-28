@@ -364,7 +364,9 @@ class CommandManager {
         });
 
         // 만약 CC가 존재한다면 제거
-        this.model.criticalManager.removeCriticalCommand(this.complexCmdList[foundIndex]);
+
+        this.threCmdManager.removeThreCmdStorage(this.complexCmdList[foundIndex]);
+
         // 기존 복합 명령 제거
         _.pullAt(this.complexCmdList, [foundIndex]);
         // _.remove(this.complexCmdList, { wrapCmdId, wrapCmdType: reqWrapCmdType.CONTROL });
