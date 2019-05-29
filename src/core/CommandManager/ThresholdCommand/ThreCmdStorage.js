@@ -46,12 +46,20 @@ class ThreCmdStorage extends ThreCmdComponent {
 
   /** @param {ThreCmdComponent} threCmdGoal */
   addThreCmdGoal(threCmdGoal) {
-    this.children.push(threCmdGoal);
+    // 이미 존재한다면 false 반환
+    if (_.findIndex(this.children, threCmdGoal) === -1) return false;
+    // 삽입 후 true 반환
+    return this.children.push(threCmdGoal) && true;
   }
 
   /** @param {ThreCmdComponent} threCmdGoal */
   removeThreCmdGoal(threCmdGoal) {
-    _.remove(this.children, child => _.isEqual(child, threCmdGoal));
+    // 해당 인자가 존재할 경우 삭제 후 true 반환
+    if (_.findIndex(this.children, threCmdGoal) === -1) {
+      _.pull(this.children, threCmdGoal);
+      return true;
+    }
+    return false;
   }
 
   /**

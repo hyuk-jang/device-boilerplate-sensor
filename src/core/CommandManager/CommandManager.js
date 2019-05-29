@@ -54,6 +54,11 @@ class CommandManager {
     this.cmdStrategySetter = cmdSetter;
   }
 
+  /** 제어모드 반환 */
+  getControMode() {
+    return this.controller.controlModeUpdator.getControlMode();
+  }
+
   /**
    * 제어모드가 변경되었을 경우 값에 따라 Command Manager를 교체
    * @param {number} controlMode 제어모드

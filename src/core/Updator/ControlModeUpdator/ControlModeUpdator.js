@@ -15,6 +15,11 @@ class ControlModeUpdator extends Updator {
     this.controlMode;
   }
 
+  /** 제어모드 반환 */
+  getControlMode() {
+    return this.controlMode;
+  }
+
   /** @param {Observer} observer 옵저버 추가 */
   attachObserver(observer) {
     const foundIndex = _.findIndex(this.children, child => _.isEqual(child, observer));

@@ -26,14 +26,14 @@ class NodeUpdatorManager {
 
   /**
    * 노드 정보를 가진 Node Updator 조회
-   * @param {nodeInfo|string} nodeInfo nodeId or nodeInfo 객체
+   * @param {nodeInfo|string} node nodeId or nodeInfo 객체
    */
-  getNodeUpdator(nodeInfo) {
-    if (_.isString(nodeInfo)) {
-      nodeInfo = this.getNodeInfo(nodeInfo);
+  getNodeUpdator(node) {
+    if (_.isString(node)) {
+      node = this.getNodeInfo(node);
     }
 
-    return _.find(this.nodeUpdatorList, nodeUpdator => _.isEqual(nodeUpdator.nodeInfo, nodeInfo));
+    return _.find(this.nodeUpdatorList, nodeUpdator => _.isEqual(nodeUpdator.nodeInfo, node));
   }
 
   /**
