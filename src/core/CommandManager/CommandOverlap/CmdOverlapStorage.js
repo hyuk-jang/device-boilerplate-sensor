@@ -59,7 +59,12 @@ class CmdOverlapStorage extends CmdOverlapComponent {
    */
   getOverlapStatus(singleControType, controlSetValue) {
     // 해당 제어 객체가 추출
-    let overlapStatus = _.find(this.children, { singleControType, controlSetValue });
+    let overlapStatus = _.find(this.children, child => {
+      return (
+        _.eq(singleControType, child.getSingleControlType()) &&
+        _.eq(controlSetValue, child.getControlSetValue())
+      );
+    });
 
     // 해당 객체가 존재하지 않는다면 생성 및 자식 추가 후 overlapStatus 재정의
     if (_.isEmpty(overlapStatus)) {
@@ -102,6 +107,8 @@ class CmdOverlapStorage extends CmdOverlapComponent {
       .flatten()
       .value();
 
+    // BU.CLI(existStatusList);
+
     // 객체가 존재한다면 의미있는 객체로 변환 후 반환
     return existStatusList.length
       ? {
@@ -112,24 +119,3 @@ class CmdOverlapStorage extends CmdOverlapComponent {
   }
 }
 module.exports = CmdOverlapStorage;
-
-if (require !== undefined && require.main === module) {
-  const stat1 = new CmdOverlapStatus(0);
-  stat1.addOverlapWCU('one');
-  stat1.addOverlapWCU('two');
-  const stat2 = new CmdOverlapStatus(1);
-  stat2.addOverlapWCU('one');
-  stat2.addOverlapWCU('two');
-
-  const cmdOverlapStorage = new CmdOverlapStorage({
-    node_id: 'TEST',
-  });
-
-  cmdOverlapStorage.addOverlapStatus(stat1);
-  cmdOverlapStorage.addOverlapStatus(stat2);
-  cmdOverlapStorage.addOverlapStatus(stat1);
-  cmdOverlapStorage.addOverlapStatus(stat2);
-
-  const result = cmdOverlapStorage.getExistWcuListExceptOption();
-  BU.CLI(result);
-}

@@ -244,7 +244,8 @@ describe('Automatic Mode', function() {
    * 8. 증발지 1-A > 해주 1 명령 취소.
    * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
    */
-  it.skip('Multi Flow Command Control & Conflict & Cancel', async () => {
+  it('Multi Flow Command Control & Conflict & Cancel', async () => {
+    const { cmdOverlapManager } = control.model.cmdManager;
     // BU.CLI('Multi Flow Command Control & Conflict & Cancel');
     // 1. 저수지 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
     const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
@@ -266,12 +267,14 @@ describe('Automatic Mode', function() {
     // 실제 여는 장치는 아래와 같아야 한다.
     expect(realTrueNodes).to.deep.equal(['V_006', 'V_001', 'P_002']);
 
-    let existOverlapList = control.model.cmdManager.findExistOverlapControl();
+    let existOverlapList = cmdOverlapManager.getExistOverlapStatus();
+
+    // BU.CLI(_(existOverlapList).map('overlapStatusList').flatten().value())
 
     // True O.C 는 3개, trueList: ['V_006', 'V_001', 'P_002'],
-    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(3);
     // False O.C 는 1개, trueList: ['GV_001'],
-    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(1);
 
     // expect(realFalseCmdRvTo1A.).
 
@@ -296,9 +299,9 @@ describe('Automatic Mode', function() {
     existOverlapList = control.model.cmdManager.findExistOverlapControl();
 
     // True O.C 는 4개, trueList: ['V_006', 'V_001', 'V_002', 'P_002'],
-    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(4);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(4);
     // False O.C 는 2개, trueList: ['GV_001', 'GV_002'],
-    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(2);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(2);
 
     // 저수지 > 증발지 1-A 명령 완료.
     const firstCompleteWCU = await eventToPromise(control, 'completeCommand');
@@ -314,8 +317,9 @@ describe('Automatic Mode', function() {
     // * 3. 증발지 1-A > 해주 1 명령 요청. GV_001 명령 충돌 발생 O
     // * trueNodeList: ['GV_001', 'WD_013', 'WD_010'],
     // * falseNodeList: ['WD_016'],
+    // BU.CLI(control.executeFlowControl(SEB1AToBW1))
     expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(
-      'A node(GV_001) in wrapCmd(SEB_1_A_TO_BW_1) has conflict.',
+      `Conflict of WCI(SEB_1_A_TO_BW_1) SingleControlType(${TRUE}) of node(GV_001)`,
     );
 
     // * 4. 증발지 1-A > 해주 1 명령 요청. 존재하지 않으므로 X
@@ -348,13 +352,13 @@ describe('Automatic Mode', function() {
     expect(realFalseNodes).to.deep.equal(['V_001']);
 
     // 실행 중인 OC 를 가져옴
-    existOverlapList = control.model.cmdManager.findExistOverlapControl();
+    // BU.CLI(cmdOverlapManager.getExistSimpleOverlapList(TRUE))
 
     // True O.C 는 3개, trueList: ['V_006', 'V_002', 'P_002'],
-    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(3);
 
     // False O.C 는 1개, trueList: ['GV_002'],
-    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(1);
 
     await eventToPromise(control, 'completeCommand');
 
@@ -377,9 +381,9 @@ describe('Automatic Mode', function() {
     existOverlapList = control.model.cmdManager.findExistOverlapControl();
 
     // True O.C 는 6개, trueList: ['V_006', 'V_002', 'P_002', 'GV_001', 'WD_010', 'WD_013'],
-    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(6);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(6);
     // False O.C 는 2개, trueList: ['GV_002', 'WD_016'],
-    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(2);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(2);
 
     await eventToPromise(control, 'completeCommand');
 
@@ -407,10 +411,10 @@ describe('Automatic Mode', function() {
     existOverlapList = control.model.cmdManager.findExistOverlapControl();
 
     // True O.C 는 3개, trueList: ['GV_001', 'WD_010', 'WD_013'],
-    expect(_.filter(existOverlapList, { singleControlType: TRUE })).to.length(3);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(3);
 
     // False O.C 는 1개, trueList: ['WD_016'],
-    expect(_.filter(existOverlapList, { singleControlType: FALSE })).to.length(1);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(1);
 
     await eventToPromise(control, 'completeCommand');
 
@@ -450,7 +454,7 @@ describe('Automatic Mode', function() {
    * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it('Threshold Command ', async () => {
+  it.skip('Threshold Command ', async () => {
     // BU.CLI('Critical Command');
     const NODE_BT_001 = 'BT_001';
     const nodeInfo = _.find(control.nodeList, { node_id: NODE_BT_001 });

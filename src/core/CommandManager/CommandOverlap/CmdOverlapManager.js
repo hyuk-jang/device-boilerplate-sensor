@@ -32,14 +32,41 @@ class CmdOverlapManager extends CmdOverlapComponent {
 
   /**
    * Overlap이 존재하는 목록을 불러옴
-   * @return {csOverlapControlInfo[]}
+   * @param {string=} singleConType 0(False), 1(True), 2(Measure), 3(Set)
    */
-  getExistOverlapStatus() {
+  getExistOverlapStatus(singleConType) {
     return this.cmdOverlapStorageList
       .map(storageInfo => {
-        return storageInfo.getExistWcuListExceptOption();
+        return storageInfo.getExistWcuListExceptOption(singleConType);
       })
       .filter(result => !_.isEmpty(result));
+  }
+
+  /**
+   * Overlap이 존재하는 목록을 불러옴
+   * @param {string=} singleConType 0(False), 1(True), 2(Measure), 3(Set)
+   * @param {number|string=} conSetValue singleControType이 3(Set) 일 경우 설정 값
+   */
+  getExistSimpleOverlapList(singleConType, conSetValue) {
+    const result = [];
+
+    // singleConType이 존재하지 않는다면 빈 배열 반환
+    if (_.isNil(singleConType)) return result;
+
+    _.forEach(this.cmdOverlapStorageList, overlapStorage => {
+      const overlapStatus = overlapStorage.getOverlapStatus(singleConType, conSetValue);
+      if (overlapStatus.getOverlapWCUs().length) {
+        result.push({
+          nodeId: overlapStorage.nodeInfo.node_id,
+          singleControlType: overlapStatus.getSingleControlType(),
+          controlSetValue: overlapStatus.getControlSetValue(),
+          overlapWCUs: overlapStatus.getOverlapWCUs(),
+          reservedECU: overlapStatus.getReservedECU(),
+        });
+      }
+    });
+
+    return result;
   }
 
   /**
@@ -75,8 +102,13 @@ class CmdOverlapManager extends CmdOverlapComponent {
    * @param {complexCmdWrapInfo} complexCmdWrapInfo 복합 명령 객체
    */
   updateOverlapCmdWrapInfo(complexCmdWrapInfo) {
-    BU.CLI('updateOverlapCmdWrapInfo');
-    const { wrapCmdUUID, wrapCmdType, containerCmdList, realContainerCmdList } = complexCmdWrapInfo;
+    const {
+      wrapCmdId,
+      wrapCmdUUID,
+      wrapCmdType,
+      containerCmdList,
+      realContainerCmdList,
+    } = complexCmdWrapInfo;
 
     // 명령 취소일 경우 누적 카운팅 제거
 
@@ -96,17 +128,23 @@ class CmdOverlapManager extends CmdOverlapComponent {
           // 명령 취소라면 wrapCmdUUID를 가진 누적 명령 전부 삭제
           if (wrapCmdType === reqWrapCmdType.CANCEL) {
             // 해당 Node를 가진 명령 누적 저장소의 제어 객체에 WCU 제거
+            // BU.CLI('CANCEL');
+            const runningWrapCmdInfo = _.find(this.this.cmdManager.complexCmdList, { wrapCmdId });
+
+            complexCmdWrapInfo.wrapCmdUUID = runningWrapCmdInfo.wrapCmdUUID;
+
             this.getOverlapStorage(nodeId)
               .getOverlapStatus(conType, conSetValue)
               .removeOverlapWCU(wrapCmdUUID);
           }
           // 제어 명령이라면 제어 객체에 WCU 추가
-          else if (wrapCmdType !== reqWrapCmdType.CONTROL) {
+          else if (wrapCmdType === reqWrapCmdType.CONTROL) {
             // 해당 Node를 가진 명령 누적 저장소의 제어 객체에 WCU 제거
             this.getOverlapStorage(nodeId)
               .getOverlapStatus(conType, conSetValue)
               .addOverlapWCU(wrapCmdUUID);
           }
+          // FIXME: RESTORE 명령 생성 시 작업 필요
         });
       });
     }
@@ -139,7 +177,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
    */
   isConflictCommand(complexCmdWrapInfo) {
     try {
-      const { wrapCmdId, containerCmdList } = complexCmdWrapInfo;
+      const { wrapCmdId, wrapCmdUUID, containerCmdList } = complexCmdWrapInfo;
       // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
       _.forEach(containerCmdList, containerCmdInfo => {
         const {
@@ -156,110 +194,25 @@ class CmdOverlapManager extends CmdOverlapComponent {
           const overlapStorage = this.getOverlapStorage(nodeId);
 
           const existWCUs = overlapStorage.getOverlapStatus(conType, conSetValue).getOverlapWCUs();
+
           // 이미 존재하고 있는 Wrap Command UUID 라면 에러
-          if (_.includes(existWCUs, wrapCmdId)) {
-            throw new Error(`A node(${nodeId}) same WCU(${wrapCmdId}) already exists.`);
+          if (_.includes(existWCUs, wrapCmdUUID)) {
+            throw new Error(`A node(${nodeId}) same WCU(${wrapCmdUUID}) already exists.`);
           }
 
           // 충돌 체크 (해당 저장소에 다른 명령 누적이 기존재하는지 체크)
-          const proceedWcuList = overlapStorage.getExistWcuListExceptOption(conType, conSetValue);
-          if (proceedWcuList.length) {
-            // throw new Error(`A node(${nodeId}) in WCU(${proceedWcuList.toString()}) has conflict.`);
-            return true;
+          const existOverlapInfo = overlapStorage.getExistWcuListExceptOption(conType, conSetValue);
+
+          if (!_.isEmpty(existOverlapInfo)) {
+            throw new Error(
+              `Conflict of WCI(${wrapCmdId}) SingleControlType(${conType}) of node(${nodeId})`,
+            );
           }
         });
       });
-      return false;
     } catch (error) {
       throw error;
     }
   }
 }
 module.exports = CmdOverlapManager;
-
-if (require !== undefined && require.main === module) {
-  const nodeList = [
-    {
-      node_id: 'WD_001',
-    },
-    {
-      node_id: 'WD_002',
-    },
-    {
-      node_id: 'WD_003',
-    },
-  ];
-
-  // 명령 누적 세부 객체 생성 및 명령 누적 WCU 추가
-  const stat1 = new CmdOverlapStatus(0);
-  stat1.addOverlapWCU('one');
-  stat1.addOverlapWCU('two');
-  const stat2 = new CmdOverlapStatus(1);
-  stat2.addOverlapWCU('one');
-  stat2.addOverlapWCU('two');
-
-  /** @type {complexCmdWrapInfo} */
-  const wrapCmdInfo1 = {
-    wrapCmdUUID: 'wrapCmdInfo1',
-    containerCmdList: [
-      {
-        singleControlType: 0,
-        eleCmdList: [
-          {
-            nodeId: 'WD_001',
-            uuid: 'WD_001_UUID',
-          },
-          {
-            nodeId: 'WD_002',
-            uuid: 'WD_002_UUID',
-          },
-        ],
-      },
-      {
-        singleControlType: 1,
-        eleCmdList: [
-          {
-            nodeId: 'WD_003',
-            uuid: 'WD_003_UUID',
-          },
-        ],
-      },
-    ],
-    realContainerCmdList: [
-      {
-        singleControlType: 0,
-        eleCmdList: [
-          {
-            nodeId: 'WD_001',
-            uuid: 'WD_001_UUID',
-          },
-          {
-            nodeId: 'WD_002',
-            uuid: 'WD_002_UUID',
-          },
-        ],
-      },
-      {
-        singleControlType: 1,
-        eleCmdList: [
-          {
-            nodeId: 'WD_003',
-            uuid: 'WD_003_UUID',
-          },
-        ],
-      },
-    ],
-  };
-
-  // 명령 임계치 매니저 생성
-  const cmdOverlapManager = new CmdOverlapManager({
-    nodeList,
-    getControMode: () => {
-      controlModeInfo.AUTOMATIC;
-    },
-  });
-
-  cmdOverlapManager.updateOverlapCmdWrapInfo(wrapCmdInfo1);
-
-  BU.CLI(cmdOverlapManager.getExistOverlapStatus());
-}

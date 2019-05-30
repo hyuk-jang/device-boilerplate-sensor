@@ -48,6 +48,13 @@ class CmdOverlapComponent {
 
   /**
    * @desc CmdOverlapStatus
+   * 장치 제어 예약 명령 단위 UUID
+   * @return {string}
+   */
+  getReservedECU() {}
+
+  /**
+   * @desc CmdOverlapStatus
    * 명령 누적 관리 객체에 새로운 명령의 Wrap Command UUID를 추가
    * @param {string} wrapCmdUuid complexCmdWrapInfo UUID. 유일 키로 명령 요청 시 동적으로 생성 및 부여
    * @return {boolean} WCU 삽입 성공 true, 실패 false

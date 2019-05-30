@@ -31,7 +31,7 @@ class AutoCmdStrategy extends CmdStrategy {
       // 제어 요청일 경우에 충돌 체크
       if (wrapCmdType === reqWrapCmdType.CONTROL) {
         // 명령 충돌 체크
-        return !this.cmdManager.cmdOverlapManager.isConflictCommand(complexCmdWrapInfo);
+        return !this.cmdManager.isConflictCommand(complexCmdWrapInfo);
       }
       return true;
     } catch (error) {
@@ -93,15 +93,33 @@ class AutoCmdStrategy extends CmdStrategy {
         // 노드 정보를 불러옴
         const nodeInfo = _.find(this.cmdManager.nodeList, { node_id: nodeId });
         // BU.CLI(nodeInfo);
+        /** @type {csOverlapControlHandleConfig} */
+        const overlapControlHandleConfig = {
+          nodeId: eleCmdInfo.nodeId,
+          singleControlType,
+          controlSetValue,
+        };
 
-        // ECU가 존재하는지 체크
-        const reservedECU = this.cmdManager.cmdOverlapManager
-          .getOverlapStorage(nodeInfo)
-          .getOverlapStatus(singleControlType, controlSetValue)
-          .getReservedECU();
+        // Overlap Control 조회
+        let overlapControlNode = this.cmdManager.findOverlapControlNode(overlapControlHandleConfig);
+
+        // overlapWCUs.length 가 존재하지만 reservedExecUU가 없고 제어 장치값이 다를 경우 추가로 제어구문 생성하고 reservedExecUU가 반영
+
+        // OC 가 없다면 신규 OC. 새로 생성 함.
+        if (_.isEmpty(overlapControlNode)) {
+          overlapControlNode = this.cmdManager.createOverlapControlNode(overlapControlHandleConfig);
+          // OC Storage가 없거나 OC가 존재하지 않으면 종료
+          if (overlapControlNode === false) {
+            throw new Error(
+              `nodeId: ${
+                eleCmdInfo.nodeId
+              }, singleControlType: ${singleControlType} is not exist in OC Storage`,
+            );
+          }
+        }
 
         // 이미 제어하는 명령이 존재한다면 추가하지 않음
-        if (reservedECU.length) {
+        if (overlapControlNode.reservedExecUU.length) {
           return false;
         }
 
@@ -172,11 +190,25 @@ class AutoCmdStrategy extends CmdStrategy {
           // 노드 정보를 불러옴
           const nodeInfo = _.find(this.cmdManager.nodeList, { node_id: nodeId });
 
-          // ECU가 존재하는지 체크
-          const overlapWCUs = this.cmdManager.cmdOverlapManager
-            .getOverlapStorage(nodeInfo)
-            .getOverlapStatus(singleControlType, controlSetValue)
-            .getOverlapWCUs();
+          /** @type {csOverlapControlHandleConfig} */
+          const overlapControlHandleConfig = {
+            nodeId,
+            singleControlType,
+            controlSetValue,
+          };
+
+          // Overlap Control 조회
+          const overlapControlNode = this.cmdManager.findOverlapControlNode(
+            overlapControlHandleConfig,
+          );
+
+          // OC 기존 CONTROL 추가 시 문제가 있는 것으로 판단
+          if (_.isEmpty(overlapControlNode)) {
+            throw new Error(`nodeId: ${eleCmdInfo.nodeId} is not exist O.C`);
+          }
+
+          // 누적 WCU를 가져옴
+          const { overlapWCUs } = overlapControlNode;
 
           // 현재 장치 상태가 어떤지 확인
           const strNodeData = _.lowerCase(

@@ -3,6 +3,7 @@ const { BU } = require('base-util-jh');
 
 const CmdStrategySetter = require('./CmdStrategySetter');
 const ThreCmdManager = require('./ThresholdCommand/ThreCmdManager');
+const CmdOverlapManager = require('./CommandOverlap/CmdOverlapManager');
 
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
@@ -39,6 +40,9 @@ class CommandManager {
   init() {
     // 임계치 명령을 관리할 매니저 등록
     this.threCmdManager = new ThreCmdManager(this);
+
+    // 명령 누적을 관리할 매니저 등록
+    this.cmdOverlapManager = new CmdOverlapManager(this);
 
     // 기본 제공되는 명령 전략 세터를 등록한다. 프로젝트에 따라 Bridge 패턴으로 setCommandStrategy에 재정의 한다.
     this.cmdStrategySetter = new CmdStrategySetter(this);
@@ -354,8 +358,11 @@ class CommandManager {
         // 실제 수행하는 장치 제어 목록 정의
         complexCmdWrapInfo.realContainerCmdList = realContainerCmdList;
 
+        // BU.CLI(complexCmdWrapInfo)
+
         // 복합 명령 csOverlapControlStorage 반영
-        this.updateOverlapControlCommand(complexCmdWrapInfo);
+        this.cmdOverlapManager.updateOverlapCmdWrapInfo(complexCmdWrapInfo)
+        // this.updateOverlapControlCommand(complexCmdWrapInfo);
       }
 
       complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
