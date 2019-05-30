@@ -422,6 +422,17 @@ class CommandExecManager {
         realContainerCmdList: [],
       };
 
+      // 취소 명령을 요청할 경우 기존 실행 중인 명령이 없다면 예외 발생
+      if (wrapCmdType === reqWrapCmdType.CANCEL) {
+        const prceedWrapCmdInfo = this.model.cmdManager.getComplexCommand(wrapCmdId);
+        if (_.isEmpty(prceedWrapCmdInfo)) {
+          throw new Error(
+            `The command(${wrapCmdId}) does not exist and you can not issue a CANCEL command.`,
+          );
+        }
+        wrapCmdInfo.wrapCmdUUID = prceedWrapCmdInfo.wrapCmdUUID;
+      }
+
       // 요청 복합 명령 객체의 요청 리스트를 순회하면서 complexCmdContainerInfo 객체를 만들고 삽입
       reqCmdEleList.forEach(reqCmdEleInfo => {
         const {

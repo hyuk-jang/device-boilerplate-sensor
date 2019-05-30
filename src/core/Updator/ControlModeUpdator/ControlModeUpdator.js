@@ -48,7 +48,6 @@ class ControlModeUpdator extends Updator {
 
   /** @param {number} controlMode 제어 모드 변경 */
   updateControlMode(controlMode) {
-    console.log('controlMode', controlMode, this.controlMode);
     // 기존 제어모드에서 변경이 있을 경우 알림
     if (this.controlMode !== controlMode) {
       this.controlMode = controlMode;

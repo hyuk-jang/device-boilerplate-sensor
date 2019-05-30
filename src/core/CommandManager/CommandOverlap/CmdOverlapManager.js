@@ -16,10 +16,14 @@ class CmdOverlapManager extends CmdOverlapComponent {
     super();
     this.cmdManager = cmdManager;
 
-    /** @type {CmdOverlapStorage[]} */
-    this.cmdOverlapStorageList = cmdManager.nodeList.map(
-      nodeInfo => new CmdOverlapStorage(nodeInfo),
-    );
+    /**
+     * 명령 추적을 위한 Overlap Control Storage List 초기화.
+     * @type {CmdOverlapStorage[]}
+     */
+    this.cmdOverlapStorageList = cmdManager.nodeList
+      // 센서는 추적 대상에서 제외
+      .filter(nodeInfo => _.eq(nodeInfo.is_sensor, 0))
+      .map(nodeInfo => new CmdOverlapStorage(nodeInfo));
   }
 
   /**
@@ -32,9 +36,9 @@ class CmdOverlapManager extends CmdOverlapComponent {
 
   /**
    * Overlap이 존재하는 목록을 불러옴
-   * @param {string=} singleConType 0(False), 1(True), 2(Measure), 3(Set)
+   * @param {number=} singleConType 0(False), 1(True), 2(Measure), 3(Set)
    */
-  getExistOverlapStatus(singleConType) {
+  getExistOverlapStatusList(singleConType) {
     return this.cmdOverlapStorageList
       .map(storageInfo => {
         return storageInfo.getExistWcuListExceptOption(singleConType);
@@ -44,7 +48,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
 
   /**
    * Overlap이 존재하는 목록을 불러옴
-   * @param {string=} singleConType 0(False), 1(True), 2(Measure), 3(Set)
+   * @param {number=} singleConType 0(False), 1(True), 2(Measure), 3(Set)
    * @param {number|string=} conSetValue singleControType이 3(Set) 일 경우 설정 값
    */
   getExistSimpleOverlapList(singleConType, conSetValue) {
@@ -81,7 +85,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
   }
 
   /**
-   *
+   * @override 인자값을 3개 받는 형식으로 바꿈.
    * @param {string|nodeInfo} node Node ID or nodeInfo 객체
    * @param {number} singleControlType Device Protocol Converter에 요청할 명령에 대한 인자값 1: Open, On, ... ::: 0: Close, Off, undefind: Status
    * @param {*=} controlSetValue singleControlType 가 SET(3)일 경우 설정하는 값
@@ -96,12 +100,37 @@ class CmdOverlapManager extends CmdOverlapComponent {
   }
 
   /**
+   * @desc CmdOverlapStorage
+   * 단위명령을 가진 Status 객체 조회
+   * @param {string} reservedECU
+   * @return {CmdOverlapStatus[]}
+   */
+  getOverlapStatusWithECU(reservedECU) {
+    return _.flatten(
+      this.cmdOverlapStorageList.map(overlapStorage => {
+        return overlapStorage.getOverlapStatusWithECU(reservedECU);
+      }),
+    );
+  }
+
+  /**
+   *
+   * @param {string} wrapCmdUUID
+   */
+  removeOverlapWCU(wrapCmdUUID) {
+    this.cmdOverlapStorageList.forEach(overlapStorage => {
+      overlapStorage.removeOverlapWCU(wrapCmdUUID);
+    });
+  }
+
+  /**
    * NOTE:
    * FIXME: 명령 취소를 할 경우 ECU 제거 및 DCC 명령 정리 필요
    * 생성된 명령의 누적 호출 목록을 추가한다.
    * @param {complexCmdWrapInfo} complexCmdWrapInfo 복합 명령 객체
    */
   updateOverlapCmdWrapInfo(complexCmdWrapInfo) {
+    // BU.CLI(complexCmdWrapInfo);
     const {
       wrapCmdId,
       wrapCmdUUID,
@@ -128,11 +157,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
           // 명령 취소라면 wrapCmdUUID를 가진 누적 명령 전부 삭제
           if (wrapCmdType === reqWrapCmdType.CANCEL) {
             // 해당 Node를 가진 명령 누적 저장소의 제어 객체에 WCU 제거
-            // BU.CLI('CANCEL');
-            const runningWrapCmdInfo = _.find(this.this.cmdManager.complexCmdList, { wrapCmdId });
-
-            complexCmdWrapInfo.wrapCmdUUID = runningWrapCmdInfo.wrapCmdUUID;
-
+            // 기존에 실행한 CONTROL 명령 누적 WCU는 삭제
             this.getOverlapStorage(nodeId)
               .getOverlapStatus(conType, conSetValue)
               .removeOverlapWCU(wrapCmdUUID);

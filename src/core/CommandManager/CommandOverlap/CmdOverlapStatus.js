@@ -76,7 +76,6 @@ class CmdOverlapStatus extends CmdOverlapComponent {
    * @return {boolean} WCU 삭제 성공 true, 실패 false
    */
   removeOverlapWCU(wrapCmdUuid) {
-    // BU.CLIS(this.overlapWrapCmdUuidList, wrapCmdUuid);
     // 동일한 WCU가 존재한다면 fasle
     if (_.includes(this.overlapWrapCmdUuidList, wrapCmdUuid)) {
       _.pull(this.overlapWrapCmdUuidList, wrapCmdUuid);
@@ -92,10 +91,10 @@ class CmdOverlapStatus extends CmdOverlapComponent {
    * @param {string} complexCmdEleUuid
    * @return {boolean} ECU 교체 성공 true, 실패 false
    */
-  setReservedECU(complexCmdEleUuid) {
+  setReservedECU(complexCmdEleUuid = '') {
     // 기존 명령이 존재하더라도 덮어씌우기 가능으로 설정
     // 기존 명령과 동일할 경우 false
-    if (this.reservedEleCmdUuid === complexCmdEleUuid) return false;
+    if (this.getReservedECU() === complexCmdEleUuid) return false;
     // 명령 설정 후 true 반환
     this.reservedEleCmdUuid = complexCmdEleUuid;
     return true;
@@ -108,9 +107,9 @@ class CmdOverlapStatus extends CmdOverlapComponent {
    */
   resetReservedECU() {
     // CLU가 존재하지 않는다면 false
-    if (this.reservedEleCmdUuid === '') return false;
+    if (this.getReservedECU() === '') return false;
     // 명령 설정 후 true 반환
-    this.reservedEleCmdUuid = '';
+    this.setReservedECU('');
     return true;
   }
 }

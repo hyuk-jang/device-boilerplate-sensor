@@ -239,7 +239,6 @@ class AutoCmdStrategy extends CmdStrategy {
    */
   completeComplexCommand(complexWrapCmdInfo, isAchieveCommandGoal) {
     try {
-      // BU.CLI(this.findExistOverlapControl());
       // O.C reservedExecUU 제거
       // TODO: Prev.Single >> Curr.Single 명령 제거
       // TODO: Prev.Single >> !Curr.Single 명령 제거
@@ -269,14 +268,7 @@ class AutoCmdStrategy extends CmdStrategy {
 
       // 명령 삭제 처리를 해야할 경우
       if (isDeleteCmd) {
-        // wrapCmdUUID를 가진 O.C 제거
-        _(this.cmdManager.overlapControlStorageList)
-          .map('overlapControlList')
-          .flatten()
-          .forEach(overlapControlInfo => {
-            _.pull(overlapControlInfo.overlapWCUs, wrapCmdUUID);
-          });
-
+        this.cmdManager.cmdOverlapManager.removeOverlapWCU(wrapCmdUUID);
         // Complex Command List 에서 제거
         _.remove(this.cmdManager.complexCmdList, { wrapCmdUUID });
       }

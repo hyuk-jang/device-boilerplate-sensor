@@ -66,16 +66,6 @@ class ManualCmdStrategy extends CmdStrategy {
   completeComplexCommand(complexWrapCmdInfo) {
     try {
       const { wrapCmdUUID } = complexWrapCmdInfo;
-
-      // 명령 삭제 처리를 해야할 경우
-      // wrapCmdUUID를 가진 O.C 제거
-      _(this.overlapControlStorageList)
-        .map('overlapControlList')
-        .flatten()
-        .forEach(overlapControlInfo => {
-          _.pull(overlapControlInfo.overlapWCUs, wrapCmdUUID);
-        });
-
       // Complex Command List 에서 제거
       _.remove(this.cmdManager.complexCmdList, { wrapCmdUUID });
 

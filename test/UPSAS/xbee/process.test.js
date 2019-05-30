@@ -35,7 +35,7 @@ const main = new Main();
 const control = main.createControl(config);
 // const control = new MuanControl(config);
 
-describe.skip('Manual Mode', function() {
+describe('Manual Mode', function() {
   this.timeout(10000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
@@ -65,6 +65,7 @@ describe.skip('Manual Mode', function() {
    * 4. 명령 완료하였을 경우 명령 열에서 삭제 처리
    */
   it('Duplicate Measurement Command', async () => {
+    const { cmdOverlapManager } = control.model.cmdManager;
     // * 1. 정기 계측 명령을 요청
     // return;
     const isSuccess = control.inquiryAllDeviceStatus();
@@ -74,7 +75,7 @@ describe.skip('Manual Mode', function() {
     expect(() => control.inquiryAllDeviceStatus()).to.throw(Error);
 
     // // * 3. 정기 계측 명령 처리 시 O.C에는 영향을 미치지 않음
-    const ocLength = control.model.cmdManager.findExistOverlapControl();
+    const ocLength = cmdOverlapManager.getExistOverlapStatusList();
     expect(ocLength.length).to.eq(0);
 
     // BU.CLI(ocLength);
@@ -106,6 +107,7 @@ describe.skip('Manual Mode', function() {
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
   it('Single Command Flow', async () => {
+    const { cmdOverlapManager } = control.model.cmdManager;
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {
       nodeId: 'WD_005',
@@ -137,31 +139,38 @@ describe.skip('Manual Mode', function() {
     // 명령 완료 순서는 DPC 각 장치별 제어에 따른 status 지연 명령 시간에 따라 결정
     // 명령 실행 순서: 수문 > 펌프 > 밸브
     // 명령 완료 순서: 펌프 > 수문 > 밸브
-    const firstCompleteWCU = await eventToPromise(control, 'completeCommand');
 
+    const firstCompleteWCU = await eventToPromise(control, 'completeCommand');
     // * 4. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
     // 첫번째 명령 완료: 펌프 >> O.C reservedExecUU는 삭제
-    expect(control.model.cmdManager.findOverlapControlNode(openPumpCmd).reservedExecUU).to.eq('');
+    expect(
+      cmdOverlapManager
+        .getOverlapStatus(openPumpCmd.nodeId, openPumpCmd.singleControlType)
+        .getReservedECU(),
+    ).to.eq('');
+
     // 첫번째 명령 완료: 수문은 >> O.C reservedExecUU는 유지
-    expect(control.model.cmdManager.findOverlapControlNode(openGateCmd).reservedExecUU).to.not.eq(
-      '',
-    );
+    expect(
+      cmdOverlapManager
+        .getOverlapStatus(openGateCmd.nodeId, openGateCmd.singleControlType)
+        .getReservedECU(),
+    ).to.not.eq('');
 
     const secondCompleteWCU = await eventToPromise(control, 'completeCommand');
 
     // 첫번째 명령 완료: 수문은 >> O.C reservedExecUU는 유지
-    expect(control.model.cmdManager.findOverlapControlNode(openGateCmd).reservedExecUU).to.eq('');
+    expect(
+      cmdOverlapManager
+        .getOverlapStatus(openGateCmd.nodeId, openGateCmd.singleControlType)
+        .getReservedECU(),
+    ).to.eq('');
 
     const thirdCompleteWCU = await eventToPromise(control, 'completeCommand');
 
-    const { wrapCmdUUID: wdWCU } = openGateWC;
-    const { wrapCmdUUID: pumpWCU } = onPumpWC;
-    const { wrapCmdUUID: valveWCU } = openValveWC;
-
     // 5. 명령 완료 순서는 펌프 > 수문 > 밸브
-    expect(firstCompleteWCU).to.eq(pumpWCU);
-    expect(secondCompleteWCU).to.eq(wdWCU);
-    expect(thirdCompleteWCU).to.eq(valveWCU);
+    expect(firstCompleteWCU).to.deep.eq(onPumpWC);
+    expect(secondCompleteWCU).to.deep.eq(openGateWC);
+    expect(thirdCompleteWCU).to.deep.eq(openValveWC);
 
     // BU.CLIN(control.nodeList);
   });
@@ -267,8 +276,6 @@ describe('Automatic Mode', function() {
     // 실제 여는 장치는 아래와 같아야 한다.
     expect(realTrueNodes).to.deep.equal(['V_006', 'V_001', 'P_002']);
 
-    let existOverlapList = cmdOverlapManager.getExistOverlapStatus();
-
     // BU.CLI(_(existOverlapList).map('overlapStatusList').flatten().value())
 
     // True O.C 는 3개, trueList: ['V_006', 'V_001', 'P_002'],
@@ -296,7 +303,6 @@ describe('Automatic Mode', function() {
     realTrueNodes = _.map(realTrueCmd.eleCmdList, 'nodeId');
     // 실제 여는 장치는 아래와 같아야 한다.
     expect(realTrueNodes).to.deep.equal(['V_002']);
-    existOverlapList = control.model.cmdManager.findExistOverlapControl();
 
     // True O.C 는 4개, trueList: ['V_006', 'V_001', 'V_002', 'P_002'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(4);
@@ -341,8 +347,6 @@ describe('Automatic Mode', function() {
       singleControlType: FALSE,
     });
 
-    // BU.CLI(realTrueCmd);
-    // BU.CLI(realFalseCmd);
     // 실제 True 장치는 없어야 한다. 명령 취소를 한 것이기 때문
     expect(_.isEmpty(realTrueCmd)).to.true;
 
@@ -350,9 +354,6 @@ describe('Automatic Mode', function() {
 
     // 실제 닫는 장치는 아래와 같아야 한다.
     expect(realFalseNodes).to.deep.equal(['V_001']);
-
-    // 실행 중인 OC 를 가져옴
-    // BU.CLI(cmdOverlapManager.getExistSimpleOverlapList(TRUE))
 
     // True O.C 는 3개, trueList: ['V_006', 'V_002', 'P_002'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(3);
@@ -377,8 +378,6 @@ describe('Automatic Mode', function() {
 
     // 실제 여는 장치는 아래와 같아야 한다.
     expect(_.map(realTrueCmd.eleCmdList, 'nodeId')).to.deep.equal(['GV_001', 'WD_013', 'WD_010']);
-
-    existOverlapList = control.model.cmdManager.findExistOverlapControl();
 
     // True O.C 는 6개, trueList: ['V_006', 'V_002', 'P_002', 'GV_001', 'WD_010', 'WD_013'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(6);
@@ -406,9 +405,6 @@ describe('Automatic Mode', function() {
 
     // 실제 닫는 장치는 아래와 같아야 한다.
     expect(_.map(realFalseCmd.eleCmdList, 'nodeId')).to.deep.equal(['P_002', 'V_002', 'V_006']);
-
-    // 실행 중인 OC 를 가져옴
-    existOverlapList = control.model.cmdManager.findExistOverlapControl();
 
     // True O.C 는 3개, trueList: ['GV_001', 'WD_010', 'WD_013'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(3);
@@ -441,7 +437,7 @@ describe('Automatic Mode', function() {
     await eventToPromise(control, 'completeCommand');
 
     // 모든 명령은 수행되었고 O.C 는 존재하지 않음
-    expect(control.model.cmdManager.findExistOverlapControl()).to.length(0);
+    expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
 
     expect(control.model.complexCmdList).to.length(0);
   });

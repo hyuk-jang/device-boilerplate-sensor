@@ -58,8 +58,6 @@ class Model {
 
   /** Model 상세 초기화 */
   init() {
-    // 명령 추적을 위한 Overlap Control Storage List 초기화.
-    this.initOverapControlNode();
     // Map에 기록된 명령을 해석하여 상세한 명령으로 생성하여 MapInfo 에 정의
     this.initCommand();
 
@@ -69,22 +67,6 @@ class Model {
     /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
     this.cmdManager = new CmdManager(this);
     this.cmdManager.init();
-  }
-
-  /**
-   * @desc O.C
-   * 명령 추적을 위한 Overlap Control Storage List 초기화.
-   * @description 센서는 추적 대상에서 제외
-   */
-  initOverapControlNode() {
-    /** @type {csOverlapControlStorage[]} 노드 목록 중 장치만을 누적 제어 카운팅 목록으로 만듬 */
-    this.overlapControlStorageList = _(this.nodeList)
-      .filter(nodeInfo => _.eq(nodeInfo.is_sensor, 0))
-      .map(nodeInfo => ({
-        nodeInfo,
-        overlapControlList: [],
-      }))
-      .value();
   }
 
   /**
@@ -162,15 +144,9 @@ class Model {
     }
 
     // 저장소가 존재한다면 OC가 존재하는지 체크
-    const overlapControlInfo = this.cmdManager.findOverlapControlNode(existControlInfo);
-
-    // BU.CLI(overlapControlInfo);
-
-    // OC가 존재하지 않는다면 실행 중이지 않음
-    if (_.isEmpty(overlapControlInfo)) return false;
-
-    // Wrap Command UUID가 지정되어 있다면 True, 아니라면 False
-    return !!overlapControlInfo.reservedExecUU.length;
+    return !!this.cmdManager.cmdOverlapManager
+      .getOverlapStatus(nodeInfo, singleControlType, controlSetValue)
+      .getReservedECU().length;
   }
 
   /**

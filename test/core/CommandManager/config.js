@@ -161,15 +161,19 @@ const wrapCmdList = [
 const nodeList = [
   {
     node_id: 'WD_001',
+    is_sensor: 0,
   },
   {
     node_id: 'WD_002',
+    is_sensor: 0,
   },
   {
     node_id: 'WD_003',
+    is_sensor: 0,
   },
   {
     node_id: 'WD_004',
+    is_sensor: 0,
   },
 ];
 

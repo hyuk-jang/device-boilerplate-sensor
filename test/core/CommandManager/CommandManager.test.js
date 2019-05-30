@@ -4,9 +4,9 @@ const { expect } = require('chai');
 
 const { BU } = require('base-util-jh');
 
-const CmdOverlapManager = require('./../../../src/core/CommandManager/CommandOverlap/CmdOverlapManager');
-const CmdOverlapStorage = require('./../../../src/core/CommandManager/CommandOverlap/CmdOverlapStorage');
-const CmdOverlapStatus = require('./../../../src/core/CommandManager/CommandOverlap/CmdOverlapStatus');
+const CmdOverlapManager = require('../../../src/core/CommandManager/CommandOverlap/CmdOverlapManager');
+const CmdOverlapStorage = require('../../../src/core/CommandManager/CommandOverlap/CmdOverlapStorage');
+const CmdOverlapStatus = require('../../../src/core/CommandManager/CommandOverlap/CmdOverlapStatus');
 
 const { wrapCmdList, nodeList } = require('./config');
 
@@ -117,6 +117,6 @@ describe('CmdOverlap', function() {
     cmdOverlapManager.updateOverlapCmdWrapInfo(A_TO_C);
 
     // 모든 명령을 삭제하였기 때문에 누적 명령은 존재하지 않음
-    expect(cmdOverlapManager.getExistOverlapStatus()).to.length(0);
+    expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
   });
 });

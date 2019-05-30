@@ -329,29 +329,7 @@ class Control extends EventEmitter {
    * @param {string} conMode
    */
   changeControlMode(conMode) {
-    BU.CLI('changeControlMode');
     this.controlModeUpdator.updateControlMode(conMode);
-
-    // let CmdManager;
-
-    // switch (conMode) {
-    //   // 수동 모드
-    //   case controlModeInfo.MANUAL:
-    //     CmdManager = ManualCmdManager;
-    //     break;
-    //   // 자동 모드
-    //   case controlModeInfo.AUTOMATIC:
-    //     CmdManager = AutoCmdManager;
-    //     break;
-    //   // 기본: 수동 모드
-    //   default:
-    //     CmdManager = ManualCmdManager;
-    //     break;
-    // }
-
-    // this.model.cmdManager = new CmdManager(this);
-
-    // BU.CLIN(this.model.cmdManager, 1);
   }
 
   /**

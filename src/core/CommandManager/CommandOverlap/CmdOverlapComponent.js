@@ -19,11 +19,19 @@ class CmdOverlapComponent {
    * @desc CmdOverlapStorage
    * 현재 노드 저장소에 제어 값과 제어 설정값이 동일한 객체 추출
    * 만약 제어 설정 Status 객체가 존재하지 않을 경우 생성 및 자식으로 추가 후 반환
-   * @param {string} singleControType 0(False), 1(True), 2(Measure), 3(Set)
+   * @param {number} singleControType 0(False), 1(True), 2(Measure), 3(Set)
    * @param {number|string=} controlSetValue  singleControType이 3(Set) 일 경우 설정 값
    * @return {CmdOverlapComponent}
    */
   getOverlapStatus(singleControType, controlSetValue) {}
+
+  /**
+   * @desc CmdOverlapStorage
+   * 단위명령을 가진 Status 객체 조회
+   * @param {string} reservedECU
+   * @return {CmdOverlapComponent[]}
+   */
+  getOverlapStatusWithECU(reservedECU) {}
 
   /**
    * @desc CmdOverlapStatus
