@@ -27,14 +27,6 @@ class CmdOverlapManager extends CmdOverlapComponent {
   }
 
   /**
-   * Node Id를 가진 Node 객체 반환
-   * @param {string} nodeId Node Id
-   */
-  getNodeInfo(nodeId) {
-    return _.find(this.cmdManager.nodeList, { node_id: nodeId });
-  }
-
-  /**
    * Overlap이 존재하는 목록을 불러옴
    * @param {number=} singleConType 0(False), 1(True), 2(Measure), 3(Set)
    */
@@ -61,7 +53,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
       const overlapStatus = overlapStorage.getOverlapStatus(singleConType, conSetValue);
       if (overlapStatus.getOverlapWCUs().length) {
         result.push({
-          nodeId: overlapStorage.nodeInfo.node_id,
+          nodeId: overlapStorage.nodeId,
           singleControlType: overlapStatus.getSingleControlType(),
           controlSetValue: overlapStatus.getControlSetValue(),
           overlapWCUs: overlapStatus.getOverlapWCUs(),
@@ -75,25 +67,22 @@ class CmdOverlapManager extends CmdOverlapComponent {
 
   /**
    * 해당 노드 정보를 가진 명령 누적 저장소를 호출
-   * @param {string|nodeInfo} node Node ID or nodeInfo 객체
+   * @param {string} nodeId Node ID or nodeInfo 객체
    */
-  getOverlapStorage(node) {
-    if (_.isString(node)) {
-      node = this.getNodeInfo(node);
-    }
-    return _.find(this.cmdOverlapStorageList, { nodeInfo: node });
+  getOverlapStorage(nodeId) {
+    return _.find(this.cmdOverlapStorageList, { nodeId });
   }
 
   /**
    * @override 인자값을 3개 받는 형식으로 바꿈.
-   * @param {string|nodeInfo} node Node ID or nodeInfo 객체
+   * @param {string} nodeId Node ID or nodeInfo 객체
    * @param {number} singleControlType Device Protocol Converter에 요청할 명령에 대한 인자값 1: Open, On, ... ::: 0: Close, Off, undefind: Status
    * @param {*=} controlSetValue singleControlType 가 SET(3)일 경우 설정하는 값
    * @return {CmdOverlapStatus}
    */
-  getOverlapStatus(node, singleControlType, controlSetValue) {
+  getOverlapStatus(nodeId, singleControlType, controlSetValue) {
     try {
-      return this.getOverlapStorage(node).getOverlapStatus(singleControlType, controlSetValue);
+      return this.getOverlapStorage(nodeId).getOverlapStatus(singleControlType, controlSetValue);
     } catch (error) {
       throw error;
     }

@@ -96,7 +96,7 @@ class AutoCmdStrategy extends CmdStrategy {
 
         // ECU가 존재하는지 체크
         const reservedECU = this.cmdManager.cmdOverlapManager
-          .getOverlapStorage(nodeInfo)
+          .getOverlapStorage(nodeId)
           .getOverlapStatus(singleControlType, controlSetValue)
           .getReservedECU();
 
@@ -174,7 +174,7 @@ class AutoCmdStrategy extends CmdStrategy {
 
           // ECU가 존재하는지 체크
           const overlapWCUs = this.cmdManager.cmdOverlapManager
-            .getOverlapStorage(nodeInfo)
+            .getOverlapStorage(nodeId)
             .getOverlapStatus(singleControlType, controlSetValue)
             .getOverlapWCUs();
 
@@ -262,6 +262,7 @@ class AutoCmdStrategy extends CmdStrategy {
 
         // TODO: 제어 명령에 달성 목표가 있다면 임계치 관리자 생성
         if (!_.isEmpty(wrapCmdGoalInfo)) {
+          // BU.CLI('임계치 명령 생성');
           this.cmdManager.threCmdManager.addThreCmdStorage(complexWrapCmdInfo);
         }
       }

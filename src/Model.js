@@ -145,7 +145,7 @@ class Model {
 
     // 저장소가 존재한다면 OC가 존재하는지 체크
     return !!this.cmdManager.cmdOverlapManager
-      .getOverlapStatus(nodeInfo, singleControlType, controlSetValue)
+      .getOverlapStatus(nodeId, singleControlType, controlSetValue)
       .getReservedECU().length;
   }
 

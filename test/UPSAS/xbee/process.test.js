@@ -428,6 +428,9 @@ describe('Automatic Mode', function() {
       singleControlType: FALSE,
     });
 
+    BU.CLI(cmdOverlapManager.getOverlapStorage('WD_010'))
+    
+
     // 실제 True 장치는 없어야 한다. 명령 취소를 한 것이기 때문
     expect(_.isEmpty(realTrueCmd)).to.true;
 
@@ -450,14 +453,13 @@ describe('Automatic Mode', function() {
    * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it.skip('Threshold Command ', async () => {
+  it('Threshold Command ', async () => {
+    const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
     // BU.CLI('Critical Command');
     const NODE_BT_001 = 'BT_001';
     const nodeInfo = _.find(control.nodeList, { node_id: NODE_BT_001 });
     // 최초 수위는 3으로 설정
     nodeInfo.data = 3;
-
-    const { threCmdManager } = control.model.cmdManager;
 
     // * 1. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 수위 조작 후 명령 삭제 확인.
     rvToSEB1A.wrapCmdType = reqWrapCmdType.CONTROL;
@@ -485,8 +487,13 @@ describe('Automatic Mode', function() {
     await eventToPromise(control, 'completeCommand');
     console.time('Step 1');
 
+
+
+
+
     // 저수지 > 증발지 1-A 임계치 저장소 가져옴
     let tcsRvTo1A = threCmdManager.getThreCmdStorage(wcRvTo1A);
+    // BU.CLIN(tcsRvTo1A)
     let tcgGoalRvTo1A = tcsRvTo1A.getThreCmdGoal(NODE_BT_001);
     // 새로운 임계치 명령이 등록되야함.
     expect(tcsRvTo1A.threCmdGoalList).length(1);
@@ -557,7 +564,7 @@ describe('Automatic Mode', function() {
     expect(control.model.complexCmdList).to.length(0);
 
     // 현재 누적 OC는 존재하지 않음
-    expect(control.model.cmdManager.findExistOverlapControl()).to.length(0);
+    expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
     console.timeEnd('Step 2');
   });
 

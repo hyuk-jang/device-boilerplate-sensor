@@ -15,7 +15,9 @@ class CmdOverlapStorage extends CmdOverlapComponent {
   constructor(nodeInfo) {
     super();
 
-    this.nodeInfo = nodeInfo;
+    this.nodeId = nodeInfo.node_id;
+
+    // this.nodeInfo = nodeInfo;
     /** @type {CmdOverlapComponent[]} */
     this.children = [];
   }
@@ -137,7 +139,7 @@ class CmdOverlapStorage extends CmdOverlapComponent {
     // 객체가 존재한다면 의미있는 객체로 변환 후 반환
     return existStatusList.length
       ? {
-          nodeId: this.nodeInfo.node_id,
+          nodeId: this.nodeId,
           overlapStatusList: existStatusList,
         }
       : {};

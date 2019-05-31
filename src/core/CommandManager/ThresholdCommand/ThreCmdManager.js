@@ -79,7 +79,7 @@ class ThreCmdManager extends ThreCmdComponent {
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    */
   addThreCmdStorage(complexCmdWrapInfo) {
-    // BU.CLI('addCriticalCommand');
+    // BU.CLI('addThreCmdStorage');
     const {
       wrapCmdGoalInfo: { goalDataList, limitTimeSec },
     } = complexCmdWrapInfo;
