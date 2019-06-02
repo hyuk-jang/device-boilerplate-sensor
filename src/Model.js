@@ -32,12 +32,20 @@ class Model {
   constructor(controller) {
     this.controller = controller;
 
-    const { config, dataLoggerControllerList, dataLoggerList, nodeList, placeList } = controller;
+    const {
+      config,
+      dataLoggerControllerList,
+      dataLoggerList,
+      nodeList,
+      placeList,
+      placeRelationList,
+    } = controller;
 
     this.dataLoggerControllerList = dataLoggerControllerList;
     this.dataLoggerList = dataLoggerList;
     this.nodeList = nodeList;
     this.placeList = placeList;
+    this.placeRelationList = placeRelationList;
 
     /** @type {complexCmdWrapInfo[]} 복합 명령 실행 목록 */
     this.complexCmdList = [];

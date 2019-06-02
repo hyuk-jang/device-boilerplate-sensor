@@ -147,6 +147,15 @@ class Control extends EventEmitter {
 
     // 장소 단위로 묶을 장소 목록을 가져옴
     this.placeList = await biModule.getTable('v_dv_place', where);
+
+    // DB에 들어가있는 세부 장소 정보는 long text 형태이므로 데이터가 변환할 수 있을 경우 JSON 객체로 변환 후 재 지정
+    this.placeList.forEach(placeInfo => {
+      const customPlaceInfo = placeInfo.place_info;
+      if (_.isString(customPlaceInfo) && BU.IsJsonString(customPlaceInfo)) {
+        placeInfo.place_info = JSON.parse(customPlaceInfo);
+      }
+    });
+
     // 장소에 속해있는 센서를 알기위한 목록을 가져옴
     this.placeRelationList = await biModule.getTable('v_dv_place_relation', where);
 
