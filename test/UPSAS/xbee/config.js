@@ -6,6 +6,7 @@ const { controllerParserType } = require('../../../../default-intelligence').dcc
 
 /** @type {integratedDataLoggerConfig} */
 const config = {
+  uuid: ENV.PJ_UUID || '001',
   projectInfo: {
     projectMainId: 'UPSAS',
     projectSubId: 'muan',
