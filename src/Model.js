@@ -253,7 +253,7 @@ class Model {
     try {
       this.cmdManager.saveComplexCommand(complexCmdWrapInfo);
 
-      this.transmitComplexCommandStatus();
+      // this.transmitComplexCommandStatus();
 
       return complexCmdWrapInfo;
     } catch (error) {

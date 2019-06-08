@@ -93,6 +93,9 @@ class Control extends EventEmitter {
 
       // Binding Feature
       this.bindingFeature();
+
+      // 기본 시작은 자동모드로 변경. Step 3이 완료된 후에 변경을 해야만 cmdStrategySetter Observer Pattern이 동작함.
+      this.controlModeUpdator.updateControlMode(controlModeInfo.MANUAL);
     } catch (error) {
       BU.CLI(error);
       BU.errorLog('init', error);
@@ -159,10 +162,16 @@ class Control extends EventEmitter {
     // 장소에 속해있는 센서를 알기위한 목록을 가져옴
     this.placeRelationList = await biModule.getTable('v_dv_place_relation', where);
 
+    // FIXME: API 서버로 필수 데이터만을 전송하기 위한 flag 설정을 위한 Map 표기 Node 내역 추출
+    const svgNodeList = _(this.deviceMap.drawInfo.positionInfo.svgNodeList)
+      .map('defList')
+      .flatten()
+      .value();
+
     // 장소 관계 목록을 순회하면서 장소목록에 속해있는 node를 삽입
     this.placeRelationList.forEach(plaRelRow => {
       // 장소 시퀀스와 노드 시퀀스를 불러옴
-      const { place_seq: placeSeq, node_seq: nodeSeq } = plaRelRow;
+      const { place_seq: placeSeq, node_seq: nodeSeq, node_id: nodeId } = plaRelRow;
       // 장소 시퀀스를 가진 객체 검색
       const placeInfo = _.find(this.placeList, { place_seq: placeSeq });
       // 노드 시퀀스를 가진 객체 검색
@@ -171,14 +180,18 @@ class Control extends EventEmitter {
       // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
       if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
         // svg node로 표현하는 객체만 API 서버로 전송 Flag 설정
-        /** @type {mSvgNodeInfo[]} */
-        const svgNodeList = _.get(this, 'deviceMap.drawInfo.positionInfo.svgNodeList', []);
+        // /** @type {mSvgNodeInfo[]} */
+        // const svgNodeList = _.get(this, 'deviceMap.drawInfo.positionInfo.svgNodeList', []);
         // BU.CLI(svgNodeList);
-        const svgNodeInfo = _.find(svgNodeList, { nodeDefId: nodeInfo.nd_target_id });
-        if (svgNodeInfo) {
-          const { defList } = svgNodeInfo;
-          _.find(defList, { id: nodeInfo.node_id }) && _.set(nodeInfo, 'isSubmitDBW', true);
-        }
+        // const svgNodeInfo = _.find(svgNodeList, { nodeDefId: nodeInfo.nd_target_id });
+
+        // 해당 svg 노드 목록 중에 id와 매칭되는 Node Id 객체가 존재할 경우 API Client 전송 flag 설정
+        _.find(svgNodeList, { id: nodeId }) && _.set(nodeInfo, 'isSubmitDBW', true);
+
+        // if (svgNodeInfo) {
+        //   const { defList } = svgNodeInfo;
+        //   _.find(defList, { id: nodeInfo.node_id }) && _.set(nodeInfo, 'isSubmitDBW', true);
+        // }
 
         // 노드 정보가 있고 데이터 로거에 해당 장치가 등록되어져있다면 API 서버로 전송 Flag 설정
         // _.find(this.dataLoggerList, { data_logger_seq: nodeInfo.data_logger_seq }) &&

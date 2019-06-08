@@ -11,9 +11,11 @@ control.on('completeInquiryAllDeviceStatus', () => {
   const result = _(control.nodeList)
     .filter(nodeInfo => _.includes(['sensor', 'device'], nodeInfo.save_db_type))
     .map(nodeInfo => _.pick(nodeInfo, ['node_id', 'data']))
+    .sortBy('node_id')
     .value();
 
   if (_.every(result, nodeInfo => !_.isNil(nodeInfo.data))) {
+    // BU.CLI(result);
     BU.CLI('SUCCESS', '모든 장치 데이터 입력 검증 완료');
   } else {
     // const result = _.map(control.nodeList, node => _.pick(node, ['node_id', 'data']));
@@ -31,10 +33,10 @@ control
       password: process.env.PJ_DB_PW || 'test',
       database: process.env.PJ_DB_DB || 'test',
     },
-    'aaaaa',
+    config.uuid,
   )
   .then(() => {
-    // control.runFeature();
+    control.runFeature();
 
     setTimeout(() => {
       control.inquiryAllDeviceStatus();
