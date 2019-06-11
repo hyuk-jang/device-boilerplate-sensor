@@ -1,5 +1,7 @@
 const _ = require('lodash');
 
+const { BU } = require('base-util-jh');
+
 const PlaceComponent = require('./PlaceComponent');
 const ThresholdAlgorithm = require('./ThresholdAlgorithm');
 
@@ -24,31 +26,44 @@ class PlaceNode extends PlaceComponent {
       setValue,
       lowerLimitValue,
       minValue,
-      callPlaceRankList,
-      putPlaceRankList,
+      callPlaceRankList = [],
+      putPlaceRankList = [],
     } = thresholdConfigInfo;
 
-    /** @type {ThresholdAlgorithm} */
-    this.threAlogo;
+    this.maxValue = maxValue;
+    this.upperLimitValue = upperLimitValue;
+    this.setValue = setValue;
+    this.lowerLimitValue = lowerLimitValue;
+    this.minValue = minValue;
+
+    /** 요청 우선 장소 목록 */
+    this.callPlaceRankList = callPlaceRankList;
+    /** 발신 우선 장소 목록 */
+    this.putPlaceRankList = putPlaceRankList;
+
+    /** @type {PlaceComponent} */
+    this.placeStorage;
   }
 
   /**
+   * @desc Place Node :::
+   * Node Id 반환
+   */
+  getNodeId() {
+    return this.nodeInfo.node_id;
+  }
+
+  /**
+   * @desc Place Node :::
    * 현 Place Node 객체를 가지는 Place Storage 객체
    * @param {PlaceComponent} placeComponent
    */
   setPlace(placeComponent) {
-    this.place = placeComponent;
+    this.placeStorage = placeComponent;
   }
 
   /**
-   * 임계 알고리즘을 수행할 객체 정의
-   * @param {ThresholdAlgorithm} thresholdAlgorithm
-   */
-  setThresholdAlgorithm(thresholdAlgorithm) {
-    this.threAlogo = thresholdAlgorithm;
-  }
-
-  /**
+   * @desc Place Node :::
    * FIXME: 문자 형태 비교는 차후에....
    * Node Updator 에서 업데이트된 Node 정보를 전달해옴.
    * 데이터가 달성 목표에 도달하였다면 Critical Stroage에 알림.
@@ -65,7 +80,7 @@ class PlaceNode extends PlaceComponent {
     } else if (_.isString(data)) {
       isClear = this.updateStrValue(data);
     } else {
-      this.threAlogo.handleError();
+      this.handleUnknown();
     }
 
     // // 성공하지 못한 상태에서 성공 상태로 넘어갔을 경우에만 전파
@@ -77,6 +92,7 @@ class PlaceNode extends PlaceComponent {
   }
 
   /**
+   * @desc Place Node :::
    * @param {number} numDeviceData number 형식 데이터
    */
   updateNumValue(numDeviceData) {
@@ -84,15 +100,15 @@ class PlaceNode extends PlaceComponent {
     const isClear = false;
 
     if (_.isNumber(this.maxValue) && numDeviceData >= this.maxValue) {
-      this.threAlogo.handleMaxOver(this);
+      this.handleMaxOver();
     } else if (_.isNumber(this.upperLimitValue) && numDeviceData >= this.upperLimitValue) {
-      this.threAlogo.handleUpperLimitOver(this);
+      this.handleUpperLimitOver();
     } else if (_.isNumber(this.minValue) && numDeviceData <= this.minValue) {
-      this.threAlogo.handleMinUnder(this);
+      this.handleMinUnder();
     } else if (_.isNumber(this.lowerLimitValue) && numDeviceData <= this.lowerLimitValue) {
-      this.threAlogo.handleLowerLimitUnder(this);
+      this.handleLowerLimitUnder();
     } else {
-      this.threAlogo.handleNormal(this);
+      this.handleNormal();
     }
 
     return isClear;
@@ -108,5 +124,40 @@ class PlaceNode extends PlaceComponent {
   //   // 대소 문자의 차이가 있을 수 있으므로 소문자로 변환 후 비교
   //   return _.lowerCase(deviceData) === _.lowerCase(this.goalValue);
   // }
+
+  /** 장치 상태가 식별 불가 일 경우 */
+  handleUnknown() {
+    this.placeStorage.handleUnknown(this);
+  }
+
+  /** 장치 상태가 에러일 경우 */
+  handleError() {
+    this.placeStorage.handleError(this);
+  }
+
+  /** Node 임계치가 최대치를 넘을 경우 */
+  handleMaxOver() {
+    this.placeStorage.handleMaxOver(this);
+  }
+
+  /** Node 임계치가 상한선을 넘을 경우 */
+  handleUpperLimitOver() {
+    this.placeStorage.handleUpperLimitOver(this);
+  }
+
+  /** Node 임계치가 정상 일 경우 */
+  handleNormal() {
+    this.placeStorage.handleNormal(this);
+  }
+
+  /** Node 임계치가 하한선에 못 미칠 경우 */
+  handleLowerLimitUnder() {
+    this.placeStorage.handleLowerLimitUnder(this);
+  }
+
+  /** Node 임계치가 최저치에 못 미칠 경우 */
+  handleMinUnder() {
+    this.placeStorage.handleMinUnder(this);
+  }
 }
 module.exports = PlaceNode;

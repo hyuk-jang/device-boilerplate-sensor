@@ -18,7 +18,8 @@ function Model() {
   this.placeRelationList = placeRelationList;
 }
 
-describe('PlaceManager', function() {
+// 100kW 급 테스트
+describe('100kW 무안 테스트베드', function() {
   /**
    * 1. Place Manager Tree를 구성한다.
    * 2. Manager, Storage, Node 메소드가 잘 작동하는지 확인
@@ -30,7 +31,33 @@ describe('PlaceManager', function() {
     const placeManager = new PlaceManager(new Model());
     placeManager.init();
 
-    // 6kW 급 현재 장소는 총 58개중  27개가 노드와 연결 설정되어 있음
-    expect(placeManager.placeStorageList).to.length(27);
+    // * 1. Place Manager Tree를 구성한다.
+    // 장소는 총 4개. 중복 1개(SEB_1), Node 객체 연결 없는 장소 1개(WW_017).
+    // 따라서 2개여야 함
+    expect(placeManager.placeStorageList).to.length(2);
+
+    // 수중 증발지 1 저장소 객체를
+    const seb1Storage = placeManager.getPlaceStorage('SEB_1');
+    const s001PlaceNode = seb1Storage.getPlaceNode('S_002');
+
+    // 수중 태양광 1은 센서 4개(S_002, WL_008, MRT_001, BT_001)로 이루어짐
+    expect(seb1Storage.children).to.length(4);
+    expect(seb1Storage.getPlaceId()).to.eq('SEB_1');
+    // 임계치 호출 메소드가 정상적으로 요청되어야 한다
+    expect(s001PlaceNode.handleError());
+    expect(s001PlaceNode.handleLowerLimitUnder());
+    expect(s001PlaceNode.handleMaxOver());
+    expect(s001PlaceNode.handleMinUnder());
+    expect(s001PlaceNode.handleNormal());
+    expect(s001PlaceNode.handleUnknown());
+    expect(s001PlaceNode.handleUpperLimitOver());
+
+    // 염도 상한선 10.5도
+    expect(seb1Storage.getPlaceNode('S_002').upperLimitValue).to.eq(10.5);
+    // 수위 하한선 2.9 cm
+    expect(seb1Storage.getPlaceNode('WL_008').lowerLimitValue).to.eq(2.9);
+
+    // 수중 태양광 2는 센서 3개(S_003, WL_009, MRT_002)로 이루어짐
+    expect(placeManager.getPlaceStorage('SEB_2').children).to.length(3);
   });
 });

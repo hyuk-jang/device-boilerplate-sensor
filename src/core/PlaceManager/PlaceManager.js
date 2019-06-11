@@ -2,15 +2,12 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const PlaceComponent = require('./PlaceComponent');
 const PlaceStorage = require('./PlaceStorage');
 const PlaceNode = require('./PlaceNode');
 
-class PlaceManager extends PlaceComponent {
+class PlaceManager {
   /** @param {Model} model */
   constructor(model) {
-    super();
-
     const { nodeList, placeList, placeRelationList } = model;
 
     this.model = model;
@@ -38,6 +35,11 @@ class PlaceManager extends PlaceComponent {
       // 노드 정보
       const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
 
+      // 장소목록과 노드 목록에 해당 Place Relation Info 정보가 있어야만 진행
+      if (!placeInfo && !nodeInfo) {
+        return false;
+      }
+
       // 장소 저장소 객체 생성
       const placeStorage = this.addPlaceStorage(placeInfo);
 
@@ -53,6 +55,10 @@ class PlaceManager extends PlaceComponent {
 
       // 장소 노드 생성 및 추가
       const placeNode = new PlaceNode(nodeInfo, thresholdConfigInfo);
+
+      // 저장소 바인딩
+      placeNode.setPlace(placeStorage);
+
       placeStorage.addPlaceNode(placeNode);
     });
   }

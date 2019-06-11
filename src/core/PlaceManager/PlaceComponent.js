@@ -11,58 +11,63 @@ class PlaceComponent extends Observer {
   setPlace(placeComponent) {}
 
   /**
-   * @desc Place Storage
-   * Place Storage 객체의 place Id를 가져옴
+   * @desc Place Storage :::
+   * 장소 저장소 객체의 place Id를 가져옴
    */
   getPlaceId() {}
 
-  /** @param {PlaceComponent} placeComponent */
-  addPlaceStorage(placeComponent) {}
-
-  /** @param {PlaceComponent} placeComponent */
-  removePlaceStorage(placeComponent) {}
+  /**
+   * @desc Place Storage :::
+   * 장소 저장소 객체의 place Info를 가져옴
+   */
+  getPlaceInfo() {}
 
   /**
-   * 세부 목표를 완료했다고 알려 올 세부 객체
+   * @desc Place Storage :::
+   * @return {number=} 현재 장소의 제곱미터
+   */
+  getSquareMeter() {}
+
+  /**
+   * @desc Place Storage :::
    * @param {PlaceComponent} placeComponent
+   */
+  addPlaceNode(placeComponent) {}
+
+  /**
+   * @desc Place Storage :::
+   * @param {PlaceComponent} placeComponent
+   */
+  removePlaceNode(placeComponent) {}
+
+  /**
+   * @desc Place Storage :::
+   * 장소 노드 객체를 조회하고자 할 경우
+   * @param {nodeId|nodeInfo} node NodeId or nodeInfo 객체
    * @return {PlaceComponent}
    */
-  handleThreshold(placeComponent) {}
+  getPlaceNode(node) {}
 
-  // /**
-  //  * 해당 장소의 염도치를 가져옴.
-  //  * @param {string=} placeId 장소 ID place_id
-  //  * @return {number}
-  //  */
-  // getSalinity(placeId) {}
+  /** @param {PlaceComponent} placeComponent 장치 상태가 식별 불가 일 경우 */
+  handleUnknown(placeComponent) {}
 
-  // /**
-  //  * 해당 장소의 수위를 가져옴.
-  //  * @param {string=} placeId 장소 ID place_id
-  //  * @return {number}
-  //  */
-  // getWaterLevel() {}
+  /** @param {PlaceComponent} placeComponent 장치 상태가 에러일 경우 */
+  handleError(placeComponent) {}
 
-  // /**
-  //  * 해당 장소의 모듈 후면 온도를 가져옴.
-  //  * @param {string=} placeId 장소 ID place_id
-  //  * @return {number}
-  //  */
-  // getModuleRearTemp() {}
+  /** @param {PlaceComponent} placeComponent Node 임계치가 최대치를 넘을 경우 */
+  handleMaxOver(placeComponent) {}
 
-  // /**
-  //  * 해당 장소의 염수 온도를 가져옴.
-  //  * @param {string=} placeId 장소 ID place_id
-  //  * @return {number}
-  //  */
-  // getBrineTemp() {}
+  /** @param {PlaceComponent} placeComponent Node 임계치가 상한선을 넘을 경우 */
+  handleUpperLimitOver(placeComponent) {}
 
-  // /**
-  //  * 해당 장소의 수문 타입을 가져옴. 수문 종류(배수, 급수, 동일)
-  //  * @param {string=} placeId 장소 ID place_id
-  //  * @return {string}
-  //  */
-  // getWaterDoorType() {}
+  /** @param {PlaceComponent} placeComponent Node 임계치가 정상 일 경우 */
+  handleNormal(placeComponent) {}
+
+  /** @param {PlaceComponent} placeComponent Node 임계치가 하한선에 못 미칠 경우 */
+  handleLowerLimitUnder(placeComponent) {}
+
+  /** @param {PlaceComponent} placeComponent Node 임계치가 최저치에 못 미칠 경우 */
+  handleMinUnder(placeComponent) {}
 }
 
 module.exports = PlaceComponent;

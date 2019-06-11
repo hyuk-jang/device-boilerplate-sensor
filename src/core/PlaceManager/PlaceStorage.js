@@ -17,6 +17,8 @@ class PlaceStorage extends PlaceComponent {
   constructor(placeInfo) {
     super();
 
+    // BU.CLI(placeInfo);
+
     // 기존에 PlaceInfo 객체가 존재한다면 재생성 하지 않음
     const existPlaceStorage = _.find(placeStorageList, placeStorage => {
       return placeStorage.placeInfo === placeInfo;
@@ -47,22 +49,39 @@ class PlaceStorage extends PlaceComponent {
   }
 
   /**
-   * @desc Place Storage
-   * Place Storage 객체의 place Id를 가져옴
+   * @desc Place Storage :::
+   * 장소 저장소 객체의 place Id를 가져옴
    */
   getPlaceId() {
     return this.placeInfo.place_id;
   }
 
   /**
-   * @desc Place Storage
-   * Place Storage 객체의 place Info를 가져옴
+   * @desc Place Storage :::
+   * 장소 저장소 객체의 place Info를 가져옴
    */
   getPlaceInfo() {
     return this.placeInfo;
   }
 
-  /** @param {PlaceComponent} placeComponent */
+  /**
+   * @desc Place Storage :::
+   * @return {number=} 현재 장소의 제곱미터
+   */
+  getSquareMeter() {
+    // 만약 면적을 구하는데 필요한 값을 가져오는데 문제가 발생하였다면 현재 면적은 없는 것으로 판단
+    try {
+      const { width, height } = this.placeSize;
+      return _.round(_.multiply(width, height), 1);
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  /**
+   * @desc Place Storage :::
+   * @param {PlaceComponent} placeComponent
+   */
   addPlaceNode(placeComponent) {
     // 이미 존재한다면 false 반환
     if (_.findIndex(this.children, placeComponent) !== -1) return false;
@@ -71,7 +90,10 @@ class PlaceStorage extends PlaceComponent {
     return this.children.push(placeComponent) && true;
   }
 
-  /** @param {PlaceComponent} placeComponent */
+  /**
+   * @desc Place Storage :::
+   * @param {PlaceComponent} placeComponent
+   */
   removePlaceNode(placeComponent) {
     // 해당 인자가 존재할 경우 삭제 후 true 반환
     if (_.findIndex(this.children, placeComponent) === -1) {
@@ -82,20 +104,41 @@ class PlaceStorage extends PlaceComponent {
   }
 
   /**
-   * 임계치 저장소를 조회하고자 할 경우
-   * @param {nodeInfo} nodeInfo Node ID
-   * @return {ThreCmdComponent}
-   */
-  getPlaceNode(nodeInfo) {
-    return _.find(this.children, { nodeInfo });
-  }
-
-  /**
-   * 세부 목표를 완료했다고 알려 올 세부 객체
-   * @param {PlaceComponent} placeComponent
+   * @desc Place Storage :::
+   * 장소 노드 객체를 조회하고자 할 경우
+   * @param {nodeId|nodeInfo} node NodeId or nodeInfo 객체
    * @return {PlaceComponent}
    */
-  handleThreshold(placeComponent) {}
+  getPlaceNode(node) {
+    if (_.isString(node)) {
+      return _.find(this.children, placeNode => {
+        return placeNode.getNodeId() === node;
+      });
+    }
+
+    return _.find(this.children, { nodeInfo: node });
+  }
+
+  /** @param {PlaceComponent} placeComponent 장치 상태가 식별 불가 일 경우 */
+  handleUnknown(placeComponent) {}
+
+  /** @param {PlaceComponent} placeComponent 장치 상태가 에러일 경우 */
+  handleError(placeComponent) {}
+
+  /** @param {PlaceComponent} placeComponent Node 임계치가 최대치를 넘을 경우 */
+  handleMaxOver(placeComponent) {}
+
+  /** @param {PlaceComponent} placeComponent Node 임계치가 상한선을 넘을 경우 */
+  handleUpperLimitOver(placeComponent) {}
+
+  /** @param {PlaceComponent} placeComponent Node 임계치가 정상 일 경우 */
+  handleNormal(placeComponent) {}
+
+  /** @param {PlaceComponent} placeComponent Node 임계치가 하한선에 못 미칠 경우 */
+  handleLowerLimitUnder(placeComponent) {}
+
+  /** @param {PlaceComponent} placeComponent Node 임계치가 최저치에 못 미칠 경우 */
+  handleMinUnder(placeComponent) {}
 }
 
 module.exports = PlaceStorage;
