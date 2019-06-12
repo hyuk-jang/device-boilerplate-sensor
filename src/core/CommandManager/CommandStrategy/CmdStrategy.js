@@ -40,6 +40,8 @@ class CmdStrategist {
     } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
       strTrue = 'Open';
       strFalse = 'Close';
+    } else {
+      throw new Error(`ncTargetId: ${nodeInfo.nc_target_id} is not defined.`);
     }
 
     switch (singleControlType) {

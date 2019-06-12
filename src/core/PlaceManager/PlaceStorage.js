@@ -46,6 +46,8 @@ class PlaceStorage extends PlaceComponent {
     this.children = [];
 
     placeStorageList.push(this);
+
+    this.threAlgoStrategy;
   }
 
   /**

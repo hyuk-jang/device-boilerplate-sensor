@@ -3,6 +3,8 @@ const uuidv4 = require('uuid/v4');
 
 const { BU } = require('base-util-jh');
 
+const CoreFacade = require('./core/CoreFacade');
+
 const { dcmConfigModel, dccFlagModel } = require('../../default-intelligence');
 
 const { controlModeInfo, reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
@@ -24,6 +26,10 @@ class CommandExecManager {
     this.nodeList = nodeList;
     this.dataLoggerList = dataLoggerList;
     this.mainUUID = mainUUID;
+
+    // Command Execute Manager 를 Core Facde에 정의
+    const coreFacade = new CoreFacade();
+    coreFacade.setCmdManager(this);
   }
 
   /**

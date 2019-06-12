@@ -5,6 +5,8 @@ const CmdStrategySetter = require('./CmdStrategySetter');
 const ThreCmdManager = require('./ThresholdCommand/ThreCmdManager');
 const CmdOverlapManager = require('./CommandOverlap/CmdOverlapManager');
 
+const CoreFacade = require('../CoreFacade');
+
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
 const {
@@ -34,6 +36,10 @@ class CommandManager {
 
     // 명령 전략가 등록
     this.cmdStrategy;
+
+    // Command Manager를 Core Facde에 정의
+    const coreFacade = new CoreFacade();
+    coreFacade.setCmdManager(this);
   }
 
   init() {

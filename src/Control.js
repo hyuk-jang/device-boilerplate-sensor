@@ -179,28 +179,16 @@ class Control extends EventEmitter {
 
       // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
       if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
-        // svg node로 표현하는 객체만 API 서버로 전송 Flag 설정
-        // /** @type {mSvgNodeInfo[]} */
-        // const svgNodeList = _.get(this, 'deviceMap.drawInfo.positionInfo.svgNodeList', []);
-        // BU.CLI(svgNodeList);
-        // const svgNodeInfo = _.find(svgNodeList, { nodeDefId: nodeInfo.nd_target_id });
-
         // 해당 svg 노드 목록 중에 id와 매칭되는 Node Id 객체가 존재할 경우 API Client 전송 flag 설정
         _.find(svgNodeList, { id: nodeId }) && _.set(nodeInfo, 'isSubmitDBW', true);
-
-        // if (svgNodeInfo) {
-        //   const { defList } = svgNodeInfo;
-        //   _.find(defList, { id: nodeInfo.node_id }) && _.set(nodeInfo, 'isSubmitDBW', true);
-        // }
-
-        // 노드 정보가 있고 데이터 로거에 해당 장치가 등록되어져있다면 API 서버로 전송 Flag 설정
-        // _.find(this.dataLoggerList, { data_logger_seq: nodeInfo.data_logger_seq }) &&
-        //   _.set(nodeInfo, 'isSubmitDBW', true);
 
         !_.has(placeInfo, 'nodeList') && _.set(placeInfo, 'nodeList', []);
         placeInfo.nodeList.push(nodeInfo);
       }
     });
+
+    // 맵 데이터 중 DBS에서 필요치 않는 Draw 관련 정보 삭제
+    _.unset(this.deviceMap, 'drawInfo');
   }
 
   /**
@@ -496,11 +484,6 @@ class Control extends EventEmitter {
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
-      // 아직 접속이 이루어져있지 않을 경우 보내지 않음
-      if (!this.apiClient.isConnect) {
-        return false;
-      }
-
       // 노드 갱신 매니저에게 갱신된 노드 목록을 알림
       this.nodeUpdatorManager.updateNodeList(renewalNodeList);
 
@@ -509,8 +492,8 @@ class Control extends EventEmitter {
         renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
       );
 
-      // 데이터가 있을 경우에만 전송
-      if (dataList.length) {
+      // API 접속이 이루어져 있고 데이터가 있을 경우에만 전송
+      if (this.apiClient.isConnect && dataList.length) {
         this.apiClient.transmitDataToServer({
           commandType: dcmWsModel.transmitToServerCommandType.NODE,
           data: dataList,
