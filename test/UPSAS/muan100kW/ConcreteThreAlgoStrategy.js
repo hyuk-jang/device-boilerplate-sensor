@@ -1,16 +1,7 @@
-const PlaceComponent = require('./PlaceComponent');
+const ThreAlgoStrategy = require('../../../src/core/PlaceManager/ThreAlgoStrategy');
 
-const PlaceThreshold = require('./PlaceThreshold');
-
-class ThreAlgoStrategy extends PlaceThreshold {
-  /**
-   *
-   * @param {PlaceComponent} placeStorage
-   */
-  constructor(placeStorage) {
-    super();
-    this.placeStorage = placeStorage;
-  }
+class ConcreteThreAlgoStrategy extends ThreAlgoStrategy {
+  getAbleWaterSquareMeter() {}
 
   /** @param {PlaceComponent} placeComponent 장치 상태가 식별 불가 일 경우 */
   handleUnknown(placeComponent) {}
@@ -33,4 +24,5 @@ class ThreAlgoStrategy extends PlaceThreshold {
   /** @param {PlaceComponent} placeComponent Node 임계치가 최저치에 못 미칠 경우 */
   handleMinUnder(placeComponent) {}
 }
-module.exports = ThreAlgoStrategy;
+
+module.exports = ConcreteThreAlgoStrategy;

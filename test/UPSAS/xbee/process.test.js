@@ -428,9 +428,6 @@ describe('Automatic Mode', function() {
       singleControlType: FALSE,
     });
 
-    BU.CLI(cmdOverlapManager.getOverlapStorage('WD_010'))
-    
-
     // 실제 True 장치는 없어야 한다. 명령 취소를 한 것이기 때문
     expect(_.isEmpty(realTrueCmd)).to.true;
 
@@ -486,10 +483,6 @@ describe('Automatic Mode', function() {
     // 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
     console.time('Step 1');
-
-
-
-
 
     // 저수지 > 증발지 1-A 임계치 저장소 가져옴
     let tcsRvTo1A = threCmdManager.getThreCmdStorage(wcRvTo1A);

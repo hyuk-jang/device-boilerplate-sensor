@@ -3,7 +3,8 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const PlaceComponent = require('./PlaceComponent');
-const ThresholdAlgorithm = require('./ThresholdAlgorithm');
+
+const CoreFacade = require('../CoreFacade');
 
 const {
   dcmConfigModel: { goalDataRange },
@@ -42,15 +43,10 @@ class PlaceNode extends PlaceComponent {
     this.putPlaceRankList = putPlaceRankList;
 
     /** @type {PlaceComponent} */
-    this.placeStorage;
-  }
+    this.placeComponent;
 
-  /**
-   * @desc Place Node :::
-   * Node Id 반환
-   */
-  getNodeId() {
-    return this.nodeInfo.node_id;
+    const coreFacade = new CoreFacade();
+    coreFacade.attachNodeObserver(nodeInfo, this);
   }
 
   /**
@@ -59,7 +55,68 @@ class PlaceNode extends PlaceComponent {
    * @param {PlaceComponent} placeComponent
    */
   setPlace(placeComponent) {
-    this.placeStorage = placeComponent;
+    this.placeComponent = placeComponent;
+  }
+
+  /**
+   * @desc Place Node :::
+   * Node Id 반환
+   * @return {string}
+   */
+  getNodeId() {
+    return this.nodeInfo.node_id;
+  }
+
+  /**
+   * @desc Place Node :::
+   * Node Def Id 반환
+   * @return {string}
+   */
+  getNodeDefId() {
+    return this.nodeInfo.nd_target_id;
+  }
+
+  /**
+   * @desc Place Node :::
+   * 급수지 Place Id 목록 반환
+   * @return {string[]}
+   */
+  getCallPlaceRankList() {
+    return this.callPlaceRankList;
+  }
+
+  /**
+   * @desc Place Node :::
+   * 배수지 Place Id목록 반환
+   * @return {string[]}
+   */
+  getPutPlaceRankList() {
+    return this.putPlaceRankList;
+  }
+
+  /** @desc Place Node ::: 노드 최대 임계치 */
+  getMaxValue() {
+    return this.maxValue;
+  }
+
+  /** @desc Place Node ::: 노드 상한선 임계치 */
+  getUpperLimitValue() {
+    return this.upperLimitValue;
+  }
+
+  /** @desc Place Node ::: 노드 설정 임계치 */
+  getSetValue() {
+    return this.setValue;
+  }
+
+  /** @desc Place Node ::: 노드 하한선 임계치 */
+  getLowerLimitValue() {
+    return this.lowerLimitValue;
+  }
+
+  /** @desc Place Node ::: 노드 최저 임계치 */
+  getMinValue() {
+    return this.minValue;
   }
 
   /**
@@ -114,50 +171,52 @@ class PlaceNode extends PlaceComponent {
     return isClear;
   }
 
-  // /**
-  //  * @param {string} deviceData string 형식 데이터
-  //  */
-  // updateStrValue(deviceData) {
-  //   // 문자 데이터일 경우에는 달성 목표가 EQUAL이어야만 함. 문자 상하 비교 불가
-  //   if (this.goalRange !== goalDataRange.EQUAL) return false;
+  /**
+   * @param {string} deviceData string 형식 데이터
+   */
+  updateStrValue(deviceData) {
+    // 문자 데이터일 경우에는 달성 목표가 EQUAL이어야만 함. 문자 상하 비교 불가
+    if (this.goalRange !== goalDataRange.EQUAL) return false;
 
-  //   // 대소 문자의 차이가 있을 수 있으므로 소문자로 변환 후 비교
-  //   return _.lowerCase(deviceData) === _.lowerCase(this.goalValue);
-  // }
+    // 대소 문자의 차이가 있을 수 있으므로 소문자로 변환 후 비교
+    if (_.lowerCase(deviceData) === _.lowerCase(this.goalValue)) {
+      this.handleNormal();
+    }
+  }
 
   /** 장치 상태가 식별 불가 일 경우 */
   handleUnknown() {
-    this.placeStorage.handleUnknown(this);
+    this.placeComponent.handleUnknown(this);
   }
 
   /** 장치 상태가 에러일 경우 */
   handleError() {
-    this.placeStorage.handleError(this);
+    this.placeComponent.handleError(this);
   }
 
   /** Node 임계치가 최대치를 넘을 경우 */
   handleMaxOver() {
-    this.placeStorage.handleMaxOver(this);
+    this.placeComponent.handleMaxOver(this);
   }
 
   /** Node 임계치가 상한선을 넘을 경우 */
   handleUpperLimitOver() {
-    this.placeStorage.handleUpperLimitOver(this);
+    this.placeComponent.handleUpperLimitOver(this);
   }
 
   /** Node 임계치가 정상 일 경우 */
   handleNormal() {
-    this.placeStorage.handleNormal(this);
+    this.placeComponent.handleNormal(this);
   }
 
   /** Node 임계치가 하한선에 못 미칠 경우 */
   handleLowerLimitUnder() {
-    this.placeStorage.handleLowerLimitUnder(this);
+    this.placeComponent.handleLowerLimitUnder(this);
   }
 
   /** Node 임계치가 최저치에 못 미칠 경우 */
   handleMinUnder() {
-    this.placeStorage.handleMinUnder(this);
+    this.placeComponent.handleMinUnder(this);
   }
 }
 module.exports = PlaceNode;

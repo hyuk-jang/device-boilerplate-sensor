@@ -1,4 +1,6 @@
-class ThresholdAlgorithm {
+const Observer = require('../Updator/Observer');
+
+class PlaceThreshold extends Observer {
   updateControlMode(number) {}
 
   handleUnknown() {}
@@ -16,4 +18,4 @@ class ThresholdAlgorithm {
   handleMinUnder() {}
 }
 
-module.exports = ThresholdAlgorithm;
+module.exports = PlaceThreshold;

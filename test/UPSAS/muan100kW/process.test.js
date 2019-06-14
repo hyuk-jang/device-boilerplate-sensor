@@ -1,0 +1,205 @@
+require('dotenv').config();
+const _ = require('lodash');
+const Promise = require('bluebird');
+const { expect } = require('chai');
+
+const eventToPromise = require('event-to-promise');
+
+const { BU } = require('base-util-jh');
+const config = require('./config');
+const Main = require('../../../src/Main');
+
+const MuanControl = require('../../../src/projects/UPSAS/muan/MuanControl');
+
+const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
+
+const {
+  complexCmdStep,
+  nodePickKey,
+  complexCmdPickKey,
+  controlModeInfo,
+  goalDataRange,
+  nodeDataType,
+  reqWrapCmdType,
+  reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
+} = dcmConfigModel;
+
+process.env.NODE_ENV = 'development';
+
+const { dbInfo } = config;
+
+const main = new Main();
+// const control = main.createControl({
+//   dbInfo: config.dbInfo,
+// });
+const control = main.createControl(config);
+
+const ndId = {
+  S: 'salinity',
+  WL: 'waterLevel',
+  BT: 'brineTemperature',
+  MRT: 'moduleRearTemperature',
+};
+
+/**
+ *
+ * @param {PlaceNode} placeNode
+ * @param {*} setValue
+ */
+function setNodeData(placeNode, setValue) {
+  _.set(placeNode, 'nodeInfo.data', setValue);
+
+  return _.get(placeNode, 'nodeInfo');
+}
+
+describe('Automatic Mode', function() {
+  this.timeout(5000);
+
+  before(async () => {
+    await control.init(dbInfo, config.uuid);
+    control.runFeature();
+
+    control.changeControlMode(controlModeInfo.AUTOMATIC);
+
+    control.inquiryAllDeviceStatus();
+    await eventToPromise(control, 'completeInquiryAllDeviceStatus');
+  });
+
+  beforeEach(async () => {
+    try {
+      control.controlModeUpdator.controlMode = controlModeInfo.MANUAL;
+      control.executeSetControl({
+        wrapCmdId: 'closeAllDevice',
+        wrapCmdType: reqWrapCmdType.CONTROL,
+      });
+      await eventToPromise(control, 'completeCommand');
+    } catch (error) {
+      BU.error(error.message);
+    }
+
+    control.changeControlMode(controlModeInfo.AUTOMATIC);
+
+    const { placeManager } = control.model;
+  });
+
+  /**
+   * @desc T.C 1 [자동 모드]
+   * 염수 이동 기본 요건 충족 체크. 배수지 수위(최저치 초과), 급수지 수위(최대치 미만).
+   * @description
+   * 1. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화 한다.
+   * 2. 결정지 2의 수위를 Min값(1cm)으로 설정하고 해주 5의 수위를 Max값(150cm)으로 설정
+   * 3. [해주 5 > 결정지 ] 명령 요청. X
+   * 4. 결정지 의 수위를 Set값(5cm), 해주 5의 수위를 (130cm) 설정
+   * 5. [해주 5 > 결정지 ] 명령 요청. O
+   * 6. 결정지의 수위를 Min값 이하(0.5cm) 설정. [해주 5 > 결정지 ] 명령 취소 처리 확인
+   * 7. 결정지의 수위를 Set값(5cm) 설정.
+   * 8. [해주 5 > 결정지 ] 명령 요청. O :: 달성 목표: 배수지 수위 4cm 이하, 달성 제한 시간: 2 Sec
+   * 9. 해주 1의 수위를 Max(150cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
+   */
+  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+    const { placeManager } = control.model;
+    const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
+
+    expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
+
+    // BU.CLIN(placeManager);
+
+    // 결정지
+    const ps_NCB = placeManager.findPlace('NCB');
+    const pn_WL_NCB = ps_NCB.getPlaceNode({ nodeDefId: ndId.WL });
+    // 해주 5
+    const ps_BW_5 = placeManager.findPlace('BW_5');
+    const pn_WL_BW_5 = ps_BW_5.getPlaceNode({ nodeDefId: ndId.WL });
+
+    // * 2. 결정지 2의 수위를 Min값(1cm)으로 설정하고 해주 5의 수위를 Max값(150cm)으로 설정
+
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 1), setNodeData(pn_WL_BW_5, 150)]);
+  });
+
+  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+    const { placeManager } = control.model;
+    const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
+
+    // BU.CLIN(placeManager);
+
+    // 일반 증발지 2
+    const ps_NEB_2 = placeManager.findPlace('NEB_2');
+    const pn_S_NEB_2 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.WL });
+
+    // 해주 1
+    const ps_BW_1 = placeManager.findPlace('BW_1');
+    const pn_WL_BW_1 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.WL });
+
+    // 해주 2
+    const ps_BW_2 = placeManager.findPlace('BW_2');
+    const pn_WL_BW_2 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.WL });
+
+    // 수중태양광 증발지 1
+    const ps_SEB_1 = placeManager.findPlace('SEB_1');
+    const pn_WL_SEB_1 = ps_SEB_1.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_S_SEB_1 = ps_SEB_1.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_MRT_SEB_1 = ps_SEB_1.getPlaceNode({ nodeDefId: ndId.MRT });
+
+    // 수로 8번
+    const ps_WW_008 = placeManager.findPlace('WW_008');
+
+    expect(ps_SEB_1.getPlaceId()).to.eq('SEB_1');
+    // 일반 증발지 2 염도 상한선 6도
+    expect(pn_S_NEB_2.getUpperLimitValue()).to.eq(6);
+    // 일반 증발지 2 수위 하한선 8cm
+    expect(pn_WL_NEB_2.getLowerLimitValue()).to.eq(8);
+
+    expect(ps_WW_008.getPlaceId()).to.eq('WW_008');
+    // 면적: width: 33 m, height: 10m --> 330m2
+    expect(ps_NEB_2.getSquareMeter()).to.eq(330);
+
+    // 면적: width: 3.56 m, height: 28m --> 99.7m2
+    expect(ps_SEB_1.getSquareMeter()).to.eq(99.7);
+    // 면적이 없는 경우는 undefined 반환
+    expect(ps_WW_008.getSquareMeter()).to.undefined;
+  });
+
+  /**
+   * @desc T.C 2 [자동 모드] :::
+   * 수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소
+   * 1. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화 한다.
+   * 2. 일반 증발지 2 수위 2cm 설정. 우선 순위가 해주 1이 높기 때문에 [해주 1 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 12cm
+   * 3. 일반 증발지 1의 수위를 12cm로 설정. 명령 완료 확인
+   * 4. 일반 증발지 2 수위 2cm, 해주 1 수위 20cm 설정. 해주 1의 염수가 부족하기 때문에 [일반 증발지 2 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 12cm
+   * 5. 일반 증발지 1 수위 2cm 설정. [일반 증발지 2 > 일반 증발지 1] 명령 취소 확인
+   * 6. [저수지 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 10cm
+   * 7. 일반 증발지 2 수위 12cm 설정. [저수지 > 일반 증발지 1] 명령 완료 확인
+   * 8. [일반 증발지 2 > 일반 증발지 1] 명령 요청 확인
+   */
+
+  /**
+   * @desc T.C 3 [자동 모드]
+   * 염도 임계치에 의한 염수 이동
+   * @description
+   * 0. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화. 설정 값은 set 값 범위에 오도록 함.(Echo)
+   * 1. SEB_6 염도 20%. BW_3 수위 150cm 설정.
+   *    수중 증발지 그룹 2 면적 3.56 * 28 * 3  은 299m2, Min과 Set의 차이값은 4cm. 따라서 필요 부피 11.96m3
+   *    BW_3의 면적 4m * 3m = 12m2, lowerLimit 20cm이고 Set은 150cm이므로 130cm. 사용가능 부피 15.6m3
+   *   [SEB_6 ~ SEB_8 > BW_4] 명령 요청. 달성 목표: 수위 1cm
+   * 2. SEB_6 ~ SEB_8 의 수위 순차적으로 0.5cm 로 변경. 단계적 명령 완료 확인
+   * 3. SEB_6 ~ SEB_8 수위 5cm, 염도 20%, BW_3 수위 60cm 변경.
+   *    부피가 부족하므로 [SEB_1 ~ SEB_5 > BW_3] 명령 요청. 달성 목표: 수위 1cm
+   * 4. SEB_1 ~ SEB_5 의 수위 순차적으로 0.5cm 로 변경. 단계적 명령 완료 확인
+   * 5.
+   */
+
+  /**
+   * @desc T.C 3 [자동 모드]
+   *
+   * @description
+   * 1. 일반 증발지 2의 염수 수위
+   * 2.
+   */
+
+  // * 해주 및 증발지의 면적에 따른 해수 부피를 산정하여 명령 수행 가능성 여부를 결정한다.
+});
+
+describe.skip('100kW급 명령 테스트', function() {
+  it('바다, 저수지, 일반 증발지 1~2', async () => {});
+});

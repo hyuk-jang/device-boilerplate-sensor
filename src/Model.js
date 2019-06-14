@@ -7,6 +7,7 @@ const { BM } = require('base-model-jh');
 const ControlDBS = require('./Control');
 
 const CmdManager = require('./core/CommandManager/CommandManager');
+const PlaceManager = require('./core/PlaceManager/PlaceManager');
 
 const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
 
@@ -75,6 +76,9 @@ class Model {
     /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
     this.cmdManager = new CmdManager(this);
     this.cmdManager.init();
+
+    this.placeManager = new PlaceManager();
+    this.placeManager.init(this);
   }
 
   /**

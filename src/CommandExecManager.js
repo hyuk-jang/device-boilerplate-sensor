@@ -172,6 +172,7 @@ class CommandExecManager {
     try {
       const { wrapCmdId, wrapCmdType, rank = definedCommandSetRank.SECOND } = reqSetCmdInfo;
 
+      // BU.CLIN(this.model.mapCmdInfo);
       // 설정 명령 조회
       const setCmdInfo = _.find(this.model.mapCmdInfo.setCmdList, { cmdId: wrapCmdId });
       // BU.CLI(setCmdInfo);

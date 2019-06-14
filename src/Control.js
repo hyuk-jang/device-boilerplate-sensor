@@ -18,6 +18,7 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
+const CoreFacade = require('./core/CoreFacade');
 const ControlModeUpdator = require('./core/Updator/ControlModeUpdator/ControlModeUpdator');
 const NodeUpdatorManager = require('./core/Updator/NodeUpdator/NodeUpdatorManager');
 
@@ -80,6 +81,10 @@ class Control extends EventEmitter {
       // init Step: 1 DB 정보를 기초로 nodeList, dataLoggerList, placeList 구성
       await this.initSetProperty(dbInfo, mainUUID);
 
+      const coreFacade = new CoreFacade();
+      coreFacade.setControl(this);
+      // BU.CLIN(coreFacade);
+
       // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
       this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
       this.controlModeUpdator = new ControlModeUpdator();
@@ -94,7 +99,7 @@ class Control extends EventEmitter {
       // Binding Feature
       this.bindingFeature();
 
-      // 기본 시작은 자동모드로 변경. Step 3이 완료된 후에 변경을 해야만 cmdStrategySetter Observer Pattern이 동작함.
+      // 기본 시작은 수동모드로 변경. Step 3이 완료된 후에 변경을 해야만 cmdStrategySetter Observer Pattern이 동작함.
       this.controlModeUpdator.updateControlMode(controlModeInfo.MANUAL);
     } catch (error) {
       BU.CLI(error);

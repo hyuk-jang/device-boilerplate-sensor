@@ -1,5 +1,6 @@
 const Control = require('./Control');
 const MuanControl = require('./projects/UPSAS/muan/MuanControl');
+const Muan100kWControl = require('./projects/UPSAS/muan100kW/Muan100kWControl');
 const FPRndControl = require('./projects/FP/RnD/RnDControl');
 const S2WRndControl = require('./projects/S2W/RnD/RnDControl');
 
@@ -28,6 +29,10 @@ class Main {
           case 'muan':
             MainControl = MuanControl;
             MainModel = MuanModel;
+            break;
+          case 'muan100kW':
+            MainControl = Muan100kWControl;
+            // MainModel = MuanModel;
             break;
           default:
             break;
