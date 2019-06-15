@@ -15,7 +15,7 @@ const CriticalSetter = require('../smartSalternCore/CriticalSetter');
 
 // const SmartSalternStorage = require('../smartSalternCore/SmartSalternStorage');
 
-const M100kThreAlgoStrategy = require('./PlaceThreAlgo/M100kThreAlgoStrategy');
+const M100kPlaceAlgorithm = require('./PlaceThreAlgo/M100kPlaceAlgorithm');
 
 const CoreFacade = require('../../../core/CoreFacade');
 
@@ -42,9 +42,9 @@ class MuanControl extends Control {
     /** @type {BlockManager} */
     this.blockManager = new BlockManager(this);
 
-    const criticalSetter = new CriticalSetter(this);
+    // const criticalSetter = new CriticalSetter(this);
 
-    criticalSetter.init();
+    // criticalSetter.init();
 
     // BU.CLIN(this.placeList);
 
@@ -80,8 +80,10 @@ class MuanControl extends Control {
 
     await this.blockManager.init(this.config.dbInfo, blockConfig);
 
+    // BU.CLIN(M100kPlaceAlgorithm);
+
     const coreFacade = new CoreFacade();
-    coreFacade.setThreAlgoStrategy(new M100kThreAlgoStrategy());
+    coreFacade.setPlaceAlgorithm(new M100kPlaceAlgorithm());
   }
 
   /**

@@ -87,7 +87,7 @@ describe('Automatic Mode', function() {
    * 염수 이동 기본 요건 충족 체크. 배수지 수위(최저치 초과), 급수지 수위(최대치 미만).
    * @description
    * 1. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화 한다.
-   * 2. 결정지 2의 수위를 Min값(1cm)으로 설정하고 해주 5의 수위를 Max값(150cm)으로 설정
+   * 2. 결정지 2의 수위를 Max값(10cm)으로 설정하고 해주 5의 수위를 Min값(10cm)으로 설정
    * 3. [해주 5 > 결정지 ] 명령 요청. X
    * 4. 결정지 의 수위를 Set값(5cm), 해주 5의 수위를 (130cm) 설정
    * 5. [해주 5 > 결정지 ] 명령 요청. O
@@ -111,9 +111,44 @@ describe('Automatic Mode', function() {
     const ps_BW_5 = placeManager.findPlace('BW_5');
     const pn_WL_BW_5 = ps_BW_5.getPlaceNode({ nodeDefId: ndId.WL });
 
-    // * 2. 결정지 2의 수위를 Min값(1cm)으로 설정하고 해주 5의 수위를 Max값(150cm)으로 설정
+    // * 2. 배수지(해주 5)의 수위를 Min(10cm), 급수지(결정지)의 수위를 Max 11cm 으로 설정
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_5, 10), setNodeData(pn_WL_NCB, 11)]);
 
-    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 1), setNodeData(pn_WL_BW_5, 150)]);
+    // * 3. [해주 5 > 결정지 ] 명령 요청. X
+    /** @type {reqFlowCmdInfo} 증발지 1-A > 해주 1 */
+    const BW5ToNCB = {
+      srcPlaceId: 'BW_5',
+      destPlaceId: 'NCB',
+      wrapCmdType: reqWrapCmdType.CONTROL,
+    };
+    // 배수지의 수위가 최저 수위 이하라서 수행 불가
+    expect(() => control.executeFlowControl(BW5ToNCB)).to.throw(
+      'The water level of the srcPlaceId: BW_5 is below the minimum water level',
+    );
+
+    // 해주 5의 수위를 (130cm) 설정
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_5, 130)]);
+
+    // 급수지 (NCB) 의 수위가 최대 수위 이상이라서 수행 불가
+    expect(() => control.executeFlowControl(BW5ToNCB)).to.throw(
+      'The water level of the destPlaceId: NCB is over the max water level.',
+    );
+
+    // * 4. 결정지 의 수위를 Set값(5cm)
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 5)]);
+
+    // * 5. [해주 5 > 결정지 ] 명령 요청. O
+    control.executeFlowControl(BW5ToNCB);
+
+    await eventToPromise(control, 'completeCommand');
+
+    // * trueNodeList: ['P_014'],
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(1);
+    // * falseNodeList: ['WD_008'],
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(1);
+
+    // * 6. 결정지의 수위를 Min값 이하(0.5cm) 설정. [해주 5 > 결정지 ] 명령 취소 처리 확인
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 0.5)]);
   });
 
   it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {

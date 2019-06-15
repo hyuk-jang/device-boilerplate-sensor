@@ -3,7 +3,6 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const PlaceComponent = require('./PlaceComponent');
-const ThreAlgoStrategy = require('./ThreAlgoStrategy');
 
 /** @type {PlaceStorage[]} */
 const placeStorageList = [];
@@ -44,22 +43,21 @@ class PlaceStorage extends PlaceComponent {
 
     /** @type {PlaceComponent[]} */
     this.children = [];
-
-    /** @type {ThreAlgoStrategy} */
-    this.threAlgoStrategy = new ThreAlgoStrategy(this);
   }
 
   /**
    * 현 Place Component 객체를 가지는 Place Component 객체
-   * @param {PlaceComponent} placeComponent
+   * @param {PlaceComponent} placeManager
    */
-  setPlace(placeComponent) {
-    this.placeComponent = placeComponent;
+  setParentPlace(placeManager) {
+    this.placeManager = placeManager;
   }
 
-  /** @param {ThreAlgoStrategy} threAlgoStrategy */
-  setThreAlgoStrategy(threAlgoStrategy) {
-    this.threAlgoStrategy = threAlgoStrategy;
+  /**
+   * Successor Place를 가져옴
+   */
+  getParentPlace() {
+    return this.placeManager;
   }
 
   /**
@@ -70,7 +68,7 @@ class PlaceStorage extends PlaceComponent {
     if (_.eq(placeId, this.placeInfo.place_id)) {
       return this;
     }
-    return this.placeComponent.findPlace(placeId);
+    return this.placeManager.findPlace(placeId);
   }
 
   /**
@@ -119,19 +117,6 @@ class PlaceStorage extends PlaceComponent {
 
   /**
    * @desc Place Storage :::
-   * @param {PlaceComponent} placeComponent
-   */
-  removePlaceNode(placeComponent) {
-    // 해당 인자가 존재할 경우 삭제 후 true 반환
-    if (_.findIndex(this.children, placeComponent) === -1) {
-      _.pull(this.children, placeComponent);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * @desc Place Storage :::
    * 장소 노드 객체를 조회하고자 할 경우
    * @param {Object} placeNodeInfo NodeId or nodeInfo 객체
    * @param {string=} placeNodeInfo.nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
@@ -161,39 +146,12 @@ class PlaceStorage extends PlaceComponent {
     }
   }
 
-  /** @param {PlaceComponent} placeNode 장치 상태가 식별 불가 일 경우 */
-  handleUnknown(placeNode) {
-    this.threAlgoStrategy.handleUnknown(placeNode);
-  }
-
-  /** @param {PlaceComponent} placeNode 장치 상태가 에러일 경우 */
-  handleError(placeNode) {
-    this.threAlgoStrategy.handleError(placeNode);
-  }
-
-  /** @param {PlaceComponent} placeNode Node 임계치가 최대치를 넘을 경우 */
-  handleMaxOver(placeNode) {
-    this.threAlgoStrategy.handleMaxOver(placeNode);
-  }
-
-  /** @param {PlaceComponent} placeNode Node 임계치가 상한선을 넘을 경우 */
-  handleUpperLimitOver(placeNode) {
-    this.threAlgoStrategy.handleUpperLimitOver(placeNode);
-  }
-
-  /** @param {PlaceComponent} placeNode Node 임계치가 정상 일 경우 */
-  handleNormal(placeNode) {
-    this.threAlgoStrategy.handleNormal(placeNode);
-  }
-
-  /** @param {PlaceComponent} placeNode Node 임계치가 하한선에 못 미칠 경우 */
-  handleLowerLimitUnder(placeNode) {
-    this.threAlgoStrategy.handleLowerLimitUnder(placeNode);
-  }
-
-  /** @param {PlaceComponent} placeNode Node 임계치가 최저치에 못 미칠 경우 */
-  handleMinUnder(placeNode) {
-    this.threAlgoStrategy.handleMinUnder(placeNode);
+  /**
+   * Place Node가 갱신이 되었을 경우 처리
+   * @param {PlaceComponent} placeNode
+   */
+  handleUpdateNode(placeNode) {
+    this.placeManager.handleUpdateNode(this, placeNode);
   }
 }
 

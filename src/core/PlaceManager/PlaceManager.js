@@ -16,6 +16,7 @@ class PlaceManager extends PlaceComponent {
     this.placeStorageList = [];
 
     const coreFacade = new CoreFacade();
+    // Core Facade에 Place Manager와 Place Algorithm 세팅
     coreFacade.setPlaceManager(this);
   }
 
@@ -46,7 +47,7 @@ class PlaceManager extends PlaceComponent {
       const placeStorage = new PlaceStorage(placeInfo);
       // Singleton Pattern에 의거 기존 생성 개체와 동일한 객체가 존재하는지 체크 후 없다면 리스트에 삽입
       if (_.isEmpty(_.find(this.placeStorageList, placeStorage))) {
-        placeStorage.setPlace(this);
+        placeStorage.setParentPlace(this);
         this.placeStorageList.push(placeStorage);
       }
 
@@ -62,19 +63,9 @@ class PlaceManager extends PlaceComponent {
 
       // 장소 노드 생성 및 추가 및 저장소 바인딩
       const placeNode = new PlaceNode(nodeInfo, thresholdConfigInfo);
-      placeNode.setPlace(placeStorage);
+      placeNode.setParentPlace(placeStorage);
 
       placeStorage.addPlaceNode(placeNode);
-    });
-  }
-
-  /**
-   * 임계 장소에 임계 알고리즘 전략을 정의
-   * @param {ThreAlgoStrategy} threAlgoStrategy
-   */
-  setThreAlgoStrategy(threAlgoStrategy) {
-    this.placeStorageList.forEach(placeStorage => {
-      placeStorage.setThreAlgoStrategy(threAlgoStrategy);
     });
   }
 
@@ -103,6 +94,16 @@ class PlaceManager extends PlaceComponent {
     return _.find(this.placeStorageList, placeStorage => {
       return placeStorage.getPlaceId() === place;
     });
+  }
+
+  /**
+   * Place Node가 갱신이 되었을 경우 처리
+   * @param {PlaceComponent} placeStorage
+   * @param {PlaceComponent} placeNode
+   */
+  handleUpdateNode(placeStorage, placeNode) {
+    const coreFacade = new CoreFacade();
+    coreFacade.handleUpdateNode(placeStorage, placeNode);
   }
 }
 module.exports = PlaceManager;

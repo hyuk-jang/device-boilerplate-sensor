@@ -1,16 +1,18 @@
-const PlaceThreshold = require('./PlaceThreshold');
+const Observer = require('../Updator/Observer');
 
 /**
  */
-class PlaceComponent extends PlaceThreshold {
+class PlaceComponent extends Observer {
   /**
-   * notifyClear을 성공하였을 경우 알릴 Successor
+   * Successor Place 정의
    * @param {PlaceComponent} placeComponent
    */
-  setPlace(placeComponent) {}
+  setParentPlace(placeComponent) {}
 
-  /** @param {ThreAlgoStrategy} threAlgoStrategy */
-  setThreAlgoStrategy(threAlgoStrategy) {}
+  /**
+   * Successor Place를 가져옴
+   */
+  getParentPlace() {}
 
   /**
    *
@@ -44,12 +46,6 @@ class PlaceComponent extends PlaceThreshold {
 
   /**
    * @desc Place Storage :::
-   * @param {PlaceComponent} placeComponent
-   */
-  removePlaceNode(placeComponent) {}
-
-  /**
-   * @desc Place Storage :::
    * 장소 노드 객체를 조회하고자 할 경우
    * @param {nodeId|nodeInfo} node NodeId or nodeInfo 객체
    * @return {PlaceComponent}
@@ -58,21 +54,31 @@ class PlaceComponent extends PlaceThreshold {
 
   /**
    * @desc Place Node :::
+   * Node Data 반환
+   * @return {string}
+   */
+  getValue() {}
+
+  /**
+   * @desc Place Node :::
+   * Place Node Status 반환
+   * @return {number}
+   */
+  getNodeStatus() {}
+
+  /**
+   * @desc Place Node :::
    * Node Id 반환
    * @return {string}
    */
-  getNodeId() {
-    return this.nodeInfo.node_id;
-  }
+  getNodeId() {}
 
   /**
    * @desc Place Node :::
    * Node Def Id 반환
    * @return {string}
    */
-  getNodeDefId() {
-    return this.nodeInfo.nd_target_id;
-  }
+  getNodeDefId() {}
 
   /**
    * @desc Place Node :::
@@ -102,6 +108,12 @@ class PlaceComponent extends PlaceThreshold {
 
   /** @desc Place Node ::: 노드 최저 임계치 */
   getMinValue() {}
+
+  /**
+   * Place Node가 갱신이 되었을 경우 처리
+   * @param {PlaceComponent} placeNode
+   */
+  handleUpdateNode(placeNode) {}
 }
 
 module.exports = PlaceComponent;

@@ -7,7 +7,7 @@ const PlaceComponent = require('./PlaceComponent');
 const CoreFacade = require('../CoreFacade');
 
 const {
-  dcmConfigModel: { goalDataRange },
+  dcmConfigModel: { placeNodeStatus },
 } = require('../../../../default-intelligence');
 
 class PlaceNode extends PlaceComponent {
@@ -43,7 +43,10 @@ class PlaceNode extends PlaceComponent {
     this.putPlaceRankList = putPlaceRankList;
 
     /** @type {PlaceComponent} */
-    this.placeComponent;
+    this.placeStorage;
+
+    // 현재 노드 상태는 UNKNOWN으로 정의
+    this.placeNodeStatus = placeNodeStatus.UNKNOWN;
 
     const coreFacade = new CoreFacade();
     coreFacade.attachNodeObserver(nodeInfo, this);
@@ -54,8 +57,33 @@ class PlaceNode extends PlaceComponent {
    * 현 Place Node 객체를 가지는 Place Storage 객체
    * @param {PlaceComponent} placeComponent
    */
-  setPlace(placeComponent) {
-    this.placeComponent = placeComponent;
+  setParentPlace(placeComponent) {
+    this.placeStorage = placeComponent;
+  }
+
+  /**
+   * Successor Place를 가져옴
+   */
+  getParentPlace() {
+    return this.placeStorage;
+  }
+
+  /**
+   * @desc Place Node :::
+   * Node Data 반환
+   * @return {string}
+   */
+  getValue() {
+    return this.nodeInfo.data;
+  }
+
+  /**
+   * @desc Place Node :::
+   * Place Node Status 반환
+   * @return {number}
+   */
+  getNodeStatus() {
+    return this.placeNodeStatus;
   }
 
   /**
@@ -130,15 +158,25 @@ class PlaceNode extends PlaceComponent {
     // BU.CLIN(nodeInfo);
     const { data } = nodeInfo;
 
-    let isClear = false;
+    // const prevNodeStatus = this.placeNodeStatus;
+
+    let nextNodeStatus;
 
     if (_.isNumber(data)) {
-      isClear = this.updateNumValue(data);
-    } else if (_.isString(data)) {
-      isClear = this.updateStrValue(data);
-    } else {
-      this.handleUnknown();
+      nextNodeStatus = this.updateNumValue(data);
     }
+    // FIXME: 문자 비교 불가 처리. 차후 수정
+    // else if (_.isString(data)) {
+    //   nextNodeStatus = this.updateStrValue(data);
+    // }
+    else {
+      nextNodeStatus = placeNodeStatus.UNKNOWN;
+      // this.handleUnknown();
+    }
+
+    this.placeNodeStatus = nextNodeStatus;
+
+    this.placeStorage.handleUpdateNode(this);
 
     // // 성공하지 못한 상태에서 성공 상태로 넘어갔을 경우에만 전파
     // if (isClear === true && this.isClear === false) {
@@ -153,70 +191,38 @@ class PlaceNode extends PlaceComponent {
    * @param {number} numDeviceData number 형식 데이터
    */
   updateNumValue(numDeviceData) {
+    let nextPlaceNodeStatus = this.placeNodeStatus;
     // BU.CLI(deviceData, this.goalRange);
-    const isClear = false;
-
     if (_.isNumber(this.maxValue) && numDeviceData >= this.maxValue) {
-      this.handleMaxOver();
+      nextPlaceNodeStatus = placeNodeStatus.MAX_OVER;
+      // this.handleMaxOver();
     } else if (_.isNumber(this.upperLimitValue) && numDeviceData >= this.upperLimitValue) {
-      this.handleUpperLimitOver();
+      nextPlaceNodeStatus = placeNodeStatus.UPPER_LIMIT_OVER;
+      // this.handleUpperLimitOver();
     } else if (_.isNumber(this.minValue) && numDeviceData <= this.minValue) {
-      this.handleMinUnder();
+      nextPlaceNodeStatus = placeNodeStatus.MIN_UNDER;
+      // this.handleMinUnder();
     } else if (_.isNumber(this.lowerLimitValue) && numDeviceData <= this.lowerLimitValue) {
-      this.handleLowerLimitUnder();
+      nextPlaceNodeStatus = placeNodeStatus.LOWER_LIMIT_UNDER;
+      // this.handleLowerLimitUnder();
     } else {
-      this.handleNormal();
+      nextPlaceNodeStatus = placeNodeStatus.NORMAL;
+      // this.handleNormal();
     }
-
-    return isClear;
+    return nextPlaceNodeStatus;
   }
 
-  /**
-   * @param {string} deviceData string 형식 데이터
-   */
-  updateStrValue(deviceData) {
-    // 문자 데이터일 경우에는 달성 목표가 EQUAL이어야만 함. 문자 상하 비교 불가
-    if (this.goalRange !== goalDataRange.EQUAL) return false;
+  // /**
+  //  * @param {string} deviceData string 형식 데이터
+  //  */
+  // updateStrValue(deviceData) {
+  //   // 문자 데이터일 경우에는 달성 목표가 EQUAL이어야만 함. 문자 상하 비교 불가
+  //   if (this.goalRange !== goalDataRange.EQUAL) return false;
 
-    // 대소 문자의 차이가 있을 수 있으므로 소문자로 변환 후 비교
-    if (_.lowerCase(deviceData) === _.lowerCase(this.goalValue)) {
-      this.handleNormal();
-    }
-  }
-
-  /** 장치 상태가 식별 불가 일 경우 */
-  handleUnknown() {
-    this.placeComponent.handleUnknown(this);
-  }
-
-  /** 장치 상태가 에러일 경우 */
-  handleError() {
-    this.placeComponent.handleError(this);
-  }
-
-  /** Node 임계치가 최대치를 넘을 경우 */
-  handleMaxOver() {
-    this.placeComponent.handleMaxOver(this);
-  }
-
-  /** Node 임계치가 상한선을 넘을 경우 */
-  handleUpperLimitOver() {
-    this.placeComponent.handleUpperLimitOver(this);
-  }
-
-  /** Node 임계치가 정상 일 경우 */
-  handleNormal() {
-    this.placeComponent.handleNormal(this);
-  }
-
-  /** Node 임계치가 하한선에 못 미칠 경우 */
-  handleLowerLimitUnder() {
-    this.placeComponent.handleLowerLimitUnder(this);
-  }
-
-  /** Node 임계치가 최저치에 못 미칠 경우 */
-  handleMinUnder() {
-    this.placeComponent.handleMinUnder(this);
-  }
+  //   // 대소 문자의 차이가 있을 수 있으므로 소문자로 변환 후 비교
+  //   if (_.lowerCase(deviceData) === _.lowerCase(this.goalValue)) {
+  //     this.handleNormal();
+  //   }
+  // }
 }
 module.exports = PlaceNode;

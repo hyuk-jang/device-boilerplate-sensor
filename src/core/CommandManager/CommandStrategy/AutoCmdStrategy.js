@@ -15,8 +15,11 @@ const {
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
+  reqWrapCmdFormat,
   reqDeviceControlType,
 } = dcmConfigModel;
+
+const CoreFacade = require('../../CoreFacade');
 
 class AutoCmdStrategy extends CmdStrategy {
   /**
@@ -26,14 +29,30 @@ class AutoCmdStrategy extends CmdStrategy {
    * @return {boolean} 충돌 true, 아닐 경우 false
    */
   isPossibleSaveComplexCommand(complexCmdWrapInfo) {
+    const coreFacade = new CoreFacade();
     try {
-      const { wrapCmdType } = complexCmdWrapInfo;
+      const {
+        wrapCmdType,
+        wrapCmdFormat,
+        srcPlaceId,
+        destPlaceId,
+        wrapCmdGoalInfo,
+      } = complexCmdWrapInfo;
+
+      let isPossible = false;
+
       // 제어 요청일 경우에 충돌 체크
       if (wrapCmdType === reqWrapCmdType.CONTROL) {
         // 명령 충돌 체크
-        return !this.cmdManager.cmdOverlapManager.isConflictCommand(complexCmdWrapInfo);
+        isPossible = !this.cmdManager.cmdOverlapManager.isConflictCommand(complexCmdWrapInfo);
+
+        // 흐름 명령을 요청할 경우
+        if (wrapCmdFormat === reqWrapCmdFormat.FLOW) {
+          isPossible = coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId, wrapCmdGoalInfo);
+        }
       }
-      return true;
+
+      return isPossible;
     } catch (error) {
       throw error;
     }
