@@ -29,7 +29,7 @@ class CommandExecManager {
 
     // Command Execute Manager 를 Core Facde에 정의
     const coreFacade = new CoreFacade();
-    coreFacade.setCmdManager(this);
+    coreFacade.setCmdExecManager(this);
   }
 
   /**

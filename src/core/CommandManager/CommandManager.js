@@ -17,6 +17,7 @@ const {
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
+  reqWrapCmdFormat,
   reqDeviceControlType,
 } = dcmConfigModel;
 
@@ -100,6 +101,25 @@ class CommandManager {
    */
   getComplexCommand(wrapCmdId) {
     return _.find(this.complexCmdList, { wrapCmdId });
+  }
+
+  /**
+   *
+   * @param {string=} srcPlaceId 출발 장소 ID
+   * @param {string=} destPlaceId 도착 장소 ID
+   */
+  getFlowCommand(srcPlaceId = '', destPlaceId = '') {
+    // BU.CLIS(srcPlaceId, destPlaceId);
+    const whereInfo = { wrapCmdFormat: reqWrapCmdFormat.FLOW };
+
+    // 염수 이동 명령의 시작지와 도착지의 정보 유무에 따라 where 절 생성
+    _.isString(srcPlaceId) && srcPlaceId.length && _.assign(whereInfo, { srcPlaceId });
+    _.isString(destPlaceId) && destPlaceId.length && _.assign(whereInfo, { destPlaceId });
+
+    // BU.CLIN(whereInfo);
+    // BU.CLIN(this.complexCmdList);
+
+    return _.filter(this.complexCmdList, whereInfo);
   }
 
   /**

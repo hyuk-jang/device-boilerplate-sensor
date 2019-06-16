@@ -505,7 +505,8 @@ class Control extends EventEmitter {
         });
       }
     } catch (error) {
-      BU.CLI(error);
+      // 예외는 기록만 함
+      BU.error(error.message);
     }
   }
 

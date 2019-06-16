@@ -24,7 +24,7 @@ class M100kPlaceAlgorithm extends PlaceAlgorithm {
    * @param {csCmdGoalInfo=} goalInfo
    */
   isPossibleFlowCommand(placeManager, srcPlaceId, destPlaceId, goalInfo) {
-    BU.CLI('isPossibleFlowCommand', srcPlaceId, destPlaceId);
+    // BU.CLI('isPossibleFlowCommand', srcPlaceId, destPlaceId);
 
     try {
       // 시작지의 장소 정보
@@ -71,54 +71,58 @@ class M100kPlaceAlgorithm extends PlaceAlgorithm {
    * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpdateNode(coreFacade, placeStorage, placeNode) {
-    const { placeManager } = coreFacade;
+    try {
+      const { placeManager } = coreFacade;
 
-    const nodeDefId = placeNode.getNodeDefId();
+      const nodeDefId = placeNode.getNodeDefId();
 
-    let threAlgorithm;
+      let threAlgorithm;
 
-    switch (nodeDefId) {
-      case 'waterLevel':
-        threAlgorithm = this.waterLevelThreAlgo;
-        break;
-      default:
-        break;
+      switch (nodeDefId) {
+        case 'waterLevel':
+          threAlgorithm = this.waterLevelThreAlgo;
+          break;
+        default:
+          break;
+      }
+
+      if (!threAlgorithm) {
+        // BU.CLI('알고리즘 없음');
+        return false;
+      }
+
+      let selectedAlgorithmMethod = threAlgorithm.handleNormal;
+
+      switch (placeNode.getNodeStatus()) {
+        case placeNodeStatus.MAX_OVER:
+          selectedAlgorithmMethod = threAlgorithm.handleMaxOver;
+          break;
+        case placeNodeStatus.UPPER_LIMIT_OVER:
+          selectedAlgorithmMethod = threAlgorithm.handleUpperLimitOver;
+          break;
+        case placeNodeStatus.NORMAL:
+          selectedAlgorithmMethod = threAlgorithm.handleNormal;
+          break;
+        case placeNodeStatus.LOWER_LIMIT_UNDER:
+          selectedAlgorithmMethod = threAlgorithm.handleLowerLimitUnder;
+          break;
+        case placeNodeStatus.MIN_UNDER:
+          selectedAlgorithmMethod = threAlgorithm.handleMinUnder;
+          break;
+        case placeNodeStatus.UNKNOWN:
+          selectedAlgorithmMethod = threAlgorithm.handleUnknown;
+          break;
+        case placeNodeStatus.ERROR:
+          selectedAlgorithmMethod = threAlgorithm.handleError;
+          break;
+        default:
+          selectedAlgorithmMethod = threAlgorithm.handleNormal;
+          break;
+      }
+      selectedAlgorithmMethod(coreFacade, placeStorage, placeNode);
+    } catch (error) {
+      throw error;
     }
-
-    if (!threAlgorithm) {
-      // BU.CLI('알고리즘 없음');
-      return false;
-    }
-
-    let selectedAlgorithmMethod = threAlgorithm.handleNormal;
-
-    switch (placeNode.getNodeStatus()) {
-      case placeNodeStatus.MAX_OVER:
-        selectedAlgorithmMethod = threAlgorithm.handleMaxOver;
-        break;
-      case placeNodeStatus.UPPER_LIMIT_OVER:
-        selectedAlgorithmMethod = threAlgorithm.handleUpperLimitOver;
-        break;
-      case placeNodeStatus.NORMAL:
-        selectedAlgorithmMethod = threAlgorithm.handleNormal;
-        break;
-      case placeNodeStatus.LOWER_LIMIT_UNDER:
-        selectedAlgorithmMethod = threAlgorithm.handleLowerLimitUnder;
-        break;
-      case placeNodeStatus.MIN_UNDER:
-        selectedAlgorithmMethod = threAlgorithm.handleMinUnder;
-        break;
-      case placeNodeStatus.UNKNOWN:
-        selectedAlgorithmMethod = threAlgorithm.handleUnknown;
-        break;
-      case placeNodeStatus.ERROR:
-        selectedAlgorithmMethod = threAlgorithm.handleError;
-        break;
-      default:
-        selectedAlgorithmMethod = threAlgorithm.handleNormal;
-        break;
-    }
-    selectedAlgorithmMethod(coreFacade, placeStorage, placeNode);
   }
 }
 

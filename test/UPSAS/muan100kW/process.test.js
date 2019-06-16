@@ -91,14 +91,19 @@ describe('Automatic Mode', function() {
    * 3. [해주 5 > 결정지 ] 명령 요청. X
    * 4. 결정지 의 수위를 Set값(5cm), 해주 5의 수위를 (130cm) 설정
    * 5. [해주 5 > 결정지 ] 명령 요청. O
-   * 6. 결정지의 수위를 Min값 이하(0.5cm) 설정. [해주 5 > 결정지 ] 명령 취소 처리 확인
+   * 6. 결정지의 수위를 Max값 이상(15cm) 설정. [해주 5 > 결정지 ] 명령 취소 처리 확인
+   *    급수지의 상한선 수위가 걸렸을 경우 진행 중인 급수 명령을 취소하는지 테스트
    * 7. 결정지의 수위를 Set값(5cm) 설정.
    * 8. [해주 5 > 결정지 ] 명령 요청. O :: 달성 목표: 배수지 수위 4cm 이하, 달성 제한 시간: 2 Sec
-   * 9. 해주 1의 수위를 Max(150cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
+   * 9. 해주 1의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
+   *    배수지 하한선 수위가 걸렸을 경우 진행 중인 배수 명령을 취소하는지 테스트
    */
   it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
-    const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
+    const {
+      cmdManager,
+      cmdManager: { cmdOverlapManager, threCmdManager },
+    } = control.model;
 
     expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
 
@@ -147,8 +152,64 @@ describe('Automatic Mode', function() {
     // * falseNodeList: ['WD_008'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(1);
 
-    // * 6. 결정지의 수위를 Min값 이하(0.5cm) 설정. [해주 5 > 결정지 ] 명령 취소 처리 확인
-    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 0.5)]);
+    // * 6. 결정지의 수위를 Max값 이상(15cm) 설정. [해주 5 > 결정지 ] 명령 취소 처리 확인
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 15)]);
+
+    // * trueNodeList: [],
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(0);
+    // * falseNodeList: [],
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(0);
+
+    // 수위 갱신을 한번 더 했을 경우 이미 취소 명령을 실행 중이므로 거부되야 한다.
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 15)]);
+
+    // * 7. 결정지의 수위를 Set값(5cm) 설정.
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 5)]);
+
+    expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
+
+    // FIXME: 취소 요청 중에 Control 요청이 들어갈 경우 실제 제어할 장치와의 상태 위반에 걸리기 때문에 명령이 씹힘.
+    // 어떻게 처리할지 생각 필요.
+    await Promise.delay(100);
+
+    // * 8. [해주 5 > 결정지 ] 명령 요청. O :: 달성 목표: 배수지 수위 4cm 이상, 달성 제한 시간: 2 Sec
+    BW5ToNCB.wrapCmdGoalInfo = {
+      limitTimeSec: 2,
+      goalDataList: [
+        {
+          nodeId: 'WL_016',
+          goalValue: 4,
+          goalRange: goalDataRange.UPPER,
+        },
+      ],
+    };
+
+    const wrapCmdInfo = control.executeFlowControl(BW5ToNCB);
+
+    // 명령이 완료되기를 기다림
+    await eventToPromise(control, 'completeCommand');
+
+    // 임계 명령이 존재해야 한다.
+    const threCmdInfo = threCmdManager.getThreCmdStorage(wrapCmdInfo);
+    const threCmdGoalInfo = threCmdInfo.getThreCmdGoal('WL_016');
+
+    // 수위 16번 임계 목표가 설정되어야 한다.
+    expect(threCmdGoalInfo.threCmdGoalId).to.eq('WL_016');
+    expect(threCmdManager.threCmdStorageList).to.length(1);
+
+    // * 9. 해주 1의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_5, 10)]);
+
+    await Promise.delay(100);
+
+    // 명령은 취소 처리 되었음.
+    expect(cmdManager.getComplexCommand(wrapCmdInfo.wrapCmdId)).to.undefined;
+    // 임계 명령은 제거되어야 한다.
+    expect(threCmdManager.threCmdStorageList).to.length(0);
+    // 현재 실행 중인 명령은 없음.
+    expect(cmdManager.complexCmdList).to.length(0);
+    // 누적 호출을 지닌 노드는 없음.
+    expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
   });
 
   it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
