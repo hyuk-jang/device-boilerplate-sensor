@@ -98,12 +98,11 @@ class PlaceManager extends PlaceComponent {
 
   /**
    * Place Node가 갱신이 되었을 경우 처리
-   * @param {PlaceComponent} placeStorage
    * @param {PlaceComponent} placeNode
    */
-  handleUpdateNode(placeStorage, placeNode) {
+  handleUpdateNode(placeNode) {
     const coreFacade = new CoreFacade();
-    coreFacade.handleUpdateNode(placeStorage, placeNode);
+    coreFacade.handleUpdateNode(placeNode);
   }
 }
 module.exports = PlaceManager;

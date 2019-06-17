@@ -105,21 +105,52 @@ class PlaceNode extends PlaceComponent {
   }
 
   /**
+   * @desc Place Storage, Place Node :::
+   * 장소 저장소 객체의 place Id를 가져옴
+   * @return {string}
+   */
+  getPlaceId() {
+    return this.placeStorage.getPlaceId();
+  }
+
+  /**
+   * @desc Place Storage, Place Node :::
+   * 장소 저장소 객체의 place Info를 가져옴
+   * @return {placeInfo}
+   */
+  getPlaceInfo() {
+    return this.placeStorage.getPlaceInfo();
+  }
+
+  /**
+   * @desc Place Storage, Place Node :::
+   * @return {number=} 현재 장소의 제곱미터
+   */
+  getSquareMeter() {
+    return this.placeStorage.getSquareMeter();
+  }
+
+  /**
    * @desc Place Node :::
    * 급수지 Place Id 목록 반환
-   * @return {string[]}
+   * @return {PlaceComponent[]}
    */
   getCallPlaceRankList() {
-    return this.callPlaceRankList;
+    return _.map(this.callPlaceRankList, callPlaceId => {
+      return this.placeStorage.findPlace(callPlaceId);
+    });
   }
 
   /**
    * @desc Place Node :::
    * 배수지 Place Id목록 반환
-   * @return {string[]}
+   * @return {PlaceComponent[]}
    */
   getPutPlaceRankList() {
-    return this.putPlaceRankList;
+    return _.map(this.putPlaceRankList, putPlaceId => {
+      return this.placeStorage.findPlace(putPlaceId);
+    });
+    // return this.putPlaceRankList;
   }
 
   /** @desc Place Node ::: 노드 최대 임계치 */
@@ -208,6 +239,10 @@ class PlaceNode extends PlaceComponent {
     } else {
       nextPlaceNodeStatus = placeNodeStatus.NORMAL;
       // this.handleNormal();
+    }
+
+    if (this.getPlaceId() === 'BW_1') {
+      BU.CLI(nextPlaceNodeStatus);
     }
     return nextPlaceNodeStatus;
   }

@@ -98,7 +98,7 @@ describe('Automatic Mode', function() {
    * 9. 해주 1의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
    *    배수지 하한선 수위가 걸렸을 경우 진행 중인 배수 명령을 취소하는지 테스트
    */
-  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -145,7 +145,8 @@ describe('Automatic Mode', function() {
     // * 5. [해주 5 > 결정지 ] 명령 요청. O
     control.executeFlowControl(BW5ToNCB);
 
-    await eventToPromise(control, 'completeCommand');
+    /** @type {complexCmdWrapInfo} */
+    const BW_5_To_NCB_WC_CONTROL = await eventToPromise(control, 'completeCommand');
 
     // * trueNodeList: ['P_014'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(1);
@@ -170,7 +171,10 @@ describe('Automatic Mode', function() {
 
     // FIXME: 취소 요청 중에 Control 요청이 들어갈 경우 실제 제어할 장치와의 상태 위반에 걸리기 때문에 명령이 씹힘.
     // 어떻게 처리할지 생각 필요.
-    await Promise.delay(100);
+    /** @type {complexCmdWrapInfo} */
+    const BW_5_To_NCB_WC_CANCEL = await eventToPromise(control, 'completeCommand');
+
+    expect(BW_5_To_NCB_WC_CONTROL.wrapCmdId).to.eq(BW_5_To_NCB_WC_CANCEL.wrapCmdId);
 
     // * 8. [해주 5 > 결정지 ] 명령 요청. O :: 달성 목표: 배수지 수위 4cm 이상, 달성 제한 시간: 2 Sec
     BW5ToNCB.wrapCmdGoalInfo = {
@@ -200,7 +204,7 @@ describe('Automatic Mode', function() {
     // * 9. 해주 1의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_5, 10)]);
 
-    await Promise.delay(100);
+    await eventToPromise(control, 'completeCommand');
 
     // 명령은 취소 처리 되었음.
     expect(cmdManager.getComplexCommand(wrapCmdInfo.wrapCmdId)).to.undefined;
@@ -260,14 +264,89 @@ describe('Automatic Mode', function() {
    * @desc T.C 2 [자동 모드] :::
    * 수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소
    * 1. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화 한다.
-   * 2. 일반 증발지 2 수위 2cm 설정. 우선 순위가 해주 1이 높기 때문에 [해주 1 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 12cm
-   * 3. 일반 증발지 1의 수위를 12cm로 설정. 명령 완료 확인
-   * 4. 일반 증발지 2 수위 2cm, 해주 1 수위 20cm 설정. 해주 1의 염수가 부족하기 때문에 [일반 증발지 2 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 12cm
-   * 5. 일반 증발지 1 수위 2cm 설정. [일반 증발지 2 > 일반 증발지 1] 명령 취소 확인
-   * 6. [저수지 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 10cm
-   * 7. 일반 증발지 2 수위 12cm 설정. [저수지 > 일반 증발지 1] 명령 완료 확인
-   * 8. [일반 증발지 2 > 일반 증발지 1] 명령 요청 확인
+   * 2. [일반 증발지 2 > 해주 2] 명령 요청. 달성 목표: 수위 1cm
+   * 3. 일반 증발지 2의 수위를 Min 이하 1.5cm, 해주 1 수위 5cm로 설정
+   *    달성 목표보다 일반 증발지 Min 값의 우선 순위가 크기 때문에 수위 최저치로 인한 명령 취소.
+   * 4. 최저치 수위 임계치 처리 후 수위 하한선 처리 자동 요청으로 인한 염수 이동 명령 발생
+   *    우선 수위는 해주 1이 높으나 염수 부족으로  2 순위 일반 증발지 1 배수지 선택
+   *    [일반 증발지 1 > 일반 증발지 2] 명령 요청. 달성 목표: 일반 증발지 2 수위 12cm 이상
+   * 5. 해주 1 수위 150 cm, 해주 2의 수위 1.6cm 설정. 해주 2 하한선 임계치 재발생
+   *    배수지 우선 순위 1인 해주 1의 수위가 충족되나 명령 충돌로 인한 염수 이동 명령 불가 확인
+   * 6. 일반 증발지 2 수위 12cm 설정. 명령 취소 처리 확인.
    */
+  it.only('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
+    const { placeManager } = control.model;
+    const {
+      cmdManager,
+      cmdManager: { cmdOverlapManager, threCmdManager },
+    } = control.model;
+
+    // * 2. [일반 증발지 2 > 해주 2] 명령 요청. 달성 목표: 일반 증발지 2 수위 1cm 이상
+    /** @type {reqFlowCmdInfo} [일반 증발지 2 > 해주 2] */
+    const NEB_2_To_BW_2 = {
+      srcPlaceId: 'NEB_2',
+      destPlaceId: 'BW_2',
+      wrapCmdType: reqWrapCmdType.CONTROL,
+      wrapCmdGoalInfo: {
+        goalDataList: [
+          {
+            nodeId: placeManager.findPlace('NEB_2').getNodeId(ndId.WL),
+            goalValue: 1,
+            goalRange: goalDataRange.UPPER,
+          },
+        ],
+      },
+    };
+    // 흐름 명령 요청
+    control.executeFlowControl(NEB_2_To_BW_2);
+
+    /** @type {complexCmdWrapInfo} */
+    const controlWrapCmdInfo = await eventToPromise(control, 'completeCommand');
+
+    expect(controlWrapCmdInfo.srcPlaceId).to.eq('NEB_2');
+    expect(controlWrapCmdInfo.destPlaceId).to.eq('BW_2');
+
+    // * 3. 일반 증발지 2의 수위를 Min 이하 1.5cm, 해주 1 수위 5cm로 설정
+    // *    달성 목표보다 일반 증발지 Min 값의 우선 순위가 크기 때문에 수위 최저치로 인한 명령 취소.
+    const ps_NEB_2 = placeManager.findPlace('NEB_2');
+    const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.WL });
+
+    const ps_BW_1 = placeManager.findPlace('BW_1');
+    const pn_WL_BW_1 = ps_BW_1.getPlaceNode({ nodeDefId: ndId.WL });
+    // 일반 증발지 2 수위 1.5cm 설정, 해주 1 수위 5cm로 설정
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 1.5)]);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_1, 5)]);
+    // control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 1.5), setNodeData(pn_WL_BW_1, 5)]);
+
+    // BU.CLIS(cmdManager.complexCmdList);
+
+    // /** @type {complexCmdWrapInfo} 명령 취소 처리 됨 */
+    // const cancelWrapCmdInfo = await eventToPromise(control, 'completeCommand');
+    // BU.CLIN(cancelWrapCmdInfo);
+    // expect(controlWrapCmdInfo.wrapCmdId).to.eq(cancelWrapCmdInfo.wrapCmdId);
+
+    // 명령 취소가 되고 추가 염수 명령이 발생해야함.
+
+    // * 4. 최저치 수위 임계치 처리 후 수위 하한선 처리 자동 요청으로 인한 염수 이동 명령 발생
+    // *    우선 수위는 해주 1이 높으나 염수 부족으로  2 순위 일반 증발지 1 배수지 선택
+    // *    [일반 증발지 1 > 일반 증발지 2] 명령 요청. 달성 목표: 일반 증발지 2 수위 12cm 이상
+
+    // * 5. 해주 1 수위 150 cm, 해주 2의 수위 1.6cm 설정. 해주 2 하한선 임계치 재발생
+    // *    배수지 우선 순위 1인 해주 1의 수위가 충족되나 명령 충돌로 인한 염수 이동 명령 불가 확인
+    // * 6. 일반 증발지 2 수위 12cm 설정. 명령 취소 처리 확인.
+
+    // * 2. 우선 순위가 해주 1이 높기 때문에 [해주 1 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 12cm
+    // expect(cmdManager.getFlowCommand('', 'NEB_2')).to.length(1);
+
+    // 우선 순위가 해주 1이 높기 때문에 [해주 1 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 12cm
+
+    // * 3. 일반 증발지 1의 수위를 12cm로 설정. 명령 완료 확인
+    // * 4. 일반 증발지 2 수위 2cm, 해주 1 수위 20cm 설정. 해주 1의 염수가 부족하기 때문에 [일반 증발지 2 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 12cm
+    // * 5. 일반 증발지 1 수위 2cm 설정. [일반 증발지 2 > 일반 증발지 1] 명령 취소 확인
+    // * 6. [저수지 > 일반 증발지 1] 명령 요청. 달성 목표: 수위 10cm
+    // * 7. 일반 증발지 2 수위 12cm 설정. [저수지 > 일반 증발지 1] 명령 완료 확인
+    // * 8. [일반 증발지 2 > 일반 증발지 1] 명령 요청 확인
+  });
 
   /**
    * @desc T.C 3 [자동 모드]

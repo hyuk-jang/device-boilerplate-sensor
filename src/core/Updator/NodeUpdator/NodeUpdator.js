@@ -1,5 +1,7 @@
 const _ = require('lodash');
 
+const { BU } = require('base-util-jh');
+
 const Updator = require('../Updator');
 
 class NodeUpdator extends Updator {
@@ -31,6 +33,7 @@ class NodeUpdator extends Updator {
 
   /** @param {Observer} observer 옵저버 제거 */
   dettachObserver(observer) {
+    // BU.CLIN(this.nodeObservers);
     // 대상이 존재하는지 확인
     const foundIndex = _.findIndex(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));
     // 해당 옵저버 제거

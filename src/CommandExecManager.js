@@ -105,7 +105,7 @@ class CommandExecManager {
       const {
         srcPlaceId,
         destPlaceId,
-        wrapCmdType,
+        wrapCmdType = reqWrapCmdType.CONTROL,
         wrapCmdGoalInfo,
         rank = definedCommandSetRank.SECOND,
       } = reqFlowCmdInfo;
@@ -170,7 +170,11 @@ class CommandExecManager {
   executeSetControl(reqSetCmdInfo) {
     // BU.CLI(reqSetCmdInfo);
     try {
-      const { wrapCmdId, wrapCmdType, rank = definedCommandSetRank.SECOND } = reqSetCmdInfo;
+      const {
+        wrapCmdId,
+        wrapCmdType = reqWrapCmdType.CONTROL,
+        rank = definedCommandSetRank.SECOND,
+      } = reqSetCmdInfo;
 
       // BU.CLIN(this.model.mapCmdInfo);
       // 설정 명령 조회

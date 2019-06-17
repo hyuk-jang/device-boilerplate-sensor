@@ -67,10 +67,9 @@ class M100kPlaceAlgorithm extends PlaceAlgorithm {
    * 노드 데이터 갱신
    * @param {CoreFacade} coreFacade Place Manager
    * @param {placeManager} placeManager Place Manager
-   * @param {PlaceComponent} placeStorage 데이터 갱신이 발생한 장소
    * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
    */
-  handleUpdateNode(coreFacade, placeStorage, placeNode) {
+  handleUpdateNode(coreFacade, placeNode) {
     try {
       const { placeManager } = coreFacade;
 
@@ -119,7 +118,8 @@ class M100kPlaceAlgorithm extends PlaceAlgorithm {
           selectedAlgorithmMethod = threAlgorithm.handleNormal;
           break;
       }
-      selectedAlgorithmMethod(coreFacade, placeStorage, placeNode);
+      // 임계치에 맞는 메소드 호출. (this 인자를 잃으므로 지정 처리)
+      selectedAlgorithmMethod.call(threAlgorithm, coreFacade, placeNode);
     } catch (error) {
       throw error;
     }

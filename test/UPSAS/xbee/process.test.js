@@ -450,11 +450,11 @@ describe('Automatic Mode', function() {
    * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it('Threshold Command ', async () => {
+  it.only('Threshold Command ', async () => {
     const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
     // BU.CLI('Critical Command');
-    const NODE_BT_001 = 'BT_001';
-    const nodeInfo = _.find(control.nodeList, { node_id: NODE_BT_001 });
+    const NODE_WL_001 = 'WL_001';
+    const nodeInfo = _.find(control.nodeList, { node_id: NODE_WL_001 });
     // 최초 수위는 3으로 설정
     nodeInfo.data = 3;
 
@@ -465,7 +465,7 @@ describe('Automatic Mode', function() {
         {
           goalValue: 10,
           goalRange: goalDataRange.UPPER,
-          nodeId: NODE_BT_001,
+          nodeId: NODE_WL_001,
         },
       ],
     };
@@ -487,16 +487,14 @@ describe('Automatic Mode', function() {
     // 저수지 > 증발지 1-A 임계치 저장소 가져옴
     let tcsRvTo1A = threCmdManager.getThreCmdStorage(wcRvTo1A);
     // BU.CLIN(tcsRvTo1A)
-    let tcgGoalRvTo1A = tcsRvTo1A.getThreCmdGoal(NODE_BT_001);
+    let tcgGoalRvTo1A = tcsRvTo1A.getThreCmdGoal(NODE_WL_001);
     // 새로운 임계치 명령이 등록되야함.
     expect(tcsRvTo1A.threCmdGoalList).length(1);
-    expect(tcgGoalRvTo1A.threCmdGoalId).to.eq(NODE_BT_001);
+    expect(tcgGoalRvTo1A.threCmdGoalId).to.eq(NODE_WL_001);
     // Node Id BT_001 에는 옵저버가 1개 등록되어야 한다.
-    const nuBT001 = control.nodeUpdatorManager.getNodeUpdator(NODE_BT_001);
+    const nuBT001 = control.nodeUpdatorManager.getNodeUpdator(NODE_WL_001);
 
     expect(nuBT001.getObserver(tcgGoalRvTo1A)).to.equal(tcgGoalRvTo1A);
-    // 딜레이 타이머
-    await Promise.delay(1000);
 
     // BT_011 를 가져오고 값을 설정한 후 데이터 갱신 이벤트를 발생 시킴
     nodeInfo.data = 11;
@@ -507,8 +505,10 @@ describe('Automatic Mode', function() {
     // 삭제가 되었기 때문에 저장소는 삭제가 되어 임계치 관리 객체를 가져올 수 없음
     expect(tcsRvTo1A).to.undefined;
 
-    // Node Id BT_001 에는 옵저버가 0개 등록되어야 한다.
-    expect(nuBT001.nodeObservers).to.length(0);
+    // BU.CLIN(nuBT001, 1);
+
+    // Node Id BT_001 에는 해당 옵저버가 없어야한다.
+    expect(nuBT001.getObserver(tcgGoalRvTo1A)).to.undefined;
 
     // 임계치에 도달했기 때문에 CANCEL 명령 발송됨. 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
@@ -525,7 +525,7 @@ describe('Automatic Mode', function() {
         {
           goalValue: 10,
           goalRange: goalDataRange.UPPER,
-          nodeId: NODE_BT_001,
+          nodeId: NODE_WL_001,
         },
       ],
     };
@@ -536,7 +536,7 @@ describe('Automatic Mode', function() {
     await eventToPromise(control, 'completeCommand');
 
     tcsRvTo1A = threCmdManager.getThreCmdStorage(wcRvTo1A);
-    tcgGoalRvTo1A = tcsRvTo1A.getThreCmdGoal(NODE_BT_001);
+    tcgGoalRvTo1A = tcsRvTo1A.getThreCmdGoal(NODE_WL_001);
 
     // 새로운 임계치 명령이 등록되야함.
     expect(tcsRvTo1A.children).length(1);
@@ -550,8 +550,8 @@ describe('Automatic Mode', function() {
     // 삭제가 되었기 때문에 저장소는 삭제가 되어 임계치 관리 객체를 가져올 수 없음
     expect(tcsRvTo1A).to.undefined;
 
-    // 취소 명령이 완료되기를 기다림
-    expect(nuBT001.nodeObservers).to.length(0);
+    // Node Id BT_001 에는 해당 옵저버가 없어야한다.
+    expect(nuBT001.getObserver(tcgGoalRvTo1A)).to.undefined;
 
     // 현재 진행 중인 명령은 존재하지 않음
     expect(control.model.complexCmdList).to.length(0);

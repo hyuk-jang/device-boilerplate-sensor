@@ -72,23 +72,37 @@ class PlaceStorage extends PlaceComponent {
   }
 
   /**
-   * @desc Place Storage :::
+   * @desc Place Storage, Place Node :::
+   * Node Id 반환
+   * @param {string} nodeDefId
+   * @return {string}
+   */
+  getNodeId(nodeDefId) {
+    return this.getPlaceNode({
+      nodeDefId,
+    }).getNodeId();
+  }
+
+  /**
+   * @desc Place Storage, Place Node :::
    * 장소 저장소 객체의 place Id를 가져옴
+   * @return {string}
    */
   getPlaceId() {
     return this.placeInfo.place_id;
   }
 
   /**
-   * @desc Place Storage :::
+   * @desc Place Storage, Place Node :::
    * 장소 저장소 객체의 place Info를 가져옴
+   * @return {placeInfo}
    */
   getPlaceInfo() {
     return this.placeInfo;
   }
 
   /**
-   * @desc Place Storage :::
+   * @desc Place Storage, Place Node :::
    * @return {number=} 현재 장소의 제곱미터
    */
   getSquareMeter() {
@@ -151,7 +165,7 @@ class PlaceStorage extends PlaceComponent {
    * @param {PlaceComponent} placeNode
    */
   handleUpdateNode(placeNode) {
-    this.placeManager.handleUpdateNode(this, placeNode);
+    this.placeManager.handleUpdateNode(placeNode);
   }
 }
 

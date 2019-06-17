@@ -116,11 +116,10 @@ class CoreFacade {
 
   /**
    * Place Node가 갱신이 되었을 경우 처리
-   * @param {PlaceComponent} placeStorage
    * @param {PlaceComponent} placeNode
    */
-  handleUpdateNode(placeStorage, placeNode) {
-    this.placeAlgorithm.handleUpdateNode(this, placeStorage, placeNode);
+  handleUpdateNode(placeNode) {
+    this.placeAlgorithm.handleUpdateNode(this, placeNode);
   }
 }
 
