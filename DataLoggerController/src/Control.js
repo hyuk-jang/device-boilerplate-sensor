@@ -494,7 +494,11 @@ class DataLoggerController extends DccFacade {
       }
       this.observerList.forEach(observer => {
         if (_.get(observer, 'notifyDeviceData')) {
-          observer.notifyDeviceData(this, renewalNodeList);
+          try {
+            observer.notifyDeviceData(this, renewalNodeList);
+          } catch (error) {
+            BU.errorLog(error.name, error.message, error);
+          }
         }
       });
     }

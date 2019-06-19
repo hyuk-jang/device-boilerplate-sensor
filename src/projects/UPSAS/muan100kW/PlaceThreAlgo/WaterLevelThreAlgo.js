@@ -21,12 +21,6 @@ const {
 
 const NODE_DEF_ID = 'waterLevel';
 class WaterLevelThreAlgo extends PlaceThreshold {
-  constructor() {
-    super();
-
-    BU.CLIN(this);
-  }
-
   /**
    * 장치 상태가 식별 불가 일 경우
    * @param {CoreFacade} coreFacade Place Manager
@@ -97,7 +91,7 @@ class WaterLevelThreAlgo extends PlaceThreshold {
       // 급수를 해올 수 있는 장소의 수위 상태
       const { MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER } = placeNodeStatus;
 
-      BU.CLI(MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER);
+      // BU.CLI(MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER);
       // 우선 배수지 장소 중 급수를 진행할 수 있는 장소 검색
       const ablePlaceStorage = _.find(callPlaceList, callPlaceStorage => {
         const nodeStatus = callPlaceStorage
@@ -114,22 +108,22 @@ class WaterLevelThreAlgo extends PlaceThreshold {
         return _.includes([MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER], nodeStatus);
       });
 
-      BU.CLI(ablePlaceStorage.getPlaceNode({ nodeDefId: NODE_DEF_ID }).getNodeStatus());
-
       // 배수지가 존재하지 않는다면 종료
       if (!ablePlaceStorage) return false;
 
-      BU.CLIN(coreFacade.cmdManager.complexCmdList);
+      // BU.CLI(ablePlaceStorage.getPlaceNode({ nodeDefId: NODE_DEF_ID }).getNodeStatus());
+
+      // BU.CLIN(coreFacade.cmdManager.complexCmdList);
 
       // BU.CLIN(ablePlaceStorage, 1);
-      BU.CLIN(ablePlaceStorage.getPlaceId());
-      BU.CLI(
-        ablePlaceStorage
-          .getPlaceNode({
-            nodeDefId: NODE_DEF_ID,
-          })
-          .getValue(),
-      );
+      // BU.CLIN(ablePlaceStorage.getPlaceId());
+      // BU.CLI(
+      //   ablePlaceStorage
+      //     .getPlaceNode({
+      //       nodeDefId: NODE_DEF_ID,
+      //     })
+      //     .getValue(),
+      // );
 
       // 염수 흐름 명령을 생성.
       coreFacade.cmdExecManager.executeFlowControl({

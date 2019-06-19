@@ -241,9 +241,9 @@ class PlaceNode extends PlaceComponent {
       // this.handleNormal();
     }
 
-    if (this.getPlaceId() === 'BW_1') {
-      BU.CLI(nextPlaceNodeStatus);
-    }
+    // if (this.getPlaceId() === 'BW_1') {
+    //   BU.CLI(nextPlaceNodeStatus);
+    // }
     return nextPlaceNodeStatus;
   }
 

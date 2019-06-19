@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 require('dotenv').config();
 const _ = require('lodash');
 const Promise = require('bluebird');
@@ -162,7 +163,9 @@ describe('Automatic Mode', function() {
     expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(0);
 
     // 수위 갱신을 한번 더 했을 경우 이미 취소 명령을 실행 중이므로 거부되야 한다.
-    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 15)]);
+    expect(() => control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 15)])).to.throw(
+      'The command(BW_5_TO_NCB) does not exist and you can not issue a CANCEL command',
+    );
 
     // * 7. 결정지의 수위를 Set값(5cm) 설정.
     control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 5)]);
@@ -263,6 +266,7 @@ describe('Automatic Mode', function() {
   /**
    * @desc T.C 2 [자동 모드] :::
    * 수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소
+   * 명령 요청 후 바로 삭제 시 명령 관리 테스트
    * 1. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화 한다.
    * 2. [일반 증발지 2 > 해주 2] 명령 요청. 달성 목표: 수위 1cm
    * 3. 일반 증발지 2의 수위를 Min 이하 1.5cm, 해주 1 수위 5cm로 설정
@@ -281,8 +285,8 @@ describe('Automatic Mode', function() {
       cmdManager: { cmdOverlapManager, threCmdManager },
     } = control.model;
 
-    // * 2. [일반 증발지 2 > 해주 2] 명령 요청. 달성 목표: 일반 증발지 2 수위 1cm 이상
-    /** @type {reqFlowCmdInfo} [일반 증발지 2 > 해주 2] */
+    // * 2. [NEB_2_To_BW_2] 달성 목표: NEB_2 수위 1cm 이상
+    /** @type {reqFlowCmdInfo} */
     const NEB_2_To_BW_2 = {
       srcPlaceId: 'NEB_2',
       destPlaceId: 'BW_2',
@@ -297,11 +301,15 @@ describe('Automatic Mode', function() {
         ],
       },
     };
-    // 흐름 명령 요청
+    // 2. [NEB_2_To_BW_2] Request
     control.executeFlowControl(NEB_2_To_BW_2);
 
     /** @type {complexCmdWrapInfo} */
+    // Process CMD : [NEB_2_To_BW_2 CONTROL]
+    // Running CMD : []
     const controlWrapCmdInfo = await eventToPromise(control, 'completeCommand');
+    // Process CMD : []
+    // Running CMD : [NEB_2_To_BW_2]
 
     expect(controlWrapCmdInfo.srcPlaceId).to.eq('NEB_2');
     expect(controlWrapCmdInfo.destPlaceId).to.eq('BW_2');
@@ -314,7 +322,14 @@ describe('Automatic Mode', function() {
     const ps_BW_1 = placeManager.findPlace('BW_1');
     const pn_WL_BW_1 = ps_BW_1.getPlaceNode({ nodeDefId: ndId.WL });
     // 일반 증발지 2 수위 1.5cm 설정, 해주 1 수위 5cm로 설정
+
+    // 명령 요청
+
+    // handleMinUnder -->         'NEB_2' :::   wrapCmdId: 'NEB_2_TO_BW_2', wrapCmdType: 'CANCEL',
+    // handleLowerLimitUnder -->  'NEB_2' :::   wrapCmdId: 'BW_1_TO_NEB_2', wrapCmdType: 'CONTROL'
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 1.5)]);
+    // handleMinUnder -->         'BW_1' :::   wrapCmdId: 'BW_1_TO_NEB_2', wrapCmdType: 'CANCEL',
+    // handleLowerLimitUnder -->  'BW_1' :::   wrapCmdId: 'NEB_1_TO_NEB_2', wrapCmdType: 'CONTROL'
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_1, 5)]);
     // control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 1.5), setNodeData(pn_WL_BW_1, 5)]);
 

@@ -242,11 +242,13 @@ class CommandManager {
       msgCode: dcMsgCode,
     } = dcMessage;
 
+    // BU.CLIN(dcMessage.commandSet, 1);
+
     /** @type {complexCmdWrapInfo} */
-    const foundComplexCmdInfo = _.find(this.complexCmdList, { wrapCmdUUID: dcWrapCmdUUID });
+    const wrapCmdInfo = _.find(this.complexCmdList, { wrapCmdUUID: dcWrapCmdUUID });
 
     // 통합 명령 UUID가 없을 경우
-    if (!foundComplexCmdInfo) {
+    if (!wrapCmdInfo) {
       // BU.CLI(this.complexCmdList);
       throw new Error(`wrapCmdUUID: ${dcWrapCmdUUID} is not exist.`);
     }
@@ -259,12 +261,12 @@ class CommandManager {
       wrapCmdGoalInfo,
       containerCmdList,
       realContainerCmdList,
-    } = foundComplexCmdInfo;
+    } = wrapCmdInfo;
 
     // DC Message: COMMANDSET_EXECUTION_START && complexCmdStep !== WAIT ===> Change PROCEED Step
     // DCC 명령이 수행중
     if (_.eq(dcMsgCode, COMMANDSET_EXECUTION_START) && _.eq(wrapCmdStep, complexCmdStep.WAIT)) {
-      foundComplexCmdInfo.wrapCmdStep = complexCmdStep.PROCEED;
+      wrapCmdInfo.wrapCmdStep = complexCmdStep.PROCEED;
       // 상태 변경된 명령 목록 API Server로 전송
       return this.model.transmitComplexCommandStatus();
     }
@@ -289,6 +291,8 @@ class CommandManager {
 
     // Ele가 존재하지 않는다면 종료
     if (!foundEleInfo) {
+      // BU.CLI(wrapCmdInfo);
+
       throw new Error(`dcCmdUUID(${dcCmdUUID}) does not exist in the Complex Command List.`);
     }
 
@@ -308,7 +312,7 @@ class CommandManager {
       BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
 
       // 명령 완료 처리
-      this.cmdStrategy.completeComplexCommand(foundComplexCmdInfo);
+      this.cmdStrategy.completeComplexCommand(wrapCmdInfo);
 
       // FIXME: 수동 자동? 처리?
       // foundComplexCmdInfo.wrapCmdStep = complexCmdStep.RUNNING;
@@ -320,7 +324,7 @@ class CommandManager {
         this.model.completeInquiryDeviceStatus();
       } else {
         // FIXME: 일반 명령 completeCommand이 완료되었을 경우 처리할 필요가 있다면 작성
-        this.controller.emit('completeCommand', foundComplexCmdInfo);
+        this.controller.emit('completeCommand', wrapCmdInfo);
         // this.controller.emit('completeCommand', foundComplexCmdInfo);
       }
     }

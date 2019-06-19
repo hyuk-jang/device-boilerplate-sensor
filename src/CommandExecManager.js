@@ -433,6 +433,10 @@ class CommandExecManager {
         realContainerCmdList: [],
       };
 
+      BU.log(wrapCmdInfo.wrapCmdId, wrapCmdInfo.wrapCmdType);
+
+      // BU.CLIN(this.model.complexCmdList,);
+
       // 취소 명령을 요청할 경우 기존 실행 중인 명령이 없다면 예외 발생
       if (wrapCmdType === reqWrapCmdType.CANCEL) {
         const prceedWrapCmdInfo = this.model.cmdManager.getComplexCommand(wrapCmdId);
@@ -515,12 +519,21 @@ class CommandExecManager {
       // 복합 명령 저장
       this.model.saveComplexCommand(wrapCmdInfo);
 
+      // BU.CLIS(wrapCmdInfo.wrapCmdUUID, wrapCmdInfo.realContainerCmdList);
+
+      // BU.CLIN(this.model.complexCmdList);
+
       // 실제 내릴 명령이 있을 경우에만 요청
       // if (wrapCmdInfo.realContainerCmdList.length) {
       // 복합 명령 실행 요청
       // FIXME: 장치와의 연결이 해제되었더라도 일단 명령 요청을 함. 연결이 해제되면 아에 명령 요청을 거부할지. 어떻게 해야할지 고민 필요
       this.executeCommandToDLC(wrapCmdInfo);
       // }
+
+      // BU.CLIN(
+      //   this.model.dataLoggerControllerList[0].filterCommandStorage().standbyCommandSetList,
+      //   3,
+      // );
 
       // const hasSaved = this.model.saveComplexCmd(reqComplexCmd.wrapCmdType, wrapCmdInfo);
 
@@ -575,7 +588,7 @@ class CommandExecManager {
    * 정기적인 Router Status 탐색
    */
   inquiryAllDeviceStatus() {
-    BU.CLI('inquiryAllDeviceStatus');
+    // BU.CLI('inquiryAllDeviceStatus');
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
 
