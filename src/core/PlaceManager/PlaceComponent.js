@@ -58,11 +58,11 @@ class PlaceComponent extends Observer {
   getPlaceNode(placeNodeInfo) {}
 
   /**
-   * @desc Place Node :::
+   * @desc Place Storage, Place Node :::
    * Node Data 반환
    * @return {string}
    */
-  getValue() {}
+  getNodeValue() {}
 
   /**
    * @desc Place Node :::
@@ -100,19 +100,22 @@ class PlaceComponent extends Observer {
    */
   getPutPlaceRankList() {}
 
-  /** @desc Place Node ::: 노드 최대 임계치 */
+  /** 노드 임계치 */
+  getThresholdValue() {}
+
+  /** 노드 최대 임계치 */
   getMaxValue() {}
 
-  /** @desc Place Node ::: 노드 상한선 임계치 */
+  /** 노드 상한선 임계치 */
   getUpperLimitValue() {}
 
-  /** @desc Place Node ::: 노드 설정 임계치 */
+  /** 노드 설정 임계치 */
   getSetValue() {}
 
-  /** @desc Place Node ::: 노드 하한선 임계치 */
+  /** 노드 하한선 임계치 */
   getLowerLimitValue() {}
 
-  /** @desc Place Node ::: 노드 최저 임계치 */
+  /** 노드 최저 임계치 */
   getMinValue() {}
 
   /**

@@ -42,6 +42,15 @@ const ndId = {
   MRT: 'moduleRearTemperature',
 };
 
+const pId = {
+  NEB_1: 'NEB_1',
+  NEB_2: 'NEB_2',
+  SEB_1: 'SEB_1',
+  SEB_2: 'SEB_2',
+  BW_1: 'BW_1',
+  BW_2: 'BW_2',
+};
+
 /**
  *
  * @param {PlaceNode} placeNode
@@ -266,15 +275,33 @@ describe('Automatic Mode', function() {
   /**
    * @desc T.C 2 [자동 모드] :::
    * 수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소
-   * 명령 요청 후 바로 삭제 시 명령 관리 테스트
+   * @description
+   * 장소 임계치에 의한 흐름 명령 생성은 무조건 Goal이 존재
+   * Goal이 존재할 경우 [최대치, 최저치]에 명령 생성 및 취소
+   * Goal이 존재하지 않을 경우 [최대치, 상한선, 하한선, 최저치]에 명령 생성 및 취소
+   * @tutorial
    * 1. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화 한다.
-   * 2. [일반 증발지 2 > 해주 2] 명령 요청. 달성 목표: 수위 1cm
-   * 3. 일반 증발지 2의 수위를 Min 이하 1.5cm, 해주 1 수위 5cm로 설정
-   *    달성 목표보다 일반 증발지 Min 값의 우선 순위가 크기 때문에 수위 최저치로 인한 명령 취소.
-   * 4. 최저치 수위 임계치 처리 후 수위 하한선 처리 자동 요청으로 인한 염수 이동 명령 발생
+   *  <test> Goal이 존재할 경우 최저치에 의한 명령 취소
+   * 1. NEB_2: MIN(2)
+   * 
+   * 2. [NEB_2_TO_BW_2](R_CON->C_CON). {Goal} WL 1cm
+   * 
+   * 
+   * 4. <test> Goal이 존재할 경우 최저치에 의한 명령 취소
+   * 일반 증발지 2의 수위를 Min 이하 1.5cm
+   *    최저치 수위 임계치 처리 후 수위 하한선 처리 자동 요청으로 인한 염수 이동 명령 발생
+   *    수위 최저치 >>> [NEB_2_TO_BW_2](R_CAN)
+   *    수위 하한선 >>> [BW_1_TO_NEB_2](R_CON)
+   * 4. 해주 1 수위 5cm로 설정
+   *    해주 1 수위 최저치 >>> [BW_1_TO_NEB_2](R_CAN){R_CON무시}
    *    우선 수위는 해주 1이 높으나 염수 부족으로  2 순위 일반 증발지 1 배수지 선택
-   *    [일반 증발지 1 > 일반 증발지 2] 명령 요청. 달성 목표: 일반 증발지 2 수위 12cm 이상
-   * 5. 해주 1 수위 150 cm, 해주 2의 수위 1.6cm 설정. 해주 2 하한선 임계치 재발생
+   *    일반 증발지 2 수위 하한선  >>> [NEB_1_TO_NEB_2](R_CON)
+   *    수위 하한선 >>> Empty
+   * 5. [NEB_2_TO_BW_2](C_CAN), [BW_1_TO_NEB_2](C_CAN), [NEB_1_TO_NEB_2](C_CON) 명령 완료 Await
+   * 6. 일반 증발지 2 설정 수위 12cm 설정
+   *    [NEB_1_TO_NEB_2](R_CAN->C_CAN)
+   * 7. <test_상한선_명령_취소>
+   *    [NEB_1_TO_NEB_2](R_CON). 달성 목표: 일반 증발지 2 수위 상한선(12cm) 이상
    *    배수지 우선 순위 1인 해주 1의 수위가 충족되나 명령 충돌로 인한 염수 이동 명령 불가 확인
    * 6. 일반 증발지 2 수위 12cm 설정. 명령 취소 처리 확인.
    */
@@ -282,8 +309,14 @@ describe('Automatic Mode', function() {
     const { placeManager } = control.model;
     const {
       cmdManager,
-      cmdManager: { cmdOverlapManager, threCmdManager },
+      cmdManager: { getFlowCommand, cmdOverlapManager, threCmdManager },
     } = control.model;
+
+    // const {getFlowCommand} = cmdManager;
+
+    const getFlowCmd = (srcPlaceId, destPlaceId) => {
+      return cmdManager.getFlowCommand(srcPlaceId, destPlaceId);
+    };
 
     // * 2. [NEB_2_To_BW_2] 달성 목표: NEB_2 수위 1cm 이상
     /** @type {reqFlowCmdInfo} */
@@ -311,27 +344,62 @@ describe('Automatic Mode', function() {
     // Process CMD : []
     // Running CMD : [NEB_2_To_BW_2]
 
-    expect(controlWrapCmdInfo.srcPlaceId).to.eq('NEB_2');
-    expect(controlWrapCmdInfo.destPlaceId).to.eq('BW_2');
+    expect(controlWrapCmdInfo.srcPlaceId).to.eq(pId.NEB_2);
+    expect(controlWrapCmdInfo.destPlaceId).to.eq(pId.BW_2);
 
     // * 3. 일반 증발지 2의 수위를 Min 이하 1.5cm, 해주 1 수위 5cm로 설정
     // *    달성 목표보다 일반 증발지 Min 값의 우선 순위가 크기 때문에 수위 최저치로 인한 명령 취소.
-    const ps_NEB_2 = placeManager.findPlace('NEB_2');
+    const ps_NEB_1 = placeManager.findPlace(pId.NEB_1);
+    const pn_WL_NEB_1 = ps_NEB_1.getPlaceNode({ nodeDefId: ndId.WL });
+
+    const ps_NEB_2 = placeManager.findPlace(pId.NEB_2);
     const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.WL });
 
-    const ps_BW_1 = placeManager.findPlace('BW_1');
+    const ps_BW_1 = placeManager.findPlace(pId.BW_1);
     const pn_WL_BW_1 = ps_BW_1.getPlaceNode({ nodeDefId: ndId.WL });
-    // 일반 증발지 2 수위 1.5cm 설정, 해주 1 수위 5cm로 설정
 
-    // 명령 요청
-
-    // handleMinUnder -->         'NEB_2' :::   wrapCmdId: 'NEB_2_TO_BW_2', wrapCmdType: 'CANCEL',
-    // handleLowerLimitUnder -->  'NEB_2' :::   wrapCmdId: 'BW_1_TO_NEB_2', wrapCmdType: 'CONTROL'
+    // 일반 증발지 2 수위 1.5cm 설정
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 1.5)]);
-    // handleMinUnder -->         'BW_1' :::   wrapCmdId: 'BW_1_TO_NEB_2', wrapCmdType: 'CANCEL',
-    // handleLowerLimitUnder -->  'BW_1' :::   wrapCmdId: 'NEB_1_TO_NEB_2', wrapCmdType: 'CONTROL'
+
+    // handleMinUnder --> 'NEB_2'
+    expect(getFlowCmd(pId.NEB_2, pId.BW_2).wrapCmdType).to.eq(reqWrapCmdType.CANCEL);
+    // handleLowerLimitUnder -->  'NEB_2'
+    expect(getFlowCmd(pId.BW_1, pId.NEB_2).wrapCmdType).to.eq(reqWrapCmdType.CONTROL);
+
+    // await eventToPromise(control, 'completeCommand');
+
+    // await Promise.delay(1000);
+
+    // 해주 1 수위 5cm로 설정
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_1, 5)]);
+    // handleMinUnder --> 'BW_1'
+    expect(getFlowCmd(pId.BW_1, pId.NEB_2).wrapCmdType).to.eq(reqWrapCmdType.CANCEL);
+    // handleMinUnder --> 'NEB_2'
+    // handleLowerLimitUnder --> 'NEB_2'
+    expect(getFlowCmd(pId.NEB_1, pId.NEB_2).wrapCmdType).to.eq(reqWrapCmdType.CONTROL);
+    // handleLowerLimitUnder --> 'BW_1'
+    //    *    수위 하한선 >>> Empty
+
+    // * 5. [NEB_2_TO_BW_2](CAN), [BW_1_TO_NEB_2](CAN), [NEB_1_TO_NEB_2](RUN) 명령 완료 Await
+    await eventToPromise(control, 'completeCommand');
+    await eventToPromise(control, 'completeCommand');
+    await eventToPromise(control, 'completeCommand');
+
+    // 현재 RUNNING 명령 [NEB_1_TO_NEB_2]
+    expect(getFlowCmd(pId.NEB_1, pId.NEB_2).wrapCmdStep).to.eq(complexCmdStep.RUNNING);
+    // 누적 명령 테스트 [NEB_1 Drainage WD 2개]
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(2);
+    // 누적 명령 테스트 [NEB_2 Drainage WD 2개]
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(2);
+
+    BU.CLI(pn_WL_NEB_2.getThresholdValue())
+
+    // control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, )]);
+
+    // handleLowerLimitUnder -->  'BW_1' :::   wrapCmdId: 'NEB_1_TO_NEB_2', wrapCmdType: 'CONTROL'
     // control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 1.5), setNodeData(pn_WL_BW_1, 5)]);
+
+    // control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_1, 5)]);
 
     // BU.CLIS(cmdManager.complexCmdList);
 

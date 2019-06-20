@@ -104,20 +104,27 @@ class CommandManager {
   }
 
   /**
-   *
+   * 조건에 맞는 흐름 명령 반환
+   * @param {string} srcPlaceId 출발 장소 ID
+   * @param {string} destPlaceId 도착 장소 ID
+   */
+  getFlowCommand(srcPlaceId = '', destPlaceId = '') {
+    // BU.CLIS(srcPlaceId, destPlaceId);
+    return _.find(this.complexCmdList, { srcPlaceId, destPlaceId });
+  }
+
+  /**
+   * 조건에 맞는 흐름 명령 반환
    * @param {string=} srcPlaceId 출발 장소 ID
    * @param {string=} destPlaceId 도착 장소 ID
    */
-  getFlowCommand(srcPlaceId = '', destPlaceId = '') {
+  getFlowCommandList(srcPlaceId = '', destPlaceId = '') {
     // BU.CLIS(srcPlaceId, destPlaceId);
     const whereInfo = { wrapCmdFormat: reqWrapCmdFormat.FLOW };
 
     // 염수 이동 명령의 시작지와 도착지의 정보 유무에 따라 where 절 생성
     _.isString(srcPlaceId) && srcPlaceId.length && _.assign(whereInfo, { srcPlaceId });
     _.isString(destPlaceId) && destPlaceId.length && _.assign(whereInfo, { destPlaceId });
-
-    // BU.CLIN(whereInfo);
-    // BU.CLIN(this.complexCmdList);
 
     return _.filter(this.complexCmdList, whereInfo);
   }
@@ -276,28 +283,28 @@ class CommandManager {
 
     // DLC에서 수신된 메시지가 명령 완료, 명령 삭제 완료 중 하나 일 경우
     // 실제 제어 컨테이너 안에 있는 Ele 요소 중 dcUUID와 동일한 개체 조회
-    const allComplexEleCmdList = _(realContainerCmdList)
+    const flattenEleCmdList = _(realContainerCmdList)
       .map('eleCmdList')
       .flatten()
       .value();
 
     // FIXME: Ele가 존재하지 않는다면 명령 삭제 처리 필요 (DCC Error 로 넘어가게됨.)
-    if (!allComplexEleCmdList.length) {
+    if (!flattenEleCmdList.length) {
       throw new Error(`wrapCmdId(${dcWrapCmdId}) does not exist in the Complex Command List.`);
     }
 
     // dcCmdUUID가 동일한 Complex Command를 찾음
-    const foundEleInfo = _.find(allComplexEleCmdList, { uuid: dcCmdUUID });
+    const eleCmdInfo = _.find(flattenEleCmdList, { uuid: dcCmdUUID });
 
-    // Ele가 존재하지 않는다면 종료
-    if (!foundEleInfo) {
+    // Ele가 존재하지 않는다면 명령 스택에서 없는 것으로 판단
+    if (!eleCmdInfo) {
       // BU.CLI(wrapCmdInfo);
-
-      throw new Error(`dcCmdUUID(${dcCmdUUID}) does not exist in the Complex Command List.`);
+      return BU.logFile(`dcCmdUUID(${dcCmdUUID}) does not exist in the Complex Command List.`);
+      // throw new Error(`dcCmdUUID(${dcCmdUUID}) does not exist in the Complex Command List.`);
     }
 
     // 해당 단위 명령 완료 처리
-    foundEleInfo.hasComplete = true;
+    eleCmdInfo.hasComplete = true;
 
     // 계측 명령이 아닐 경우 단위 명령 추적 삭제.
     if (wrapCmdType !== reqWrapCmdType.MEASURE) {
@@ -308,7 +315,7 @@ class CommandManager {
     }
 
     // 모든 장치의 제어가 완료됐다면
-    if (_.every(allComplexEleCmdList, 'hasComplete')) {
+    if (_.every(flattenEleCmdList, 'hasComplete')) {
       BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
 
       // 명령 완료 처리

@@ -519,6 +519,9 @@ class CommandExecManager {
       // 복합 명령 저장
       this.model.saveComplexCommand(wrapCmdInfo);
 
+      BU.log('Req', wrapCmdInfo.wrapCmdId)
+
+
       // BU.CLIS(wrapCmdInfo.wrapCmdUUID, wrapCmdInfo.realContainerCmdList);
 
       // BU.CLIN(this.model.complexCmdList);

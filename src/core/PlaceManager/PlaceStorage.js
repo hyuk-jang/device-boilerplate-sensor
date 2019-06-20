@@ -55,13 +55,13 @@ class PlaceStorage extends PlaceComponent {
 
   /**
    * Successor Place를 가져옴
+   * @return {PlaceComponent}
    */
   getParentPlace() {
     return this.placeManager;
   }
 
   /**
-   *
    * @param {string} placeId placeId와 같은 Place Component 객체를 찾아 반환
    */
   findPlace(placeId) {
@@ -72,19 +72,104 @@ class PlaceStorage extends PlaceComponent {
   }
 
   /**
-   * @desc Place Storage, Place Node :::
    * Node Id 반환
    * @param {string} nodeDefId
    * @return {string}
    */
   getNodeId(nodeDefId) {
-    return this.getPlaceNode({
-      nodeDefId,
-    }).getNodeId();
+    return this.getPlaceNode({ nodeDefId }).getNodeId();
   }
 
   /**
-   * @desc Place Storage, Place Node :::
+   * Node Def Id 반환
+   * @param {string} nodeDefId
+   * @return {string}
+   */
+  getNodeDefId(nodeDefId) {
+    return this.getPlaceNode({ nodeDefId }).getNodeDefId();
+  }
+
+  /**
+   * Node Data 반환
+   * @param {string} nodeDefId Node Definition ID
+   * @return {number|string}
+   */
+  getNodeValue(nodeDefId) {
+    return this.getPlaceNode({ nodeDefId }).getNodeValue();
+  }
+
+  /**
+   * Place Node Status 반환
+   * @param {string} nodeDefId Node Definition ID
+   * @return {string}
+   */
+  getNodeStatus(nodeDefId) {
+    return this.getPlaceNode({ nodeDefId }).getNodeStatus();
+  }
+
+  /**
+   * 급수지 Place Id 목록 반환
+   * @param {string} nodeDefId Node Definition ID
+   * @return {PlaceComponent[]}
+   */
+  getCallPlaceRankList(nodeDefId) {
+    return this.getPlaceNode({ nodeDefId }).getCallPlaceRankList();
+  }
+
+  /**
+   * 급수지 Place Id 목록 반환
+   * @param {string} nodeDefId Node Definition ID
+   * @return {PlaceComponent[]}
+   */
+  getPutPlaceRankList(nodeDefId) {
+    return this.getPlaceNode({ nodeDefId }).getPutPlaceRankList();
+  }
+
+  /** @param {string} nodeDefId Node Definition ID 노드 임계치 */
+  getThresholdValue(nodeDefId) {
+    return this.getPlaceNode({ nodeDefId }).getThresholdValue();
+  }
+
+  /** @param {string} nodeDefId Node Definition ID 노드 최대 임계치 */
+  getMaxValue(nodeDefId) {
+    this.getPlaceNode({ nodeDefId }).getMaxValue();
+  }
+
+  /** @param {string} nodeDefId Node Definition ID 노드 상한선 임계치 */
+  getUpperLimitValue(nodeDefId) {
+    this.getPlaceNode({ nodeDefId }).getUpperLimitValue();
+  }
+
+  /** @param {string} nodeDefId Node Definition ID 노드 설정 임계치 */
+  getSetValue(nodeDefId) {
+    this.getPlaceNode({ nodeDefId }).getSetValue();
+  }
+
+  /** @param {string} nodeDefId Node Definition ID 노드 하한선 임계치 */
+  getLowerLimitValue(nodeDefId) {
+    this.getPlaceNode({ nodeDefId }).getLowerLimitValue();
+  }
+
+  /** @param {string} nodeDefId Node Definition ID 노드 최저 임계치 */
+  getMinValue(nodeDefId) {
+    this.getPlaceNode({ nodeDefId }).getMinValue();
+  }
+
+  /**
+   * Place Node에 갱신 이벤트를 보내고자 할 경우
+   * @param {string=} nodeDefId Node Definition ID, 없을 경우 전체 갱신
+   */
+  updateNode(nodeDefId) {
+    if (_.isEmpty(nodeDefId)) {
+      this.children.forEach(child => {
+        child.updateNode();
+      });
+    } else if (_.isString(nodeDefId) && nodeDefId.length) {
+      this.getPlaceNode({ nodeDefId }).updateNode();
+    }
+  }
+
+  /**
    * 장소 저장소 객체의 place Id를 가져옴
    * @return {string}
    */
@@ -93,7 +178,6 @@ class PlaceStorage extends PlaceComponent {
   }
 
   /**
-   * @desc Place Storage, Place Node :::
    * 장소 저장소 객체의 place Info를 가져옴
    * @return {placeInfo}
    */
@@ -102,7 +186,6 @@ class PlaceStorage extends PlaceComponent {
   }
 
   /**
-   * @desc Place Storage, Place Node :::
    * @return {number=} 현재 장소의 제곱미터
    */
   getSquareMeter() {

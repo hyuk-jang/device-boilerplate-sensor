@@ -117,9 +117,44 @@ class CoreFacade {
   /**
    * Place Node가 갱신이 되었을 경우 처리
    * @param {PlaceComponent} placeNode
+   * @param {boolean=} 예외 발생 시 throw 여부
    */
-  handleUpdateNode(placeNode) {
-    this.placeAlgorithm.handleUpdateNode(this, placeNode);
+  handleUpdateNode(placeNode, isIgnoreError = false) {
+    try {
+      this.placeAlgorithm.handleUpdateNode(this, placeNode);
+    } catch (error) {
+      // BU.error(error);
+      // if (isIgnoreError) return false;
+      throw error;
+    }
+  }
+
+  /**
+   * 장소의 임계치 체크를 할 경우.
+   * 자동프로세스로 돌아갈 경우 사용. 명령 실패 시 별도의 조치를 취하지 않음
+   * @param {string} placeId
+   * @param {string} nodeDefId
+   */
+  reloadPlaceStorage(placeId, nodeDefId) {
+    try {
+      this.placeManager.getPlaceStorage(placeId).updateNode(nodeDefId);
+    } catch (error) {
+      BU.error(error.message);
+    }
+  }
+
+  /**
+   * 자동 프로세스에 의한 명령을 내릴 경우 사용.
+   * 예외 발생 시 무시
+   * @param {reqFlowCmdInfo} reqFlowCmdInfo
+   */
+  executeFlowControl(reqFlowCmdInfo) {
+    try {
+      BU.CLIN(reqFlowCmdInfo, 1);
+      this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
+    } catch (error) {
+      BU.error(error.message);
+    }
   }
 }
 

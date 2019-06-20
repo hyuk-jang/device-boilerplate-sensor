@@ -53,7 +53,6 @@ class PlaceNode extends PlaceComponent {
   }
 
   /**
-   * @desc Place Node :::
    * 현 Place Node 객체를 가지는 Place Storage 객체
    * @param {PlaceComponent} placeComponent
    */
@@ -63,31 +62,20 @@ class PlaceNode extends PlaceComponent {
 
   /**
    * Successor Place를 가져옴
+   * @return {PlaceComponent}
    */
   getParentPlace() {
     return this.placeStorage;
   }
 
   /**
-   * @desc Place Node :::
-   * Node Data 반환
-   * @return {string}
+   * @param {string} placeId placeId와 같은 Place Component 객체를 찾아 반환
    */
-  getValue() {
-    return this.nodeInfo.data;
+  findPlace(placeId) {
+    return this.placeStorage.findPlace(placeId);
   }
 
   /**
-   * @desc Place Node :::
-   * Place Node Status 반환
-   * @return {number}
-   */
-  getNodeStatus() {
-    return this.placeNodeStatus;
-  }
-
-  /**
-   * @desc Place Node :::
    * Node Id 반환
    * @return {string}
    */
@@ -96,7 +84,6 @@ class PlaceNode extends PlaceComponent {
   }
 
   /**
-   * @desc Place Node :::
    * Node Def Id 반환
    * @return {string}
    */
@@ -105,34 +92,23 @@ class PlaceNode extends PlaceComponent {
   }
 
   /**
-   * @desc Place Storage, Place Node :::
-   * 장소 저장소 객체의 place Id를 가져옴
+   * Node Data 반환
+   * @return {number|string}
+   */
+  getNodeValue() {
+    return this.nodeInfo.data;
+  }
+
+  /**
+   * Place Node Status 반환
    * @return {string}
    */
-  getPlaceId() {
-    return this.placeStorage.getPlaceId();
+  getNodeStatus() {
+    return this.placeNodeStatus;
   }
 
   /**
-   * @desc Place Storage, Place Node :::
-   * 장소 저장소 객체의 place Info를 가져옴
-   * @return {placeInfo}
-   */
-  getPlaceInfo() {
-    return this.placeStorage.getPlaceInfo();
-  }
-
-  /**
-   * @desc Place Storage, Place Node :::
-   * @return {number=} 현재 장소의 제곱미터
-   */
-  getSquareMeter() {
-    return this.placeStorage.getSquareMeter();
-  }
-
-  /**
-   * @desc Place Node :::
-   * 급수지 Place Id 목록 반환
+   * 급수지 Place Storage 목록 반환
    * @return {PlaceComponent[]}
    */
   getCallPlaceRankList() {
@@ -142,38 +118,47 @@ class PlaceNode extends PlaceComponent {
   }
 
   /**
-   * @desc Place Node :::
-   * 배수지 Place Id목록 반환
+   * 배수지 Place Storage 목록 반환
    * @return {PlaceComponent[]}
    */
   getPutPlaceRankList() {
     return _.map(this.putPlaceRankList, putPlaceId => {
       return this.placeStorage.findPlace(putPlaceId);
     });
-    // return this.putPlaceRankList;
   }
 
-  /** @desc Place Node ::: 노드 최대 임계치 */
+  /** 노드 임계치 */
+  getThresholdValue() {
+    return {
+      maxValue: this.maxValue,
+      upperLimitValue: this.upperLimitValue,
+      setValue: this.setValue,
+      lowerLimitValue: this.lowerLimitValue,
+      minValue: this.minValue,
+    };
+  }
+
+  /** 노드 최대 임계치 */
   getMaxValue() {
     return this.maxValue;
   }
 
-  /** @desc Place Node ::: 노드 상한선 임계치 */
+  /** 노드 상한선 임계치 */
   getUpperLimitValue() {
     return this.upperLimitValue;
   }
 
-  /** @desc Place Node ::: 노드 설정 임계치 */
+  /** 노드 설정 임계치 */
   getSetValue() {
     return this.setValue;
   }
 
-  /** @desc Place Node ::: 노드 하한선 임계치 */
+  /** 노드 하한선 임계치 */
   getLowerLimitValue() {
     return this.lowerLimitValue;
   }
 
-  /** @desc Place Node ::: 노드 최저 임계치 */
+  /** 노드 최저 임계치 */
   getMinValue() {
     return this.minValue;
   }
@@ -182,14 +167,9 @@ class PlaceNode extends PlaceComponent {
    * @desc Place Node :::
    * FIXME: 문자 형태 비교는 차후에....
    * Node Updator 에서 업데이트된 Node 정보를 전달해옴.
-   * 데이터가 달성 목표에 도달하였다면 Critical Stroage에 알림.
-   * @param {nodeInfo} nodeInfo
    */
-  updateNode(nodeInfo) {
-    // BU.CLIN(nodeInfo);
-    const { data } = nodeInfo;
-
-    // const prevNodeStatus = this.placeNodeStatus;
+  updateNode() {
+    const { data } = this.nodeInfo;
 
     let nextNodeStatus;
 
@@ -202,19 +182,34 @@ class PlaceNode extends PlaceComponent {
     // }
     else {
       nextNodeStatus = placeNodeStatus.UNKNOWN;
-      // this.handleUnknown();
     }
 
     this.placeNodeStatus = nextNodeStatus;
 
     this.placeStorage.handleUpdateNode(this);
+  }
 
-    // // 성공하지 못한 상태에서 성공 상태로 넘어갔을 경우에만 전파
-    // if (isClear === true && this.isClear === false) {
-    //   this.isClear = isClear;
+  /**
+   * 장소 저장소 객체의 place Id를 가져옴
+   * @return {string}
+   */
+  getPlaceId() {
+    return this.placeStorage.getPlaceId();
+  }
 
-    //   this.successor.handleThreCmdClear(this);
-    // }
+  /**
+   * 장소 저장소 객체의 place Info를 가져옴
+   * @return {placeInfo}
+   */
+  getPlaceInfo() {
+    return this.placeStorage.getPlaceInfo();
+  }
+
+  /**
+   * @return {number=} 현재 장소의 제곱미터
+   */
+  getSquareMeter() {
+    return this.placeStorage.getSquareMeter();
   }
 
   /**

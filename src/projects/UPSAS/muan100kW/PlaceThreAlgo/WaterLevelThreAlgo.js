@@ -42,16 +42,19 @@ class WaterLevelThreAlgo extends PlaceThreshold {
    */
   handleMaxOver(coreFacade, placeNode) {
     try {
+      BU.CLI('handleMaxOver', placeNode.getPlaceId());
       // BU.CLIS('handleMaxOver', BU.CLI(placeStorage.getPlaceId()), placeNode.getNodeId());
       // 현재 장소로 급수 명령이 실행 중인지 확인
-      const flowCmdList = coreFacade.cmdManager.getFlowCommand(null, placeNode.getPlaceId());
+      const flowCmdList = coreFacade.cmdManager.getFlowCommandList(null, placeNode.getPlaceId());
 
       // 실행 중인 급수 명령을 취소 요청
       flowCmdList.forEach(wrapCmdInfo => {
         const cloneWrapCmdInfo = _.clone(wrapCmdInfo);
         cloneWrapCmdInfo.wrapCmdType = reqWrapCmdType.CANCEL;
-
-        coreFacade.controller.executeFlowControl(cloneWrapCmdInfo);
+        // 급수 명령 취소 요청
+        coreFacade.executeFlowControl(cloneWrapCmdInfo);
+        // 명령 취소를 하였으므로 하한선 임계에 문제가 없는지 체크
+        coreFacade.reloadPlaceStorage(cloneWrapCmdInfo.srcPlaceId);
       });
     } catch (error) {
       throw error;
@@ -86,8 +89,6 @@ class WaterLevelThreAlgo extends PlaceThreshold {
       // 수위 하한선에 걸렸기 때문에 수위를 급수할 수 있는 장소 목록을 가져옴
       const callPlaceList = placeNode.getCallPlaceRankList();
 
-      // BU.CLIN(callPlaceList, 1);
-
       // 급수를 해올 수 있는 장소의 수위 상태
       const { MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER } = placeNodeStatus;
 
@@ -98,12 +99,6 @@ class WaterLevelThreAlgo extends PlaceThreshold {
           .getPlaceNode({ nodeDefId: NODE_DEF_ID })
           .getNodeStatus();
 
-        const node = callPlaceStorage.getPlaceNode({ nodeDefId: NODE_DEF_ID });
-
-        // BU.CLI(callPlaceStorage.getPlaceId(), nodeStatus);
-        // BU.CLI(node.getLowerLimitValue());
-        // BU.CLI(callPlaceStorage.getPlaceNode({ nodeDefId: NODE_DEF_ID }).nodeInfo.data);
-
         // 급수를 할 수 있는 상태는 최대 치, 상한선, 기본, 하한선 일 경우 가능함
         return _.includes([MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER], nodeStatus);
       });
@@ -111,22 +106,8 @@ class WaterLevelThreAlgo extends PlaceThreshold {
       // 배수지가 존재하지 않는다면 종료
       if (!ablePlaceStorage) return false;
 
-      // BU.CLI(ablePlaceStorage.getPlaceNode({ nodeDefId: NODE_DEF_ID }).getNodeStatus());
-
-      // BU.CLIN(coreFacade.cmdManager.complexCmdList);
-
-      // BU.CLIN(ablePlaceStorage, 1);
-      // BU.CLIN(ablePlaceStorage.getPlaceId());
-      // BU.CLI(
-      //   ablePlaceStorage
-      //     .getPlaceNode({
-      //       nodeDefId: NODE_DEF_ID,
-      //     })
-      //     .getValue(),
-      // );
-
       // 염수 흐름 명령을 생성.
-      coreFacade.cmdExecManager.executeFlowControl({
+      coreFacade.executeFlowControl({
         srcPlaceId: ablePlaceStorage.getPlaceId(),
         destPlaceId: placeNode.getPlaceId(),
         wrapCmdGoalInfo: {
@@ -170,14 +151,16 @@ class WaterLevelThreAlgo extends PlaceThreshold {
       BU.CLI('handleMinUnder', placeNode.getPlaceId());
 
       // 현재 장소에서 배수 명령이 실행 중인지 확인
-      const flowCmdList = coreFacade.cmdManager.getFlowCommand(placeNode.getPlaceId());
+      const flowCmdList = coreFacade.cmdManager.getFlowCommandList(placeNode.getPlaceId());
 
       // 염수가 부족하므로 실행 중인 배수 명령을 취소 요청
       flowCmdList.forEach(wrapCmdInfo => {
         const cloneWrapCmdInfo = _.clone(wrapCmdInfo);
         cloneWrapCmdInfo.wrapCmdType = reqWrapCmdType.CANCEL;
-
-        coreFacade.controller.executeFlowControl(cloneWrapCmdInfo);
+        // 배수 명령 취소 요청
+        coreFacade.executeFlowControl(cloneWrapCmdInfo);
+        // 배수 명령을 취소하였으면 배수지 데이터 갱신 이벤트 발생 요청
+        coreFacade.reloadPlaceStorage(cloneWrapCmdInfo.destPlaceId);
       });
       // 명령 취소를 하였으므로 하한선 임계에 문제가 없는지 체크
       this.handleLowerLimitUnder(coreFacade, placeNode);

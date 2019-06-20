@@ -42,14 +42,14 @@ class M100kPlaceAlgorithm extends PlaceAlgorithm {
       });
 
       // 시작지의 수위가 최저 수위
-      if (srcPlaceNode.getValue() <= srcPlaceNode.getMinValue()) {
+      if (srcPlaceNode.getNodeValue() <= srcPlaceNode.getMinValue()) {
         throw new Error(
           `The water level of the srcPlaceId: ${srcPlaceId} is below the minimum water level.`,
         );
       }
 
       // 배수지의 수위가 최대를 넘어섰을 경우
-      if (destPlaceNode.getValue() >= destPlaceNode.getMaxValue()) {
+      if (destPlaceNode.getNodeValue() >= destPlaceNode.getMaxValue()) {
         throw new Error(
           `The water level of the destPlaceId: ${destPlaceId} is over the max water level.`,
         );
