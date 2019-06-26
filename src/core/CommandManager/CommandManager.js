@@ -5,6 +5,9 @@ const CmdStrategySetter = require('./CmdStrategySetter');
 const ThreCmdManager = require('./ThresholdCommand/ThreCmdManager');
 const CmdOverlapManager = require('./CommandOverlap/CmdOverlapManager');
 
+const ManualCmdStrategy = require('./CommandStrategy/ManualCmdStrategy');
+const AutoCmdStrategy = require('./CommandStrategy/AutoCmdStrategy');
+
 const CoreFacade = require('../CoreFacade');
 
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
@@ -50,40 +53,49 @@ class CommandManager {
     // 명령 누적을 관리할 매니저 등록
     this.cmdOverlapManager = new CmdOverlapManager(this);
 
-    // 기본 제공되는 명령 전략 세터를 등록한다. 프로젝트에 따라 Bridge 패턴으로 setCommandStrategy에 재정의 한다.
-    this.cmdStrategySetter = new CmdStrategySetter(this);
+    // 기본 제공되는 명령 전략 세터를 등록한다.
+    this.cmdStrategy = new ManualCmdStrategy(this);
+
+    // this.cmdStrategySetter = new CmdStrategySetter(this);
     // 제어 모드가 변경될 경우 수신 받을 옵저버 추가
-    this.controller.controlModeUpdator.attachObserver(this);
+    // this.controller.controlModeUpdator.attachObserver(this);
   }
 
-  /**
-   * cmdSetter를 교체할 경우
-   * @param {CmdSetter} cmdSetter
-   */
-  setCmdSetter(cmdSetter) {
-    this.cmdStrategySetter = cmdSetter;
-  }
+  // /**
+  //  * cmdSetter를 교체할 경우
+  //  * @param {CmdSetter} cmdSetter
+  //  */
+  // setCmdSetter(cmdSetter) {
+  //   this.cmdStrategySetter = cmdSetter;
+  // }
 
   /** 제어모드 반환 */
   getControMode() {
     return this.controller.controlModeUpdator.getControlMode();
   }
 
-  /**
-   * 제어모드가 변경되었을 경우 값에 따라 Command Manager를 교체
-   * @param {number} controlMode 제어모드
-   */
-  updateControlMode(controlMode) {
-    this.cmdStrategySetter.updateControlMode(controlMode);
+  /** 명령 전략이 수동인지 자동인지 여부 */
+  isManualCmdStrategy() {
+    return this.cmdStrategy instanceof ManualCmdStrategy;
   }
 
   /**
-   * 명령 전략을 교체할 경우
-   * @description Bridge Pattern
-   * @param {CmdStrategy} cmdStrategy
+   * 제어모드가 변경되었을 경우 값에 따라 Command Manager를 교체
+   * @param {number} isAutomatic 자동 명령 모드 여부
    */
-  setCommandStrategy(cmdStrategy) {
-    this.cmdStrategy = cmdStrategy;
+  changeCmdStrategy(isAutomatic) {
+    let isChanged = false;
+    // 자동 모드로 변경
+    if (isAutomatic) {
+      if (this.cmdStrategy instanceof ManualCmdStrategy) {
+        this.cmdStrategy = new AutoCmdStrategy(this);
+        isChanged = true;
+      }
+    } else if (this.cmdStrategy instanceof AutoCmdStrategy) {
+      this.cmdStrategy = new ManualCmdStrategy(this);
+      isChanged = true;
+    }
+    return isChanged;
   }
 
   /**

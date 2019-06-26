@@ -6,18 +6,7 @@ const PlaceThreshold = require('../../../../core/PlaceManager/PlaceThreshold');
 
 const { dcmWsModel, dcmConfigModel } = require('../../../../../../default-intelligence');
 
-const {
-  complexCmdStep,
-  nodePickKey,
-  complexCmdPickKey,
-  controlModeInfo,
-  goalDataRange,
-  nodeDataType,
-  reqWrapCmdType,
-  placeNodeStatus,
-  reqWrapCmdFormat,
-  reqDeviceControlType,
-} = dcmConfigModel;
+const { goalDataRange, reqWrapCmdType, placeNodeStatus } = dcmConfigModel;
 
 const NODE_DEF_ID = 'waterLevel';
 class WaterLevelThreAlgo extends PlaceThreshold {

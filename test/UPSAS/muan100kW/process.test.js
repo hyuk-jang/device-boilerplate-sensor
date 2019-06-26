@@ -69,7 +69,9 @@ describe('Automatic Mode', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
-    control.changeControlMode(controlModeInfo.AUTOMATIC);
+    // control.changeControlMode(controlModeInfo.AUTOMATIC);
+
+    control.model.cmdManager.changeCmdStrategy(1);
 
     control.inquiryAllDeviceStatus();
     await eventToPromise(control, 'completeInquiryAllDeviceStatus');
@@ -77,7 +79,8 @@ describe('Automatic Mode', function() {
 
   beforeEach(async () => {
     try {
-      control.controlModeUpdator.controlMode = controlModeInfo.MANUAL;
+      control.model.cmdManager.changeCmdStrategy(0);
+      // control.controlModeUpdator.controlMode = controlModeInfo.MANUAL;
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWrapCmdType.CONTROL,
@@ -87,7 +90,10 @@ describe('Automatic Mode', function() {
       BU.error(error.message);
     }
 
-    control.changeControlMode(controlModeInfo.AUTOMATIC);
+    BU.CLI('왓?')
+    control.model.cmdManager.changeCmdStrategy(1);
+
+    // control.changeControlMode(controlModeInfo.AUTOMATIC);
 
     const { placeManager } = control.model;
   });
@@ -108,7 +114,7 @@ describe('Automatic Mode', function() {
    * 9. 해주 1의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
    *    배수지 하한선 수위가 걸렸을 경우 진행 중인 배수 명령을 취소하는지 테스트
    */
-  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -171,10 +177,12 @@ describe('Automatic Mode', function() {
     // * falseNodeList: [],
     expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(0);
 
-    // 수위 갱신을 한번 더 했을 경우 이미 취소 명령을 실행 중이므로 거부되야 한다.
-    expect(() => control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 15)])).to.throw(
-      'The command(BW_5_TO_NCB) does not exist and you can not issue a CANCEL command',
-    );
+    // 수위 갱신을 한번 더 했을 경우 이미 취소 명령을 실행 중이므로 아무런 일도 일어나지 않음.
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 15)]);
+    // * trueNodeList: [],
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(0);
+    // * falseNodeList: [],
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(0);
 
     // * 7. 결정지의 수위를 Set값(5cm) 설정.
     control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 5)]);
@@ -283,10 +291,10 @@ describe('Automatic Mode', function() {
    * 1. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화 한다.
    *  <test> Goal이 존재할 경우 최저치에 의한 명령 취소
    * 1. NEB_2: MIN(2)
-   * 
+   *
    * 2. [NEB_2_TO_BW_2](R_CON->C_CON). {Goal} WL 1cm
-   * 
-   * 
+   *
+   *
    * 4. <test> Goal이 존재할 경우 최저치에 의한 명령 취소
    * 일반 증발지 2의 수위를 Min 이하 1.5cm
    *    최저치 수위 임계치 처리 후 수위 하한선 처리 자동 요청으로 인한 염수 이동 명령 발생
@@ -305,7 +313,7 @@ describe('Automatic Mode', function() {
    *    배수지 우선 순위 1인 해주 1의 수위가 충족되나 명령 충돌로 인한 염수 이동 명령 불가 확인
    * 6. 일반 증발지 2 수위 12cm 설정. 명령 취소 처리 확인.
    */
-  it.only('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
+  it('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -392,7 +400,7 @@ describe('Automatic Mode', function() {
     // 누적 명령 테스트 [NEB_2 Drainage WD 2개]
     expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(2);
 
-    BU.CLI(pn_WL_NEB_2.getThresholdValue())
+    BU.CLI(pn_WL_NEB_2.getThresholdValue());
 
     // control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, )]);
 

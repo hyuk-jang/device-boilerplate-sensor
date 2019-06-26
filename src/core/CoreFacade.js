@@ -73,6 +73,19 @@ class CoreFacade {
     this.placeManager = placeManager;
   }
 
+  /** 명령 전략이 수동인지 자동인지 여부 */
+  isManualCmdStrategy() {
+    return this.cmdManager.isManualCmdStrategy();
+  }
+
+  /**
+   * 명령모드를 변경하고자 할 경우
+   * @param {number} isAutomatic 자동 명령 모드 여부
+   */
+  changeCmdStrategy(isAutomatic = 0) {
+    return this.cmdManager.changeCmdStrategy(isAutomatic);
+  }
+
   /**
    *
    * @param {string|nodeInfo} node

@@ -11,7 +11,7 @@ const mainConfig = require('./config');
 
 const { dcmConfigModel, dcmWsModel } = require('../../default-intelligence');
 
-const { controlModeInfo, nodePickKey } = dcmConfigModel;
+const { nodePickKey } = dcmConfigModel;
 
 const DataLoggerController = require('../DataLoggerController');
 
@@ -100,7 +100,7 @@ class Control extends EventEmitter {
       this.bindingFeature();
 
       // 기본 시작은 수동모드로 변경. Step 3이 완료된 후에 변경을 해야만 cmdStrategySetter Observer Pattern이 동작함.
-      this.controlModeUpdator.updateControlMode(controlModeInfo.MANUAL);
+      // this.controlModeUpdator.updateControlMode(this.controlModeInfo.MANUAL);
     } catch (error) {
       BU.CLI(error);
       BU.errorLog('init', error);
@@ -361,8 +361,10 @@ class Control extends EventEmitter {
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
   executeSingleControl(reqSingleCmdInfo) {
+    const coreFacade = new CoreFacade();
     try {
-      if (this.controlModeUpdator.controlMode !== controlModeInfo.MANUAL) {
+      if (!coreFacade.isManualCmdStrategy()) {
+        // if (this.controlModeUpdator.getControlMode() !== this.controlModeInfo.MANUAL) {
         throw new Error('Single control is only possible in manual mode.');
       }
       return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
@@ -378,8 +380,9 @@ class Control extends EventEmitter {
    */
   executeFlowControl(reqFlowCmdInfo) {
     // BU.CLI(this.controlModeUpdator.controlMode);
+    const coreFacade = new CoreFacade();
     try {
-      if (this.controlModeUpdator.controlMode === controlModeInfo.MANUAL) {
+      if (coreFacade.isManualCmdStrategy()) {
         throw new Error('The flow command is not available in manual mode.');
       }
       return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);

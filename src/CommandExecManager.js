@@ -7,7 +7,7 @@ const CoreFacade = require('./core/CoreFacade');
 
 const { dcmConfigModel, dccFlagModel } = require('../../default-intelligence');
 
-const { controlModeInfo, reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
+const { reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
 
 const ControlDBS = require('./Control');
