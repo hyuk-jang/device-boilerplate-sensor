@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const {
-  dcmConfigModel: { controlModeInfo, reqDeviceControlType },
+  dcmConfigModel: { reqDeviceControlType },
 } = require('../../../../../default-intelligence');
 
 /**

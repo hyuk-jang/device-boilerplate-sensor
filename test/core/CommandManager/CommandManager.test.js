@@ -14,6 +14,11 @@ const {
   dcmConfigModel: { controlModeInfo, reqWrapCmdType, reqDeviceControlType: reqDCT },
 } = require('../../../../default-intelligence');
 
+const cmdModeType = {
+  MANUAL: 'MANUAL',
+  OVERLAP_COUNT: 'OVERLAP_COUNT',
+};
+
 describe('CmdOverlap', function() {
   it('CmdOverlapStorage', function() {
     const stat1 = new CmdOverlapStatus(reqDCT.TRUE);
@@ -61,9 +66,8 @@ describe('CmdOverlap', function() {
     // 명령 임계치 매니저 생성
     const cmdOverlapManager = new CmdOverlapManager({
       nodeList,
-      getControMode: () => {
-        controlModeInfo.AUTOMATIC;
-      },
+      cmdModeType,
+      getCurrCmdMode: () => cmdModeType.OVERLAP_COUNT,
     });
 
     const A_TO_B = _.find(wrapCmdList, { wrapCmdId: 'A_TO_B' });

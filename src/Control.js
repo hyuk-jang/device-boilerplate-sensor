@@ -363,8 +363,7 @@ class Control extends EventEmitter {
   executeSingleControl(reqSingleCmdInfo) {
     const coreFacade = new CoreFacade();
     try {
-      if (!coreFacade.isManualCmdStrategy()) {
-        // if (this.controlModeUpdator.getControlMode() !== this.controlModeInfo.MANUAL) {
+      if (coreFacade.getCurrCmdMode() !== coreFacade.cmdMode.MANUAL) {
         throw new Error('Single control is only possible in manual mode.');
       }
       return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
@@ -382,7 +381,7 @@ class Control extends EventEmitter {
     // BU.CLI(this.controlModeUpdator.controlMode);
     const coreFacade = new CoreFacade();
     try {
-      if (coreFacade.isManualCmdStrategy()) {
+      if (coreFacade.getCurrCmdMode() === coreFacade.cmdMode.MANUAL) {
         throw new Error('The flow command is not available in manual mode.');
       }
       return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);
@@ -398,7 +397,7 @@ class Control extends EventEmitter {
   executeSetControl(reqSetCmdInfo) {
     // BU.CLI(savedCommandInfo);
     try {
-      // if (this.controlModeUpdator.controlMode === controlModeInfo.MANUAL) {
+      // if (coreFacade.getCurrCmdMode() === coreFacade.cmdMode.MANUAL) {
       //   throw new Error('The flow command is not available in manual mode.');
       // }
       return this.commandExecManager.executeSetControl(reqSetCmdInfo);
@@ -415,7 +414,7 @@ class Control extends EventEmitter {
   executeSavedCommand(savedCommandInfo) {
     try {
       // FIXME: 개발 모드. 검증 중. 해제
-      // if (this.controlModeUpdator.controlMode !== controlMode.AUTOMATIC) {
+      // if (coreFacade.getCurrCmdMode() === coreFacade.cmdMode.MANUAL) {
       //   throw new Error('Saved control is only possible in automatic mode.');
       // }
       return this.commandExecManager.executeSavedCommand(savedCommandInfo);

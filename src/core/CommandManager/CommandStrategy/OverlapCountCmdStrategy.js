@@ -21,7 +21,7 @@ const {
 
 const CoreFacade = require('../../CoreFacade');
 
-class AutoCmdStrategy extends CmdStrategy {
+class OverlapCountCmdStrategy extends CmdStrategy {
   /**
    * @abstract
    * 각 제어 모드 별로 체크하고자 하는 내용 체크
@@ -304,4 +304,4 @@ class AutoCmdStrategy extends CmdStrategy {
     // RUNNING 전환 시 goalDataList 존재한다면 추적 nodeList에 추가
   }
 }
-module.exports = AutoCmdStrategy;
+module.exports = OverlapCountCmdStrategy;

@@ -31,7 +31,7 @@ class WaterLevelThreAlgo extends PlaceThreshold {
    */
   handleMaxOver(coreFacade, placeNode) {
     try {
-      BU.CLI('handleMaxOver', placeNode.getPlaceId());
+      // BU.CLI('handleMaxOver', placeNode.getPlaceId());
       // BU.CLIS('handleMaxOver', BU.CLI(placeStorage.getPlaceId()), placeNode.getNodeId());
       // 현재 장소로 급수 명령이 실행 중인지 확인
       const flowCmdList = coreFacade.cmdManager.getFlowCommandList(null, placeNode.getPlaceId());
@@ -70,7 +70,7 @@ class WaterLevelThreAlgo extends PlaceThreshold {
    * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
    */
   handleLowerLimitUnder(coreFacade, placeNode) {
-    BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
+    // BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
     try {
       // 하한선 수위가 존재하지 않는다면 종료
       if (!_.isNumber(placeNode.getLowerLimitValue())) return false;
@@ -137,7 +137,7 @@ class WaterLevelThreAlgo extends PlaceThreshold {
    */
   handleMinUnder(coreFacade, placeNode) {
     try {
-      BU.CLI('handleMinUnder', placeNode.getPlaceId());
+      // BU.CLI('handleMinUnder', placeNode.getPlaceId());
 
       // 현재 장소에서 배수 명령이 실행 중인지 확인
       const flowCmdList = coreFacade.cmdManager.getFlowCommandList(placeNode.getPlaceId());

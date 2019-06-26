@@ -9,6 +9,7 @@ const eventToPromise = require('event-to-promise');
 const { BU } = require('base-util-jh');
 const config = require('./config');
 const Main = require('../../../src/Main');
+const CoreFacade = require('../../../src/core/CoreFacade');
 
 const MuanControl = require('../../../src/projects/UPSAS/muan/MuanControl');
 
@@ -51,6 +52,9 @@ const pId = {
   BW_2: 'BW_2',
 };
 
+/** @type {CoreFacade} */
+const coreFacade = new CoreFacade();
+
 /**
  *
  * @param {PlaceNode} placeNode
@@ -69,9 +73,7 @@ describe('Automatic Mode', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
-    // control.changeControlMode(controlModeInfo.AUTOMATIC);
-
-    control.model.cmdManager.changeCmdStrategy(1);
+    coreFacade.changeCmdStrategy(coreFacade.cmdMode.MANUAL);
 
     control.inquiryAllDeviceStatus();
     await eventToPromise(control, 'completeInquiryAllDeviceStatus');
@@ -79,7 +81,7 @@ describe('Automatic Mode', function() {
 
   beforeEach(async () => {
     try {
-      control.model.cmdManager.changeCmdStrategy(0);
+      // control.model.cmdManager.changeCmdStrategy(0);
       // control.controlModeUpdator.controlMode = controlModeInfo.MANUAL;
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
@@ -90,12 +92,7 @@ describe('Automatic Mode', function() {
       BU.error(error.message);
     }
 
-    BU.CLI('왓?')
-    control.model.cmdManager.changeCmdStrategy(1);
-
-    // control.changeControlMode(controlModeInfo.AUTOMATIC);
-
-    const { placeManager } = control.model;
+    coreFacade.changeCmdStrategy(coreFacade.cmdMode.OVERLAP_COUNT);
   });
 
   /**
@@ -114,7 +111,7 @@ describe('Automatic Mode', function() {
    * 9. 해주 1의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
    *    배수지 하한선 수위가 걸렸을 경우 진행 중인 배수 명령을 취소하는지 테스트
    */
-  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -236,7 +233,7 @@ describe('Automatic Mode', function() {
     expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
   });
 
-  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it.skip('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
     const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
 
@@ -313,7 +310,7 @@ describe('Automatic Mode', function() {
    *    배수지 우선 순위 1인 해주 1의 수위가 충족되나 명령 충돌로 인한 염수 이동 명령 불가 확인
    * 6. 일반 증발지 2 수위 12cm 설정. 명령 취소 처리 확인.
    */
-  it('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
+  it.skip('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,

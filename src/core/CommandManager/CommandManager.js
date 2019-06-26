@@ -1,28 +1,17 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const CmdStrategySetter = require('./CmdStrategySetter');
 const ThreCmdManager = require('./ThresholdCommand/ThreCmdManager');
 const CmdOverlapManager = require('./CommandOverlap/CmdOverlapManager');
 
 const ManualCmdStrategy = require('./CommandStrategy/ManualCmdStrategy');
-const AutoCmdStrategy = require('./CommandStrategy/AutoCmdStrategy');
+const OverlapCountCmdStrategy = require('./CommandStrategy/OverlapCountCmdStrategy');
 
 const CoreFacade = require('../CoreFacade');
 
 const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
 
-const {
-  complexCmdStep,
-  nodePickKey,
-  complexCmdPickKey,
-  controlModeInfo,
-  goalDataRange,
-  nodeDataType,
-  reqWrapCmdType,
-  reqWrapCmdFormat,
-  reqDeviceControlType,
-} = dcmConfigModel;
+const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat } = dcmConfigModel;
 
 class CommandManager {
   /** @param {Model} model */
@@ -41,6 +30,12 @@ class CommandManager {
     // 명령 전략가 등록
     this.cmdStrategy;
 
+    // 명령 모드
+    this.cmdModeType = {
+      MANUAL: 'MANUAL',
+      OVERLAP_COUNT: 'OVERLAP_COUNT',
+    };
+
     // Command Manager를 Core Facde에 정의
     const coreFacade = new CoreFacade();
     coreFacade.setCmdManager(this);
@@ -55,19 +50,7 @@ class CommandManager {
 
     // 기본 제공되는 명령 전략 세터를 등록한다.
     this.cmdStrategy = new ManualCmdStrategy(this);
-
-    // this.cmdStrategySetter = new CmdStrategySetter(this);
-    // 제어 모드가 변경될 경우 수신 받을 옵저버 추가
-    // this.controller.controlModeUpdator.attachObserver(this);
   }
-
-  // /**
-  //  * cmdSetter를 교체할 경우
-  //  * @param {CmdSetter} cmdSetter
-  //  */
-  // setCmdSetter(cmdSetter) {
-  //   this.cmdStrategySetter = cmdSetter;
-  // }
 
   /** 제어모드 반환 */
   getControMode() {
@@ -75,26 +58,43 @@ class CommandManager {
   }
 
   /** 명령 전략이 수동인지 자동인지 여부 */
-  isManualCmdStrategy() {
-    return this.cmdStrategy instanceof ManualCmdStrategy;
+  getCurrCmdMode() {
+    const { MANUAL, OVERLAP_COUNT } = this.cmdModeType;
+
+    let currMode;
+
+    if (this.cmdStrategy instanceof ManualCmdStrategy) {
+      currMode = MANUAL;
+    } else if (this.cmdStrategy instanceof OverlapCountCmdStrategy) {
+      currMode = OVERLAP_COUNT;
+    }
+
+    return currMode;
   }
 
   /**
    * 제어모드가 변경되었을 경우 값에 따라 Command Manager를 교체
-   * @param {number} isAutomatic 자동 명령 모드 여부
+   * @param {string} cmdMode 자동 명령 모드 여부
    */
-  changeCmdStrategy(isAutomatic) {
+  changeCmdStrategy(cmdMode) {
+    BU.CLI('changeCmdStrategy', cmdMode);
     let isChanged = false;
-    // 자동 모드로 변경
-    if (isAutomatic) {
-      if (this.cmdStrategy instanceof ManualCmdStrategy) {
-        this.cmdStrategy = new AutoCmdStrategy(this);
-        isChanged = true;
-      }
-    } else if (this.cmdStrategy instanceof AutoCmdStrategy) {
-      this.cmdStrategy = new ManualCmdStrategy(this);
-      isChanged = true;
+
+    const { MANUAL, OVERLAP_COUNT } = this.cmdModeType;
+
+    switch (cmdMode) {
+      case MANUAL:
+        isChanged = !(this.cmdStrategy instanceof ManualCmdStrategy);
+        isChanged && (this.cmdStrategy = new ManualCmdStrategy(this));
+        break;
+      case OVERLAP_COUNT:
+        isChanged = !(this.cmdStrategy instanceof OverlapCountCmdStrategy);
+        isChanged && (this.cmdStrategy = new OverlapCountCmdStrategy(this));
+        break;
+      default:
+        break;
     }
+
     return isChanged;
   }
 

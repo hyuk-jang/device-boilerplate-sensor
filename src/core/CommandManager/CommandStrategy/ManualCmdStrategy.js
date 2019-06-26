@@ -9,7 +9,6 @@ const {
   complexCmdStep,
   nodePickKey,
   complexCmdPickKey,
-  controlModeInfo,
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,

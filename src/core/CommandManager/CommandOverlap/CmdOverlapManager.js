@@ -7,7 +7,7 @@ const CmdOverlapStorage = require('./CmdOverlapStorage');
 const CmdOverlapStatus = require('./CmdOverlapStatus');
 
 const {
-  dcmConfigModel: { controlModeInfo, reqWrapCmdType },
+  dcmConfigModel: { reqWrapCmdType },
 } = require('../../../../../default-intelligence');
 
 class CmdOverlapManager extends CmdOverlapComponent {
@@ -130,8 +130,9 @@ class CmdOverlapManager extends CmdOverlapComponent {
 
     // 명령 취소일 경우 누적 카운팅 제거
 
-    // 제어모드가 수동 모드가 아닐 경우에만 명령 누적을 변경
-    if (this.cmdManager.getControMode() !== controlModeInfo.MANUAL) {
+    // 명령 모드가 자동일 경우에 누적 명령 반영
+    // BU.CLIN(this.cmdManager);
+    if (!this.cmdManager.getCurrCmdMode() !== this.cmdManager.cmdModeType.MANUAL) {
       containerCmdList.forEach(containerCmdInfo => {
         const {
           singleControlType: conType,

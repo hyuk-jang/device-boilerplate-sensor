@@ -221,7 +221,8 @@ class CommandExecManager {
       throw new Error(`wrapCmdId: ${wrapCmdId} does not exist.`);
     } catch (error) {
       // 수동모드에서 설정 명령을 발송할 경우 예외는 무시
-      // if (this.controller.controlMode === controlModeInfo.MANUAL) {
+      // const coreFacade = new CoreFacade();
+      // if (coreFacade.getCurrCmdMode() === coreFacade.cmdMode.MANUAL) {
       //   return false;
       // }
       throw error;
@@ -519,8 +520,7 @@ class CommandExecManager {
       // 복합 명령 저장
       this.model.saveComplexCommand(wrapCmdInfo);
 
-      BU.log('Req', wrapCmdInfo.wrapCmdId)
-
+      BU.log('Req', wrapCmdInfo.wrapCmdId);
 
       // BU.CLIS(wrapCmdInfo.wrapCmdUUID, wrapCmdInfo.realContainerCmdList);
 
