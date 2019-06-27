@@ -98,9 +98,6 @@ class Control extends EventEmitter {
 
       // Binding Feature
       this.bindingFeature();
-
-      // 기본 시작은 수동모드로 변경. Step 3이 완료된 후에 변경을 해야만 cmdStrategySetter Observer Pattern이 동작함.
-      // this.controlModeUpdator.updateControlMode(this.controlModeInfo.MANUAL);
     } catch (error) {
       BU.CLI(error);
       BU.errorLog('init', error);
@@ -378,7 +375,6 @@ class Control extends EventEmitter {
    * @param {reqFlowCmdInfo} reqFlowCmdInfo
    */
   executeFlowControl(reqFlowCmdInfo) {
-    // BU.CLI(this.controlModeUpdator.controlMode);
     const coreFacade = new CoreFacade();
     try {
       if (coreFacade.getCurrCmdMode() === coreFacade.cmdMode.MANUAL) {

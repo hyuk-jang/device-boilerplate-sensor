@@ -19,7 +19,6 @@ const {
   complexCmdStep,
   nodePickKey,
   complexCmdPickKey,
-  controlModeInfo,
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
@@ -35,6 +34,7 @@ const main = new Main();
 //   dbInfo: config.dbInfo,
 // });
 const control = main.createControl(config);
+const coreFacade = new CoreFacade();
 
 const ndId = {
   S: 'salinity',
@@ -51,9 +51,6 @@ const pId = {
   BW_1: 'BW_1',
   BW_2: 'BW_2',
 };
-
-/** @type {CoreFacade} */
-const coreFacade = new CoreFacade();
 
 /**
  *
@@ -81,8 +78,6 @@ describe('Automatic Mode', function() {
 
   beforeEach(async () => {
     try {
-      // control.model.cmdManager.changeCmdStrategy(0);
-      // control.controlModeUpdator.controlMode = controlModeInfo.MANUAL;
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWrapCmdType.CONTROL,

@@ -132,7 +132,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
 
     // 명령 모드가 자동일 경우에 누적 명령 반영
     // BU.CLIN(this.cmdManager);
-    if (!this.cmdManager.getCurrCmdMode() !== this.cmdManager.cmdModeType.MANUAL) {
+    if (this.cmdManager.getCurrCmdMode() !== this.cmdManager.cmdModeType.MANUAL) {
       containerCmdList.forEach(containerCmdInfo => {
         const {
           singleControlType: conType,

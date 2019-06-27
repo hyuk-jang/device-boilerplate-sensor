@@ -11,7 +11,6 @@ const {
   complexCmdStep,
   nodePickKey,
   complexCmdPickKey,
-  controlModeInfo,
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
@@ -67,7 +66,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
   produceRealControlCommand(complexCmdWrapInfo) {
     // BU.CLI('produceRealControlCommand');
 
-    const { controlMode, wrapCmdType, wrapCmdId, containerCmdList } = complexCmdWrapInfo;
+    const { wrapCmdType, wrapCmdId, containerCmdList } = complexCmdWrapInfo;
 
     /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
     let realContainerCmdList = [];
@@ -263,7 +262,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
       // TODO: Prev.Single >> !Curr.Single 명령 제거
       // TODO: !Prev.Single >> Curr.Single 명령 제거
 
-      const { MANUAL } = controlModeInfo;
+      const coreFacade = new CoreFacade();
 
       const { MEASURE, CONTROL, CANCEL } = reqWrapCmdType;
 
@@ -271,10 +270,10 @@ class OverlapCountCmdStrategy extends CmdStrategy {
 
       let isDeleteCmd = true;
 
-      const { controlMode, wrapCmdType, wrapCmdUUID, wrapCmdGoalInfo } = complexWrapCmdInfo;
+      const { wrapCmdType, wrapCmdUUID, wrapCmdGoalInfo } = complexWrapCmdInfo;
 
       // 제어 명령일 경우에만 RUNNING 여부 체크
-      if (wrapCmdType === CONTROL && controlMode !== MANUAL) {
+      if (wrapCmdType === CONTROL && coreFacade.getCurrCmdMode() !== coreFacade.cmdMode.MANUAL) {
         // 명령 RUNNING 상태 변경
         complexWrapCmdInfo.wrapCmdStep = RUNNING;
         isDeleteCmd = false;

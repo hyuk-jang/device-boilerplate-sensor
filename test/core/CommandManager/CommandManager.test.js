@@ -11,7 +11,7 @@ const CmdOverlapStatus = require('../../../src/core/CommandManager/CommandOverla
 const { wrapCmdList, nodeList } = require('./config');
 
 const {
-  dcmConfigModel: { controlModeInfo, reqWrapCmdType, reqDeviceControlType: reqDCT },
+  dcmConfigModel: { reqWrapCmdType, reqDeviceControlType: reqDCT },
 } = require('../../../../default-intelligence');
 
 const cmdModeType = {

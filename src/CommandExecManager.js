@@ -520,6 +520,10 @@ class CommandExecManager {
       // 복합 명령 저장
       this.model.saveComplexCommand(wrapCmdInfo);
 
+      // BU.CLIN(this.controller.dataLoggerControllerList[0].filterCommandStorage())
+      // BU.CLIN(this.controller.dataLoggerControllerList[0].commander.requestTakeAction('NEXT'))
+      // BU.CLIN(this.controller.dataLoggerControllerList[0].commander.manager)
+
       BU.log('Req', wrapCmdInfo.wrapCmdId);
 
       // BU.CLIS(wrapCmdInfo.wrapCmdUUID, wrapCmdInfo.realContainerCmdList);

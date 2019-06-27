@@ -88,8 +88,8 @@ class CoreFacade {
    * @param {string} cmdMode 자동 명령 모드 여부
    */
   changeCmdStrategy(cmdMode) {
-    BU.debugConsole();
-    BU.CLI('changeCmdStrategy', cmdMode);
+    // BU.debugConsole();
+    // BU.CLI('changeCmdStrategy', cmdMode);
     return this.cmdManager.changeCmdStrategy(cmdMode);
   }
 
@@ -170,7 +170,7 @@ class CoreFacade {
    */
   executeFlowControl(reqFlowCmdInfo) {
     try {
-      BU.CLIN(reqFlowCmdInfo, 1);
+      // BU.CLIN(reqFlowCmdInfo, 1);
       this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
       BU.error(error.message);

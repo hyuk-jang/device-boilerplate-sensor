@@ -2,10 +2,6 @@ const _ = require('lodash');
 
 const NodeUpdator = require('./NodeUpdator');
 
-const {
-  dcmConfigModel: { controlModeInfo },
-} = require('../../../../../default-intelligence');
-
 class NodeUpdatorManager {
   /** @param {nodeInfo[]} nodeList */
   constructor(nodeList) {

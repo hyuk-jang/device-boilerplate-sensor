@@ -221,7 +221,7 @@ class CommandManager {
       }
 
       // 명령을 요청한 시점에서의 제어 모드
-      complexCmdWrapInfo.controlMode = this.controller.controlModeUpdator.controlMode;
+      complexCmdWrapInfo.controlMode = this.getControMode();
 
       this.complexCmdList.push(complexCmdWrapInfo);
 

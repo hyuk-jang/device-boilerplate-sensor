@@ -2,10 +2,6 @@ const _ = require('lodash');
 
 const Updator = require('../Updator');
 
-const {
-  dcmConfigModel: { controlModeInfo },
-} = require('../../../../../default-intelligence');
-
 class ControlModeUpdator extends Updator {
   constructor() {
     super();

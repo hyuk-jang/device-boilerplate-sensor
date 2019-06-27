@@ -8,6 +8,7 @@ const eventToPromise = require('event-to-promise');
 const { BU } = require('base-util-jh');
 const config = require('./config');
 const Main = require('../../../src/Main');
+const CoreFacade = require('../../../src/core/CoreFacade');
 
 const MuanControl = require('../../../src/projects/UPSAS/muan/MuanControl');
 
@@ -17,7 +18,6 @@ const {
   complexCmdStep,
   nodePickKey,
   complexCmdPickKey,
-  controlModeInfo,
   goalDataRange,
   nodeDataType,
   reqWrapCmdType,
@@ -33,6 +33,7 @@ const main = new Main();
 //   dbInfo: config.dbInfo,
 // });
 const control = main.createControl(config);
+const coreFacade = new CoreFacade();
 // const control = new MuanControl(config);
 
 describe('Manual Mode', function() {
@@ -40,12 +41,12 @@ describe('Manual Mode', function() {
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
-    control.changeControlMode(controlModeInfo.MANUAL);
-    // BU.CLI(control.model.complexCmdList);
   });
 
   beforeEach(async () => {
     try {
+      coreFacade.changeCmdStrategy(coreFacade.cmdMode.MANUAL);
+
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWrapCmdType.CONTROL,
@@ -210,15 +211,13 @@ describe('Automatic Mode', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
-    control.changeControlMode(controlModeInfo.AUTOMATIC);
-
     control.inquiryAllDeviceStatus();
     await eventToPromise(control, 'completeInquiryAllDeviceStatus');
   });
 
   beforeEach(async () => {
     try {
-      control.controlModeUpdator.controlMode = controlModeInfo.MANUAL;
+      coreFacade.changeCmdStrategy(coreFacade.cmdMode.MANUAL);
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWrapCmdType.CONTROL,
@@ -228,7 +227,7 @@ describe('Automatic Mode', function() {
       BU.error(error.message);
     }
 
-    control.changeControlMode(controlModeInfo.AUTOMATIC);
+    coreFacade.changeCmdStrategy(coreFacade.cmdMode.OVERLAP_COUNT);
   });
 
   /**
@@ -450,7 +449,7 @@ describe('Automatic Mode', function() {
    * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it.only('Threshold Command ', async () => {
+  it('Threshold Command ', async () => {
     const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
     // BU.CLI('Critical Command');
     const NODE_WL_001 = 'WL_001';

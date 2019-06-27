@@ -23,8 +23,8 @@ class ManualCmdStrategy extends CmdStrategy {
    * @return {complexCmdContainerInfo[]} realContainerCmdList
    */
   produceRealControlCommand(complexCmdWrapInfo) {
-    BU.CLI('produceRealControlCommand');
-    const { controlMode, wrapCmdType, containerCmdList } = complexCmdWrapInfo;
+    // BU.CLI('produceRealControlCommand');
+    const { wrapCmdType, containerCmdList } = complexCmdWrapInfo;
 
     /** @type {complexCmdContainerInfo[]} 실제 명령을 내릴 목록 */
     const realContainerCmdList = [];

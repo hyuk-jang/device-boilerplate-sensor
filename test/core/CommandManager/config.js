@@ -1,5 +1,5 @@
 const {
-  dcmConfigModel: { controlModeInfo, reqWrapCmdType, reqDeviceControlType: reqDCT },
+  dcmConfigModel: { reqWrapCmdType, reqDeviceControlType: reqDCT },
 } = require('../../../../default-intelligence');
 
 /** @type {complexCmdWrapInfo[]} */
