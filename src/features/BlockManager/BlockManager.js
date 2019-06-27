@@ -6,7 +6,9 @@ const { BU } = require('base-util-jh');
 
 const AbstBlockManager = require('./AbstBlockManager');
 
-const { TROUBLE } = require('../../../../default-intelligence').dcmConfigModel.nodeDataType;
+const {
+  dcmConfigModel: { nodeDataType },
+} = require('../../core/CoreFacade');
 
 require('./block.jsdoc');
 
@@ -347,7 +349,7 @@ class BlockManager extends AbstBlockManager {
 
       // save_db_type 값이 TROUBLE인 대상은 오류 내역
       /** @type {nodeInfo} */
-      const troubleNode = _.find(nodeList, { save_db_type: TROUBLE });
+      const troubleNode = _.find(nodeList, { save_db_type: nodeDataType.TROUBLE });
 
       // trouble Node 가 존재하지 않는다면 해당 Place에는 Trouble Node가 없다고 판단
       if (_.isObject(troubleNode)) {

@@ -10,7 +10,13 @@ let coreNodeList;
 /** @type {placeInfo[]} */
 let corePlaceList;
 
-const PlaceAlgorithm = require('./PlaceManager/PlaceAlgorithm');
+const { dcmWsModel, dccFlagModel, dcmConfigModel } = require('../../../default-intelligence');
+
+const { reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
+
+const CoreAlgorithm = require('./CoreAlgorithm');
+
+const PlaceThreshold = require('././PlaceManager/PlaceThreshold');
 
 /**
  *
@@ -35,7 +41,13 @@ class CoreFacade {
     this.cmdExecManager;
     this.placeManager;
 
-    this.placeAlgorithm = new PlaceAlgorithm();
+    this.coreAlgorithm = new CoreAlgorithm();
+  }
+
+  static get constructorInfo() {
+    return {
+      PlaceThreshold,
+    };
   }
 
   /**
@@ -115,7 +127,7 @@ class CoreFacade {
    * @param {PlaceAlgorithm} placeAlgorithm
    */
   setPlaceAlgorithm(placeAlgorithm) {
-    this.placeAlgorithm = placeAlgorithm;
+    this.coreAlgorithm = placeAlgorithm;
   }
 
   /**
@@ -126,7 +138,7 @@ class CoreFacade {
    * @param {csCmdGoalInfo=} goalInfo
    */
   isPossibleFlowCommand(srcPlaceId, destPlaceId, goalInfo) {
-    return this.placeAlgorithm.isPossibleFlowCommand(
+    return this.coreAlgorithm.isPossibleFlowCommand(
       this.placeManager,
       srcPlaceId,
       destPlaceId,
@@ -141,7 +153,7 @@ class CoreFacade {
    */
   handleUpdateNode(placeNode, isIgnoreError = false) {
     try {
-      this.placeAlgorithm.handleUpdateNode(this, placeNode);
+      this.coreAlgorithm.handleUpdateNode(this, placeNode);
     } catch (error) {
       // BU.error(error);
       // if (isIgnoreError) return false;
@@ -177,5 +189,8 @@ class CoreFacade {
     }
   }
 }
+CoreFacade.dcmWsModel = dcmWsModel;
+CoreFacade.dccFlagModel = dccFlagModel;
+CoreFacade.dcmConfigModel = dcmConfigModel;
 
 module.exports = CoreFacade;

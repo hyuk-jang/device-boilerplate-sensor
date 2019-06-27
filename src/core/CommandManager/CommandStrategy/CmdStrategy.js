@@ -4,7 +4,7 @@ const { BU } = require('base-util-jh');
 
 const {
   dcmConfigModel: { reqDeviceControlType },
-} = require('../../../../../default-intelligence');
+} = require('../../CoreFacade');
 
 /**
  * 프로젝트 별로 모드가 여러개일 경우 updateControMode를 재구현 하여 Cmd Manager의 cmdStrategist 재정의

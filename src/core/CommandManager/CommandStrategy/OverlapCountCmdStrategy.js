@@ -5,20 +5,11 @@ const { BU } = require('base-util-jh');
 
 const CmdStrategy = require('./CmdStrategy');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../../../default-intelligence');
-
-const {
-  complexCmdStep,
-  nodePickKey,
-  complexCmdPickKey,
-  goalDataRange,
-  nodeDataType,
-  reqWrapCmdType,
-  reqWrapCmdFormat,
-  reqDeviceControlType,
-} = dcmConfigModel;
-
 const CoreFacade = require('../../CoreFacade');
+
+const { dcmConfigModel } = CoreFacade;
+
+const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
 
 class OverlapCountCmdStrategy extends CmdStrategy {
   /**

@@ -4,8 +4,6 @@ const DeviceManager = require('../../utils/DeviceManager');
 
 const { BaseModel } = require('../../../../device-protocol-converter-jh');
 
-const { dcmWsModel } = require('../../../../default-intelligence');
-
 /**
  * 현황판을 보여주기 위함
  */

@@ -11,19 +11,19 @@ const config = require('./config');
 const Main = require('../../../src/Main');
 const CoreFacade = require('../../../src/core/CoreFacade');
 
+const {
+  dcmConfigModel: {
+    complexCmdStep,
+    reqWrapCmdType,
+    reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
+  },
+} = CoreFacade;
+
 const MuanControl = require('../../../src/projects/UPSAS/muan/MuanControl');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
+const ThreCmdComponent = require('../../../src/core/CommandManager/ThresholdCommand/ThreCmdComponent');
 
-const {
-  complexCmdStep,
-  nodePickKey,
-  complexCmdPickKey,
-  goalDataRange,
-  nodeDataType,
-  reqWrapCmdType,
-  reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
-} = dcmConfigModel;
+const { goalDataRange } = ThreCmdComponent;
 
 process.env.NODE_ENV = 'development';
 
@@ -63,7 +63,7 @@ function setNodeData(placeNode, setValue) {
   return _.get(placeNode, 'nodeInfo');
 }
 
-describe('Automatic Mode', function() {
+describe('발전 최적화 명령 모드', function() {
   this.timeout(5000);
 
   before(async () => {

@@ -2,7 +2,9 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const { reqWrapCmdType } = require('../../../../default-intelligence').dcmConfigModel;
+const {
+  dcmConfigModel: { reqWrapCmdType },
+} = require('../../core/CoreFacade');
 
 class AbstScenario {
   /** @param {MainControl} controller */

@@ -11,9 +11,8 @@ const Model = require('./Model');
 const { MainConverter } = require('../../../device-protocol-converter-jh');
 
 const {
-  reqWrapCmdType,
-  reqDeviceControlType,
-} = require('../../../default-intelligence').dcmConfigModel;
+  dcmConfigModel: { reqWrapCmdType, reqDeviceControlType },
+} = require('../../../default-intelligence');
 
 class DataLoggerController extends DccFacade {
   /** @param {dataLoggerConfig} config */

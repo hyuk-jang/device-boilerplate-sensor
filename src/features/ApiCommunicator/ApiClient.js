@@ -7,9 +7,8 @@ const DeviceManager = require('../../utils/DeviceManager');
 const { BaseModel } = require('../../../../device-protocol-converter-jh');
 
 const {
-  transmitToServerCommandType,
-  transmitToClientCommandType,
-} = require('../../../../default-intelligence').dcmWsModel;
+  dcmWsModel: { transmitToServerCommandType, transmitToClientCommandType },
+} = require('../../core/CoreFacade');
 
 class ApiClient extends DeviceManager {
   /** @param {MainControl} controller */

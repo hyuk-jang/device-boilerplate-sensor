@@ -3,18 +3,6 @@ const { BU } = require('base-util-jh');
 
 const CmdStrategy = require('./CmdStrategy');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../../../default-intelligence');
-
-const {
-  complexCmdStep,
-  nodePickKey,
-  complexCmdPickKey,
-  goalDataRange,
-  nodeDataType,
-  reqWrapCmdType,
-  reqDeviceControlType,
-} = dcmConfigModel;
-
 class ManualCmdStrategy extends CmdStrategy {
   /**
    * @implements

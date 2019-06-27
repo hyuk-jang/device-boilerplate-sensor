@@ -12,7 +12,7 @@ const { wrapCmdList, nodeList } = require('./config');
 
 const {
   dcmConfigModel: { reqWrapCmdType, reqDeviceControlType: reqDCT },
-} = require('../../../../default-intelligence');
+} = require('../../../src/core/CoreFacade');
 
 const cmdModeType = {
   MANUAL: 'MANUAL',

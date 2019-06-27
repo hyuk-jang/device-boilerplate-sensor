@@ -3,6 +3,18 @@ const Observer = require('../Updator/Observer');
 /**
  */
 class PlaceComponent extends Observer {
+  static get nodeStatus() {
+    return {
+      MAX_OVER: 'MAX_OVER',
+      UPPER_LIMIT_OVER: 'UPPER_LIMIT_OVER',
+      NORMAL: 'NORMAL',
+      LOWER_LIMIT_UNDER: 'LOWER_LIMIT_UNDER',
+      MIN_UNDER: 'MIN_UNDER',
+      UNKNOWN: 'UNKNOWN',
+      ERROR: 'ERROR',
+    };
+  }
+
   /**
    * Successor Place 정의
    * @param {PlaceComponent} placeComponent

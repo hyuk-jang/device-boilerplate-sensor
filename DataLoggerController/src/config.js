@@ -2,8 +2,6 @@
 
 // /** @type {{current: {hasDev: boolean, deviceInfo: deviceInfo}}} */
 
-require('../../../default-intelligence');
-
 /** @type {dataLoggerConfig} */
 const config = {
   hasDev: false,

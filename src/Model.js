@@ -9,16 +9,9 @@ const ControlDBS = require('./Control');
 const CmdManager = require('./core/CommandManager/CommandManager');
 const PlaceManager = require('./core/PlaceManager/PlaceManager');
 
-const { dcmWsModel, dcmConfigModel } = require('../../default-intelligence');
+const { dcmWsModel, dcmConfigModel } = require('./core/CoreFacade');
 
-const {
-  complexCmdStep,
-  nodePickKey,
-  complexCmdPickKey,
-  goalDataRange,
-  nodeDataType,
-  reqWrapCmdType,
-} = dcmConfigModel;
+const { nodePickKey, complexCmdPickKey, nodeDataType } = dcmConfigModel;
 
 // API Server 와 데이터를 주고 받는 타입
 const { transmitToServerCommandType, transmitToClientCommandType } = dcmWsModel;

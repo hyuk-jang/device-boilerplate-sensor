@@ -9,7 +9,7 @@ const OverlapCountCmdStrategy = require('./CommandStrategy/OverlapCountCmdStrate
 
 const CoreFacade = require('../CoreFacade');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
+const { dcmConfigModel } = CoreFacade;
 
 const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat } = dcmConfigModel;
 

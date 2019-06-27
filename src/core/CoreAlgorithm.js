@@ -1,4 +1,4 @@
-class PlaceAlgorithm {
+class CoreAlgorithm {
   /**
    * 흐름 명령을 수행할 수 있는지 여부 체크
    * @param {PlaceManager} placeManager
@@ -17,4 +17,4 @@ class PlaceAlgorithm {
    */
   handleUpdateNode(coreFacade, placeStorage, placeNode) {}
 }
-module.exports = PlaceAlgorithm;
+module.exports = CoreAlgorithm;

@@ -4,8 +4,6 @@ const { BU } = require('base-util-jh');
 const Promise = require('bluebird');
 const ControlDBS = require('../../../Control');
 
-const { reqWrapCmdType } = require('../../../../../default-intelligence').dcmConfigModel;
-
 class AutoFlowMode {
   /** @param {ControlDBS} controller */
   constructor(controller) {

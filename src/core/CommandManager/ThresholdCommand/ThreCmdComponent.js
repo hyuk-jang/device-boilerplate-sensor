@@ -6,6 +6,18 @@ const Observer = require('../../Updator/Observer');
  * 데이터가 갱신될 때 마다 해당 달성 목표가 처리 되었는지 확인.
  */
 class ThreCmdComponent extends Observer {
+  /** 데이터 목표 기준치 범위  */
+  static get goalDataRange() {
+    return {
+      /** 기준 값 초과 */
+      UPPER: 2,
+      /** 기준 값 동일 */
+      EQUAL: 1,
+      /** 기준 값 이하  */
+      LOWER: 0,
+    };
+  }
+
   /**
    * notifyClear을 성공하였을 경우 알릴 Successor
    * @param {ThreCmdComponent} thresholdCommand

@@ -9,16 +9,13 @@ const { BM } = require('base-model-jh');
 
 const mainConfig = require('./config');
 
-const { dcmConfigModel, dcmWsModel } = require('../../default-intelligence');
-
-const { nodePickKey } = dcmConfigModel;
+const CoreFacade = require('./core/CoreFacade');
 
 const DataLoggerController = require('../DataLoggerController');
 
 const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
-const CoreFacade = require('./core/CoreFacade');
 const ControlModeUpdator = require('./core/Updator/ControlModeUpdator/ControlModeUpdator');
 const NodeUpdatorManager = require('./core/Updator/NodeUpdator/NodeUpdatorManager');
 
@@ -53,8 +50,6 @@ class Control extends EventEmitter {
 
     /** @type {string} 데이터 지점 ID */
     this.mainUUID = this.config.uuid;
-
-    this.dcmConfigModel = dcmConfigModel;
 
     this.Model = Model;
 
@@ -491,14 +486,14 @@ class Control extends EventEmitter {
       this.nodeUpdatorManager.updateNodeList(renewalNodeList);
 
       const dataList = this.model.getAllNodeStatus(
-        nodePickKey.FOR_SERVER,
+        CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
         renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
       );
 
       // API 접속이 이루어져 있고 데이터가 있을 경우에만 전송
       if (this.apiClient.isConnect && dataList.length) {
         this.apiClient.transmitDataToServer({
-          commandType: dcmWsModel.transmitToServerCommandType.NODE,
+          commandType: CoreFacade.dcmWsModel.transmitToServerCommandType.NODE,
           data: dataList,
         });
       }

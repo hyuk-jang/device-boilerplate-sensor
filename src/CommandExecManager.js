@@ -5,7 +5,7 @@ const { BU } = require('base-util-jh');
 
 const CoreFacade = require('./core/CoreFacade');
 
-const { dcmConfigModel, dccFlagModel } = require('../../default-intelligence');
+const { dcmConfigModel, dccFlagModel } = CoreFacade;
 
 const { reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;

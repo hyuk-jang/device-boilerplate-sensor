@@ -2,14 +2,12 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const PlaceThreshold = require('../../../../core/PlaceManager/PlaceThreshold');
-
-const { dcmConfigModel } = require('../../../../core/CoreFacade');
+const { constructorInfo, dcmConfigModel } = require('../../../../../core/CoreFacade');
 
 const { goalDataRange, reqWrapCmdType, placeNodeStatus } = dcmConfigModel;
 
 const NODE_DEF_ID = 'waterLevel';
-class WaterLevelThreAlgo extends PlaceThreshold {
+class WaterLevel extends constructorInfo.PlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
    * @param {CoreFacade} coreFacade Place Manager
@@ -158,4 +156,4 @@ class WaterLevelThreAlgo extends PlaceThreshold {
     }
   }
 }
-module.exports = WaterLevelThreAlgo;
+module.exports = WaterLevel;

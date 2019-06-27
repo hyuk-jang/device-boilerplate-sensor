@@ -2,10 +2,6 @@ const _ = require('lodash');
 
 const ThreCmdComponent = require('./ThreCmdComponent');
 
-const {
-  dcmConfigModel: { goalDataRange },
-} = require('../../../../../default-intelligence');
-
 /**
  * 명령 달성 목표가 생성될 때 마다 객체를 생성.
  * 임계치 관리 저장소. Storage > Goal 순으로 Tree 구조를 가짐
@@ -81,13 +77,13 @@ class ThreCmdGoal extends ThreCmdComponent {
     let isClear = false;
 
     switch (this.goalRange) {
-      case goalDataRange.EQUAL:
+      case ThreCmdComponent.goalDataRange.EQUAL:
         isClear = deviceData === this.goalValue;
         break;
-      case goalDataRange.LOWER:
+      case ThreCmdComponent.goalDataRange.LOWER:
         isClear = deviceData < this.goalValue;
         break;
-      case goalDataRange.UPPER:
+      case ThreCmdComponent.goalDataRange.UPPER:
         isClear = deviceData > this.goalValue;
         break;
       default:
@@ -102,7 +98,7 @@ class ThreCmdGoal extends ThreCmdComponent {
    */
   updateStrValue(deviceData) {
     // 문자 데이터일 경우에는 달성 목표가 EQUAL이어야만 함. 문자 상하 비교 불가
-    if (this.goalRange !== goalDataRange.EQUAL) return false;
+    if (this.goalRange !== ThreCmdComponent.goalDataRange.EQUAL) return false;
 
     // 대소 문자의 차이가 있을 수 있으므로 소문자로 변환 후 비교
     return _.lowerCase(deviceData) === _.lowerCase(this.goalValue);

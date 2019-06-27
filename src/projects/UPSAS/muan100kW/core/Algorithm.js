@@ -1,15 +1,32 @@
 const { BU } = require('base-util-jh');
 
-const PlaceAlgorithm = require('../../../../core/CoreAlgorithm');
+const CoreAlgorithm = require('../../../../core/CoreAlgorithm');
 const PlaceComponent = require('../../../../core/PlaceManager/PlaceComponent');
 
-const WaterLevelThreAlgo = require('./WaterLevelThreAlgo');
+const Manual = require('./Manual');
+const SalternOptimization = require('./SalternOptimization');
+const PowerOptimization = require('./PowerOptimization');
+const Rain = require('./Rain');
 
-class M100kPlaceAlgorithm extends PlaceAlgorithm {
+// 제어 모드
+const CONTROL_MODE = {
+  MANUAL: 'MANUAL',
+  POWER_OPTIMIZATION: 'POWER_OPTIMIZATION',
+  SALTERN_POWER_OPTIMIZATION: 'SALTERN_POWER_OPTIMIZATION',
+  RAIN: 'RAIN',
+};
+
+class Algorithm extends CoreAlgorithm {
   constructor() {
     super();
 
-    this.waterLevelThreAlgo = new WaterLevelThreAlgo();
+    this.algorithm = new Manual();
+
+    // 제어 모드 별 알고리즘 객체
+    this.manual = new Manual();
+    this.salternOptimization = new SalternOptimization();
+    this.powerOptimization = new PowerOptimization();
+    this.rain = new Rain();
   }
 
   /**
@@ -18,6 +35,14 @@ class M100kPlaceAlgorithm extends PlaceAlgorithm {
    */
   updateControlMode(controlMode) {
     BU.CLI('updateControlMode', controlMode);
+
+    switch (controlMode) {
+      case CONTROL_MODE.MANUAL:
+        break;
+
+      default:
+        break;
+    }
   }
 
   /**
@@ -130,4 +155,4 @@ class M100kPlaceAlgorithm extends PlaceAlgorithm {
   }
 }
 
-module.exports = M100kPlaceAlgorithm;
+module.exports = Algorithm;

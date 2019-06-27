@@ -12,13 +12,16 @@ const CoreFacade = require('../../../src/core/CoreFacade');
 
 const MuanControl = require('../../../src/projects/UPSAS/muan/MuanControl');
 
-const { dcmWsModel, dcmConfigModel } = require('../../../../default-intelligence');
+const ThreCmdComponent = require('../../../src/core/CommandManager/ThresholdCommand/ThreCmdComponent');
+
+const { goalDataRange } = ThreCmdComponent;
+
+const { dcmConfigModel } = CoreFacade;
 
 const {
   complexCmdStep,
   nodePickKey,
   complexCmdPickKey,
-  goalDataRange,
   nodeDataType,
   reqWrapCmdType,
   reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
@@ -107,7 +110,7 @@ describe('Manual Mode', function() {
    * 5. 명령 완료 순서는 펌프 > 수문 > 밸브
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
-  it('Single Command Flow', async () => {
+  it.skip('Single Command Flow', async () => {
     const { cmdOverlapManager } = control.model.cmdManager;
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {
@@ -141,7 +144,10 @@ describe('Manual Mode', function() {
     // 명령 실행 순서: 수문 > 펌프 > 밸브
     // 명령 완료 순서: 펌프 > 수문 > 밸브
 
-    const firstCompleteWCU = await eventToPromise(control, 'completeCommand');
+    const firstCompleteWC = await eventToPromise(control, 'completeCommand');
+
+    expect(onPumpWC.wrapCmdId).to.eq(firstCompleteWC.wrapCmdId);
+
     // * 4. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
     // 첫번째 명령 완료: 펌프 >> O.C reservedExecUU는 삭제
     expect(
@@ -157,7 +163,7 @@ describe('Manual Mode', function() {
         .getReservedECU(),
     ).to.not.eq('');
 
-    const secondCompleteWCU = await eventToPromise(control, 'completeCommand');
+    const secondCompleteWC = await eventToPromise(control, 'completeCommand');
 
     // 첫번째 명령 완료: 수문은 >> O.C reservedExecUU는 유지
     expect(
@@ -166,12 +172,12 @@ describe('Manual Mode', function() {
         .getReservedECU(),
     ).to.eq('');
 
-    const thirdCompleteWCU = await eventToPromise(control, 'completeCommand');
+    const thirdCompleteWC = await eventToPromise(control, 'completeCommand');
 
     // 5. 명령 완료 순서는 펌프 > 수문 > 밸브
-    expect(firstCompleteWCU).to.deep.eq(onPumpWC);
-    expect(secondCompleteWCU).to.deep.eq(openGateWC);
-    expect(thirdCompleteWCU).to.deep.eq(openValveWC);
+    expect(firstCompleteWC).to.deep.eq(onPumpWC);
+    expect(secondCompleteWC).to.deep.eq(openGateWC);
+    expect(thirdCompleteWC).to.deep.eq(openValveWC);
 
     // BU.CLIN(control.nodeList);
   });
@@ -449,7 +455,7 @@ describe('Automatic Mode', function() {
    * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it('Threshold Command ', async () => {
+  it.only('Threshold Command ', async () => {
     const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
     // BU.CLI('Critical Command');
     const NODE_WL_001 = 'WL_001';

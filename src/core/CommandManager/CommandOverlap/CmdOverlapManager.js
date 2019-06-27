@@ -8,7 +8,7 @@ const CmdOverlapStatus = require('./CmdOverlapStatus');
 
 const {
   dcmConfigModel: { reqWrapCmdType },
-} = require('../../../../../default-intelligence');
+} = require('../../CoreFacade');
 
 class CmdOverlapManager extends CmdOverlapComponent {
   /** @param {CommandManager} cmdManager */

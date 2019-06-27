@@ -6,7 +6,7 @@ const ThreCmdComponent = require('./ThreCmdComponent');
 const ThreCmdStorage = require('./ThreCmdStorage');
 const ThreCmdGoal = require('./ThreCmdGoal');
 
-const { dcmConfigModel, dccFlagModel } = require('../../../../../default-intelligence');
+const { dcmConfigModel, dccFlagModel } = require('../../CoreFacade');
 
 const { reqWrapCmdType, reqWrapCmdFormat } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
