@@ -8,25 +8,20 @@ const SalternOptimization = require('./SalternOptimization');
 const PowerOptimization = require('./PowerOptimization');
 const Rain = require('./Rain');
 
-// 제어 모드
-const CONTROL_MODE = {
-  MANUAL: 'MANUAL',
-  POWER_OPTIMIZATION: 'POWER_OPTIMIZATION',
-  SALTERN_POWER_OPTIMIZATION: 'SALTERN_POWER_OPTIMIZATION',
-  RAIN: 'RAIN',
-};
+const { CONTROL_MODE } = require('./nodeDefInfo');
 
 class Algorithm extends CoreAlgorithm {
   constructor() {
     super();
 
-    this.algorithm = new Manual();
-
     // 제어 모드 별 알고리즘 객체
-    this.manual = new Manual();
-    this.salternOptimization = new SalternOptimization();
-    this.powerOptimization = new PowerOptimization();
-    this.rain = new Rain();
+    this.manualMode = new Manual(this);
+    this.salternOptimizationMode = new SalternOptimization(this);
+    this.powerOptimizationMode = new PowerOptimization(this);
+    this.rainMode = new Rain(this);
+
+    /** @type {Algorithm} */
+    this.currMode = this.manualMode;
   }
 
   /**
@@ -35,13 +30,29 @@ class Algorithm extends CoreAlgorithm {
    */
   updateControlMode(controlMode) {
     BU.CLI('updateControlMode', controlMode);
+    let nextMode;
 
     switch (controlMode) {
       case CONTROL_MODE.MANUAL:
+        nextMode = this.manualMode;
         break;
-
+      case CONTROL_MODE.SALTERN_POWER_OPTIMIZATION:
+        nextMode = this.salternOptimizationMode;
+        break;
+      case CONTROL_MODE.POWER_OPTIMIZATION:
+        nextMode = this.powerOptimizationMode;
+        break;
+      case CONTROL_MODE.RAIN:
+        nextMode = this.rainMode;
+        break;
       default:
+        nextMode = this.currMode;
         break;
+    }
+
+    if (this.currMode !== nextMode) {
+      this.currMode = nextMode;
+      nextMode.updateControlMode(controlMode);
     }
   }
 
@@ -88,9 +99,6 @@ class Algorithm extends CoreAlgorithm {
       throw error;
     }
   }
-
-  /** */
-  getPlaceStorageAlgorithm(placeStorage) {}
 
   /**
    * 노드 데이터 갱신

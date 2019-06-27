@@ -35,15 +35,15 @@ class ControlModeUpdator extends Updator {
     }
   }
 
-  /** @param {number} controlMode 옵저버들에게 제어 모드 변경 알림 */
+  /** @param {string} controlMode 옵저버들에게 제어 모드 변경 알림 */
   notifyObserver(controlMode) {
     this.children.forEach(child => {
       child.updateControlMode(controlMode);
     });
   }
 
-  /** @param {number} controlMode 제어 모드 변경 */
-  updateControlMode(controlMode) {
+  /** @param {string} controlMode 제어 모드 변경 */
+  updateMode(controlMode) {
     // 기존 제어모드에서 변경이 있을 경우 알림
     if (this.controlMode !== controlMode) {
       this.controlMode = controlMode;

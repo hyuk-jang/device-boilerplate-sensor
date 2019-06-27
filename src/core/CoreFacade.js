@@ -12,10 +12,9 @@ let corePlaceList;
 
 const { dcmWsModel, dccFlagModel, dcmConfigModel } = require('../../../default-intelligence');
 
-const { reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
-
 const CoreAlgorithm = require('./CoreAlgorithm');
 
+const PlaceComponent = require('././PlaceManager/PlaceComponent');
 const PlaceThreshold = require('././PlaceManager/PlaceThreshold');
 
 /**
@@ -46,6 +45,8 @@ class CoreFacade {
 
   static get constructorInfo() {
     return {
+      CoreAlgorithm,
+      PlaceComponent,
       PlaceThreshold,
     };
   }
@@ -83,6 +84,11 @@ class CoreFacade {
    */
   setPlaceManager(placeManager) {
     this.placeManager = placeManager;
+  }
+
+  /** @param {string} controlMode 제어 모드 변경 알림 */
+  updateControlMode(controlMode) {
+    this.coreAlgorithm.updateControlMode(controlMode);
   }
 
   /** 명령 모드 종류 */

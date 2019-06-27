@@ -83,6 +83,7 @@ class Control extends EventEmitter {
       // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
       this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
       this.controlModeUpdator = new ControlModeUpdator();
+      this.controlModeUpdator.attachObserver(coreFacade);
 
       // init Step: 3 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
       this.initMakeConfigForDLC();
@@ -333,10 +334,10 @@ class Control extends EventEmitter {
 
   /**
    * 제어 모드를 변경할 경우
-   * @param {string} conMode
+   * @param {string} controlMode
    */
-  changeControlMode(conMode) {
-    this.controlModeUpdator.updateControlMode(conMode);
+  changeControlMode(controlMode) {
+    this.controlModeUpdator.updateMode(controlMode);
   }
 
   /**
