@@ -1,32 +1,40 @@
+const { BU } = require('base-util-jh');
+
 const WaterLevel = require('./WaterLevel');
 const Salinity = require('./Salinity');
 const ModuleRearTemp = require('./ModuleRearTemp');
 
+const AbstAlgorithm = require('../AbstAlgorithm');
+
 const CoreFacade = require('../../../../../core/CoreFacade');
 
 const {
-  constructorInfo: { CoreAlgorithm, PlaceComponent },
+  constructorInfo: { PlaceComponent },
 } = CoreFacade;
 
-const { NODE_DEF } = require('../nodeDefInfo');
-
-class Manual extends CoreAlgorithm {
-  /** @param {CoreAlgorithm} algorithm */
-  constructor(algorithm) {
+class ConcreteAlgorithm extends AbstAlgorithm {
+  /** @param {AbstAlgorithm} controlAlgorithm */
+  constructor(controlAlgorithm) {
     super();
 
-    this.algorithm = algorithm;
+    this.controlAlgorithm = controlAlgorithm;
 
     this.thresholdWL = new WaterLevel();
     this.thresholdS = new Salinity();
     this.thresholdMRT = new ModuleRearTemp();
+
+    this.cmdModeName = new CoreFacade().cmdModeName.OVERLAP_COUNT;
   }
 
   /**
-   * 제어 모드를 변경할 경우
-   * @param {string} controlMode
+   * 제어 모드가 변경된 경우
    */
-  updateControlMode(controlMode) {}
+  updateControlMode() {
+    const coreFacade = new CoreFacade();
+    if (coreFacade.getCurrCmdModeName() !== this.cmdModeName) {
+      coreFacade.changeCmdStrategy(this.cmdModeName);
+    }
+  }
 
   /**
    * 노드 데이터 갱신
@@ -36,18 +44,23 @@ class Manual extends CoreAlgorithm {
    */
   handleUpdateNode(coreFacade, placeNode) {
     try {
-      const nodeDefId = placeNode.getNodeDefId();
+      // BU.CLI('handleUpdateNode');
+      const { nodeDefIdInfo } = AbstAlgorithm;
+
+      const { nodeStatusInfo: nodeStatus } = PlaceComponent;
+
+      const currNodeDefId = placeNode.getNodeDefId();
 
       let threAlgorithm;
 
-      switch (nodeDefId) {
-        case NODE_DEF.WATER_LEVEL:
+      switch (currNodeDefId) {
+        case nodeDefIdInfo.WATER_LEVEL:
           threAlgorithm = this.thresholdWL;
           break;
-        case NODE_DEF.SALINITY:
+        case nodeDefIdInfo.SALINITY:
           threAlgorithm = this.thresholdS;
           break;
-        case NODE_DEF.MODULE_REAR_TEMPERATURE:
+        case nodeDefIdInfo.MODULE_REAR_TEMPERATURE:
           threAlgorithm = this.thresholdMRT;
           break;
         default:
@@ -55,38 +68,39 @@ class Manual extends CoreAlgorithm {
       }
 
       if (!threAlgorithm) {
-        // BU.CLI('알고리즘 없음');
+        // BU.CLI('알고리즘 없음', currNodeDefId);
         return false;
       }
 
       let selectedAlgorithmMethod = threAlgorithm.handleNormal;
 
       switch (placeNode.getNodeStatus()) {
-        case PlaceComponent.nodeStatus.MAX_OVER:
+        case nodeStatus.MAX_OVER:
           selectedAlgorithmMethod = threAlgorithm.handleMaxOver;
           break;
-        case PlaceComponent.nodeStatus.UPPER_LIMIT_OVER:
+        case nodeStatus.UPPER_LIMIT_OVER:
           selectedAlgorithmMethod = threAlgorithm.handleUpperLimitOver;
           break;
-        case PlaceComponent.nodeStatus.NORMAL:
+        case nodeStatus.NORMAL:
           selectedAlgorithmMethod = threAlgorithm.handleNormal;
           break;
-        case PlaceComponent.nodeStatus.LOWER_LIMIT_UNDER:
+        case nodeStatus.LOWER_LIMIT_UNDER:
           selectedAlgorithmMethod = threAlgorithm.handleLowerLimitUnder;
           break;
-        case PlaceComponent.nodeStatus.MIN_UNDER:
+        case nodeStatus.MIN_UNDER:
           selectedAlgorithmMethod = threAlgorithm.handleMinUnder;
           break;
-        case PlaceComponent.nodeStatus.UNKNOWN:
+        case nodeStatus.UNKNOWN:
           selectedAlgorithmMethod = threAlgorithm.handleUnknown;
           break;
-        case PlaceComponent.nodeStatus.ERROR:
+        case nodeStatus.ERROR:
           selectedAlgorithmMethod = threAlgorithm.handleError;
           break;
         default:
           selectedAlgorithmMethod = threAlgorithm.handleNormal;
           break;
       }
+
       // 임계치에 맞는 메소드 호출. (this 인자를 잃으므로 지정 처리)
       selectedAlgorithmMethod.call(threAlgorithm, coreFacade, placeNode);
     } catch (error) {
@@ -94,4 +108,4 @@ class Manual extends CoreAlgorithm {
     }
   }
 }
-module.exports = Manual;
+module.exports = ConcreteAlgorithm;

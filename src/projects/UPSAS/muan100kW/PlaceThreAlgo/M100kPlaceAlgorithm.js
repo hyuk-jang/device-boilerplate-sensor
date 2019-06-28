@@ -97,25 +97,25 @@ class M100kPlaceAlgorithm extends PlaceAlgorithm {
       let selectedAlgorithmMethod = threAlgorithm.handleNormal;
 
       switch (placeNode.getNodeStatus()) {
-        case PlaceComponent.nodeStatus.MAX_OVER:
+        case PlaceComponent.nodeStatusInfo.MAX_OVER:
           selectedAlgorithmMethod = threAlgorithm.handleMaxOver;
           break;
-        case PlaceComponent.nodeStatus.UPPER_LIMIT_OVER:
+        case PlaceComponent.nodeStatusInfo.UPPER_LIMIT_OVER:
           selectedAlgorithmMethod = threAlgorithm.handleUpperLimitOver;
           break;
-        case PlaceComponent.nodeStatus.NORMAL:
+        case PlaceComponent.nodeStatusInfo.NORMAL:
           selectedAlgorithmMethod = threAlgorithm.handleNormal;
           break;
-        case PlaceComponent.nodeStatus.LOWER_LIMIT_UNDER:
+        case PlaceComponent.nodeStatusInfo.LOWER_LIMIT_UNDER:
           selectedAlgorithmMethod = threAlgorithm.handleLowerLimitUnder;
           break;
-        case PlaceComponent.nodeStatus.MIN_UNDER:
+        case PlaceComponent.nodeStatusInfo.MIN_UNDER:
           selectedAlgorithmMethod = threAlgorithm.handleMinUnder;
           break;
-        case PlaceComponent.nodeStatus.UNKNOWN:
+        case PlaceComponent.nodeStatusInfo.UNKNOWN:
           selectedAlgorithmMethod = threAlgorithm.handleUnknown;
           break;
-        case PlaceComponent.nodeStatus.ERROR:
+        case PlaceComponent.nodeStatusInfo.ERROR:
           selectedAlgorithmMethod = threAlgorithm.handleError;
           break;
         default:

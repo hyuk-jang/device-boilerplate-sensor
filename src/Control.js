@@ -356,7 +356,7 @@ class Control extends EventEmitter {
   executeSingleControl(reqSingleCmdInfo) {
     const coreFacade = new CoreFacade();
     try {
-      if (coreFacade.getCurrCmdMode() !== coreFacade.cmdMode.MANUAL) {
+      if (coreFacade.getCurrCmdModeName() !== coreFacade.cmdModeName.MANUAL) {
         throw new Error('Single control is only possible in manual mode.');
       }
       return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
@@ -373,7 +373,7 @@ class Control extends EventEmitter {
   executeFlowControl(reqFlowCmdInfo) {
     const coreFacade = new CoreFacade();
     try {
-      if (coreFacade.getCurrCmdMode() === coreFacade.cmdMode.MANUAL) {
+      if (coreFacade.getCurrCmdModeName() === coreFacade.cmdModeName.MANUAL) {
         throw new Error('The flow command is not available in manual mode.');
       }
       return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);

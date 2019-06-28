@@ -3,7 +3,7 @@ const Observer = require('../Updator/Observer');
 /**
  */
 class PlaceComponent extends Observer {
-  static get nodeStatus() {
+  static get nodeStatusInfo() {
     return {
       MAX_OVER: 'MAX_OVER',
       UPPER_LIMIT_OVER: 'UPPER_LIMIT_OVER',

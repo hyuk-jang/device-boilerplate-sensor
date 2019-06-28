@@ -1,6 +1,6 @@
 const { BU } = require('base-util-jh');
 
-const CoreAlgorithm = require('../../../../core/CoreAlgorithm');
+const AbstAlgorithm = require('./AbstAlgorithm');
 const PlaceComponent = require('../../../../core/PlaceManager/PlaceComponent');
 
 const Manual = require('./Manual');
@@ -8,9 +8,7 @@ const SalternOptimization = require('./SalternOptimization');
 const PowerOptimization = require('./PowerOptimization');
 const Rain = require('./Rain');
 
-const { CONTROL_MODE } = require('./nodeDefInfo');
-
-class Algorithm extends CoreAlgorithm {
+class Algorithm extends AbstAlgorithm {
   constructor() {
     super();
 
@@ -21,7 +19,40 @@ class Algorithm extends CoreAlgorithm {
     this.rainMode = new Rain(this);
 
     /** @type {Algorithm} */
-    this.currMode = this.manualMode;
+    this.currControlMode = this.manualMode;
+  }
+
+  /**
+   * 현재 제어 모드와 틀리다면 변경 후 제어모드 변경 알림
+   * @param {Algorithm} controlMode
+   */
+  changeControlMode(controlMode) {
+    if (this.currControlMode !== controlMode) {
+      this.currControlMode = controlMode;
+      this.currControlMode.updateControlMode();
+      return true;
+    }
+    return false;
+  }
+
+  /** 수동 제어 모드로 변경 */
+  setManualMode() {
+    return this.changeControlMode(this.manualMode);
+  }
+
+  /** 소금 생산 최적화 제어 모드로 변경 */
+  setSalternOptimizationMode() {
+    return this.changeControlMode(this.salternOptimizationMode);
+  }
+
+  /** 발전 최적화 제어 모드로 변경 */
+  setPowerOptimizationMode() {
+    return this.changeControlMode(this.powerOptimizationMode);
+  }
+
+  /** 우천 제어 모드로 변경 */
+  setRainMode() {
+    return this.changeControlMode(this.rainMode);
   }
 
   /**
@@ -30,31 +61,44 @@ class Algorithm extends CoreAlgorithm {
    */
   updateControlMode(controlMode) {
     BU.CLI('updateControlMode', controlMode);
-    let nextMode;
+    let nextControlMode;
 
+    //  제어 모드를 불러옴
+    const {
+      controlModeInfo: { MANUAL, SALTERN_POWER_OPTIMIZATION, POWER_OPTIMIZATION, RAIN },
+    } = AbstAlgorithm;
+
+    // 변경하고자 하는 제어모드 검색
     switch (controlMode) {
-      case CONTROL_MODE.MANUAL:
-        nextMode = this.manualMode;
+      // 수동 모드
+      case MANUAL:
+        nextControlMode = this.manualMode;
         break;
-      case CONTROL_MODE.SALTERN_POWER_OPTIMIZATION:
-        nextMode = this.salternOptimizationMode;
+      // 소금 생산 최적화 모드
+      case SALTERN_POWER_OPTIMIZATION:
+        nextControlMode = this.salternOptimizationMode;
         break;
-      case CONTROL_MODE.POWER_OPTIMIZATION:
-        nextMode = this.powerOptimizationMode;
+      // 발전 최적화 모드
+      case POWER_OPTIMIZATION:
+        nextControlMode = this.powerOptimizationMode;
         break;
-      case CONTROL_MODE.RAIN:
-        nextMode = this.rainMode;
+      // 우천 모드
+      case RAIN:
+        nextControlMode = this.rainMode;
         break;
       default:
-        nextMode = this.currMode;
+        nextControlMode = this.currControlMode;
         break;
     }
 
-    if (this.currMode !== nextMode) {
-      this.currMode = nextMode;
-      nextMode.updateControlMode(controlMode);
-    }
+    return this.changeControlMode(nextControlMode);
   }
+
+  /**
+   * 현재 제어 모드 가져옴
+   * @return {string} controlMode 제어 모드
+   */
+  getCurrControlMode() {}
 
   /**
    * 흐름 명령을 수행할 수 있는지 여부 체크
@@ -108,55 +152,7 @@ class Algorithm extends CoreAlgorithm {
    */
   handleUpdateNode(coreFacade, placeNode) {
     try {
-      const { placeManager } = coreFacade;
-
-      const nodeDefId = placeNode.getNodeDefId();
-
-      let threAlgorithm;
-
-      switch (nodeDefId) {
-        case 'waterLevel':
-          threAlgorithm = this.waterLevelThreAlgo;
-          break;
-        default:
-          break;
-      }
-
-      if (!threAlgorithm) {
-        // BU.CLI('알고리즘 없음');
-        return false;
-      }
-
-      let selectedAlgorithmMethod = threAlgorithm.handleNormal;
-
-      switch (placeNode.getNodeStatus()) {
-        case PlaceComponent.nodeStatus.MAX_OVER:
-          selectedAlgorithmMethod = threAlgorithm.handleMaxOver;
-          break;
-        case PlaceComponent.nodeStatus.UPPER_LIMIT_OVER:
-          selectedAlgorithmMethod = threAlgorithm.handleUpperLimitOver;
-          break;
-        case PlaceComponent.nodeStatus.NORMAL:
-          selectedAlgorithmMethod = threAlgorithm.handleNormal;
-          break;
-        case PlaceComponent.nodeStatus.LOWER_LIMIT_UNDER:
-          selectedAlgorithmMethod = threAlgorithm.handleLowerLimitUnder;
-          break;
-        case PlaceComponent.nodeStatus.MIN_UNDER:
-          selectedAlgorithmMethod = threAlgorithm.handleMinUnder;
-          break;
-        case PlaceComponent.nodeStatus.UNKNOWN:
-          selectedAlgorithmMethod = threAlgorithm.handleUnknown;
-          break;
-        case PlaceComponent.nodeStatus.ERROR:
-          selectedAlgorithmMethod = threAlgorithm.handleError;
-          break;
-        default:
-          selectedAlgorithmMethod = threAlgorithm.handleNormal;
-          break;
-      }
-      // 임계치에 맞는 메소드 호출. (this 인자를 잃으므로 지정 처리)
-      selectedAlgorithmMethod.call(threAlgorithm, coreFacade, placeNode);
+      this.currControlMode.handleUpdateNode(coreFacade, placeNode);
     } catch (error) {
       throw error;
     }

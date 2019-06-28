@@ -58,7 +58,7 @@ class CommandManager {
   }
 
   /** 명령 전략이 수동인지 자동인지 여부 */
-  getCurrCmdMode() {
+  getCurrCmdModeName() {
     const { MANUAL, OVERLAP_COUNT } = this.cmdModeType;
 
     let currMode;

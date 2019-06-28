@@ -42,7 +42,7 @@ class PlaceNode extends PlaceComponent {
     this.placeStorage;
 
     // 현재 노드 상태는 UNKNOWN으로 정의
-    this.placeNodeStatus = PlaceComponent.nodeStatus.UNKNOWN;
+    this.placeNodeStatus = PlaceComponent.nodeStatusInfo.UNKNOWN;
 
     const coreFacade = new CoreFacade();
     coreFacade.attachNodeObserver(nodeInfo, this);
@@ -177,7 +177,7 @@ class PlaceNode extends PlaceComponent {
     //   nextNodeStatus = this.updateStrValue(data);
     // }
     else {
-      nextNodeStatus = PlaceComponent.nodeStatus.UNKNOWN;
+      nextNodeStatus = PlaceComponent.nodeStatusInfo.UNKNOWN;
     }
 
     this.placeNodeStatus = nextNodeStatus;
@@ -216,19 +216,19 @@ class PlaceNode extends PlaceComponent {
     let nextPlaceNodeStatus = this.placeNodeStatus;
     // BU.CLI(deviceData, this.goalRange);
     if (_.isNumber(this.maxValue) && numDeviceData >= this.maxValue) {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatus.MAX_OVER;
+      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.MAX_OVER;
       // this.handleMaxOver();
     } else if (_.isNumber(this.upperLimitValue) && numDeviceData >= this.upperLimitValue) {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatus.UPPER_LIMIT_OVER;
+      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.UPPER_LIMIT_OVER;
       // this.handleUpperLimitOver();
     } else if (_.isNumber(this.minValue) && numDeviceData <= this.minValue) {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatus.MIN_UNDER;
+      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.MIN_UNDER;
       // this.handleMinUnder();
     } else if (_.isNumber(this.lowerLimitValue) && numDeviceData <= this.lowerLimitValue) {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatus.LOWER_LIMIT_UNDER;
+      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.LOWER_LIMIT_UNDER;
       // this.handleLowerLimitUnder();
     } else {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatus.NORMAL;
+      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.NORMAL;
       // this.handleNormal();
     }
 

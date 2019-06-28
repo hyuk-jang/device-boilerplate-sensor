@@ -11,11 +11,12 @@ const BlockManager = require('../../../features/BlockManager/BlockManager');
 
 const blockConfig = require('./block.config');
 
-const CriticalSetter = require('../smartSalternCore/CriticalSetter');
+// const CriticalSetter = require('../smartSalternCore/CriticalSetter');
 
 // const SmartSalternStorage = require('../smartSalternCore/SmartSalternStorage');
 
 const M100kPlaceAlgorithm = require('./PlaceThreAlgo/M100kPlaceAlgorithm');
+const Algorithm = require('./ControlMode/Algorithm');
 
 const CoreFacade = require('../../../core/CoreFacade');
 
@@ -83,7 +84,8 @@ class MuanControl extends Control {
     // BU.CLIN(M100kPlaceAlgorithm);
 
     const coreFacade = new CoreFacade();
-    coreFacade.setPlaceAlgorithm(new M100kPlaceAlgorithm());
+    // coreFacade.setCoreAlgorithm(new M100kPlaceAlgorithm());
+    coreFacade.setCoreAlgorithm(new Algorithm());
   }
 
   /**

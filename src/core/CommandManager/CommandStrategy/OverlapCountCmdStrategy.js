@@ -264,7 +264,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
       const { wrapCmdType, wrapCmdUUID, wrapCmdGoalInfo } = complexWrapCmdInfo;
 
       // 제어 명령일 경우에만 RUNNING 여부 체크
-      if (wrapCmdType === CONTROL && coreFacade.getCurrCmdMode() !== coreFacade.cmdMode.MANUAL) {
+      if (wrapCmdType === CONTROL && coreFacade.getCurrCmdModeName() !== coreFacade.cmdModeName.MANUAL) {
         // 명령 RUNNING 상태 변경
         complexWrapCmdInfo.wrapCmdStep = RUNNING;
         isDeleteCmd = false;

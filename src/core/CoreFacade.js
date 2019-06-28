@@ -91,14 +91,19 @@ class CoreFacade {
     this.coreAlgorithm.updateControlMode(controlMode);
   }
 
+  /** 현재 제어 모드 */
+  getCurrControlMode() {
+    return this.coreAlgorithm.getCurrControlMode();
+  }
+
   /** 명령 모드 종류 */
-  get cmdMode() {
+  get cmdModeName() {
     return this.cmdManager.cmdModeType;
   }
 
-  /** 현재 명령 모드 */
-  getCurrCmdMode() {
-    return this.cmdManager.getCurrCmdMode();
+  /** 현재 명령 모드 명 */
+  getCurrCmdModeName() {
+    return this.cmdManager.getCurrCmdModeName();
   }
 
   /**
@@ -129,15 +134,15 @@ class CoreFacade {
   }
 
   /**
-   * @desc Place Algorithm :::
-   * @param {PlaceAlgorithm} placeAlgorithm
+   * @desc Core Algorithm :::
+   * @param {CoreAlgorithm} coreAlgorithm
    */
-  setPlaceAlgorithm(placeAlgorithm) {
-    this.coreAlgorithm = placeAlgorithm;
+  setCoreAlgorithm(coreAlgorithm) {
+    this.coreAlgorithm = coreAlgorithm;
   }
 
   /**
-   * @desc Place Algorithm :::
+   * @desc Core Algorithm :::
    * 흐름 명령을 수행할 수 있는지 여부 체크
    * @param {string} srcPlaceId
    * @param {string} destPlaceId

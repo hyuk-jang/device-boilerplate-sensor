@@ -2,27 +2,38 @@ const WaterLevel = require('./WaterLevel');
 const Salinity = require('./Salinity');
 const ModuleRearTemp = require('./ModuleRearTemp');
 
+const AbstAlgorithm = require('../AbstAlgorithm');
+
 const CoreFacade = require('../../../../../core/CoreFacade');
 
 const {
-  constructorInfo: { CoreAlgorithm, PlaceComponent },
+  constructorInfo: { PlaceComponent },
 } = CoreFacade;
 
-const { NODE_DEF } = require('../nodeDefInfo');
-
-class Rain extends CoreAlgorithm {
-  constructor() {
+class ConcreteAlgorithm extends AbstAlgorithm {
+  /** @param {AbstAlgorithm} controlAlgorithm */
+  constructor(controlAlgorithm) {
     super();
+
+    this.controlAlgorithm = controlAlgorithm;
+
     this.thresholdWL = new WaterLevel();
     this.thresholdS = new Salinity();
     this.thresholdMRT = new ModuleRearTemp();
+
+    this.cmdModeName = new CoreFacade().cmdModeName.MANUAL;
   }
 
   /**
-   * 제어 모드를 변경할 경우
-   * @param {string} controlMode
+   * 제어 모드가 변경된 경우
    */
-  updateControlMode(controlMode) {}
+  updateControlMode() {
+    const coreFacade = new CoreFacade();
+    // 현재 명령 모드가 수동이 아니라면 수동 명령 모드로 변경
+    if (coreFacade.getCurrCmdModeName() !== this.cmdModeName) {
+      coreFacade.changeCmdStrategy(this.cmdModeName);
+    }
+  }
 
   /**
    * 노드 데이터 갱신
@@ -32,18 +43,22 @@ class Rain extends CoreAlgorithm {
    */
   handleUpdateNode(coreFacade, placeNode) {
     try {
-      const nodeDefId = placeNode.getNodeDefId();
+      const { nodeDefIdInfo } = AbstAlgorithm;
+
+      const { nodeStatusInfo: nodeStatus } = PlaceComponent;
+
+      const currNodeDefId = placeNode.getNodeDefId();
 
       let threAlgorithm;
 
-      switch (nodeDefId) {
-        case NODE_DEF.WATER_LEVEL:
+      switch (currNodeDefId) {
+        case nodeDefIdInfo.WATER_LEVEL:
           threAlgorithm = this.thresholdWL;
           break;
-        case NODE_DEF.SALINITY:
+        case nodeDefIdInfo.SALINITY:
           threAlgorithm = this.thresholdS;
           break;
-        case NODE_DEF.MODULE_REAR_TEMPERATURE:
+        case nodeDefIdInfo.MODULE_REAR_TEMPERATURE:
           threAlgorithm = this.thresholdMRT;
           break;
         default:
@@ -58,25 +73,25 @@ class Rain extends CoreAlgorithm {
       let selectedAlgorithmMethod = threAlgorithm.handleNormal;
 
       switch (placeNode.getNodeStatus()) {
-        case PlaceComponent.nodeStatus.MAX_OVER:
+        case nodeStatus.MAX_OVER:
           selectedAlgorithmMethod = threAlgorithm.handleMaxOver;
           break;
-        case PlaceComponent.nodeStatus.UPPER_LIMIT_OVER:
+        case nodeStatus.UPPER_LIMIT_OVER:
           selectedAlgorithmMethod = threAlgorithm.handleUpperLimitOver;
           break;
-        case PlaceComponent.nodeStatus.NORMAL:
+        case nodeStatus.NORMAL:
           selectedAlgorithmMethod = threAlgorithm.handleNormal;
           break;
-        case PlaceComponent.nodeStatus.LOWER_LIMIT_UNDER:
+        case nodeStatus.LOWER_LIMIT_UNDER:
           selectedAlgorithmMethod = threAlgorithm.handleLowerLimitUnder;
           break;
-        case PlaceComponent.nodeStatus.MIN_UNDER:
+        case nodeStatus.MIN_UNDER:
           selectedAlgorithmMethod = threAlgorithm.handleMinUnder;
           break;
-        case PlaceComponent.nodeStatus.UNKNOWN:
+        case nodeStatus.UNKNOWN:
           selectedAlgorithmMethod = threAlgorithm.handleUnknown;
           break;
-        case PlaceComponent.nodeStatus.ERROR:
+        case nodeStatus.ERROR:
           selectedAlgorithmMethod = threAlgorithm.handleError;
           break;
         default:
@@ -90,4 +105,4 @@ class Rain extends CoreAlgorithm {
     }
   }
 }
-module.exports = Rain;
+module.exports = ConcreteAlgorithm;

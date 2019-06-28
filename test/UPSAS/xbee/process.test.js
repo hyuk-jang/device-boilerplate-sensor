@@ -48,7 +48,7 @@ describe('Manual Mode', function() {
 
   beforeEach(async () => {
     try {
-      coreFacade.changeCmdStrategy(coreFacade.cmdMode.MANUAL);
+      coreFacade.changeCmdStrategy(coreFacade.cmdModeName.MANUAL);
 
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
@@ -223,7 +223,7 @@ describe('Automatic Mode', function() {
 
   beforeEach(async () => {
     try {
-      coreFacade.changeCmdStrategy(coreFacade.cmdMode.MANUAL);
+      coreFacade.changeCmdStrategy(coreFacade.cmdModeName.MANUAL);
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWrapCmdType.CONTROL,
@@ -233,7 +233,7 @@ describe('Automatic Mode', function() {
       BU.error(error.message);
     }
 
-    coreFacade.changeCmdStrategy(coreFacade.cmdMode.OVERLAP_COUNT);
+    coreFacade.changeCmdStrategy(coreFacade.cmdModeName.OVERLAP_COUNT);
   });
 
   /**

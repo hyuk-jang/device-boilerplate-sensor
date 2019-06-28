@@ -52,6 +52,14 @@ const pId = {
   BW_2: 'BW_2',
 };
 
+/** 제어 모드 */
+const controlMode = {
+  MANUAL: 'MANUAL',
+  POWER_OPTIMIZATION: 'POWER_OPTIMIZATION',
+  SALTERN_POWER_OPTIMIZATION: 'SALTERN_POWER_OPTIMIZATION',
+  RAIN: 'RAIN',
+};
+
 /**
  *
  * @param {PlaceNode} placeNode
@@ -70,7 +78,9 @@ describe('발전 최적화 명령 모드', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
-    coreFacade.changeCmdStrategy(coreFacade.cmdMode.MANUAL);
+    coreFacade.updateControlMode(controlMode.MANUAL);
+
+    // coreFacade.changeCmdStrategy(coreFacade.cmdMode.MANUAL);
 
     control.inquiryAllDeviceStatus();
     await eventToPromise(control, 'completeInquiryAllDeviceStatus');
@@ -87,24 +97,32 @@ describe('발전 최적화 명령 모드', function() {
       BU.error(error.message);
     }
 
-    coreFacade.changeCmdStrategy(coreFacade.cmdMode.OVERLAP_COUNT);
+    coreFacade.updateControlMode(controlMode.POWER_OPTIMIZATION);
+
+    // coreFacade.changeCmdStrategy(coreFacade.cmdMode.OVERLAP_COUNT);
   });
 
   /**
    * @desc T.C 1 [자동 모드]
    * 염수 이동 기본 요건 충족 체크. 배수지 수위(최저치 초과), 급수지 수위(최대치 미만).
-   * @description
-   * 1. Map에 설정되어 있는 모든 장소의 임계치를 등록하고 초기화 한다.
-   * 2. 결정지 2의 수위를 Max값(10cm)으로 설정하고 해주 5의 수위를 Min값(10cm)으로 설정
-   * 3. [해주 5 > 결정지 ] 명령 요청. X
-   * 4. 결정지 의 수위를 Set값(5cm), 해주 5의 수위를 (130cm) 설정
-   * 5. [해주 5 > 결정지 ] 명령 요청. O
-   * 6. 결정지의 수위를 Max값 이상(15cm) 설정. [해주 5 > 결정지 ] 명령 취소 처리 확인
-   *    급수지의 상한선 수위가 걸렸을 경우 진행 중인 급수 명령을 취소하는지 테스트
-   * 7. 결정지의 수위를 Set값(5cm) 설정.
-   * 8. [해주 5 > 결정지 ] 명령 요청. O :: 달성 목표: 배수지 수위 4cm 이하, 달성 제한 시간: 2 Sec
-   * 9. 해주 1의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
-   *    배수지 하한선 수위가 걸렸을 경우 진행 중인 배수 명령을 취소하는지 테스트
+   * 자동 염수 이동 명령이 없는 장소에 일반 염수 이동 명령을 내릴 경우
+   * 수위 최저치(Min) 및 최대치(Max)에 의해 명령 취소 테스트
+   * @tutorial
+   * 1. 결정지의 수위를 Max값(10cm)으로 설정하고 해주 5의 수위를 Min값(10cm)으로 설정
+   *  <test> 배수지의 수위 최저치 이하 또는 급수지의 수위 최대치 이상일 경우 염수 이동 불가
+   *    명령 요청 >>> [BW_5_TO_NCB](R_CON){Expect Fail}
+   * 2. 결정지의 수위를 Set값(5cm), 해주 5의 수위를 (130cm) 설정
+   *  <test> 배수지의 수위 정상 값, 급수지의 수위 정상값 일 경우 염수 이동 가능
+   *    명령 요청 >>> [BW_5_TO_NCB](R_CON->C_CON){Expect Success}
+   * 3. 결정지의 수위를 Max값 이상(15cm) 설정.
+   *  <test> 급수지의 수위 최대치에 의한 명령 취소
+   *    급수지 수위 최대치 >>> [BW_5_TO_NCB](R_CAN)
+   * 4. 결정지의 수위를 Set값(5cm) 설정.
+   *    명령 요청 >>> [BW_5_TO_NCB](R_CON->C_CON) :: 달성 목표: 배수지 수위 4cm 이하, 달성 제한 시간: 2 Sec
+   * 5. 해주 1의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
+   *  <test> 배수지의 수위 최저치에 의한 명령 취소
+   *  <test> 장소 임계치에 의한 명령 삭제 시 임계 명령 삭제 확인
+   *    배수지 수위 최저치 >>> [BW_5_TO_NCB](R_CAN)
    */
   it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
@@ -115,8 +133,6 @@ describe('발전 최적화 명령 모드', function() {
 
     expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
 
-    // BU.CLIN(placeManager);
-
     // 결정지
     const ps_NCB = placeManager.findPlace('NCB');
     const pn_WL_NCB = ps_NCB.getPlaceNode({ nodeDefId: ndId.WL });
@@ -124,10 +140,10 @@ describe('발전 최적화 명령 모드', function() {
     const ps_BW_5 = placeManager.findPlace('BW_5');
     const pn_WL_BW_5 = ps_BW_5.getPlaceNode({ nodeDefId: ndId.WL });
 
-    // * 2. 배수지(해주 5)의 수위를 Min(10cm), 급수지(결정지)의 수위를 Max 11cm 으로 설정
-    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_5, 10), setNodeData(pn_WL_NCB, 11)]);
+    // * 1. 결정지의 수위를 Max값(10cm)으로 설정하고 해주 5의 수위를 Min값(10cm)으로 설정
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_5, 10), setNodeData(pn_WL_NCB, 10)]);
 
-    // * 3. [해주 5 > 결정지 ] 명령 요청. X
+    // 명령 요청 >>> [BW_5_TO_NCB](R_CON){Expect Fail}
     /** @type {reqFlowCmdInfo} 증발지 1-A > 해주 1 */
     const BW5ToNCB = {
       srcPlaceId: 'BW_5',
@@ -139,7 +155,7 @@ describe('발전 최적화 명령 모드', function() {
       'The water level of the srcPlaceId: BW_5 is below the minimum water level',
     );
 
-    // 해주 5의 수위를 (130cm) 설정
+    // * 2. 결정지의 수위를 Set값(5cm)
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_5, 130)]);
 
     // 급수지 (NCB) 의 수위가 최대 수위 이상이라서 수행 불가
@@ -147,22 +163,24 @@ describe('발전 최적화 명령 모드', function() {
       'The water level of the destPlaceId: NCB is over the max water level.',
     );
 
-    // * 4. 결정지 의 수위를 Set값(5cm)
+    // 해주 5의 수위를 (130cm) 설정
     control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 5)]);
 
-    // * 5. [해주 5 > 결정지 ] 명령 요청. O
+    // 명령 요청 >>> [BW_5_TO_NCB](R_CON->C_CON){Expect Success}
     control.executeFlowControl(BW5ToNCB);
 
     /** @type {complexCmdWrapInfo} */
-    const BW_5_To_NCB_WC_CONTROL = await eventToPromise(control, 'completeCommand');
+    let BW_5_To_NCB_WC_CONTROL = await eventToPromise(control, 'completeCommand');
 
     // * trueNodeList: ['P_014'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(1);
     // * falseNodeList: ['WD_008'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(1);
 
-    // * 6. 결정지의 수위를 Max값 이상(15cm) 설정. [해주 5 > 결정지 ] 명령 취소 처리 확인
+    // * 3. 결정지의 수위를 Max값 이상(15cm) 설정.
     control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 15)]);
+
+    BW_5_To_NCB_WC_CONTROL = await eventToPromise(control, 'completeCommand');
 
     // * trueNodeList: [],
     expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(0);

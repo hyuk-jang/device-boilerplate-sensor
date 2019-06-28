@@ -67,7 +67,7 @@ describe('CmdOverlap', function() {
     const cmdOverlapManager = new CmdOverlapManager({
       nodeList,
       cmdModeType,
-      getCurrCmdMode: () => cmdModeType.OVERLAP_COUNT,
+      getCurrCmdModeName: () => cmdModeType.OVERLAP_COUNT,
     });
 
     const A_TO_B = _.find(wrapCmdList, { wrapCmdId: 'A_TO_B' });
