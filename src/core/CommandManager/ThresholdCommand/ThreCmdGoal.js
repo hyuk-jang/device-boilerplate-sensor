@@ -81,10 +81,10 @@ class ThreCmdGoal extends ThreCmdComponent {
         isClear = deviceData === this.goalValue;
         break;
       case ThreCmdComponent.goalDataRange.LOWER:
-        isClear = deviceData < this.goalValue;
+        isClear = deviceData <= this.goalValue;
         break;
       case ThreCmdComponent.goalDataRange.UPPER:
-        isClear = deviceData > this.goalValue;
+        isClear = deviceData >= this.goalValue;
         break;
       default:
         break;

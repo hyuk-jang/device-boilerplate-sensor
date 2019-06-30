@@ -157,7 +157,7 @@ class PlaceStorage extends PlaceComponent {
 
   /**
    * Place Node에 갱신 이벤트를 보내고자 할 경우
-   * @param {string=} nodeDefId Node Definition ID, 없을 경우 전체 갱신
+   * @param {string|string[]=} nodeDefId Node Definition ID, 없을 경우 전체 갱신
    */
   updateNode(nodeDefId) {
     if (_.isEmpty(nodeDefId)) {

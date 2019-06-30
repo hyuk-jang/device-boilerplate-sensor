@@ -129,6 +129,7 @@ class CommandManager {
    * 조건에 맞는 흐름 명령 반환
    * @param {string=} srcPlaceId 출발 장소 ID
    * @param {string=} destPlaceId 도착 장소 ID
+   * @return {complexCmdWrapInfo[]}
    */
   getFlowCommandList(srcPlaceId = '', destPlaceId = '') {
     // BU.CLIS(srcPlaceId, destPlaceId);
