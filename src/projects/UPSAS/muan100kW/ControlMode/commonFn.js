@@ -6,6 +6,8 @@ const AbstAlgorithm = require('./AbstAlgorithm');
 
 const CoreFacade = require('../../../../core/CoreFacade');
 
+const { nodeDefIdInfo: ndId } = AbstAlgorithm;
+
 const {
   dcmConfigModel: { reqWrapCmdType: reqWCT, placeNodeStatus, goalDataRange },
 } = CoreFacade;
@@ -17,7 +19,7 @@ const waterFlowTypeInfo = {
   PERFECT: 'PERFECT',
   TLLU: 'WS_GT_TS',
   TULO: 'NON',
-}
+};
 
 // 취소 명령 종류
 const cancelFlowCmdTypeInfo = {
@@ -137,27 +139,55 @@ module.exports = {
 
   /**
    * 두 장소 사이에서 자동프로세스를 통한 자동 염수 이동 명령 생성
-   * @param {PlaceComponent} srcPlace 데이터 갱신이 발생한 수위 노드
-   * @param {PlaceComponent} destPlace 데이터 갱신이 발생한 수위 노드
+   * @param {Object} drainageInfo 배수지 정보
+   * @param {PlaceComponent} drainageInfo.placeNode 데이터 갱신이 발생한 노드
+   * @param {number=} drainageInfo.goalValue 임계치 값
+   * @param {number=} drainageInfo.goalRange 임계치 범위
+   * @param {Object} waterSupplyInfo 급수지 정보
+   * @param {PlaceComponent} waterSupplyInfo.placeNode 데이터 갱신이 발생한 노드
+   * @param {number=} waterSupplyInfo.goalValue 임계치 값
+   * @param {number=} waterSupplyInfo.goalRange 임계치 범위
    */
-  makeWaterFlowCommand(srcPlace, destPlace) {
+  makeWaterFlowCommand(drainageInfo = {}, waterSupplyInfo = {}) {
+    // 배수지 정보
+    const {
+      placeNode: srcPlaceNode,
+      goalValue: srcGoalValue,
+      goalRange: srcGoalRange,
+    } = drainageInfo;
+    // 급수지 정보
+    const {
+      placeNode: destPlaceNode,
+      goalValue: destGoalValue,
+      goalRange: destGoalRange,
+    } = waterSupplyInfo;
+
     /** @type {reqFlowCmdInfo} */
-    const autoFlowCmd = {
-      srcPlaceId: srcPlace.getPlaceId(),
-      destPlaceId: destPlace.getPlaceId(),
+    const waterFlowCommand = {
+      srcPlaceId: srcPlaceNode.getPlaceId(),
+      destPlaceId: destPlaceNode.getPlaceId(),
       wrapCmdGoalInfo: {
-        goalDataList: [
-          _.isNumber(destPlace.getSetValue())
-            ? {
-                nodeId: destPlace.getNodeId(),
-                goalValue: destPlace.getSetValue(),
-                goalRange: goalDataRange.UPPER,
-              }
-            : {},
-        ],
+        goalDataList: [],
       },
     };
-    return autoFlowCmd;
+    // 배수지 목표 임계치가 있을 경우 추가
+    if (srcGoalValue) {
+      waterFlowCommand.wrapCmdGoalInfo.goalDataList.push({
+        nodeId: srcPlaceNode.getNodeId(),
+        goalValue: srcGoalValue,
+        goalRange: srcGoalRange,
+      });
+    }
+    // 급수지 목표 임계치가 있을 경우 추가
+    if (destGoalValue) {
+      waterFlowCommand.wrapCmdGoalInfo.goalDataList.push({
+        nodeId: destPlaceNode.getNodeId(),
+        goalValue: destGoalValue,
+        goalRange: destGoalRange,
+      });
+    }
+
+    return waterFlowCommand;
   },
 
   /**
@@ -165,23 +195,25 @@ module.exports = {
    * 배수지의 염수가 부족할 경우 이전 배수지의 우선 순위 1에서의 염수 이동 명령 요청
    * @param {Object} drainageConfig 배수지 정보
    * @param {PlaceComponent=} drainageConfig.drainagePlace 데이터 갱신이 발생한 노드
-   * @param {number=} drainageConfig.goalType 임계치 값
+   * @param {number=} drainageConfig.goalValue 임계치 값
    * @param {number=} drainageConfig.goalRange 임계치 범위
-   * @param {Object=} waterSupplyConfig 급수지 정보
-   * @param {Object=} waterFlowConfig.waterSupplyPlace 데이터 갱신이 발생한 노드
-   * @param {number=} waterFlowConfig.goalType 임계치 값
-   * @param {number=} waterFlowConfig.goalRange 임계치 범위
+   * @param {Object} waterSupplyConfig 급수지 정보
+   * @param {PlaceComponent=} waterSupplyConfig.waterSupplyPlace 데이터 갱신이 발생한 노드
+   * @param {number=} waterSupplyConfig.goalValue 임계치 값
+   * @param {number=} waterSupplyConfig.goalRange 임계치 범위
    * @param {boolean=} isForce 명령을 내릴 수 없는 상황이라면 이전 배수지의 우선 순위 1에서의 염수 이동 명령 요청 여부
    * @example
    * goalType
-   * MAX_OVER: 'MAX_OVER',
-   * UPPER_LIMIT_OVER: 'UPPER_LIMIT_OVER',
-   * NORMAL: 'NORMAL',
+   * MAX_OVER: MaxValue & Upper,
+   * UPPER_LIMIT_OVER: MaxValue & Upper,
+   * SetValue: 'NORMAL',
    * LOWER_LIMIT_UNDER: 'LOWER_LIMIT_UNDER',
    * MIN_UNDER: 'MIN_UNDER',
    */
-  executeWaterFlowCommand(drainageConfig = {}, waterFlowConfig = {}, isForce = false) {
-    
+  executeWaterFlowCmd(drainageConfig = {}, waterSupplyConfig = {}, isForce = false) {
+    const { drainagePlace } = drainageConfig;
+    const { waterSupplyPlace } = waterSupplyConfig;
+
     const { MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER, MIN_UNDER } = placeNodeStatus;
     // 배수지와 급수지 간의 염수를 이동하고자 할 경우
     if (drainagePlace && waterSupplyPlace) {
@@ -199,7 +231,7 @@ module.exports = {
         // 급수지 1랭크에 염수 이동 요청
         if (putPlaceList.length) {
           const putPlaceStorage = _.head(putPlaceList);
-          this.executeWaterFlowCommand(putPlaceStorage, null);
+          this.executeWaterFlowCmd(putPlaceStorage, null);
         }
       }
     }
@@ -217,8 +249,92 @@ module.exports = {
         // 배수지 1랭크에 염수 이동 요청
         if (callPlaceList.length) {
           const callPlaceStorage = _.head(callPlaceList);
-          this.executeWaterFlowCommand(null, callPlaceStorage);
+          this.executeWaterFlowCmd(null, callPlaceStorage);
         }
+      }
+    }
+  },
+
+  /**
+   * 임계치에 의한 배수 명령
+   * @param {Object} drainageInfo 배수 정보
+   * @param {PlaceComponent=} drainageInfo.placeNode 데이터 갱신이 발생한 노드
+   * @param {number=} drainageInfo.goalValue 임계치 값
+   * @param {number=} drainageInfo.goalRange 임계치 범위
+   * @param {boolean} isForce
+   */
+  executeAutoDrainage(drainageInfo, isForce = false) {
+    // 수위 상한선
+    const { placeNode, goalValue, goalRange } = drainageInfo;
+    // 급수지에 염수를 공급할 수 있는 배수지를 찾음
+    const ablePlaceStorage = this.getAbleFlowCmdDrainage(placeNode);
+    if (ablePlaceStorage) {
+      // 염수 흐름 명령을 생성. (Src Place Id => Dest Place Id)
+      coreFacade.executeFlowControl(
+        this.makeWaterFlowCommand(
+          {
+            placeNode,
+            goalValue,
+            goalRange,
+          },
+          {
+            placeNode: ablePlaceStorage,
+          },
+        ),
+      );
+    }
+    // NOTE: 급수지의 염수가 가득 찼을 경우에는 강제로 이동시키지 않음.
+    // else if (isForce) {
+    //   const putPlaceList = placeNode.getPutPlaceRankList();
+    //   // 급수지 1랭크에 염수 이동 요청
+    //   if (putPlaceList.length) {
+    //     const placeNodeWL = _.head(putPlaceList).getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
+    //     this.executeAutoDrainage({
+    //       placeNode: placeNodeWL,
+    //       goalValue: placeNodeWL.getMinValue(),
+    //       goalRange: goalDataRange.LOWER,
+    //     });
+    //   }
+    // }
+  },
+
+  /**
+   * 임계치에 의한 급수 명령
+   * @param {Object} waterSupplyInfo 배수 정보
+   * @param {PlaceComponent} waterSupplyInfo.placeNode 데이터 갱신이 발생한 노드
+   * @param {number=} waterSupplyInfo.goalValue 임계치 값
+   * @param {number=} waterSupplyInfo.goalRange 임계치 범위
+   * @param {boolean} isForce
+   */
+  executeAutoWaterSupply(waterSupplyInfo, isForce = false) {
+    // 수위 하한선
+    const { placeNode, goalValue, goalRange } = waterSupplyInfo;
+    // 급수지에 염수를 공급할 수 있는 배수지를 찾음
+    const ablePlaceStorage = this.getAbleFlowCmdWaterSupply(placeNode);
+    if (ablePlaceStorage) {
+      // 염수 흐름 명령을 생성. (Src Place Id => Dest Place Id)
+      coreFacade.executeFlowControl(
+        this.makeWaterFlowCommand(
+          {
+            placeNode: ablePlaceStorage,
+          },
+          {
+            placeNode,
+            goalValue,
+            goalRange,
+          },
+        ),
+      );
+    } else if (isForce) {
+      const callPlaceList = placeNode.getCallPlaceRankList();
+      // 배수지 1랭크에 염수 이동 요청
+      if (callPlaceList.length) {
+        const placeNodeWL = _.head(callPlaceList).getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
+        this.executeAutoDrainage({
+          placeNode: placeNodeWL,
+          goalValue: placeNodeWL.getMinValue(),
+          goalRange: goalDataRange.LOWER,
+        });
       }
     }
   },
@@ -253,6 +369,7 @@ module.exports = {
    * @param {PlaceComponent} placeNodeWL 데이터 갱신이 발생한 수위노드
    */
   getAbleFlowCmdDrainage(placeNodeWL) {
+    BU.CLIN(placeNodeWL);
     // 상한선 수위가 존재하지 않는다면 종료
     if (!_.isNumber(placeNodeWL.getUpperLimitValue())) return false;
 
@@ -278,10 +395,10 @@ module.exports = {
    * @param {string} placeId Node Definition ID, 없을 경우 전체 갱신
    */
   emitReloadPlaceStorage(placeId) {
-    const {
-      nodeDefIdInfo: { SALINITY, MODULE_REAR_TEMPERATURE, WATER_LEVEL },
-    } = AbstAlgorithm;
-
-    coreFacade.reloadPlaceStorage(placeId, [SALINITY, MODULE_REAR_TEMPERATURE, WATER_LEVEL]);
+    coreFacade.reloadPlaceStorage(placeId, [
+      ndId.SALINITY,
+      ndId.MODULE_REAR_TEMPERATURE,
+      ndId.WATER_LEVEL,
+    ]);
   },
 };

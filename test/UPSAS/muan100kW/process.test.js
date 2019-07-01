@@ -422,10 +422,10 @@ describe('발전 최적화 명령 모드', function() {
     // *  <test> 수위 하한선에 의한 자동 급수 요청
     /** @type {complexCmdWrapInfo} */
     const wc_RV_TO_NEB_1 = await eventToPromise(control, 'completeCommand');
-    
+
     wc_NEB_1_TO_NEB_2 = await eventToPromise(control, 'completeCommand');
     // BU.CLIN(wc_RV_TO_NEB_1)
-    return;
+
     // *    일반 증발지 1 수위 하한선 >>> [RV_TO_NEB_1](R_CON) :: 달성 목표: 급수지(일반 증발지 1) 수위 10cm 이상
     expect(getFlowCmd(pId.RV, pId.NEB_1).wrapCmdType).to.eq(reqWCT.CONTROL);
 

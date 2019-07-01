@@ -63,7 +63,15 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
       if (isProceedFlowCmd) return false;
 
       // 현재 장소를 급수지로써의 염수 이동 명령을 요청
-      commonFn.executeWaterFlowCommand(placeNode, null, false);
+
+      // 현재 장소를 배수지로써의 염수 이동 명령을 요청
+      commonFn.executeAutoDrainage({
+        placeNode,
+        goalValue: placeNode.getSetValue(),
+        goalRange: goalDataRange.LOWER,
+      });
+
+      // commonFn.executeWaterFlowCmd(placeNode, null, false);
     } catch (error) {
       // BU.CLIN(error);
       throw error;
@@ -91,7 +99,14 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
       if (isProceedFlowCmd) return false;
 
       // 현재 장소를 급수지로써의 염수 이동 명령을 요청
-      commonFn.executeWaterFlowCommand(null, placeNode, true);
+      commonFn.executeAutoWaterSupply(
+        {
+          waterSupplyPlace: placeNode,
+          goalValue: placeNode.getSetValue(),
+          goalRange: goalDataRange.UPPER,
+        },
+        true,
+      );
     } catch (error) {
       // BU.CLIN(error);
       throw error;
