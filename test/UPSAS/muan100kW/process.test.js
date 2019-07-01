@@ -411,9 +411,9 @@ describe('발전 최적화 명령 모드', function() {
 
     // * 4. 일반 증발지 1의 수위를 GT와 LLU 사이인 5로 변경.
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_1, 5)]);
+    // return;
     // *  <test> 급수지로의 목표가 있는 명령이고 현재 그 명령을 달성하지 못했다면 하한선 무시
     expect(getFlowCmd(pId.NEB_1, pId.NEB_2).wrapCmdType).to.eq(reqWCT.CONTROL);
-
     // * 5. 일반 증발지 1의 수위를 Min인 이하인 0으로 변경
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_1, 0)]);
     // *  <test> 장소 임계치와 목표달성 임계치가 동시에 만족할 경우 명령 취소는 1번이 정상적으로 처리
@@ -422,7 +422,10 @@ describe('발전 최적화 명령 모드', function() {
     // *  <test> 수위 하한선에 의한 자동 급수 요청
     /** @type {complexCmdWrapInfo} */
     const wc_RV_TO_NEB_1 = await eventToPromise(control, 'completeCommand');
-
+    
+    wc_NEB_1_TO_NEB_2 = await eventToPromise(control, 'completeCommand');
+    // BU.CLIN(wc_RV_TO_NEB_1)
+    return;
     // *    일반 증발지 1 수위 하한선 >>> [RV_TO_NEB_1](R_CON) :: 달성 목표: 급수지(일반 증발지 1) 수위 10cm 이상
     expect(getFlowCmd(pId.RV, pId.NEB_1).wrapCmdType).to.eq(reqWCT.CONTROL);
 

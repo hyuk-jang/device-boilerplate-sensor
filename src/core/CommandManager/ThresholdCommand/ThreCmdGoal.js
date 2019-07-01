@@ -45,6 +45,13 @@ class ThreCmdGoal extends ThreCmdComponent {
   }
 
   /**
+   * @return {boolean} 임계 명령 완료 여부
+   */
+  isThreCmdClear() {
+    return this.successor.isThreCmdClear();
+  }
+
+  /**
    * Critical Manager에서 업데이트된 Node 정보를 전달해옴.
    * 데이터가 달성 목표에 도달하였다면 Critical Stroage에 알림.
    * @param {nodeInfo} nodeInfo

@@ -107,6 +107,25 @@ class CoreFacade {
   }
 
   /**
+   * 조건에 맞는 흐름 명령 반환
+   * @param {string=} srcPlaceId 출발 장소 ID
+   * @param {string=} destPlaceId 도착 장소 ID
+   * @param {string=} wrapCmdType 명령 타입 CONTROL, CANCEL
+   * @return {complexCmdWrapInfo[]}
+   */
+  getFlowCommandList(srcPlaceId = '', destPlaceId = '', wrapCmdType) {
+    return this.cmdManager.getFlowCommandList(srcPlaceId, destPlaceId, wrapCmdType);
+  }
+
+  /**
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   * @return {boolean} 임계 명령 완료 여부
+   */
+  isThreCmdClear(complexCmdWrapInfo) {
+    return this.cmdManager.threCmdManager.isThreCmdClear(complexCmdWrapInfo);
+  }
+
+  /**
    * 명령모드를 변경하고자 할 경우
    * @param {string} cmdMode 자동 명령 모드 여부
    */

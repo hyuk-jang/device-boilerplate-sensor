@@ -524,7 +524,7 @@ class CommandExecManager {
       // BU.CLIN(this.controller.dataLoggerControllerList[0].commander.requestTakeAction('NEXT'))
       // BU.CLIN(this.controller.dataLoggerControllerList[0].commander.manager)
 
-      BU.log('Req', wrapCmdInfo.wrapCmdId);
+      // BU.log('Req', wrapCmdInfo.wrapCmdId);
 
       // BU.CLIS(wrapCmdInfo.wrapCmdUUID, wrapCmdInfo.realContainerCmdList);
 

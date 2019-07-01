@@ -129,11 +129,15 @@ class CommandManager {
    * 조건에 맞는 흐름 명령 반환
    * @param {string=} srcPlaceId 출발 장소 ID
    * @param {string=} destPlaceId 도착 장소 ID
+   * @param {string=} wrapCmdType 명령 타입 CONTROL, CANCEL
    * @return {complexCmdWrapInfo[]}
    */
-  getFlowCommandList(srcPlaceId = '', destPlaceId = '') {
+  getFlowCommandList(srcPlaceId = '', destPlaceId = '', wrapCmdType) {
     // BU.CLIS(srcPlaceId, destPlaceId);
     const whereInfo = { wrapCmdFormat: reqWrapCmdFormat.FLOW };
+    if (_.isString(wrapCmdType)) {
+      whereInfo.wrapCmdType = wrapCmdType;
+    }
 
     // 염수 이동 명령의 시작지와 도착지의 정보 유무에 따라 where 절 생성
     _.isString(srcPlaceId) && srcPlaceId.length && _.assign(whereInfo, { srcPlaceId });
@@ -212,8 +216,7 @@ class CommandManager {
           wrapCmdType: reqWrapCmdType.CONTROL,
         });
 
-        // 만약 CC가 존재한다면 제거
-
+        // 만약 Threshold Goal가 존재한다면 제거
         this.threCmdManager.removeThreCmdStorage(this.complexCmdList[foundIndex]);
 
         // 기존 복합 명령 제거

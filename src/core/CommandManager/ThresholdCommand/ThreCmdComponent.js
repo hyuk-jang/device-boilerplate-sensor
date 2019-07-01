@@ -10,11 +10,11 @@ class ThreCmdComponent extends Observer {
   static get goalDataRange() {
     return {
       /** 기준 값 초과 */
-      UPPER: 2,
+      UPPER: 'UPPER',
       /** 기준 값 동일 */
-      EQUAL: 1,
+      EQUAL: 'EQUAL',
       /** 기준 값 이하  */
-      LOWER: 0,
+      LOWER: 'LOWER',
     };
   }
 
@@ -52,6 +52,11 @@ class ThreCmdComponent extends Observer {
   get threCmdGoalId() {
     return '';
   }
+
+  /**
+   * @return {boolean} 임계 명령 완료 여부
+   */
+  isThreCmdClear() {}
 
   /**
    * 세부 목표를 완료했다고 알려 올 세부 객체

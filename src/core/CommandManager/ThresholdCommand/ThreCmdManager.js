@@ -40,6 +40,21 @@ class ThreCmdManager extends ThreCmdComponent {
   }
 
   /**
+   * @param {complexCmdWrapInfo} complexCmdWrapInfo
+   * @return {boolean} 임계 명령 완료 여부
+   */
+  isThreCmdClear(complexCmdWrapInfo) {
+    // 해당 명령에 관련된 목표치가 있는지 확인
+    const threCmdStorage = this.getThreCmdStorage(complexCmdWrapInfo);
+
+    // 존재하지 않는다면 임계 명령은 성공 한 걸로 처리함.
+    if (threCmdStorage === undefined) {
+      return true;
+    }
+    return threCmdStorage.isThreCmdClear();
+  }
+
+  /**
    * 임계치 명령을 성공했을 경우
    * @param {ThreCmdStorage} threCmdStorage
    * @return {boolean} 삭제 성공 시 true, 아니라면 false

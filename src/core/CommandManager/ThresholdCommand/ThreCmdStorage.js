@@ -80,12 +80,24 @@ class ThreCmdStorage extends ThreCmdComponent {
   }
 
   /**
+   * @return {boolean} 임계 명령 완료 여부
+   */
+  isThreCmdClear() {
+    const isCompleteClear = !!_.find(this.children, { isClear: true, isCompleteClear: true });
+    // 필수 요소를
+    if (isCompleteClear) return true;
+
+    return _.every(this.children, 'isClear');
+  }
+
+  /**
    * 세부 목표를 완료했다고 알려 올 세부 객체
    * @param {ThreCmdComponent} thresholdCommandGoal
    * @return {ThreCmdComponent}
    */
   handleThreCmdClear(thresholdCommandGoal) {
     let isCompleteClear = false;
+
     // 유일
     if (thresholdCommandGoal.isCompleteClear) {
       isCompleteClear = true;

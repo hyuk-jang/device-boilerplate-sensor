@@ -4,7 +4,7 @@ const { BU } = require('base-util-jh');
 
 const { constructorInfo, dcmConfigModel } = require('../../../../../core/CoreFacade');
 
-const { goalDataRange, reqWrapCmdType, placeNodeStatus } = dcmConfigModel;
+const { goalDataRange, reqWrapCmdType: reqWCT, placeNodeStatus } = dcmConfigModel;
 
 const commonFn = require('../commonFn');
 
@@ -51,10 +51,23 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
    * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpperLimitOver(coreFacade, placeNode) {
-    // 현재 장소로 급수 명령이 실행 중인지 확인
-    const flowCmdList = coreFacade.cmdManager.getFlowCommandList(null, placeNode.getPlaceId());
-    // 실행 중인 급수 명령 취소 요청
-    flowCmdList.length && commonFn.cancelFlowCmdWaterSupply(flowCmdList);
+    // // 현재 장소로 급수 명령이 실행 중인지 확인
+    // const flowCmdList = coreFacade.cmdManager.getFlowCommandList(null, placeNode.getPlaceId());
+    // // 실행 중인 급수 명령 취소 요청
+    // flowCmdList.length && commonFn.cancelFlowCmdWaterSupply(flowCmdList);
+    BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
+    try {
+      // 진행중인 급수 명령 취소 및 남아있는 배수 명령 존재 여부 반환
+      const isProceedFlowCmd = commonFn.cancelFlowCmdWaterSupplyGoal(placeNode);
+      // 진행 중인 급수 명령이 있다면 상한선 처리하지 않음
+      if (isProceedFlowCmd) return false;
+
+      // 현재 장소를 급수지로써의 염수 이동 명령을 요청
+      commonFn.executeWaterFlowCommand(placeNode, null, false);
+    } catch (error) {
+      // BU.CLIN(error);
+      throw error;
+    }
   }
 
   /**
@@ -72,29 +85,13 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
   handleLowerLimitUnder(coreFacade, placeNode) {
     BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
     try {
-      // TODO: 현재 장소에서 배수를 진행하고 있는지 여부 검색
+      // 진행중인 배수 명령 취소 및 남아있는 배수 명령 존재 여부 반환
+      const isProceedFlowCmd = commonFn.cancelFlowCmdDrainageGoal(placeNode, true);
+      // 진행 중인 배수 명령이 있다면 하한선 처리하지 않음
+      if (isProceedFlowCmd) return false;
 
-      // 현재 장소로 급수를 진행할 수 있는 배수지 검색 (배수지 수위가 충분해야함)
-      const waterSupplyPlaceStorage = commonFn.getAbleFlowCmdWaterSupply(placeNode);
-
-      // 배수지가 존재하지 않는다면 종료
-      if (!waterSupplyPlaceStorage) return false;
-
-      // 염수 흐름 명령을 생성.
-      coreFacade.executeFlowControl(commonFn.makeAutoFlowCmd(waterSupplyPlaceStorage, placeNode));
-
-      // 우선 순위가 높은 장소의 염수가 충분하지만 명령 충돌이 발생한다면 충돌이 해제될때까지 기다림.
-      // callPlaceList.forEach(callPlaceId => {
-      //   const nodeStatus = placeManager
-      //     .getPlaceStorage(callPlaceId)
-      //     .getPlaceNode(NODE_DEF_ID)
-      //     .getNodeStatus();
-
-      //   if (_.includes([MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER], nodeStatus)) {
-      //   }
-      // });
-
-      // 우선 순위 장소의 염수가 최저수위 이하라면 후 순위의 배수지를 찾음
+      // 현재 장소를 급수지로써의 염수 이동 명령을 요청
+      commonFn.executeWaterFlowCommand(null, placeNode, true);
     } catch (error) {
       // BU.CLIN(error);
       throw error;
@@ -109,11 +106,13 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
   handleMinUnder(coreFacade, placeNode) {
     try {
       BU.CLI('handleMinUnder', placeNode.getPlaceId());
+      // 배수지 장소 Id
+      const srcPlaceId = placeNode.getPlaceId();
 
       // 현재 장소에서 배수 명령이 실행 중인지 확인
-      const flowCmdList = coreFacade.cmdManager.getFlowCommandList(placeNode.getPlaceId());
-
-      commonFn.cancelFlowCmdDrainage(flowCmdList);
+      commonFn.cancelFlowCmdDrainage(
+        coreFacade.getFlowCommandList(srcPlaceId, null, reqWCT.CONTROL),
+      );
 
       // 명령 취소를 하였으므로 하한선 임계에 문제가 없는지 체크
       this.handleLowerLimitUnder(coreFacade, placeNode);

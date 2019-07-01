@@ -7,11 +7,19 @@ const AbstAlgorithm = require('./AbstAlgorithm');
 const CoreFacade = require('../../../../core/CoreFacade');
 
 const {
-  dcmConfigModel: { reqWrapCmdType, placeNodeStatus, goalDataRange },
+  dcmConfigModel: { reqWrapCmdType: reqWCT, placeNodeStatus, goalDataRange },
 } = CoreFacade;
 
 const coreFacade = new CoreFacade();
 
+const waterFlowTypeInfo = {
+  NON: 'NON',
+  PERFECT: 'PERFECT',
+  TLLU: 'WS_GT_TS',
+  TULO: 'NON',
+}
+
+// 취소 명령 종류
 const cancelFlowCmdTypeInfo = {
   BOTH: 'BOTH',
   DRAINAGE: 'DRAINAGE',
@@ -31,7 +39,7 @@ module.exports = {
     }
     // 해당 염수 이동 명령 삭제 요청
     const cloneWrapCmdInfo = _.clone(wrapCommand);
-    cloneWrapCmdInfo.wrapCmdType = reqWrapCmdType.CANCEL;
+    cloneWrapCmdInfo.wrapCmdType = reqWCT.CANCEL;
     coreFacade.executeFlowControl(cloneWrapCmdInfo);
 
     switch (cancelFlowCmdType) {
@@ -60,6 +68,7 @@ module.exports = {
   cancelFlowCmdWaterSupply(wrapCommand) {
     // BU.CLI('cancelFlowCommandWaterSupply');
     this.cancelFlowCmd(wrapCommand, cancelFlowCmdTypeInfo.WATER_SUPPLY);
+    return true;
   },
 
   /**
@@ -69,14 +78,69 @@ module.exports = {
   cancelFlowCmdDrainage(wrapCommand) {
     // BU.CLIN(wrapCommand);
     this.cancelFlowCmd(wrapCommand, cancelFlowCmdTypeInfo.DRAINAGE);
+    return true;
   },
 
   /**
-   * 두 장소사이에서 자동프로세스를 통한 자동 염수 이동 명령 생성
-   * @param {PlaceComponent} srcPlace 데이터 갱신이 발생한 노드
-   * @param {PlaceComponent} destPlace 데이터 갱신이 발생한 노드
+   * 실행 중인 급수 명령 취소
+   * @param {PlaceComponent} placeNode
+   * @param {boolean=} 목표치 도달 체크 여부
+   * @return {boolean} 진행중인 급수 명령이 있다면 true, 없다면 false
    */
-  makeAutoFlowCmd(srcPlace, destPlace) {
+  cancelFlowCmdWaterSupplyGoal(placeNode, isGoalConfirm = false) {
+    // 급수지 ID
+    const waterSupplyPlaceId = placeNode.getPlaceId();
+
+    const currFlowCmds = coreFacade.getFlowCommandList(null, waterSupplyPlaceId, reqWCT.CONTROL);
+
+    // 진행 중인 배수 명령이 존재하지 않는다면 false
+    if (!currFlowCmds.length) return false;
+
+    // 배수를 진행하고 있는 명령 들 중 목표치가 없거나 달성됐다면 취소를 함
+    currFlowCmds.forEach(flowCmdInfo => {
+      // 목표치 확인은 있으나 아직 임계에 도달하지 못한다면 취소 명령 하지 않음
+      if (isGoalConfirm && !coreFacade.isThreCmdClear(flowCmdInfo)) {
+        return;
+      }
+      this.cancelFlowCmdWaterSupply(flowCmdInfo);
+    });
+    // 명령을 취소 처리할 수 있는 사항에 대해서 취소하였어도 남아있는 제어 명령이 있을경우 false
+    return coreFacade.getFlowCommandList(null, waterSupplyPlaceId, reqWCT.CONTROL).length;
+  },
+
+  /**
+   * 실행 중인 배수 명령 취소
+   * @param {PlaceComponent} placeNode
+   * @param {boolean=} 목표치 도달 체크 여부
+   * @return {boolean} 진행중인 배수 명령이 있다면 true, 없다면 false
+   */
+  cancelFlowCmdDrainageGoal(placeNode, isGoalConfirm) {
+    // 배수지 장소 Id
+    const drainagePlaceId = placeNode.getPlaceId();
+
+    const currFlowCmds = coreFacade.getFlowCommandList(drainagePlaceId, null, reqWCT.CONTROL);
+
+    // 진행 중인 배수 명령이 존재하지 않는다면 false
+    if (!currFlowCmds.length) return false;
+
+    // 배수를 진행하고 있는 명령 들 중 목표치가 없거나 달성됐다면 취소를 함
+    currFlowCmds.forEach(flowCmdInfo => {
+      // 목표치 확인은 있으나 아직 임계에 도달하지 못한다면 취소 명령 하지 않음
+      if (isGoalConfirm && !coreFacade.isThreCmdClear(flowCmdInfo)) {
+        return;
+      }
+      this.cancelFlowCmdDrainage(flowCmdInfo);
+    });
+    // 명령을 취소 처리할 수 있는 사항에 대해서 취소하였어도 남아있는 제어 명령이 있을경우 false
+    return coreFacade.getFlowCommandList(drainagePlaceId, null, reqWCT.CONTROL).length;
+  },
+
+  /**
+   * 두 장소 사이에서 자동프로세스를 통한 자동 염수 이동 명령 생성
+   * @param {PlaceComponent} srcPlace 데이터 갱신이 발생한 수위 노드
+   * @param {PlaceComponent} destPlace 데이터 갱신이 발생한 수위 노드
+   */
+  makeWaterFlowCommand(srcPlace, destPlace) {
     /** @type {reqFlowCmdInfo} */
     const autoFlowCmd = {
       srcPlaceId: srcPlace.getPlaceId(),
@@ -94,6 +158,69 @@ module.exports = {
       },
     };
     return autoFlowCmd;
+  },
+
+  /**
+   * 두 장소 사이에서 자동프로세스를 통한 자동 염수 이동 명령 생성
+   * 배수지의 염수가 부족할 경우 이전 배수지의 우선 순위 1에서의 염수 이동 명령 요청
+   * @param {Object} drainageConfig 배수지 정보
+   * @param {PlaceComponent=} drainageConfig.drainagePlace 데이터 갱신이 발생한 노드
+   * @param {number=} drainageConfig.goalType 임계치 값
+   * @param {number=} drainageConfig.goalRange 임계치 범위
+   * @param {Object=} waterSupplyConfig 급수지 정보
+   * @param {Object=} waterFlowConfig.waterSupplyPlace 데이터 갱신이 발생한 노드
+   * @param {number=} waterFlowConfig.goalType 임계치 값
+   * @param {number=} waterFlowConfig.goalRange 임계치 범위
+   * @param {boolean=} isForce 명령을 내릴 수 없는 상황이라면 이전 배수지의 우선 순위 1에서의 염수 이동 명령 요청 여부
+   * @example
+   * goalType
+   * MAX_OVER: 'MAX_OVER',
+   * UPPER_LIMIT_OVER: 'UPPER_LIMIT_OVER',
+   * NORMAL: 'NORMAL',
+   * LOWER_LIMIT_UNDER: 'LOWER_LIMIT_UNDER',
+   * MIN_UNDER: 'MIN_UNDER',
+   */
+  executeWaterFlowCommand(drainageConfig = {}, waterFlowConfig = {}, isForce = false) {
+    
+    const { MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER, MIN_UNDER } = placeNodeStatus;
+    // 배수지와 급수지 간의 염수를 이동하고자 할 경우
+    if (drainagePlace && waterSupplyPlace) {
+      coreFacade.executeFlowControl(this.makeWaterFlowCommand(drainagePlace, waterSupplyPlace));
+    }
+    // 배수지만 지정할 경우: 지정한 장소에서 물을 뺌
+    else if (drainagePlace) {
+      const ablePlaceStorage = this.getAbleFlowCmdDrainage(drainagePlace);
+      if (ablePlaceStorage) {
+        // 염수 흐름 명령을 생성. (Src Place Id => Dest Place Id)
+        coreFacade.executeFlowControl(this.makeWaterFlowCommand(drainagePlace, ablePlaceStorage));
+      } else if (isForce) {
+        // 강제로 염수를 공급할 1순위 급수지를 가져옴
+        const putPlaceList = drainagePlace.getPutPlaceRankList();
+        // 급수지 1랭크에 염수 이동 요청
+        if (putPlaceList.length) {
+          const putPlaceStorage = _.head(putPlaceList);
+          this.executeWaterFlowCommand(putPlaceStorage, null);
+        }
+      }
+    }
+    // 급수지만 지정할 경우: 지정한 장소로 물을 채움
+    else if (waterSupplyPlace) {
+      // 급수지에 염수를 공급할 수 있는 배수지를 찾음
+      const ablePlaceStorage = this.getAbleFlowCmdWaterSupply(waterSupplyPlace);
+      if (ablePlaceStorage) {
+        // 염수 흐름 명령을 생성. (Src Place Id => Dest Place Id)
+        coreFacade.executeFlowControl(
+          this.makeWaterFlowCommand(ablePlaceStorage, waterSupplyPlace),
+        );
+      } else if (isForce) {
+        const callPlaceList = waterSupplyPlace.getCallPlaceRankList();
+        // 배수지 1랭크에 염수 이동 요청
+        if (callPlaceList.length) {
+          const callPlaceStorage = _.head(callPlaceList);
+          this.executeWaterFlowCommand(null, callPlaceStorage);
+        }
+      }
+    }
   },
 
   /**
