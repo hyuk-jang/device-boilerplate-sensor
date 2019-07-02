@@ -8,7 +8,6 @@ const { goalDataRange, reqWrapCmdType: reqWCT, placeNodeStatus } = dcmConfigMode
 
 const commonFn = require('../commonFn');
 
-const NODE_DEF_ID = 'waterLevel';
 class WaterLevel extends constructorInfo.PlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
@@ -36,7 +35,7 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
       const flowCmdList = coreFacade.cmdManager.getFlowCommandList(null, placeNode.getPlaceId());
 
       // 실행 중인 급수 명령 취소 요청
-      flowCmdList.length && commonFn.cancelFlowCmdWaterSupply(flowCmdList);
+      flowCmdList.length && commonFn.cancelWaterSupply(flowCmdList);
 
       // 상한선 임계치에 이상이 없는지 체크
       this.handleUpperLimitOver(coreFacade, placeNode);
@@ -51,27 +50,19 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
    * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpperLimitOver(coreFacade, placeNode) {
-    // // 현재 장소로 급수 명령이 실행 중인지 확인
-    // const flowCmdList = coreFacade.cmdManager.getFlowCommandList(null, placeNode.getPlaceId());
-    // // 실행 중인 급수 명령 취소 요청
-    // flowCmdList.length && commonFn.cancelFlowCmdWaterSupply(flowCmdList);
-    BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
+    // BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
     try {
-      // 진행중인 급수 명령 취소 및 남아있는 배수 명령 존재 여부 반환
-      const isProceedFlowCmd = commonFn.cancelFlowCmdWaterSupplyGoal(placeNode);
+      // 진행중인 급수 명령 취소 및 남아있는 급수 명령 존재 여부 반환
+      const isProceedFlowCmd = commonFn.cancelWaterSupplyWithAlgorithm(placeNode);
       // 진행 중인 급수 명령이 있다면 상한선 처리하지 않음
       if (isProceedFlowCmd) return false;
 
-      // 현재 장소를 급수지로써의 염수 이동 명령을 요청
-
-      // 현재 장소를 배수지로써의 염수 이동 명령을 요청
+      // 현재 장소에 배수 요청
       commonFn.executeAutoDrainage({
         placeNode,
         goalValue: placeNode.getSetValue(),
         goalRange: goalDataRange.LOWER,
       });
-
-      // commonFn.executeWaterFlowCmd(placeNode, null, false);
     } catch (error) {
       // BU.CLIN(error);
       throw error;
@@ -94,14 +85,14 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
     BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
     try {
       // 진행중인 배수 명령 취소 및 남아있는 배수 명령 존재 여부 반환
-      const isProceedFlowCmd = commonFn.cancelFlowCmdDrainageGoal(placeNode, true);
+      const isProceedFlowCmd = commonFn.cancelDrainageWithAlgorithm(placeNode, true);
       // 진행 중인 배수 명령이 있다면 하한선 처리하지 않음
       if (isProceedFlowCmd) return false;
 
-      // 현재 장소를 급수지로써의 염수 이동 명령을 요청
+      // 현재 장소에 급수 요청
       commonFn.executeAutoWaterSupply(
         {
-          waterSupplyPlace: placeNode,
+          placeNode,
           goalValue: placeNode.getSetValue(),
           goalRange: goalDataRange.UPPER,
         },
@@ -124,10 +115,8 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
       // 배수지 장소 Id
       const srcPlaceId = placeNode.getPlaceId();
 
-      // 현재 장소에서 배수 명령이 실행 중인지 확인
-      commonFn.cancelFlowCmdDrainage(
-        coreFacade.getFlowCommandList(srcPlaceId, null, reqWCT.CONTROL),
-      );
+      // 현재 장소의 배수 명령 취소
+      commonFn.cancelDrainage(coreFacade.getFlowCommandList(srcPlaceId, null, reqWCT.CONTROL));
 
       // 명령 취소를 하였으므로 하한선 임계에 문제가 없는지 체크
       this.handleLowerLimitUnder(coreFacade, placeNode);
