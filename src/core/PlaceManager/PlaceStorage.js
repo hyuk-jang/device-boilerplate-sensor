@@ -110,7 +110,7 @@ class PlaceStorage extends PlaceComponent {
   /**
    * 급수지 Place Id 목록 반환
    * @param {string} nodeDefId Node Definition ID
-   * @return {PlaceComponent[]}
+   * @return {PlaceStorage[]}
    */
   getCallPlaceRankList(nodeDefId) {
     return this.getPlaceNode({ nodeDefId }).getCallPlaceRankList();
@@ -119,10 +119,19 @@ class PlaceStorage extends PlaceComponent {
   /**
    * 급수지 Place Id 목록 반환
    * @param {string} nodeDefId Node Definition ID
-   * @return {PlaceComponent[]}
+   * @return {PlaceStorage[]}
    */
   getPutPlaceRankList(nodeDefId) {
     return this.getPlaceNode({ nodeDefId }).getPutPlaceRankList();
+  }
+
+  /**
+   * 그룹 Place Id 목록 반환
+   * @param {string} nodeDefId Node Definition ID
+   * @return {PlaceStorage[]}
+   */
+  getGroupSrcList(nodeDefId) {
+    return this.getPlaceNode({ nodeDefId }).getGroupSrcList();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 임계치 */
@@ -202,14 +211,14 @@ class PlaceStorage extends PlaceComponent {
 
   /**
    * @desc Place Storage :::
-   * @param {PlaceComponent} placeComponent
+   * @param {PlaceNode} placeNode
    */
-  addPlaceNode(placeComponent) {
+  addPlaceNode(placeNode) {
     // 이미 존재한다면 false 반환
-    if (_.findIndex(this.children, placeComponent) !== -1) return false;
+    if (_.findIndex(this.children, placeNode) !== -1) return false;
 
     // 삽입 후 true 반환
-    return this.children.push(placeComponent) && true;
+    return this.children.push(placeNode) && true;
   }
 
   /**
@@ -218,7 +227,7 @@ class PlaceStorage extends PlaceComponent {
    * @param {Object} placeNodeInfo NodeId or nodeInfo 객체
    * @param {string=} placeNodeInfo.nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
    * @param {nodeId|nodeInfo=} placeNodeInfo.node NodeId or nodeInfo 객체
-   * @return {PlaceComponent}
+   * @return {PlaceNode}
    */
   getPlaceNode(placeNodeInfo) {
     const { node, nodeDefId } = placeNodeInfo;

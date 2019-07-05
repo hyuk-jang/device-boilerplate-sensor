@@ -25,6 +25,7 @@ class PlaceNode extends PlaceComponent {
       minValue,
       callPlaceRankList = [],
       putPlaceRankList = [],
+      groupSrcList = [],
     } = thresholdConfigInfo;
 
     this.maxValue = maxValue;
@@ -37,6 +38,8 @@ class PlaceNode extends PlaceComponent {
     this.callPlaceRankList = callPlaceRankList;
     /** 발신 우선 장소 목록 */
     this.putPlaceRankList = putPlaceRankList;
+    /** 특정 조건 충족 시 그룹으로 묶을 장소 목록 */
+    this.groupSrcList = groupSrcList;
 
     /** @type {PlaceComponent} */
     this.placeStorage;
@@ -50,15 +53,15 @@ class PlaceNode extends PlaceComponent {
 
   /**
    * 현 Place Node 객체를 가지는 Place Storage 객체
-   * @param {PlaceComponent} placeComponent
+   * @param {PlaceStorage} placeStorage
    */
-  setParentPlace(placeComponent) {
-    this.placeStorage = placeComponent;
+  setParentPlace(placeStorage) {
+    this.placeStorage = placeStorage;
   }
 
   /**
    * Successor Place를 가져옴
-   * @return {PlaceComponent}
+   * @return {PlaceStorage}
    */
   getParentPlace() {
     return this.placeStorage;
@@ -105,7 +108,7 @@ class PlaceNode extends PlaceComponent {
 
   /**
    * 급수지 Place Storage 목록 반환
-   * @return {PlaceComponent[]}
+   * @return {PlaceStorage[]}
    */
   getCallPlaceRankList() {
     return _.map(this.callPlaceRankList, callPlaceId => {
@@ -115,12 +118,25 @@ class PlaceNode extends PlaceComponent {
 
   /**
    * 배수지 Place Storage 목록 반환
-   * @return {PlaceComponent[]}
+   * @return {PlaceStorage[]}
    */
   getPutPlaceRankList() {
     return _.map(this.putPlaceRankList, putPlaceId => {
       return this.placeStorage.findPlace(putPlaceId);
     });
+  }
+
+  /**
+   * 그룹 장소 목록 반환
+   * @return {PlaceStorage[]}
+   */
+  getGroupSrcList() {
+    if (this.groupSrcList.length) {
+      return _.map(this.groupSrcList, placeId => {
+        return this.placeStorage.findPlace(placeId);
+      });
+    }
+    return [this.placeStorage];
   }
 
   /** 노드 임계치 */

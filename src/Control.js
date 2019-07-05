@@ -500,7 +500,7 @@ class Control extends EventEmitter {
       }
     } catch (error) {
       // 예외는 기록만 함
-      BU.error(error.message);
+      // BU.error(error.message);
       throw error;
     }
   }

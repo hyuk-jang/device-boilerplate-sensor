@@ -99,18 +99,23 @@ class PlaceComponent extends Observer {
   getNodeDefId() {}
 
   /**
-   * @desc Place Node :::
    * 급수지 Place Id 목록 반환
    * @return {PlaceComponent[]}
    */
   getCallPlaceRankList() {}
 
   /**
-   * @desc Place Node :::
    * 배수지 Place Id목록 반환
    * @return {PlaceComponent[]}
    */
   getPutPlaceRankList() {}
+
+  /**
+   * 그룹 Place Id 목록 반환
+   * @param {string} nodeDefId Node Definition ID
+   * @return {PlaceComponent[]}
+   */
+  getGroupSrcList(nodeDefId) {}
 
   /** 노드 임계치 */
   getThresholdValue() {}

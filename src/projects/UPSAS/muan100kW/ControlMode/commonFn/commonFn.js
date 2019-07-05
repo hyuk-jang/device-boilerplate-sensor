@@ -2,9 +2,9 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const AbstAlgorithm = require('./AbstAlgorithm');
+const AbstAlgorithm = require('../AbstAlgorithm');
 
-const CoreFacade = require('../../../../core/CoreFacade');
+const CoreFacade = require('../../../../../core/CoreFacade');
 
 const { nodeDefIdInfo: ndId } = AbstAlgorithm;
 
@@ -274,13 +274,13 @@ module.exports = {
 
   /**
    * 지정한 장소로 배수를 진행할 수 있는 배수지 검색 (배수지 수위가 충분해야함)
-   * @param {PlaceComponent} waterSupplyPlaceWL 데이터 갱신이 발생한 수위노드
+   * @param {PlaceNode} waterSupplyPlace 데이터 갱신이 발생한 수위노드
    */
-  getDrainageAblePlace(waterSupplyPlaceWL) {
+  getDrainageAblePlace(waterSupplyPlace) {
     // BU.CLIN(waterSupplyPlaceWL);
 
     // 수위를 급수할 수 있는 장소 목록을 가져옴
-    const callPlaceList = waterSupplyPlaceWL.getCallPlaceRankList();
+    const callPlaceList = waterSupplyPlace.getCallPlaceRankList();
 
     // 급수를 해올 수 있는 장소의 수위 상태
     const { MAX_OVER, UPPER_LIMIT_OVER, NORMAL } = placeNodeStatus;
@@ -288,7 +288,7 @@ module.exports = {
     // 우선 배수지 장소 중 급수를 진행할 수 있는 장소 검색
     return _.find(callPlaceList, callPlaceStorage => {
       const nodeStatus = callPlaceStorage
-        .getPlaceNode({ nodeDefId: waterSupplyPlaceWL.getNodeDefId() })
+        .getPlaceNode({ nodeDefId: waterSupplyPlace.getNodeDefId() })
         .getNodeStatus();
 
       // 급수를 할 수 있는 상태는 최대 치, 상한선, 기본 일 경우 가능함

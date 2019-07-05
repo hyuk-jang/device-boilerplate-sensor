@@ -435,6 +435,32 @@ describe('수위 임계치 처리 테스트', function() {
 });
 
 describe.only('염도 임계치 처리 테스트', function() {
+  this.timeout(5000);
+
+  before(async () => {
+    await control.init(dbInfo, config.uuid);
+    control.runFeature();
+
+    coreFacade.updateControlMode(controlMode.MANUAL);
+
+    control.inquiryAllDeviceStatus();
+    await eventToPromise(control, 'completeInquiryAllDeviceStatus');
+  });
+
+  beforeEach(async () => {
+    try {
+      control.executeSetControl({
+        wrapCmdId: 'closeAllDevice',
+        wrapCmdType: reqWCT.CONTROL,
+      });
+      await eventToPromise(control, 'completeCommand');
+    } catch (error) {
+      BU.error(error.message);
+    }
+
+    coreFacade.updateControlMode(controlMode.POWER_OPTIMIZATION);
+  });
+
   /**
    * 염도 상한선 도달 시 염수 이동 조건을 체크하고 충족 시 염수 이동 명령을 내림.
    * 1. 염수 이동 그룹의 50% 이상이 만족해야함.
@@ -557,13 +583,73 @@ describe.only('염도 임계치 처리 테스트', function() {
       ];
     });
 
-    // * 3. DPs_1의 WSP인 BW_3의 수위를 140cm로 설정, DPs_1.WL = 5, DPs_1.S = 12 설정
-    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_3, 14)]);
-    DPs_1.forEach(dpStroage => {
-      const placeNode = dpStroage.getPlaceNode({ nodeDefId: ndId.WL });
-      control.notifyDeviceData(null, [setNodeData(placeNode, 5)]);
-    });
+    /**
+     * 장소 저장소 목록에 값을 세팅하고자 할 경우
+     * @param {PlaceStorage} placeStorageList
+     * @param {number=} setWaterLevel
+     * @param {number=} setSalinity
+     */
+    function setPlaceStorage(placeStorageList, setWaterLevel, setSalinity) {
+      placeStorageList.forEach(placeStorage => {
+        try {
+          control.notifyDeviceData(null, [
+            _.isNumber(setWaterLevel) &&
+              setNodeData(placeStorage.getPlaceNode({ nodeDefId: ndId.WL }), setWaterLevel),
+          ]);
+        } catch (error) {
+          BU.error(error.message);
+        }
+      });
+
+      placeStorageList.forEach(placeStorage => {
+        try {
+          control.notifyDeviceData(null, [
+            _.isNumber(setSalinity) &&
+              setNodeData(placeStorage.getPlaceNode({ nodeDefId: ndId.S }), setSalinity),
+          ]);
+        } catch (error) {
+          BU.error(error.message);
+        }
+      });
+    }
+
+    // * 3. BW 2 ~ 4의 수위를 140cm로 설정
+    control.notifyDeviceData(null, [
+      setNodeData(pn_WL_BW_2, 140),
+      setNodeData(pn_WL_BW_3, 140),
+      setNodeData(pn_WL_BW_4, 140),
+    ]);
+    // DPs_2.WL = 5, DPs_2.S = 10 설정
+    setPlaceStorage(DPs_2, 5, 10);
+    // DPs_1.WL = 3.1, DPs_1.S = 12 설정, DPs_1의 하한선은 2.9이므로 수행하지 못함
+    setPlaceStorage(DPs_1, 3.1, 12);
+    // DPs_1.WL = 5, 하한선 10%. 3.19 이상을 만족하므로 알고리즘 수행
+    setPlaceStorage(DPs_1, null, 0);
+    setPlaceStorage(DPs_1, 5, 12);
+
     // *  <test> DPs의 현재 염수를 30% 이상 받을 수 있는 WSP이 없을 경우 아무런 조치를 취하지 않음
     // *    (SEB_WV_TS - SEB_WV_TMU) * 3 = 20 m3, BW_3_WV = 4 * 3 * (1.5-1.4) = 1.2 m3
+    expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
+
+    // *  DPs_2 그룹 내의 수중 증발지인 SEP_6.S = 20
+    // *  <test> DPs.S_TULO(18)에 달성률이 33%이므로 명령 수행이 이루어지지 않음
+    expect(() => control.notifyDeviceData(null, [setNodeData(pn_S_SEB_6, 20)])).to.throw(
+      'Place: SEB_6.It is not a moveable brine threshold group.',
+    );
+    expect(cmdManager.complexCmdList).to.length(0);
+    expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
+
+    // *  DPs_2.WL = 5cm, BW_4.WL = 100cm, SEP_7.S = 20
+    // *  <test> DPs_2.S_TULO(18)에 달성률이 66%이므로 명령 알고리즘 수행
+    control.notifyDeviceData(null, [setNodeData(pn_S_SEB_7, 20)])
+    // *  <test> DPs_2의 현재 염수량과 WSP이 허용하는 염수량의 차를 구하여 DP의 남아있는 염수량 계산
+    // *    DPs_2_D_A_WV = (SEB_WV_TS - SEB_WV_TMU) * 3 = (4 - 1) * 3 = 12 m3
+    // *    WSP_WS_A_WV = BW_WL_TMO - BW_WL_C = (4 * 3 * (1.5 - 1)) = 6 m3
+    // *    DPs_2_R_WV = DPs_2_D_A_WV + (SEB_TMU_WV * 3) = 6 + (1 * 3) = 9 m3
+    // *    DPs_2_WS_A_WV = (SEB_WV_TLLU * 3 * 1.3) - DP_R_WV = 11.7 - 9 = 2.7 m3
+    // *  <test> DPs_2_WL의 하한선을 기준으로 30%를 증가시킨 염수량을 공급할 수 있다면 BP의 염수량은 충분하다고 가정함
+    // *    BP_A_WV = BW_3_WV_C - BW_3_WV_TMU = (4 * 3 * (1.4 - 0.1)) = 15.6 m3
+    // *    15.6 m3 > 2.7 m3 이므로 염수 이동
+    // *  [SEB_6_TO_BW_4,SEB_7_TO_BW_4,SEB_8_TO_BW_4](R_CON)  ::: 달성 목표: SEB_WL_TMU
   });
 });
