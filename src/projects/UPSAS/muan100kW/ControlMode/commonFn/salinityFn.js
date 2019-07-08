@@ -53,6 +53,20 @@ module.exports = {
   },
 
   /**
+   * m3 으로 반환
+   * @param {PlaceNode} placeNode
+   * @param {number=} depthCm 수위가 지정안되어 있을 경우 현재 수위
+   */
+  getCubicMeter(placeNode, depthCm) {
+    depthCm = _.isNil(depthCm) ? placeNode.getNodeValue() : depthCm;
+    return _.chain(depthCm)
+      .multiply(0.01)
+      .multiply(placeNode.getSquareMeter())
+      .round(1) // 소수점 절삭
+      .value(); // 데이터 반환,
+  },
+
+  /**
    * 지정 장소에서 배수 가능한 염수 량
    * @description
    * WV: Water Volume, 수량, m3
@@ -60,24 +74,41 @@ module.exports = {
    */
   getDrainageAbleWV(placeStorage) {
     const placeNode = placeStorage.getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
-    const drainageWV = {
-      remainWV: 0,
-      drainageAbleWV: 0,
-    };
-    if (_.isNumber(placeNode.getNodeValue()) && _.isNumber(placeNode.getUpperLimitValue())) {
-      drainageWV.remainWV = _.chain(placeNode.getMinValue()) // 최저 수위는 항상 채워져 있다고 가정
-        .multiply(0.01) // cm -> m
-        .multiply(placeStorage.getSquareMeter()) // m3 환산
-        .round(1) // 소수점 절삭
-        .value(); // 데이터 반환,
 
-      drainageWV.drainageAbleWV = _.chain(placeNode.getNodeValue())
-        .subtract(placeNode.getMinValue()) // 현재 수위 - 최저 수위
-        .multiply(0.01) // cm -> m
-        .multiply(placeStorage.getSquareMeter()) // m3 환산
-        .round(1) // 소수점 절삭
-        .value(); // 데이터 반환
-    }
+    const currValue = placeNode.getNodeValue();
+    const minValue = placeNode.getMinValue();
+    const lowerLimitValue = placeNode.getLowerLimitValue();
+    const setValue = placeNode.getSetValue();
+
+    const drainageWV = {
+      // 최저 수위에 맞출 경우 염수량
+      minWV: _.isNumber(minValue) ? this.getCubicMeter(placeNode, minValue) : 0,
+      // 하한선 수위에 맞출 경우 필요 염수량
+      lowerLimitWV: _.isNumber(lowerLimitValue)
+        ? this.getCubicMeter(placeNode, lowerLimitValue)
+        : 0,
+      // 설정 수위에 맞출 경우 필요 염수량
+      setWV: _.isNumber(setValue) ? this.getCubicMeter(placeNode, setValue) : 0,
+      // 배수를 할 수 있는 염수량 (현재 염수량 - 최저 염수량)
+      drainageAbleWV: _.isNumber(currValue)
+        ? this.getCubicMeter(
+            placeNode,
+            // 현재 수위 - 최저 수위
+            currValue - minValue,
+          )
+        : 0,
+      // 현재 장소에 재급수를 하였을 경우 필요한 최소 염수량
+      // 재급수 최소 필요 수위 = 하한선 + (설정 - 하한선) / 2
+      needWaterSupplyWV: 0,
+    };
+    // 배수 후 재급수 수위
+    drainageWV.needWaterSupplyWV = _.chain(drainageWV.setWV)
+      .subtract(drainageWV.lowerLimitWV)
+      .divide(2)
+      .add(drainageWV.lowerLimitWV)
+      // .round(2)
+      .value();
+
     return drainageWV;
   },
 
@@ -88,7 +119,7 @@ module.exports = {
    */
   getWaterSupplyAblePlace(drainagePlaceNodeS, drainageAbleWV) {
     // 급수지의 장소 정보와 수용 가능한 급수량
-    const resultDpToWsp = {
+    const waterSupplyInfo = {
       // 급수지 장소
       waterSupplyPlace: null,
       // 급수지에서 받을 수 있는 염수량(m3)
@@ -110,15 +141,15 @@ module.exports = {
       if (minimumDrainageWV < waterSupplyAbleWV) {
         // BU.CLIN(drainageAbleWV, waterSupplyAbleWV);
         const drainageRemainWV = drainageAbleWV - waterSupplyAbleWV;
-        resultDpToWsp.waterSupplyPlace = waterSupplyStorage;
-        resultDpToWsp.waterSupplyAbleWV = waterSupplyAbleWV;
+        waterSupplyInfo.waterSupplyPlace = waterSupplyStorage;
+        waterSupplyInfo.waterSupplyAbleWV = waterSupplyAbleWV;
         // 보내는 염수를 100% 수용할 수 있다면 남은 배수지의 이동 가능한 염수량은 0
-        resultDpToWsp.drainageAfterWV = drainageRemainWV < 0 ? 0 : drainageRemainWV;
+        waterSupplyInfo.drainageAfterWV = drainageRemainWV < 0 ? 0 : drainageRemainWV;
         return true;
       }
     });
 
-    return resultDpToWsp;
+    return waterSupplyInfo;
   },
 
   /**
@@ -131,13 +162,13 @@ module.exports = {
     const callPlaceList = waterSupplyPlaceNode.getCallPlaceRankList();
 
     // 급수지의 장소 정보와 수용 가능한 급수량
-    const resultDpToWsp = {
+    const draingeInfo = {
       // 급수지 장소
-      waterSupplyPlace: null,
+      drainagePlace: null,
       // 급수지에서 받을 수 있는 염수량(m3)
-      waterSupplyAbleWV: 0,
+      // waterSupplyAbleWV: 0,
       // 배수지에서 염수를 최대고 보내고 남은 염수량(m3)
-      drainageRemainWV: waterSupplyAbleWV,
+      // drainageRemainWV: waterSupplyAbleWV,
     };
 
     // 급수지는 보내오는 염수량의 30%는 받을 수 있는 해주를 대상으로 함
@@ -153,15 +184,15 @@ module.exports = {
       if (minimumDrainageWV < waterSupplyAbleWV) {
         // BU.CLIN(drainageAbleWV, waterSupplyAbleWV);
         const drainageRemainWV = waterSupplyAbleWV - waterSupplyAbleWV;
-        resultDpToWsp.waterSupplyPlace = waterSupplyStorage;
-        resultDpToWsp.waterSupplyAbleWV = waterSupplyAbleWV;
+        draingeInfo.drainagePlace = waterSupplyStorage;
+        draingeInfo.waterSupplyAbleWV = waterSupplyAbleWV;
         // 보내는 염수를 100% 수용할 수 있다면 남은 배수지의 이동 가능한 염수량은 0
-        resultDpToWsp.drainageRemainWV = drainageRemainWV < 0 ? 0 : drainageRemainWV;
+        draingeInfo.drainageRemainWV = drainageRemainWV < 0 ? 0 : drainageRemainWV;
         return true;
       }
     });
 
-    return resultDpToWsp;
+    return draingeInfo;
   },
 
   /**

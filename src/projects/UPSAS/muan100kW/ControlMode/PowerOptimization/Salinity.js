@@ -47,24 +47,30 @@ class Salinity extends constructorInfo.PlaceThreshold {
       const drainageWVInfo = _(placeGroupList)
         .map(placeStorage => salinityFn.getDrainageAbleWV(placeStorage))
         .reduce((prev, next) => {
-          return {
-            drainageAbleWV: prev.drainageAbleWV + next.drainageAbleWV,
-            remainWV: prev.remainWV + next.remainWV,
-          };
+          _.forEach(prev, (value, key) => {
+            _.set(prev, key, _.sum([value, _.get(next, key)]));
+          });
+          return prev;
         });
 
-      // BU.CLI(drainageWVInfo);
+      BU.CLI(drainageWVInfo);
       // 배수지의 염수를 받을 수 있는 급수지를 탐색
-      const resultDpToWsp = salinityFn.getWaterSupplyAblePlace(
+      const waterSupplyInfo = salinityFn.getWaterSupplyAblePlace(
         placeNode,
         drainageWVInfo.drainageAbleWV,
       );
-      // BU.CLIN(resultDpToWsp);
+      // BU.CLIN(waterSupplyInfo);
 
-      if (resultDpToWsp.waterSupplyPlace === null) {
-        throw new Error(`Place: ${placeNode.getPlaceId()}. There is no way to receive water.`);
+      // 적정 급수지가 없다면 종료
+      if (waterSupplyInfo.waterSupplyPlace === null) {
+        throw new Error(
+          `Place: ${placeNode.getPlaceId()}. There is no place to receive water at the place.`,
+        );
       }
-
+      // 재급수를 해야할 최소 염수량(재급수 필요 염수량 - 최저 염수량 - 배수 후 남아있는 염수량)
+      const needWaterVolume =
+        drainageWVInfo.needWaterSupplyWV - drainageWVInfo.minWV - waterSupplyInfo.drainageAfterWV;
+      BU.CLI(needWaterVolume);
       // 배수지에서 염수를 이동 후 적정 수위로 복원해줄 수 있는 해주 탐색(Base Place)
 
       // DP의 배수 후 급수 할 수위 하한선에 30%를 증가시킨 염수를 공급할 수 있는 장소 탐색

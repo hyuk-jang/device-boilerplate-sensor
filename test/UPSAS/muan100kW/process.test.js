@@ -492,8 +492,8 @@ describe.only('염도 임계치 처리 테스트', function() {
    *  수중태양광 증발지 SEB_WV_TLLU: 3.56m * 28m * 0.03m = 3 m3
    *  수중태양광 증발지 SEB_WV_TMU: 3.56m * 28m * 0.01m = 1 m3
    *          수중태양광 상한선 미만 SEB_WV_TLLU: 3.56m * 28m * 0.059m = 5.88 m3
-   * 3. DPs_1의 WSP인 BW_3의 수위를 140cm로 설정, DPs_1.WL = 5, DPs_1.S = 12 설정
-   *  <test> DPs의 현재 염수를 30% 이상 받을 수 있는 WSP이 없을 경우 아무런 조치를 취하지 않음
+   * 3. BW 2 ~ 4의 수위를 140cm로 설정, DPs_1.WL = 5, DPs_1.S = 12 설정
+   *  <test> DPs_1의 현재 염수를 30% 이상 받을 수 있는 WSP이 없을 경우 아무런 조치를 취하지 않음
    *    (SEB_WV_TS - SEB_WV_TMU) * 3 = 20 m3, BW_3_WV = 4 * 3 * (1.5-1.4) = 1.2 m3
    *  DPs_2 그룹 내의 수중 증발지인 SEP_6.S = 20
    *  <test> DPs.S_TULO(18)에 달성률이 33%이므로 명령 수행이 이루어지지 않음
@@ -579,7 +579,7 @@ describe.only('염도 임계치 처리 테스트', function() {
       dpStorage.getPlaceNode({ nodeDefId: ndId.S }).putPlaceRankList = [
         pId.BW_4,
         pId.BW_3,
-        pId.SEA,
+        // pId.SEA,
       ];
     });
 
@@ -613,22 +613,22 @@ describe.only('염도 임계치 처리 테스트', function() {
       });
     }
 
-    // * 3. BW 2 ~ 4의 수위를 140cm로 설정
+    // * 3. BW 2 ~ 4의 수위를 140cm로 설정, DPs_1.WL = 5, DPs_1.S = 12 설정
     control.notifyDeviceData(null, [
       setNodeData(pn_WL_BW_2, 140),
       setNodeData(pn_WL_BW_3, 140),
       setNodeData(pn_WL_BW_4, 140),
     ]);
-    // DPs_2.WL = 5, DPs_2.S = 10 설정
-    setPlaceStorage(DPs_2, 5, 10);
+    // DPs_2.WL = 4, DPs_2.S = 10 설정
+    setPlaceStorage(DPs_2, 4, 10);
     // DPs_1.WL = 3.1, DPs_1.S = 12 설정, DPs_1의 하한선은 2.9이므로 수행하지 못함
     setPlaceStorage(DPs_1, 3.1, 12);
     // DPs_1.WL = 5, 하한선 10%. 3.19 이상을 만족하므로 알고리즘 수행
     setPlaceStorage(DPs_1, null, 0);
     setPlaceStorage(DPs_1, 5, 12);
 
-    // *  <test> DPs의 현재 염수를 30% 이상 받을 수 있는 WSP이 없을 경우 아무런 조치를 취하지 않음
-    // *    (SEB_WV_TS - SEB_WV_TMU) * 3 = 20 m3, BW_3_WV = 4 * 3 * (1.5-1.4) = 1.2 m3
+    // *  <test> DPs_1의 현재 염수를 30% 이상 받을 수 있는 WSP이 없을 경우 아무런 조치를 취하지 않음
+    // *    (SEB_WV_TS - SEB_WV_TMU) * 5 = 20 m3, BW_3_WV = 4 * 3 * (1.5-1.4) = 1.2 m3
     expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
 
     // *  DPs_2 그룹 내의 수중 증발지인 SEP_6.S = 20
@@ -639,9 +639,17 @@ describe.only('염도 임계치 처리 테스트', function() {
     expect(cmdManager.complexCmdList).to.length(0);
     expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
 
-    // *  DPs_2.WL = 5cm, BW_4.WL = 100cm, SEP_7.S = 20
+    // *  SEP_7.S = 20
     // *  <test> DPs_2.S_TULO(18)에 달성률이 66%이므로 명령 알고리즘 수행
-    control.notifyDeviceData(null, [setNodeData(pn_S_SEB_7, 20)])
+    // 해주의 염수가 이를 수용하지 못하므로 실패
+    expect(() => control.notifyDeviceData(null, [setNodeData(pn_S_SEB_7, 20)])).to.throw(
+      'Place: SEB_7. There is no place to receive water at the place.',
+    );
+
+    // *  BW_4.WL = 100cm, SEP_7.S = 20
+    // setPlaceStorage(DPs_2, 4);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_4, 100), setNodeData(pn_S_SEB_7, 20)]);
+
     // *  <test> DPs_2의 현재 염수량과 WSP이 허용하는 염수량의 차를 구하여 DP의 남아있는 염수량 계산
     // *    DPs_2_D_A_WV = (SEB_WV_TS - SEB_WV_TMU) * 3 = (4 - 1) * 3 = 12 m3
     // *    WSP_WS_A_WV = BW_WL_TMO - BW_WL_C = (4 * 3 * (1.5 - 1)) = 6 m3
