@@ -500,13 +500,17 @@ describe.only('염도 임계치 처리 테스트', function() {
    *  DPs_2.WL = 5cm, BW_4.WL = 100cm, SEP_7.S = 20
    *  <test> DPs_2.S_TULO(18)에 달성률이 66%이므로 명령 알고리즘 수행
    *  <test> DPs_2의 현재 염수량과 WSP이 허용하는 염수량의 차를 구하여 DP의 남아있는 염수량 계산
-   *    DPs_2_D_A_WV = (SEB_WV_TS - SEB_WV_TMU) * 3 = (4 - 1) * 3 = 12 m3
-   *    WSP_WS_A_WV = BW_WL_TMO - BW_WL_C = (4 * 3 * (1.5 - 1)) = 6 m3
-   *    DPs_2_R_WV = DPs_2_D_A_WV + (SEB_TMU_WV * 3) = 6 + (1 * 3) = 9 m3
-   *    DPs_2_WS_A_WV = (SEB_WV_TLLU * 3 * 1.3) - DP_R_WV = 11.7 - 9 = 2.7 m3
-   *  <test> DPs_2_WL의 하한선을 기준으로 30%를 증가시킨 염수량을 공급할 수 있다면 BP의 염수량은 충분하다고 가정함
-   *    BP_A_WV = BW_3_WV_C - BW_3_WV_TMU = (4 * 3 * (1.4 - 0.1)) = 15.6 m3
-   *    15.6 m3 > 2.7 m3 이므로 염수 이동
+   *    DPs_2_D_Ab_WV = (SEB_WV_TS - SEB_WV_TMU) * 3 = (5 - 1) * 3 = 12 m3
+   *    해주에서 수용할 수 있는 염수량
+   *    WSP_WS_Ab_WV = BW_WL_TMO - BW_WL_C = (4 * 3 * (1.5 - 1)) = 6 m3
+   *    수중 증발지 그룹에서 해주로 염수를 보내고 난 후 남은 염수량
+   *    DPs_2_D_Af_WV = DPs_2_D_Ab_WV - WSP_WS_Ab_WV = 12 - 6 = 6 m3
+   *    DPs_2_N_WV = DPs_2_WV_TLLU + (DPs_2_WV_Set - DPs_2_WV_TLLU) / 2 = (3 * 3) + ((5 * 3) - (3 * 3)) / 2 = 12 m3
+   *    DPs_2에서 받아야 할 실질적 염수량
+   *    DPs_2_WS_Need_WV = DPs_2_N_WV - DPs_2_WV_TMU - DPs_2_D_Af_WV = 12 - 3 - 3 = 6 m3
+   *  <test> DPs_2_WL의 설정과 하한선의 중간 염수량을 만족할 수 있다면 BP의 염수량은 충분하다고 가정함
+   *    BP_Ab_WV = BW_3_WV_C - BW_3_WV_TMU = (4 * 3 * (1.4 - 0.1)) = 15.6 m3
+   *    15.6 m3 > 6 m3 이므로 염수 이동
    *  [SEB_6_TO_BW_4,SEB_7_TO_BW_4,SEB_8_TO_BW_4](R_CON)  ::: 달성 목표: SEB_WL_TMU
    * 4. 데이터를 초기 상태로 돌리고 명령을 취소, 해주 3의 수위를 하한선에 맞춤
    *  DPs_2.S = 10, [DPs_2_TO_BW_4](R_CAN)
@@ -572,10 +576,14 @@ describe.only('염도 임계치 처리 테스트', function() {
     const DPs_2 = [ps_SEB_6, ps_SEB_7, ps_SEB_8];
     // *   DPs_S_1.putPlaceRankList = [BW_3]
     DPs_1.forEach(dpStorage => {
+      // 하한선을 3으로 고정
+      dpStorage.getPlaceNode({ nodeDefId: ndId.WL }).lowerLimitValue = 3;
       dpStorage.getPlaceNode({ nodeDefId: ndId.S }).putPlaceRankList = [pId.BW_3];
     });
     // *   DPs_S_2.putPlaceRankList = [BW_4,BW_3,SEA]
     DPs_2.forEach(dpStorage => {
+      // 하한선을 3으로 고정
+      dpStorage.getPlaceNode({ nodeDefId: ndId.WL }).lowerLimitValue = 3;
       dpStorage.getPlaceNode({ nodeDefId: ndId.S }).putPlaceRankList = [
         pId.BW_4,
         pId.BW_3,
@@ -651,13 +659,17 @@ describe.only('염도 임계치 처리 테스트', function() {
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_4, 100), setNodeData(pn_S_SEB_7, 20)]);
 
     // *  <test> DPs_2의 현재 염수량과 WSP이 허용하는 염수량의 차를 구하여 DP의 남아있는 염수량 계산
-    // *    DPs_2_D_A_WV = (SEB_WV_TS - SEB_WV_TMU) * 3 = (4 - 1) * 3 = 12 m3
-    // *    WSP_WS_A_WV = BW_WL_TMO - BW_WL_C = (4 * 3 * (1.5 - 1)) = 6 m3
-    // *    DPs_2_R_WV = DPs_2_D_A_WV + (SEB_TMU_WV * 3) = 6 + (1 * 3) = 9 m3
-    // *    DPs_2_WS_A_WV = (SEB_WV_TLLU * 3 * 1.3) - DP_R_WV = 11.7 - 9 = 2.7 m3
-    // *  <test> DPs_2_WL의 하한선을 기준으로 30%를 증가시킨 염수량을 공급할 수 있다면 BP의 염수량은 충분하다고 가정함
-    // *    BP_A_WV = BW_3_WV_C - BW_3_WV_TMU = (4 * 3 * (1.4 - 0.1)) = 15.6 m3
-    // *    15.6 m3 > 2.7 m3 이므로 염수 이동
+    // *    DPs_2_D_Ab_WV = (SEB_WV_TS - SEB_WV_TMU) * 3 = (5 - 1) * 3 = 12 m3
+    // *    해주에서 수용할 수 있는 염수량
+    // *    WSP_WS_Ab_WV = BW_WL_TMO - BW_WL_C = (4 * 3 * (1.5 - 1)) = 6 m3
+    // *    수중 증발지 그룹에서 해주로 염수를 보내고 난 후 남은 염수량
+    // *    DPs_2_D_Af_WV = DPs_2_D_Ab_WV - WSP_WS_Ab_WV = 12 - 6 = 6 m3
+    // *    DPs_2_N_WV = DPs_2_WV_TLLU + (DPs_2_WV_Set - DPs_2_WV_TLLU) / 2 = (3 * 3) + ((5 * 3) - (3 * 3)) / 2 = 12 m3
+    // *    DPs_2에서 받아야 할 실질적 염수량
+    // *    DPs_2_WS_Need_WV = DPs_2_N_WV - DPs_2_WV_TMU - DPs_2_D_Af_WV = 12 - 3 - 3 = 6 m3
+    // *  <test> DPs_2_WL의 설정과 하한선의 중간 염수량을 만족할 수 있다면 BP의 염수량은 충분하다고 가정함
+    // *    BP_Ab_WV = BW_3_WV_C - BW_3_WV_TMU = (4 * 3 * (1.4 - 0.1)) = 15.6 m3
+    // *    15.6 m3 > 6 m3 이므로 염수 이동
     // *  [SEB_6_TO_BW_4,SEB_7_TO_BW_4,SEB_8_TO_BW_4](R_CON)  ::: 달성 목표: SEB_WL_TMU
   });
 });

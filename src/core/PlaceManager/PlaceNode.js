@@ -111,6 +111,7 @@ class PlaceNode extends PlaceComponent {
    * @return {PlaceStorage[]}
    */
   getCallPlaceRankList() {
+    BU.CLI(this.callPlaceRankList);
     return _.map(this.callPlaceRankList, callPlaceId => {
       return this.placeStorage.findPlace(callPlaceId);
     });
@@ -222,6 +223,18 @@ class PlaceNode extends PlaceComponent {
    */
   getSquareMeter() {
     return this.placeStorage.getSquareMeter();
+  }
+
+  /**
+   * @desc Place Storage :::
+   * 장소 노드 객체를 조회하고자 할 경우
+   * @param {Object} placeNodeInfo NodeId or nodeInfo 객체
+   * @param {string=} placeNodeInfo.nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
+   * @param {nodeId|nodeInfo=} placeNodeInfo.node NodeId or nodeInfo 객체
+   * @return {PlaceNode}
+   */
+  getPlaceNode(placeNodeInfo) {
+    return this.placeStorage.getPlaceNode(placeNodeInfo);
   }
 
   /**

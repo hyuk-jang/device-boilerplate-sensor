@@ -121,6 +121,7 @@ module.exports = {
     // 급수지의 장소 정보와 수용 가능한 급수량
     const waterSupplyInfo = {
       // 급수지 장소
+      /** @type {PlaceStorage} */
       waterSupplyPlace: null,
       // 급수지에서 받을 수 있는 염수량(m3)
       waterSupplyAbleWV: 0,
@@ -154,45 +155,29 @@ module.exports = {
 
   /**
    * 원천지(Base Place)로부터 염수를 공급 받을 수 있는 급수지를 찾고 결과를 예상한 후 반환
-   * @param {PlaceNode} waterSupplyPlaceNode 임계 염도가 발생한 원천 염도 노드
-   * @param {number} waterSupplyAbleWV 받아야 하는 최소 염수량 (m3)
+   * @param {PlaceNode} waterSupplyPlaceNodeS 임계 염도가 발생한 원천 염도 노드
+   * @param {number} needWaterVolume 받아야 하는 염수량 (m3)
    */
-  getDrainageAblePlace(waterSupplyPlaceNode, waterSupplyAbleWV) {
-    // 수위를 급수할 수 있는 장소 목록을 가져옴
-    const callPlaceList = waterSupplyPlaceNode.getCallPlaceRankList();
-
+  getDrainageAblePlace(waterSupplyPlaceNodeS, needWaterVolume) {
+    // BU.CLI(waterSupplyPlaceNodeS.getPlaceId(), needWaterVolume);
     // 급수지의 장소 정보와 수용 가능한 급수량
-    const draingeInfo = {
-      // 급수지 장소
-      drainagePlace: null,
-      // 급수지에서 받을 수 있는 염수량(m3)
-      // waterSupplyAbleWV: 0,
-      // 배수지에서 염수를 최대고 보내고 남은 염수량(m3)
-      // drainageRemainWV: waterSupplyAbleWV,
-    };
+    let drainagePlace = null;
 
-    // 급수지는 보내오는 염수량의 30%는 받을 수 있는 해주를 대상으로 함
-    const minimumDrainageWV = _.multiply(waterSupplyAbleWV, 0.3);
+    const placeNodeWL = waterSupplyPlaceNodeS.getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
 
     // 염도 임계치 목록 중에서 염수 이동이 가능한 급수지를 찾음
-    _.find(waterSupplyPlaceNode.getPutPlaceRankList(), waterSupplyStorage => {
+    _.find(placeNodeWL.getCallPlaceRankList(), drainageStorage => {
       // 급수지에서 받을 수 있는 염수량 계산
-      const waterSupplyAbleWV = this.getWaterSupplyAbleWV(waterSupplyStorage);
-      // BU.CLI(waterSupplyAbleWV)
+      const drainageAbleWV = this.getDrainageAbleWV(drainageStorage);
 
-      // 보내는 염수량의 30%를 받을 수 있다면
-      if (minimumDrainageWV < waterSupplyAbleWV) {
-        // BU.CLIN(drainageAbleWV, waterSupplyAbleWV);
-        const drainageRemainWV = waterSupplyAbleWV - waterSupplyAbleWV;
-        draingeInfo.drainagePlace = waterSupplyStorage;
-        draingeInfo.waterSupplyAbleWV = waterSupplyAbleWV;
-        // 보내는 염수를 100% 수용할 수 있다면 남은 배수지의 이동 가능한 염수량은 0
-        draingeInfo.drainageRemainWV = drainageRemainWV < 0 ? 0 : drainageRemainWV;
+      // 설정과 하한선의 중간 염수량을 만족할 수 있다면
+      if (drainageAbleWV.drainageAbleWV >= needWaterVolume) {
+        drainagePlace = drainageStorage;
         return true;
       }
     });
 
-    return draingeInfo;
+    return drainagePlace;
   },
 
   /**
