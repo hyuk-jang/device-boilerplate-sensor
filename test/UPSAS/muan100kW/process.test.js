@@ -142,10 +142,10 @@ describe('수위 임계치 처리 테스트', function() {
 
     // 저수지
     const ps_BW_5 = placeManager.findPlace(pId.BW_5);
-    const pn_WL_BW_5 = ps_BW_5.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_BW_5 = ps_BW_5.getPlaceNode(ndId.WL);
     // 일반 증발지 1
     const ps_NCB = placeManager.findPlace(pId.NCB);
-    const pn_WL_NCB = ps_NCB.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_NCB = ps_NCB.getPlaceNode(ndId.WL);
 
     expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
 
@@ -297,7 +297,7 @@ describe('수위 임계치 처리 테스트', function() {
    *  <test> 자동 급수 요청 우선 순위에 따라 급수 대상 탐색. 1순위(해주 1) 자격 미달에 의한 2순위 지역 급수 요청
    *      수위 하한선 >>> [NEB_1_TO_NEB_2](R_CON) :: 달성 목표: 급수지(일반 증발지 2) 수위 12cm 이상
    */
-  it.only('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
+  it('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -312,19 +312,19 @@ describe('수위 임계치 처리 테스트', function() {
 
     // 저수지
     const ps_RV = placeManager.findPlace(pId.RV);
-    const pn_WL_RV = ps_RV.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_RV = ps_RV.getPlaceNode(ndId.WL);
     // 일반 증발지 1
     const ps_NEB_1 = placeManager.findPlace(pId.NEB_1);
-    const pn_WL_NEB_1 = ps_NEB_1.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_NEB_1 = ps_NEB_1.getPlaceNode(ndId.WL);
     // 일반 증발지 2
     const ps_NEB_2 = placeManager.findPlace(pId.NEB_2);
-    const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode(ndId.WL);
     // 해주 1
     const ps_BW_1 = placeManager.findPlace(pId.BW_1);
-    const pn_WL_BW_1 = ps_BW_1.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_BW_1 = ps_BW_1.getPlaceNode(ndId.WL);
     // 해주 2
     const ps_BW_2 = placeManager.findPlace(pId.BW_2);
-    const pn_WL_BW_2 = ps_BW_2.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_BW_2 = ps_BW_2.getPlaceNode(ndId.WL);
 
     //  * 1. 일반 증발지 1 에서 일반 증발지 2로 염수 이동
     //  *     달성 목표:
@@ -439,7 +439,70 @@ describe('수위 임계치 처리 테스트', function() {
    *  <test> 급수지에 염수를 하한선 및 설정 사이 50%를 공급할 수 없을 경우 급수지와 동일하지 않은 1순위 배수지로 염수 이동 요청(멀티)
    *    SEB_6.WL 하한선 > BW_3.WL 염수 이동 조건 불가 > [SEB_1,SEB_2,SEB_3,SEB_4,SEB_5][TO_BW_3](R_CON)
    */
-  it('염수 그룹화 이동', async () => {});
+  it.only('염수 그룹화 이동', async () => {
+    const { placeManager } = control.model;
+    const {
+      cmdManager,
+      cmdManager: { cmdOverlapManager, threCmdManager },
+    } = control.model;
+
+    // * 1. 일반 증발지 2의 급수 순위를 [BW_1,NEB_1]에서 [[BW_1,NEB_1]]로 변경
+    // 해주 1
+    const ps_BW_1 = placeManager.findPlace(pId.BW_1);
+    const pn_WL_BW_1 = ps_BW_1.getPlaceNode(ndId.WL);
+    // 해주 2
+    const ps_BW_2 = placeManager.findPlace(pId.BW_2);
+    const pn_WL_BW_2 = ps_BW_2.getPlaceNode(ndId.WL);
+    // BW_2.callPlaceRankList = [NEB_2]
+    pn_WL_BW_2.callPlaceRankList = [pId.NEB_2];
+    // 해주 3
+    const ps_BW_3 = placeManager.findPlace(pId.BW_3);
+    const pn_WL_BW_3 = ps_BW_3.getPlaceNode(ndId.WL);
+    // 하한선은 없앰
+    pn_WL_BW_3.lowerLimitValue = '';
+    // * BW_3.callPlaceRankList = [[SEB_1,SEB_2,SEB_3,SEB_4,SEB_5]]
+    pn_WL_BW_3.callPlaceRankList = [[pId.SEB_1, pId.SEB_2, pId.SEB_3, pId.SEB_4, pId.SEB_5]];
+    // 일반 증발지 2
+    const ps_NEB_2 = placeManager.findPlace(pId.NEB_2);
+    const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode(ndId.WL);
+    // * NEB_2.callPlaceRankList = [[BW_1,NEB_1]]
+    pn_WL_NEB_2.callPlaceRankList = [[pId.BW_1, pId.NEB_1]];
+    const pn_S_NEB_2 = ps_NEB_2.getPlaceNode(ndId.S);
+    // 수중 증발지 6
+    const ps_SEB_6 = placeManager.findPlace(pId.SEB_6);
+    const pn_WL_SEB_6 = ps_SEB_6.getPlaceNode(ndId.WL);
+    const pn_S_SEB_6 = ps_SEB_6.getPlaceNode(ndId.S);
+
+    // * 2. 급수지(일반 증발지 2)의 수위를 하한선 이하로 맞춤. NEB_2.WL = 3
+    // *  <test> 동시 다중 배수지일경우 동시 수행 테스트
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_1, 100)]);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 3)]);
+
+    // *    일반 증발지 2 수위 하한선 >>> [BW_1_TO_NEB_2,NEB_1_TO_NEB_2](R_CON)
+    /** @type {complexCmdWrapInfo} */
+    const BW_1_TO_NEB_2_CON = await eventToPromise(control, 'completeCommand');
+    // BU.CLIN(BW_1_TO_NEB_2_CON.wrapCmdGoalInfo.goalDataList)
+    const NEB_1_TO_NEB_2_CON = await eventToPromise(control, 'completeCommand');
+    // BU.CLI('왓?')
+
+    // BU.CLIN(cmdManager.complexCmdList)
+    expect(cmdManager.complexCmdList).to.length(2);
+    expect(threCmdManager.threCmdStorageList).to.length(2);
+
+    // * 일반 증발지 2의 수위 정상(10)으로 교체. NEB_2.WL = 10
+    control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 12)]);
+
+    // *    일반 증발지 2 목표 달성 >>> [BW_1_TO_NEB_2,NEB_1_TO_NEB_2](R_CAN)
+    const BW_1_TO_NEB_2_CAN = await eventToPromise(control, 'completeCommand');
+    // BU.CLIN(BW_1_TO_NEB_2_CON)
+    const NEB_1_TO_NEB_2_CAN = await eventToPromise(control, 'completeCommand');
+
+    // * 3. 해주 3의 수위를 최저치 설정. 수중 태양광 증발지 수위 하한선 설정.
+    // *  BW_3.WL = 10, SEB_6.WL = 2
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_3, 15), setNodeData(pn_WL_SEB_6, 2)]);
+    // *  <test> 급수지에 염수를 하한선 및 설정 사이 50%를 공급할 수 없을 경우 급수지와 동일하지 않은 1순위 배수지로 염수 이동 요청(멀티)
+    // *    SEB_6.WL 하한선 > BW_3.WL 염수 이동 조건 불가 > [SEB_1,SEB_2,SEB_3,SEB_4,SEB_5][TO_BW_3](R_CON)
+  });
 
   /**
    * @desc T.C 3 [자동 모드]
@@ -452,7 +515,7 @@ describe('수위 임계치 처리 테스트', function() {
   // * 해주 및 증발지의 면적에 따른 해수 부피를 산정하여 명령 수행 가능성 여부를 결정한다.
 });
 
-describe('염도 임계치 처리 테스트', function() {
+describe.skip('염도 임계치 처리 테스트', function() {
   this.timeout(5000);
 
   before(async () => {
@@ -491,7 +554,7 @@ describe('염도 임계치 처리 테스트', function() {
    * WaterSupplyPlace(WSP): 염수를 공급받을 해주
    * BasePlace(BP): 염수를 이동 한 후 수중 태양광 증발지로 염수를 재공급할 해주
    * Update Data Event: UDE , Data Type: DT, Data Status: DS,
-   * Water Volume: WV, Available A, Current: C, Remain: R, Lower: L, Set
+   * Water Volume: WV, Able: Ab, After: Af, Need: N, Current: C, Remain: R, Lower: L, Set, Water Supply: WS, Drainage: D
    * WaterLevel: WL, Salinity: S, Module Rear Temperature: MRT,
    * GoalThreshold: GT, Node: N,
    * ThresholdMinUnder: TMU, ThresholdLowerLimitUnder: TLLU, ThresholdSet: TS,
@@ -500,7 +563,7 @@ describe('염도 임계치 처리 테스트', function() {
    * 1. 수중태양광 증발지 그룹(DPs_2)의 염도 임계치 도달 급수지 순위 변경
    *   DPs_1.putPlaceRankList = [BW_3]
    *   DPs_2.putPlaceRankList = [BW_4,BW_3,SEA]
-   * 2. DPs, WSP의 A_WV 계산(width * height * depth / 1000000000). cm3 => m3
+   * 2. DPs, WSP의 Ab_WV 계산(width * height * depth / 1000000000). cm3 => m3
    *  해주 2 BW_WV_TMU: 9m * 3m * 1.5m = 40.5 m3
    *  해주 3, 4 BW_WV_TMO: 4m * 3m * 1.5m = 18 m3
    *  해주 3, 4 BW_WV_TMU: 4m * 3m * 0.1m = 1.2 m3
@@ -547,49 +610,49 @@ describe('염도 임계치 처리 테스트', function() {
 
     // 해주 2
     const ps_BW_2 = placeManager.findPlace(pId.BW_2);
-    const pn_WL_BW_2 = ps_BW_2.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_BW_2 = ps_BW_2.getPlaceNode(ndId.WL);
     // 해주 3
     const ps_BW_3 = placeManager.findPlace(pId.BW_3);
-    const pn_WL_BW_3 = ps_BW_3.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_BW_3 = ps_BW_3.getPlaceNode(ndId.WL);
     // 해주 4
     const ps_BW_4 = placeManager.findPlace(pId.BW_4);
-    const pn_WL_BW_4 = ps_BW_4.getPlaceNode({ nodeDefId: ndId.WL });
+    const pn_WL_BW_4 = ps_BW_4.getPlaceNode(ndId.WL);
     // 일반 증발지 2
     const ps_NEB_2 = placeManager.findPlace(pId.NEB_2);
-    const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_NEB_2 = ps_NEB_2.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode(ndId.WL);
+    const pn_S_NEB_2 = ps_NEB_2.getPlaceNode(ndId.S);
     // 수중 증발지 1
     const ps_SEB_1 = placeManager.findPlace(pId.SEB_1);
-    const pn_WL_SEB_1 = ps_SEB_1.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_SEB_1 = ps_SEB_1.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_SEB_1 = ps_SEB_1.getPlaceNode(ndId.WL);
+    const pn_S_SEB_1 = ps_SEB_1.getPlaceNode(ndId.S);
     // 수중 증발지 2
     const ps_SEB_2 = placeManager.findPlace(pId.SEB_2);
-    const pn_WL_SEB_2 = ps_SEB_2.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_SEB_2 = ps_SEB_2.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_SEB_2 = ps_SEB_2.getPlaceNode(ndId.WL);
+    const pn_S_SEB_2 = ps_SEB_2.getPlaceNode(ndId.S);
     // 수중 증발지 3
     const ps_SEB_3 = placeManager.findPlace(pId.SEB_3);
-    const pn_WL_SEB_3 = ps_SEB_3.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_SEB_3 = ps_SEB_3.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_SEB_3 = ps_SEB_3.getPlaceNode(ndId.WL);
+    const pn_S_SEB_3 = ps_SEB_3.getPlaceNode(ndId.S);
     // 수중 증발지 4
     const ps_SEB_4 = placeManager.findPlace(pId.SEB_4);
-    const pn_WL_SEB_4 = ps_SEB_4.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_SEB_4 = ps_SEB_4.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_SEB_4 = ps_SEB_4.getPlaceNode(ndId.WL);
+    const pn_S_SEB_4 = ps_SEB_4.getPlaceNode(ndId.S);
     // 수중 증발지 5
     const ps_SEB_5 = placeManager.findPlace(pId.SEB_5);
-    const pn_WL_SEB_5 = ps_SEB_5.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_SEB_5 = ps_SEB_5.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_SEB_5 = ps_SEB_5.getPlaceNode(ndId.WL);
+    const pn_S_SEB_5 = ps_SEB_5.getPlaceNode(ndId.S);
     // 수중 증발지 6
     const ps_SEB_6 = placeManager.findPlace(pId.SEB_6);
-    const pn_WL_SEB_6 = ps_SEB_6.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_SEB_6 = ps_SEB_6.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_SEB_6 = ps_SEB_6.getPlaceNode(ndId.WL);
+    const pn_S_SEB_6 = ps_SEB_6.getPlaceNode(ndId.S);
     // 수중 증발지 7
     const ps_SEB_7 = placeManager.findPlace(pId.SEB_7);
-    const pn_WL_SEB_7 = ps_SEB_7.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_SEB_7 = ps_SEB_7.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_SEB_7 = ps_SEB_7.getPlaceNode(ndId.WL);
+    const pn_S_SEB_7 = ps_SEB_7.getPlaceNode(ndId.S);
     // 수중 증발지 8
     const ps_SEB_8 = placeManager.findPlace(pId.SEB_8);
-    const pn_WL_SEB_8 = ps_SEB_8.getPlaceNode({ nodeDefId: ndId.WL });
-    const pn_S_SEB_8 = ps_SEB_8.getPlaceNode({ nodeDefId: ndId.S });
+    const pn_WL_SEB_8 = ps_SEB_8.getPlaceNode(ndId.WL);
+    const pn_S_SEB_8 = ps_SEB_8.getPlaceNode(ndId.S);
 
     // * 1. 수중태양광 증발지 그룹(DPs_2)의 염도 임계치 도달 급수지 순위 변경
     const DPs_1 = [ps_SEB_1, ps_SEB_2, ps_SEB_3, ps_SEB_4, ps_SEB_5];
@@ -597,14 +660,14 @@ describe('염도 임계치 처리 테스트', function() {
     // *   DPs_S_1.putPlaceRankList = [BW_3]
     DPs_1.forEach(dpStorage => {
       // 하한선을 3으로 고정
-      dpStorage.getPlaceNode({ nodeDefId: ndId.WL }).lowerLimitValue = 3;
-      dpStorage.getPlaceNode({ nodeDefId: ndId.S }).putPlaceRankList = [pId.BW_3];
+      dpStorage.getPlaceNode(ndId.WL).lowerLimitValue = 3;
+      dpStorage.getPlaceNode(ndId.S).putPlaceRankList = [pId.BW_3];
     });
     // *   DPs_S_2.putPlaceRankList = [BW_4,BW_3,SEA]
     DPs_2.forEach(dpStorage => {
       // 하한선을 3으로 고정
-      dpStorage.getPlaceNode({ nodeDefId: ndId.WL }).lowerLimitValue = 3;
-      dpStorage.getPlaceNode({ nodeDefId: ndId.S }).putPlaceRankList = [
+      dpStorage.getPlaceNode(ndId.WL).lowerLimitValue = 3;
+      dpStorage.getPlaceNode(ndId.S).putPlaceRankList = [
         pId.BW_4,
         pId.BW_3,
         // pId.SEA,
@@ -622,7 +685,7 @@ describe('염도 임계치 처리 테스트', function() {
         try {
           control.notifyDeviceData(null, [
             _.isNumber(setWaterLevel) &&
-              setNodeData(placeStorage.getPlaceNode({ nodeDefId: ndId.WL }), setWaterLevel),
+              setNodeData(placeStorage.getPlaceNode(ndId.WL), setWaterLevel),
           ]);
         } catch (error) {
           BU.error(error.message);
@@ -632,8 +695,7 @@ describe('염도 임계치 처리 테스트', function() {
       placeStorageList.forEach(placeStorage => {
         try {
           control.notifyDeviceData(null, [
-            _.isNumber(setSalinity) &&
-              setNodeData(placeStorage.getPlaceNode({ nodeDefId: ndId.S }), setSalinity),
+            _.isNumber(setSalinity) && setNodeData(placeStorage.getPlaceNode(ndId.S), setSalinity),
           ]);
         } catch (error) {
           BU.error(error.message);

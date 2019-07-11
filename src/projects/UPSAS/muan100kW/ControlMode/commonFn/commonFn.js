@@ -235,32 +235,53 @@ module.exports = {
    * @param {number=} waterSupplyInfo.goalRange 임계치 범위
    * @param {boolean} isForce
    */
-  executeAutoWaterSupply(waterSupplyInfo, isForce = false) {
-    const { placeNode, goalValue, goalRange } = waterSupplyInfo;
+  executeWaterSupply(waterSupplyInfo, isForce = false) {
+    const { placeNode } = waterSupplyInfo;
     // 자동으로 급수를 진행할 경우 지정 장소의 수위 하한선이 존재하지 않는다면 종료
-    if (!_.isNumber(placeNode.getLowerLimitValue())) return false;
+    // if (!_.isNumber(placeNode.getLowerLimitValue())) return false;
 
     // 지정 장소에 염수를 공급할 수 있는 배수지를 찾음(수위가 충분한 배수지)
-    const drainagePlace = this.getDrainageAblePlace(placeNode);
-    if (drainagePlace) {
+    const drainagePlaceList = this.getDrainageAblePlace(placeNode);
+    // BU.CLIN(drainagePlaceList, 1);
+    // 배수지가 존재할 경우 급수 요청
+    if (drainagePlaceList.length) {
       // 염수 흐름 명령을 생성. (Src Place Id => Dest Place Id)
-      coreFacade.executeFlowControl(
-        this.makeWaterFlowCommand(
-          {
-            placeNode: drainagePlace,
-          },
-          {
-            placeNode,
-            goalValue,
-            goalRange,
-          },
-        ),
-      );
-    } else if (isForce) {
+      return drainagePlaceList.forEach(drainagePlace => {
+        coreFacade.executeFlowControl(
+          this.makeWaterFlowCommand(
+            {
+              placeNode: drainagePlace,
+            },
+            waterSupplyInfo,
+          ),
+        );
+      });
+    }
+
+    // 수위가 충분한 배수지가 존재하지 않아 명령 수행 불가.
+    // 배수지에 급수를 하고자 할 경우
+    if (isForce) {
       const callPlaceList = placeNode.getCallPlaceRankList();
+
+      // 배수지가 존재하고 배수지가 동시 다수 일경우
+      // if(callPlaceList.length && _.isArray(_.head(callPlaceList))) {
+
+      // }
+
+      // const drainageList = [];
+      // _.find(callPlaceList, callPlace => {
+      //   if (_.isArray(callPlace)) {
+      //     const callPlaceList = _(callPlace)
+      //       .map(this.getDrainageAblePlace)
+      //       .flatten()
+      //       .union()
+      //       .value();
+      //   }
+      // });
+
       // 배수지 1랭크에 염수 이동 요청
       if (callPlaceList.length) {
-        const placeNodeWL = _.head(callPlaceList).getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
+        const placeNodeWL = _.head(callPlaceList).getPlaceNode(ndId.WATER_LEVEL);
         this.executeAutoDrainage({
           placeNode: placeNodeWL,
           goalValue: placeNodeWL.getMinValue(),
@@ -275,25 +296,80 @@ module.exports = {
   /**
    * 지정한 장소로 배수를 진행할 수 있는 배수지 검색 (배수지 수위가 충분해야함)
    * @param {PlaceNode} waterSupplyPlace 데이터 갱신이 발생한 수위노드
+   * @param {PlaceComponent=} finalWaterSupplyPlace drainagePlace에서 배수를 진행하는 장소
+   * @return {PlaceStorage[]}
    */
-  getDrainageAblePlace(waterSupplyPlace) {
+  getDrainageAblePlace(waterSupplyPlace, finalWaterSupplyPlace) {
     // BU.CLIN(waterSupplyPlaceWL);
-
-    // 수위를 급수할 수 있는 장소 목록을 가져옴
+    // 배수지 목록을 가져옴
     const callPlaceList = waterSupplyPlace.getCallPlaceRankList();
+    // BU.CLIN(callPlaceList, 1);
 
-    // 급수를 해올 수 있는 장소의 수위 상태
-    const { MAX_OVER, UPPER_LIMIT_OVER, NORMAL } = placeNodeStatus;
+    // 배수 가능한 배수지 목록을 가져옴
+    const ableDrainagePlaceList = this.getAblePlace(callPlaceList, this.getCallAblePlace);
 
-    // 우선 배수지 장소 중 급수를 진행할 수 있는 장소 검색
-    return _.find(callPlaceList, callPlaceStorage => {
-      const nodeStatus = callPlaceStorage
-        .getPlaceNode({ nodeDefId: waterSupplyPlace.getNodeDefId() })
-        .getNodeStatus();
+    // 급수지에서 배수 할 장소가 지정되어 있다면 탐색한 배수지에서 제외하고 반환
+    if (finalWaterSupplyPlace) {
+      return _.reject(ableDrainagePlaceList, placeStorage =>
+        _.eq(placeStorage.getPlaceId(), finalWaterSupplyPlace.getPlaceId()),
+      );
+    }
+    return ableDrainagePlaceList;
+  },
 
-      // 급수를 할 수 있는 상태는 최대 치, 상한선, 기본 일 경우 가능함
-      return _.includes([MAX_OVER, UPPER_LIMIT_OVER, NORMAL], nodeStatus);
-    });
+  /**
+   * 장소 목록
+   * @param {PlaceStorage[]} placeStorageList
+   * @param {Function} calcFn
+   * @return {PlaceStorage[]}
+   */
+  getAblePlace(placeStorageList, calcFn) {
+    // BU.CLIN(placeStorageList, 1);
+    /** @type {PlaceStorage[]} */
+    let ablePlaceList = [];
+    for (let index = 0; index < placeStorageList.length; index += 1) {
+      const foundPlace = calcFn.call(this, placeStorageList[index]);
+      if (!_.isEmpty(foundPlace)) {
+        ablePlaceList = _.isArray(foundPlace) ? foundPlace : [foundPlace];
+      }
+    }
+
+    return ablePlaceList;
+  },
+
+  /**
+   * 물을 가져올 수 있는 장소
+   * 최저치와 최대치의 10% 이상이 있어야 가져올 수 있다고 판단.
+   * Min + (Max - Min) * 0.1
+   * @param {PlaceStorage|PlaceStorage[]} placeStorage
+   * @return {PlaceStorage|PlaceStorage[]}
+   */
+  getCallAblePlace(placeStorage) {
+    if (_.isArray(placeStorage)) {
+      return _(placeStorage)
+        .map(this.getCallAblePlace)
+        .filter(_.isObject)
+        .value();
+    }
+
+    // 수위 노드
+    const placeNode = placeStorage.getPlaceNode(ndId.WATER_LEVEL);
+    // 현재 보고있는 장소의 수위값이 정상이고 최저 수위 보다 10% 이상 높을 경우에 충족하다고 판단
+    if (_.isNumber(placeNode.getNodeValue())) {
+      // BU.CLIS(placeNode.getMinValue(), placeNode.getNodeValue());
+
+      const remainWaterLevel = _.chain(placeNode.getMaxValue())
+        .subtract(placeNode.getMinValue())
+        .multiply(0.1)
+        .add(placeNode.getMinValue())
+        .round(1)
+        .value();
+      // BU.CLI(placeNode.getPlaceId(), remainWaterLevel);
+      // const remainWaterLevel = placeNode.getMinValue() + (placeNode.getMaxValue() - placeNode.getMinValue()) * 0.1
+      if (remainWaterLevel < placeNode.getNodeValue()) {
+        return placeStorage;
+      }
+    }
   },
 
   /**
@@ -311,7 +387,7 @@ module.exports = {
     // 우선 급수지 장소 중 배수를 진행할 수 있는 장소 검색
     return _.find(putPlaceList, putPlaceStorage => {
       const nodeStatus = putPlaceStorage
-        .getPlaceNode({ nodeDefId: drainagePlaceWL.getNodeDefId() })
+        .getPlaceNode(drainagePlaceWL.getNodeDefId())
         .getNodeStatus();
 
       // 급수를 할 수 있는 상태는 기본, 하한선, 최저치 일 경우 가능함

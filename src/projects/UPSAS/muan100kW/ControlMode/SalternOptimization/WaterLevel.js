@@ -71,63 +71,6 @@ class WaterLevel extends PlaceThreshold {
    */
   handleLowerLimitUnder(coreFacade, placeNode) {
     // BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
-    try {
-      // 하한선 수위가 존재하지 않는다면 종료
-      if (!_.isNumber(placeNode.getLowerLimitValue())) return false;
-
-      // 수위 하한선에 걸렸기 때문에 수위를 급수할 수 있는 장소 목록을 가져옴
-      const callPlaceList = placeNode.getCallPlaceRankList();
-
-      // 급수를 해올 수 있는 장소의 수위 상태
-      const { MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER } = placeNodeStatus;
-
-      // BU.CLI(MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER);
-      // 우선 배수지 장소 중 급수를 진행할 수 있는 장소 검색
-      const ablePlaceStorage = _.find(callPlaceList, callPlaceStorage => {
-        const nodeStatus = callPlaceStorage
-          .getPlaceNode({ nodeDefId: NODE_DEF_ID })
-          .getNodeStatus();
-
-        // 급수를 할 수 있는 상태는 최대 치, 상한선, 기본, 하한선 일 경우 가능함
-        return _.includes([MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER], nodeStatus);
-      });
-
-      // 배수지가 존재하지 않는다면 종료
-      if (!ablePlaceStorage) return false;
-
-      // 염수 흐름 명령을 생성.
-      coreFacade.executeFlowControl({
-        srcPlaceId: ablePlaceStorage.getPlaceId(),
-        destPlaceId: placeNode.getPlaceId(),
-        wrapCmdGoalInfo: {
-          goalDataList: [
-            _.isNumber(placeNode.getSetValue())
-              ? {
-                  nodeId: placeNode.getNodeId(),
-                  goalValue: placeNode.getSetValue(),
-                  goalRange: goalDataRange.UPPER,
-                }
-              : {},
-          ],
-        },
-      });
-
-      // 우선 순위가 높은 장소의 염수가 충분하지만 명령 충돌이 발생한다면 충돌이 해제될때까지 기다림.
-      // callPlaceList.forEach(callPlaceId => {
-      //   const nodeStatus = placeManager
-      //     .getPlaceStorage(callPlaceId)
-      //     .getPlaceNode(NODE_DEF_ID)
-      //     .getNodeStatus();
-
-      //   if (_.includes([MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER], nodeStatus)) {
-      //   }
-      // });
-
-      // 우선 순위 장소의 염수가 최저수위 이하라면 후 순위의 배수지를 찾음
-    } catch (error) {
-      // BU.CLIN(error);
-      throw error;
-    }
   }
 
   /**

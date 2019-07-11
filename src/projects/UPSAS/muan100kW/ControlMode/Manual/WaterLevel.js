@@ -84,9 +84,7 @@ class WaterLevel extends PlaceThreshold {
       // BU.CLI(MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER);
       // 우선 배수지 장소 중 급수를 진행할 수 있는 장소 검색
       const ablePlaceStorage = _.find(callPlaceList, callPlaceStorage => {
-        const nodeStatus = callPlaceStorage
-          .getPlaceNode({ nodeDefId: NODE_DEF_ID })
-          .getNodeStatus();
+        // const nodeStatus = callPlaceStorage.getPlaceNode(NODE_DEF_ID).getNodeStatus();
 
         // 급수를 할 수 있는 상태는 최대 치, 상한선, 기본, 하한선 일 경우 가능함
         return _.includes([MAX_OVER, UPPER_LIMIT_OVER, NORMAL, LOWER_LIMIT_UNDER], nodeStatus);

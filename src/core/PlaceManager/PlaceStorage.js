@@ -77,7 +77,7 @@ class PlaceStorage extends PlaceComponent {
    * @return {string}
    */
   getNodeId(nodeDefId) {
-    return this.getPlaceNode({ nodeDefId }).getNodeId();
+    return this.getPlaceNode(nodeDefId).getNodeId();
   }
 
   /**
@@ -86,7 +86,7 @@ class PlaceStorage extends PlaceComponent {
    * @return {string}
    */
   getNodeDefId(nodeDefId) {
-    return this.getPlaceNode({ nodeDefId }).getNodeDefId();
+    return this.getPlaceNode(nodeDefId).getNodeDefId();
   }
 
   /**
@@ -95,7 +95,7 @@ class PlaceStorage extends PlaceComponent {
    * @return {number|string}
    */
   getNodeValue(nodeDefId) {
-    return this.getPlaceNode({ nodeDefId }).getNodeValue();
+    return this.getPlaceNode(nodeDefId).getNodeValue();
   }
 
   /**
@@ -104,7 +104,7 @@ class PlaceStorage extends PlaceComponent {
    * @return {string}
    */
   getNodeStatus(nodeDefId) {
-    return this.getPlaceNode({ nodeDefId }).getNodeStatus();
+    return this.getPlaceNode(nodeDefId).getNodeStatus();
   }
 
   /**
@@ -113,7 +113,7 @@ class PlaceStorage extends PlaceComponent {
    * @return {PlaceStorage[]}
    */
   getCallPlaceRankList(nodeDefId) {
-    return this.getPlaceNode({ nodeDefId }).getCallPlaceRankList();
+    return this.getPlaceNode(nodeDefId).getCallPlaceRankList();
   }
 
   /**
@@ -122,7 +122,7 @@ class PlaceStorage extends PlaceComponent {
    * @return {PlaceStorage[]}
    */
   getPutPlaceRankList(nodeDefId) {
-    return this.getPlaceNode({ nodeDefId }).getPutPlaceRankList();
+    return this.getPlaceNode(nodeDefId).getPutPlaceRankList();
   }
 
   /**
@@ -131,37 +131,37 @@ class PlaceStorage extends PlaceComponent {
    * @return {PlaceStorage[]}
    */
   getGroupSrcList(nodeDefId) {
-    return this.getPlaceNode({ nodeDefId }).getGroupSrcList();
+    return this.getPlaceNode(nodeDefId).getGroupSrcList();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 임계치 */
   getThresholdValue(nodeDefId) {
-    return this.getPlaceNode({ nodeDefId }).getThresholdValue();
+    return this.getPlaceNode(nodeDefId).getThresholdValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 최대 임계치 */
   getMaxValue(nodeDefId) {
-    this.getPlaceNode({ nodeDefId }).getMaxValue();
+    this.getPlaceNode(nodeDefId).getMaxValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 상한선 임계치 */
   getUpperLimitValue(nodeDefId) {
-    this.getPlaceNode({ nodeDefId }).getUpperLimitValue();
+    this.getPlaceNode(nodeDefId).getUpperLimitValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 설정 임계치 */
   getSetValue(nodeDefId) {
-    this.getPlaceNode({ nodeDefId }).getSetValue();
+    this.getPlaceNode(nodeDefId).getSetValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 하한선 임계치 */
   getLowerLimitValue(nodeDefId) {
-    this.getPlaceNode({ nodeDefId }).getLowerLimitValue();
+    this.getPlaceNode(nodeDefId).getLowerLimitValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 최저 임계치 */
   getMinValue(nodeDefId) {
-    this.getPlaceNode({ nodeDefId }).getMinValue();
+    this.getPlaceNode(nodeDefId).getMinValue();
   }
 
   /**
@@ -174,7 +174,7 @@ class PlaceStorage extends PlaceComponent {
         child.updateNode();
       });
     } else if (_.isString(nodeDefId) && nodeDefId.length) {
-      this.getPlaceNode({ nodeDefId }).updateNode();
+      this.getPlaceNode(nodeDefId).updateNode();
     }
   }
 
@@ -224,32 +224,30 @@ class PlaceStorage extends PlaceComponent {
   /**
    * @desc Place Storage :::
    * 장소 노드 객체를 조회하고자 할 경우
-   * @param {Object} placeNodeInfo NodeId or nodeInfo 객체
-   * @param {string=} placeNodeInfo.nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
-   * @param {nodeId|nodeInfo=} placeNodeInfo.node NodeId or nodeInfo 객체
+   * @param {string} nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
    * @return {PlaceNode}
    */
-  getPlaceNode(placeNodeInfo) {
-    const { node, nodeDefId } = placeNodeInfo;
+  getPlaceNode(nodeDefId) {
+    // const { node, nodeDefId } = placeNodeInfo;
 
-    // 노드 정보가 명시되었을 경우
-    if (node) {
-      // nodeId 형태로 넘어올 경우
-      if (_.isString(node)) {
-        return _.find(this.children, placeNode => {
-          return placeNode.getNodeId() === node;
-        });
-      }
+    // // 노드 정보가 명시되었을 경우
+    // if (node) {
+    //   // nodeId 형태로 넘어올 경우
+    //   if (_.isString(node)) {
+    //     return _.find(this.children, placeNode => {
+    //       return placeNode.getNodeId() === node;
+    //     });
+    //   }
 
-      // nodeInfo 형태로 넘어올 경우
-      return _.find(this.children, { nodeInfo: node });
-    }
-    // node Def Id로 찾을 경우
-    if (_.isString(nodeDefId)) {
-      return _.find(this.children, placeNode => {
-        return placeNode.getNodeDefId() === nodeDefId;
-      });
-    }
+    //   // nodeInfo 형태로 넘어올 경우
+    //   return _.find(this.children, { nodeInfo: node });
+    // }
+    // // node Def Id로 찾을 경우
+    // if (_.isString(nodeDefId)) {
+    return _.find(this.children, placeNode => {
+      return placeNode.getNodeDefId() === nodeDefId;
+    });
+    // }
   }
 
   /**

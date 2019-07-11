@@ -1,6 +1,8 @@
 const { BU } = require('base-util-jh');
 
 const AbstAlgorithm = require('./AbstAlgorithm');
+
+const { nodeDefIdInfo: ndId } = AbstAlgorithm;
 const PlaceComponent = require('../../../../core/PlaceManager/PlaceComponent');
 
 const Manual = require('./Manual');
@@ -117,13 +119,9 @@ class Algorithm extends AbstAlgorithm {
       const destPlaceStorage = placeManager.getPlaceStorage(destPlaceId);
 
       // 시작지의 수위 노드 객체
-      const srcPlaceNode = srcPlaceStorage.getPlaceNode({
-        nodeDefId: 'waterLevel',
-      });
+      const srcPlaceNode = srcPlaceStorage.getPlaceNode(ndId.WATER_LEVEL);
       // 도착지의 수위 노드 객체
-      const destPlaceNode = destPlaceStorage.getPlaceNode({
-        nodeDefId: 'waterLevel',
-      });
+      const destPlaceNode = destPlaceStorage.getPlaceNode(ndId.WATER_LEVEL);
 
       // 시작지의 수위가 최저 수위
       if (srcPlaceNode.getNodeValue() <= srcPlaceNode.getMinValue()) {

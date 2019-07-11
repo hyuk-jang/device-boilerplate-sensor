@@ -40,7 +40,7 @@ module.exports = {
 
       // 그룹의 수위가 하한선 * 10% 이상
       let isAbleWL = false;
-      const placeNodeWL = placeStorage.getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
+      const placeNodeWL = placeStorage.getPlaceNode(ndId.WATER_LEVEL);
       if (_.isNumber(placeNodeWL.getNodeValue())) {
         // BU.CLIS(placeNodeWL.getNodeValue(), placeNodeWL.getLowerLimitValue() * 1.1);
         isAbleWL = placeNodeWL.getNodeValue() > placeNodeWL.getLowerLimitValue() * 1.1;
@@ -73,7 +73,7 @@ module.exports = {
    * @param {PlaceStorage} placeStorage
    */
   getDrainageAbleWV(placeStorage) {
-    const placeNode = placeStorage.getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
+    const placeNode = placeStorage.getPlaceNode(ndId.WATER_LEVEL);
 
     const currValue = placeNode.getNodeValue();
     const minValue = placeNode.getMinValue();
@@ -163,7 +163,7 @@ module.exports = {
     // 급수지의 장소 정보와 수용 가능한 급수량
     let drainagePlace = null;
 
-    const placeNodeWL = waterSupplyPlaceNodeS.getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
+    const placeNodeWL = waterSupplyPlaceNodeS.getPlaceNode(ndId.WATER_LEVEL);
 
     // 염도 임계치 목록 중에서 염수 이동이 가능한 급수지를 찾음
     _.find(placeNodeWL.getCallPlaceRankList(), drainageStorage => {
@@ -189,7 +189,7 @@ module.exports = {
   getWaterSupplyAbleWV(placeStorage) {
     // BU.CLI(placeStorage.getPlaceId());
     try {
-      const placeNode = placeStorage.getPlaceNode({ nodeDefId: ndId.WATER_LEVEL });
+      const placeNode = placeStorage.getPlaceNode(ndId.WATER_LEVEL);
       // 해당 장소에 수위가 없다면 무한대로 받을 수 있다고 가정(바다)
       if (placeNode === undefined) {
         return 10000;

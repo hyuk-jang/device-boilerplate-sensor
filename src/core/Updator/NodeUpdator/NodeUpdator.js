@@ -25,6 +25,8 @@ class NodeUpdator extends Updator {
   /** @param {Observer} observer 옵저버 추가 */
   attachObserver(observer) {
     const foundIndex = _.findIndex(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));
+    // BU.CLI(foundIndex);
+    // BU.CLIN(observer, 1);
     // 동일 옵저버가 존재하지 않을 경우에 추가
     if (foundIndex === -1) {
       this.nodeObservers.push(observer);
@@ -44,7 +46,8 @@ class NodeUpdator extends Updator {
 
   /** @param {nodeInfo} nodeInfo 옵저버들에게 노드 변경 알림 */
   notifyObserver(nodeInfo) {
-    this.nodeObservers.forEach(nodeOb => {
+    const cloneObservers = _.clone(this.nodeObservers);
+    cloneObservers.forEach(nodeOb => {
       nodeOb.updateNode(nodeInfo);
     });
   }

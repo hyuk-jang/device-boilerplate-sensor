@@ -1,5 +1,7 @@
 const _ = require('lodash');
 
+const { BU } = require('base-util-jh');
+
 const ThreCmdComponent = require('./ThreCmdComponent');
 
 /**
@@ -80,7 +82,6 @@ class ThreCmdGoal extends ThreCmdComponent {
    * @param {number} deviceData number 형식 데이터
    */
   updateNumValue(deviceData) {
-    // BU.CLI(deviceData, this.goalRange);
     let isClear = false;
 
     switch (this.goalRange) {

@@ -30,6 +30,7 @@ class PlaceComponent extends Observer {
   /**
    *
    * @param {string} placeId placeId와 같은 Place Component 객체를 찾아 반환
+   * @return {PlaceComponent}
    */
   findPlace(placeId) {}
 
@@ -100,13 +101,13 @@ class PlaceComponent extends Observer {
 
   /**
    * 급수지 Place Id 목록 반환
-   * @return {PlaceComponent[]}
+   * @return {PlaceComponent[]|PlaceComponent[][]}
    */
   getCallPlaceRankList() {}
 
   /**
    * 배수지 Place Id목록 반환
-   * @return {PlaceComponent[]}
+   * @return {PlaceComponent[]|PlaceComponent[][]}
    */
   getPutPlaceRankList() {}
 

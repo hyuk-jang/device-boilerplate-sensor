@@ -6,7 +6,9 @@ const ThreCmdComponent = require('./ThreCmdComponent');
 const ThreCmdStorage = require('./ThreCmdStorage');
 const ThreCmdGoal = require('./ThreCmdGoal');
 
-const { dcmConfigModel, dccFlagModel } = require('../../CoreFacade');
+const CoreFacade = require('../../CoreFacade');
+
+const { dcmConfigModel, dccFlagModel } = CoreFacade;
 
 const { reqWrapCmdType, reqWrapCmdFormat } = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
@@ -60,11 +62,13 @@ class ThreCmdManager extends ThreCmdComponent {
    * @return {boolean} 삭제 성공 시 true, 아니라면 false
    */
   handleThreCmdClear(threCmdStorage) {
-    // BU.CLI('handleThreCmdClear');
+    BU.CLI('handleThreCmdClear');
     const {
       complexCmdWrapInfo,
       complexCmdWrapInfo: { wrapCmdId, wrapCmdFormat, srcPlaceId, destPlaceId },
     } = threCmdStorage;
+
+    // BU.CLI(complexCmdWrapInfo);
 
     const isRemoved = this.removeThreCmdStorage(complexCmdWrapInfo);
 
@@ -76,17 +80,19 @@ class ThreCmdManager extends ThreCmdComponent {
           wrapCmdType: reqWrapCmdType.CANCEL,
           srcPlaceId,
           destPlaceId,
-          rank: definedCommandSetRank.FIRST,
+          // rank: definedCommandSetRank.FIRST,
         });
       } else if (wrapCmdFormat === reqWrapCmdFormat.SET) {
         // 설정 명령 취소 요청
         this.cmdManager.controller.executeSetControl({
           wrapCmdType: reqWrapCmdType.CANCEL,
           wrapCmdId,
-          rank: definedCommandSetRank.FIRST,
+          // rank: definedCommandSetRank.FIRST,
         });
       }
     }
+
+    // BU.CLIN(this.cmdManager.controller.nodeUpdatorManager.getNodeUpdator('WL_003').nodeObservers);
   }
 
   /**
@@ -95,6 +101,7 @@ class ThreCmdManager extends ThreCmdComponent {
    */
   addThreCmdStorage(complexCmdWrapInfo) {
     // BU.CLI('addThreCmdStorage');
+    const coreFacade = new CoreFacade();
     const {
       wrapCmdGoalInfo: { goalDataList, limitTimeSec },
     } = complexCmdWrapInfo;
@@ -111,17 +118,12 @@ class ThreCmdManager extends ThreCmdComponent {
     // 세부 달성 목록 목표만큼 객체 생성 후 옵저버 등록
     goalDataList.forEach(goalInfo => {
       const threCmdGoal = new ThreCmdGoal(goalInfo);
-      // 저장소를 Successor로 등록
-      threCmdGoal.setSuccessor(threCmdStorage);
-
-      // 노드 갱신 매니저에게 임계치 목표 객체를 옵저버로 등록
-      this.cmdManager.controller.nodeUpdatorManager.attachNodeObserver(
-        _.find(this.cmdManager.nodeList, { node_id: goalInfo.nodeId }),
-        threCmdGoal,
-      );
-
       // 세부 달성 목표 추가
       threCmdStorage.addThreCmdGoal(threCmdGoal);
+      // 저장소를 Successor로 등록
+      threCmdGoal.setSuccessor(threCmdStorage);
+      // 노드 갱신 매니저에게 임계치 목표 객체를 옵저버로 등록
+      coreFacade.attachNodeObserver(goalInfo.nodeId, threCmdGoal);
     });
 
     // 임계치 명령 저장소 추가
@@ -133,20 +135,18 @@ class ThreCmdManager extends ThreCmdComponent {
    * @param {complexCmdWrapInfo} complexCmdWrapInfo
    */
   removeThreCmdStorage(complexCmdWrapInfo) {
+    const coreFacade = new CoreFacade();
     const threCmdStorage = this.getThreCmdStorage(complexCmdWrapInfo);
 
     // 해당 명령 저장소가 없다면 false 반환
     if (_.isEmpty(threCmdStorage)) return false;
 
     // 타이머가 동작 중이라면 타이머 해제
-    threCmdStorage.criticalLimitTimer && clearTimeout(threCmdStorage.criticalLimitTimer);
+    threCmdStorage.threCmdLimitTimer && clearTimeout(threCmdStorage.threCmdLimitTimer);
 
     // Update Node 정보를 받는 옵저버 해제
     threCmdStorage.children.forEach(threCmdGoal => {
-      this.cmdManager.controller.nodeUpdatorManager.dettachNodeObserver(
-        _.find(this.cmdManager.nodeList, { node_id: threCmdGoal.nodeId }),
-        threCmdGoal,
-      );
+      coreFacade.dettachNodeObserver(threCmdGoal.nodeId, threCmdGoal);
     });
 
     // 해당 임계치 저장소 삭제 및 true 반환

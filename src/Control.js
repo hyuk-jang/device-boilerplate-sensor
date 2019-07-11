@@ -371,6 +371,7 @@ class Control extends EventEmitter {
    * @param {reqFlowCmdInfo} reqFlowCmdInfo
    */
   executeFlowControl(reqFlowCmdInfo) {
+    BU.CLIN(reqFlowCmdInfo)
     const coreFacade = new CoreFacade();
     try {
       if (coreFacade.getCurrCmdModeName() === coreFacade.cmdModeName.MANUAL) {

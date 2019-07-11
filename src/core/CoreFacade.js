@@ -215,6 +215,7 @@ class CoreFacade {
       // BU.CLIN(reqFlowCmdInfo, 1);
       this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
+      // BU.error(error);
       BU.error(error.message);
     }
   }

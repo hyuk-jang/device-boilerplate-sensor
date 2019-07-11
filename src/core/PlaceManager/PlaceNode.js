@@ -108,21 +108,27 @@ class PlaceNode extends PlaceComponent {
 
   /**
    * 급수지 Place Storage 목록 반환
-   * @return {PlaceStorage[]}
+   * @return {PlaceStorage[]|PlaceStorage[][]}
    */
   getCallPlaceRankList() {
-    BU.CLI(this.callPlaceRankList);
+    // BU.CLI(this.callPlaceRankList);
     return _.map(this.callPlaceRankList, callPlaceId => {
+      if (_.isArray(callPlaceId)) {
+        return callPlaceId.map(placeId => this.placeStorage.findPlace(placeId));
+      }
       return this.placeStorage.findPlace(callPlaceId);
     });
   }
 
   /**
    * 배수지 Place Storage 목록 반환
-   * @return {PlaceStorage[]}
+   * @return {PlaceStorage[]|PlaceStorage[][]}
    */
   getPutPlaceRankList() {
     return _.map(this.putPlaceRankList, putPlaceId => {
+      if (_.isArray(putPlaceId)) {
+        return putPlaceId.map(this.placeStorage.findPlace);
+      }
       return this.placeStorage.findPlace(putPlaceId);
     });
   }
@@ -228,13 +234,11 @@ class PlaceNode extends PlaceComponent {
   /**
    * @desc Place Storage :::
    * 장소 노드 객체를 조회하고자 할 경우
-   * @param {Object} placeNodeInfo NodeId or nodeInfo 객체
-   * @param {string=} placeNodeInfo.nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
-   * @param {nodeId|nodeInfo=} placeNodeInfo.node NodeId or nodeInfo 객체
+   * @param {string} nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
    * @return {PlaceNode}
    */
-  getPlaceNode(placeNodeInfo) {
-    return this.placeStorage.getPlaceNode(placeNodeInfo);
+  getPlaceNode(nodeDefId) {
+    return this.placeStorage.getPlaceNode(nodeDefId);
   }
 
   /**
