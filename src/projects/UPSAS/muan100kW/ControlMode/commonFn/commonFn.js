@@ -373,6 +373,20 @@ module.exports = {
   },
 
   /**
+   * m3 으로 반환
+   * @param {PlaceNode} placeNode
+   * @param {number=} depthCm 수위가 지정안되어 있을 경우 현재 수위
+   */
+  getCubicMeter(placeNode, depthCm) {
+    depthCm = _.isNil(depthCm) ? placeNode.getNodeValue() : depthCm;
+    return _.chain(depthCm)
+      .multiply(0.01)
+      .multiply(placeNode.getSquareMeter())
+      .round(1) // 소수점 절삭
+      .value(); // 데이터 반환,
+  },
+
+  /**
    * 지정한 장소로 급수를 진행 할 수 있는 배수지 검색(급수지 수위가 충분해야함)
    * @param {PlaceComponent} drainagePlaceWL 데이터 갱신이 발생한 수위노드
    */
@@ -393,6 +407,40 @@ module.exports = {
       // 급수를 할 수 있는 상태는 기본, 하한선, 최저치 일 경우 가능함
       return _.includes([NORMAL, LOWER_LIMIT_UNDER, MIN_UNDER], nodeStatus);
     });
+  },
+
+  /**
+   *
+   * @param {PlaceNode} placeNode
+   */
+  getThresholdInfo(placeNode) {
+    /** @type {mThresholdInfo} */
+    let thresholdInfo = placeNode.handleNormal;
+    switch (placeNode.getNodeStatus()) {
+      case placeNodeStatus.MAX_OVER:
+        thresholdInfo = placeNode.maxValue;
+        break;
+      case placeNodeStatus.UPPER_LIMIT_OVER:
+        thresholdInfo = placeNode.upperLimitValue;
+        break;
+      case placeNodeStatus.NORMAL:
+        thresholdInfo = placeNode.setValue;
+        break;
+      case placeNodeStatus.LOWER_LIMIT_UNDER:
+        thresholdInfo = placeNode.lowerLimitValue;
+        break;
+      case placeNodeStatus.MIN_UNDER:
+        thresholdInfo = placeNode.minValue;
+        break;
+      case placeNodeStatus.UNKNOWN:
+      case placeNodeStatus.ERROR:
+        thresholdInfo = {};
+        break;
+      default:
+        thresholdInfo = placeNode.handleNormal;
+        break;
+    }
+    return thresholdInfo;
   },
 
   /**

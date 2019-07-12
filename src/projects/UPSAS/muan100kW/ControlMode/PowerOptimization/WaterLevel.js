@@ -7,6 +7,7 @@ const { constructorInfo, dcmConfigModel } = require('../../../../../core/CoreFac
 const { goalDataRange, reqWrapCmdType: reqWCT, placeNodeStatus } = dcmConfigModel;
 
 const commonFn = require('../commonFn/commonFn');
+const waterFlowFn = require('../commonFn/waterFlowFn');
 
 class WaterLevel extends constructorInfo.PlaceThreshold {
   /**
@@ -30,7 +31,7 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
    */
   handleMaxOver(coreFacade, placeNode) {
     try {
-      // BU.CLI('handleMaxOver', placeNode.getPlaceId());
+      BU.CLI('handleMaxOver', placeNode.getPlaceId());
       // 현재 장소로 급수 명령이 실행 중인지 확인
       const flowCmdList = coreFacade.cmdManager.getFlowCommandList(null, placeNode.getPlaceId());
 
@@ -50,7 +51,7 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpperLimitOver(coreFacade, placeNode) {
-    // BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
+    BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
     try {
       // 진행중인 급수 명령 취소 및 남아있는 급수 명령 존재 여부 반환
       const isProceedFlowCmd = commonFn.cancelWaterSupplyWithAlgorithm(placeNode);
@@ -90,15 +91,20 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
       // 진행 중인 배수 명령이 있다면 하한선 처리하지 않음
       if (isProceedFlowCmd) return false;
 
-      // 현재 장소에 급수 요청
-      commonFn.executeWaterSupply(
-        {
-          placeNode,
-          goalValue: placeNode.getSetValue(),
-          goalRange: goalDataRange.UPPER,
-        },
-        true,
-      );
+      // 수위 노드에 걸려있는 임계 정보를 가져옴
+      const thresholdInfo = commonFn.getThresholdInfo(placeNode);
+      // 임계 정보에 대한 염수 이동 명령 요청
+      waterFlowFn.reqWaterFlow(placeNode, thresholdInfo);
+
+      // // 현재 장소에 급수 요청
+      // commonFn.executeWaterSupply(
+      //   {
+      //     placeNode,
+      //     goalValue: placeNode.getSetValue(),
+      //     goalRange: goalDataRange.UPPER,
+      //   },
+      //   true,
+      // );
     } catch (error) {
       // BU.CLIN(error);
       throw error;
@@ -112,15 +118,18 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
    */
   handleMinUnder(coreFacade, placeNode) {
     try {
-      // BU.CLI('handleMinUnder', placeNode.getPlaceId());
+      BU.CLI('handleMinUnder', placeNode.getPlaceId());
       // 배수지 장소 Id
       const srcPlaceId = placeNode.getPlaceId();
 
       // 현재 장소의 배수 명령 취소
       commonFn.cancelDrainage(coreFacade.getFlowCommandList(srcPlaceId, null, reqWCT.CONTROL));
-
+      // 수위 노드에 걸려있는 임계 정보를 가져옴
+      const thresholdInfo = commonFn.getThresholdInfo(placeNode);
+      // 임계 정보에 대한 염수 이동 명령 요청
+      waterFlowFn.reqWaterFlow(placeNode, thresholdInfo);
       // 하한선 임계가 있다면 명령 취소를 하였으므로 하한선 임계에 문제가 없는지 체크
-      _.isNumber(placeNode.getMinValue()) && this.handleLowerLimitUnder(coreFacade, placeNode);
+      // _.isNumber(placeNode.getMinValue()) && this.handleLowerLimitUnder(coreFacade, placeNode);
     } catch (error) {
       throw error;
     }

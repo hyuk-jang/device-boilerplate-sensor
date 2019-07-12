@@ -159,27 +159,27 @@ class PlaceNode extends PlaceComponent {
 
   /** 노드 최대 임계치 */
   getMaxValue() {
-    return this.maxValue;
+    return _.get(this, 'maxValue.value');
   }
 
   /** 노드 상한선 임계치 */
   getUpperLimitValue() {
-    return this.upperLimitValue;
+    return _.get(this, 'upperLimitValue.value');
   }
 
   /** 노드 설정 임계치 */
   getSetValue() {
-    return this.setValue;
+    return _.get(this, 'setValue.value');
   }
 
   /** 노드 하한선 임계치 */
   getLowerLimitValue() {
-    return this.lowerLimitValue;
+    return _.get(this, 'lowerLimitValue.value');
   }
 
   /** 노드 최저 임계치 */
   getMinValue() {
-    return this.minValue;
+    return _.get(this, 'minValue.value');
   }
 
   /**
@@ -243,21 +243,21 @@ class PlaceNode extends PlaceComponent {
 
   /**
    * @desc Place Node :::
-   * @param {number} numDeviceData number 형식 데이터
+   * @param {number} data number 형식 데이터
    */
-  updateNumValue(numDeviceData) {
+  updateNumValue(data) {
     let nextPlaceNodeStatus = this.placeNodeStatus;
     // BU.CLI(deviceData, this.goalRange);
-    if (_.isNumber(this.maxValue) && numDeviceData >= this.maxValue) {
+    if (_.isNumber(this.getMaxValue()) && data >= this.getMaxValue()) {
       nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.MAX_OVER;
       // this.handleMaxOver();
-    } else if (_.isNumber(this.upperLimitValue) && numDeviceData >= this.upperLimitValue) {
+    } else if (_.isNumber(this.getUpperLimitValue()) && data >= this.getUpperLimitValue()) {
       nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.UPPER_LIMIT_OVER;
       // this.handleUpperLimitOver();
-    } else if (_.isNumber(this.minValue) && numDeviceData <= this.minValue) {
+    } else if (_.isNumber(this.getMinValue()) && data <= this.getMinValue()) {
       nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.MIN_UNDER;
       // this.handleMinUnder();
-    } else if (_.isNumber(this.lowerLimitValue) && numDeviceData <= this.lowerLimitValue) {
+    } else if (_.isNumber(this.getLowerLimitValue()) && data <= this.getLowerLimitValue()) {
       nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.LOWER_LIMIT_UNDER;
       // this.handleLowerLimitUnder();
     } else {
