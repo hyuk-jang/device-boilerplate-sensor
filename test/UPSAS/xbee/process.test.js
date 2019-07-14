@@ -110,7 +110,7 @@ describe('Manual Mode', function() {
    * 5. 명령 완료 순서는 펌프 > 수문 > 밸브
    * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
-  it.skip('Single Command Flow', async () => {
+  it('Single Command Flow', async () => {
     const { cmdOverlapManager } = control.model.cmdManager;
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {
@@ -455,7 +455,7 @@ describe('Automatic Mode', function() {
    * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
    * 3. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 제한시간: 2 Sec. 수위 조작 후 타이머 Clear 처리 및 명령 삭제 확인.
    */
-  it.only('Threshold Command ', async () => {
+  it('Threshold Command ', async () => {
     const { cmdOverlapManager, threCmdManager } = control.model.cmdManager;
     // BU.CLI('Critical Command');
     const NODE_WL_001 = 'WL_001';

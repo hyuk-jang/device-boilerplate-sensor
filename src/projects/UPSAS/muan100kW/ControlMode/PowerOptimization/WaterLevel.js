@@ -32,13 +32,27 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
   handleMaxOver(coreFacade, placeNode) {
     try {
       BU.CLI('handleMaxOver', placeNode.getPlaceId());
-      // 현재 장소로 급수 명령이 실행 중인지 확인
-      const flowCmdList = coreFacade.cmdManager.getFlowCommandList(null, placeNode.getPlaceId());
+      // 급수지 장소 Id
+      const destPlaceId = placeNode.getPlaceId();
 
-      // 실행 중인 급수 명령 취소 요청
+      // 현재 장소의 배수 명령 취소
+      commonFn.cancelWaterSupply(coreFacade.getFlowCommandList(destPlaceId, null, reqWCT.CONTROL));
+      // // 수위 노드에 걸려있는 임계 정보를 가져옴
+      // const thresholdInfo = commonFn.getThresholdInfo(placeNode);
+      // // 임계 정보에 대한 염수 이동 명령 요청
+      // waterFlowFn.reqWaterFlow(placeNode, thresholdInfo);
+
+      // 현재 장소로 급수 명령이 실행 중인지 확인
+      const flowCmdList = coreFacade.cmdManager.getFlowCommandList(
+        null,
+        destPlaceId,
+        reqWCT.CONTROL,
+      );
+
+      // // 실행 중인 급수 명령 취소 요청
       flowCmdList.length && commonFn.cancelWaterSupply(flowCmdList);
 
-      // 상한선 임계치에 이상이 없는지 체크
+      // // 상한선 임계치에 이상이 없는지 체크
       this.handleUpperLimitOver(coreFacade, placeNode);
     } catch (error) {
       throw error;
@@ -94,7 +108,7 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청
-      waterFlowFn.reqWaterFlow(placeNode, thresholdInfo);
+      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo);
 
       // // 현재 장소에 급수 요청
       // commonFn.executeWaterSupply(
@@ -127,7 +141,7 @@ class WaterLevel extends constructorInfo.PlaceThreshold {
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청
-      waterFlowFn.reqWaterFlow(placeNode, thresholdInfo);
+      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo);
       // 하한선 임계가 있다면 명령 취소를 하였으므로 하한선 임계에 문제가 없는지 체크
       // _.isNumber(placeNode.getMinValue()) && this.handleLowerLimitUnder(coreFacade, placeNode);
     } catch (error) {

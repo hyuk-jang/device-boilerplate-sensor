@@ -490,6 +490,10 @@ describe('수위 임계치 처리 테스트', function() {
     const ps_NEB_2 = placeManager.findPlace(pId.NEB_2);
     const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode(ndId.WL);
     // * NEB_2.callPlaceRankList = [[BW_1,NEB_1]]
+    pn_WL_NEB_2.upperLimitValue = {
+      value: 12,
+      isCall: false,
+    };
     pn_WL_NEB_2.callPlaceRankList = [[pId.BW_1, pId.NEB_1]];
     const pn_S_NEB_2 = ps_NEB_2.getPlaceNode(ndId.S);
     // 수중 증발지 1
@@ -518,12 +522,13 @@ describe('수위 임계치 처리 테스트', function() {
 
     // * 일반 증발지 2의 수위 정상(10)으로 교체. NEB_2.WL = 10
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 12)]);
-
+    BU.CLI('@@@');
     // *    일반 증발지 2 목표 달성 >>> [BW_1_TO_NEB_2,NEB_1_TO_NEB_2](R_CAN)
     const BW_1_TO_NEB_2_CAN = await eventToPromise(control, 'completeCommand');
     // BU.CLIN(BW_1_TO_NEB_2_CON)
     const NEB_1_TO_NEB_2_CAN = await eventToPromise(control, 'completeCommand');
 
+    BU.CLI('@@@');
     // * 3. 해주 3의 수위를 최저치 설정. 수중 태양광 증발지 수위 하한선 설정.
     // *  BW_3.WL = 10, SEB_6.WL = 2
     control.notifyDeviceData(null, [setNodeData(pn_WL_SEB_1, 2)]);
@@ -688,13 +693,19 @@ describe.skip('염도 임계치 처리 테스트', function() {
     // *   DPs_S_1.putPlaceRankList = [BW_3]
     DPs_1.forEach(dpStorage => {
       // 하한선을 3으로 고정
-      dpStorage.getPlaceNode(ndId.WL).lowerLimitValue = 3;
+      dpStorage.getPlaceNode(ndId.WL).lowerLimitValue = {
+        value: 3,
+        isCall: true,
+      };
       dpStorage.getPlaceNode(ndId.S).putPlaceRankList = [pId.BW_3];
     });
     // *   DPs_S_2.putPlaceRankList = [BW_4,BW_3,SEA]
     DPs_2.forEach(dpStorage => {
       // 하한선을 3으로 고정
-      dpStorage.getPlaceNode(ndId.WL).lowerLimitValue = 3;
+      dpStorage.getPlaceNode(ndId.WL).lowerLimitValue = {
+        value: 3,
+        isCall: true,
+      };
       dpStorage.getPlaceNode(ndId.S).putPlaceRankList = [
         pId.BW_4,
         pId.BW_3,
@@ -739,7 +750,7 @@ describe.skip('염도 임계치 처리 테스트', function() {
     ]);
     // DPs_2.WL = 4, DPs_2.S = 10 설정
     setPlaceStorage(DPs_2, 4, 10);
-    // DPs_1.WL = 3.1, DPs_1.S = 12 설정, DPs_1의 하한선은 2.9이므로 수행하지 못함
+    // DPs_1.WL = 3.1, DPs_1.S = 12 설정, DPs_1의 하한선은 3이므로 수행하지 못함
     setPlaceStorage(DPs_1, 3.1, 12);
     // DPs_1.WL = 5, 하한선 10%. 3.19 이상을 만족하므로 알고리즘 수행
     setPlaceStorage(DPs_1, null, 0);
