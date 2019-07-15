@@ -35,8 +35,9 @@ class NodeUpdatorManager {
   /**
    * @param {nodeInfo|string} nodeInfo nodeId or nodeInfo 객체
    * @param {Observer} observer 옵저버 추가
-   * */
-  attachNodeObserver(nodeInfo, observer) {
+   * @param {boolean=} isHeader 옵저버의 위치를 가장 앞쪽 배치 여부
+   */
+  attachNodeObserver(nodeInfo, observer, isHeader) {
     const foundNodeUpdator = this.getNodeUpdator(nodeInfo);
     // 노드가 존재하지 않는다면 종료
     if (_.isEmpty(foundNodeUpdator)) return false;
@@ -49,7 +50,7 @@ class NodeUpdatorManager {
     // console.log(foundIndex, nodeInfo);
     // 동일 옵저버가 존재하지 않을 경우에 추가
     if (foundIndex === -1) {
-      foundNodeUpdator.attachObserver(observer);
+      foundNodeUpdator.attachObserver(observer, isHeader);
     }
   }
 

@@ -133,32 +133,33 @@ module.exports = {
   /**
    * Command Execute Manager에게 실질적인 명령 요청을 하기 위한 염수 이동 명령 생성
    * @param {Object} drainageInfo 배수지 정보
-   * @param {PlaceComponent} drainageInfo.placeNode 데이터 갱신이 발생한 노드
+   * @param {PlaceComponent} drainageInfo.drainagePlace 데이터 갱신이 발생한 노드
    * @param {number=} drainageInfo.goalValue 임계치 값
    * @param {number=} drainageInfo.goalRange 임계치 범위
    * @param {Object} waterSupplyInfo 급수지 정보
-   * @param {PlaceComponent} waterSupplyInfo.placeNode 데이터 갱신이 발생한 노드
+   * @param {PlaceComponent} waterSupplyInfo.waterSupplyPlace 데이터 갱신이 발생한 노드
    * @param {number=} waterSupplyInfo.goalValue 임계치 값
    * @param {number=} waterSupplyInfo.goalRange 임계치 범위
    */
-  makeWaterFlowCommand(drainageInfo = {}, waterSupplyInfo = {}) {
+  executeWaterFlow(drainageInfo = {}, waterSupplyInfo = {}) {
+    // BU.CLIN(drainageInfo)
     // 배수지 정보
     const {
-      placeNode: srcPlaceNode,
+      drainagePlace: srcPlace,
       goalValue: srcGoalValue,
       goalRange: srcGoalRange,
     } = drainageInfo;
     // 급수지 정보
     const {
-      placeNode: destPlaceNode,
+      waterSupplyPlace: destPlace,
       goalValue: destGoalValue,
       goalRange: destGoalRange,
     } = waterSupplyInfo;
 
     /** @type {reqFlowCmdInfo} */
     const waterFlowCommand = {
-      srcPlaceId: srcPlaceNode.getPlaceId(),
-      destPlaceId: destPlaceNode.getPlaceId(),
+      srcPlaceId: srcPlace.getPlaceId(),
+      destPlaceId: destPlace.getPlaceId(),
       wrapCmdGoalInfo: {
         goalDataList: [],
       },
@@ -166,21 +167,23 @@ module.exports = {
     // 배수지 목표 임계치가 있을 경우 추가
     if (srcGoalValue) {
       waterFlowCommand.wrapCmdGoalInfo.goalDataList.push({
-        nodeId: srcPlaceNode.getNodeId(),
+        nodeId: srcPlace.getNodeId(),
         goalValue: srcGoalValue,
         goalRange: srcGoalRange,
+        isCompleteClear: true,
       });
     }
     // 급수지 목표 임계치가 있을 경우 추가
     if (destGoalValue) {
       waterFlowCommand.wrapCmdGoalInfo.goalDataList.push({
-        nodeId: destPlaceNode.getNodeId(),
+        nodeId: destPlace.getNodeId(),
         goalValue: destGoalValue,
         goalRange: destGoalRange,
+        isCompleteClear: true,
       });
     }
 
-    return waterFlowCommand;
+    return coreFacade.executeFlowControl(waterFlowCommand);
   },
 
   /**
@@ -200,14 +203,14 @@ module.exports = {
     if (waterSupplyPlace) {
       // 염수 흐름 명령을 생성. (Src Place Id => Dest Place Id)
       coreFacade.executeFlowControl(
-        this.makeWaterFlowCommand(
+        this.executeWaterFlow(
           {
-            placeNode,
+            drainagePlace: placeNode,
             goalValue,
             goalRange,
           },
           {
-            placeNode: waterSupplyPlace,
+            waterSupplyPlace,
           },
         ),
       );
@@ -248,9 +251,9 @@ module.exports = {
       // 염수 흐름 명령을 생성. (Src Place Id => Dest Place Id)
       return drainagePlaceList.forEach(drainagePlace => {
         coreFacade.executeFlowControl(
-          this.makeWaterFlowCommand(
+          this.executeWaterFlow(
             {
-              placeNode: drainagePlace,
+              drainagePlace,
             },
             waterSupplyInfo,
           ),
@@ -415,7 +418,7 @@ module.exports = {
    */
   getThresholdInfo(placeNode) {
     /** @type {mThresholdInfo} */
-    let thresholdInfo = placeNode.handleNormal;
+    let thresholdInfo = {};
     switch (placeNode.getNodeStatus()) {
       case placeNodeStatus.MAX_OVER:
         thresholdInfo = placeNode.maxValue;
@@ -437,7 +440,7 @@ module.exports = {
         thresholdInfo = {};
         break;
       default:
-        thresholdInfo = placeNode.handleNormal;
+        thresholdInfo = {};
         break;
     }
     return thresholdInfo;
@@ -453,5 +456,36 @@ module.exports = {
       ndId.MODULE_REAR_TEMPERATURE,
       ndId.WATER_LEVEL,
     ]);
+  },
+
+  /**
+   * 장소에 노드에 걸려있는 임계치를 가져옴
+   * @param {PlaceStorage} placeStorage
+   * @param {string} nodeDefId
+   * @param {string=} placeNodeThreshold
+   */
+  getPlaceThresholdValue(placeStorage, nodeDefId, placeNodeThreshold) {
+    let thresholdValue;
+    switch (placeNodeThreshold) {
+      case placeNodeStatus.MAX_OVER:
+        thresholdValue = placeStorage.getMaxValue(nodeDefId);
+        break;
+      case placeNodeStatus.UPPER_LIMIT_OVER:
+        thresholdValue = placeStorage.getUpperLimitValue(nodeDefId);
+        break;
+      case placeNodeStatus.MIN_UNDER:
+        thresholdValue = placeStorage.getMinValue(nodeDefId);
+        break;
+      case placeNodeStatus.LOWER_LIMIT_UNDER:
+        thresholdValue = placeStorage.getLowerLimitValue(nodeDefId);
+        break;
+      case placeNodeStatus.NORMAL:
+        thresholdValue = placeStorage.getSetValue(nodeDefId);
+        break;
+      default:
+        break;
+    }
+
+    return thresholdValue;
   },
 };

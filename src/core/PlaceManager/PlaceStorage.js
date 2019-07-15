@@ -77,6 +77,7 @@ class PlaceStorage extends PlaceComponent {
    * @return {string}
    */
   getNodeId(nodeDefId) {
+    // BU.CLI(this.getPlaceId(), nodeDefId);
     return this.getPlaceNode(nodeDefId).getNodeId();
   }
 
@@ -141,27 +142,27 @@ class PlaceStorage extends PlaceComponent {
 
   /** @param {string} nodeDefId Node Definition ID 노드 최대 임계치 */
   getMaxValue(nodeDefId) {
-    this.getPlaceNode(nodeDefId).getMaxValue();
+    return this.getPlaceNode(nodeDefId).getMaxValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 상한선 임계치 */
   getUpperLimitValue(nodeDefId) {
-    this.getPlaceNode(nodeDefId).getUpperLimitValue();
+    return this.getPlaceNode(nodeDefId).getUpperLimitValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 설정 임계치 */
   getSetValue(nodeDefId) {
-    this.getPlaceNode(nodeDefId).getSetValue();
+    return this.getPlaceNode(nodeDefId).getSetValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 하한선 임계치 */
   getLowerLimitValue(nodeDefId) {
-    this.getPlaceNode(nodeDefId).getLowerLimitValue();
+    return this.getPlaceNode(nodeDefId).getLowerLimitValue();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 최저 임계치 */
   getMinValue(nodeDefId) {
-    this.getPlaceNode(nodeDefId).getMinValue();
+    return this.getPlaceNode(nodeDefId).getMinValue();
   }
 
   /**

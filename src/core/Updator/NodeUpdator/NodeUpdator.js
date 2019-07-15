@@ -22,14 +22,17 @@ class NodeUpdator extends Updator {
     return _.find(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));
   }
 
-  /** @param {Observer} observer 옵저버 추가 */
-  attachObserver(observer) {
+  /**
+   * @param {Observer} observer 옵저버 추가
+   * @param {boolean=} isHeader 옵저버의 위치를 가장 앞쪽 배치 여부
+   */
+  attachObserver(observer, isHeader) {
     const foundIndex = _.findIndex(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));
     // BU.CLI(foundIndex);
     // BU.CLIN(observer, 1);
     // 동일 옵저버가 존재하지 않을 경우에 추가
     if (foundIndex === -1) {
-      this.nodeObservers.push(observer);
+      isHeader ? this.nodeObservers.unshift(observer) : this.nodeObservers.push(observer);
     }
   }
 

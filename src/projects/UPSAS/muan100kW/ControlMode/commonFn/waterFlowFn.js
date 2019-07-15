@@ -12,7 +12,7 @@ const CoreFacade = require('../../../../../core/CoreFacade');
 const { nodeDefIdInfo: ndId } = AbstAlgorithm;
 
 const {
-  dcmConfigModel: { reqWrapCmdType: reqWCT, placeNodeStatus, goalDataRange },
+  dcmConfigModel: { reqWrapCmdType: reqWCT, placeNodeStatus: pNS, goalDataRange },
 } = CoreFacade;
 
 const coreFacade = new CoreFacade();
@@ -29,62 +29,62 @@ module.exports = {
    * 염수를 이동시키고자 할 경우
    * @param {PlaceStorage} placeStorage 시작 장소 노드
    * @param {mThresholdInfo} thresholdInfo
-   * @param {number=} ableWaterVolume
+   * @param {string=} thresholdKey
    * @param {PlaceStorage=} finalPlaceStorage
    */
-  reqWaterFlow(placeStorage, thresholdInfo = {}, ableWaterVolume, finalPlaceStorage) {
+  reqWaterFlow(placeStorage, thresholdInfo = {}, thresholdKey) {
     const { isCall, isGroup, value } = thresholdInfo;
     // 현재 장소로 급수를 하고자 할 경우
     if (isCall === true) {
-      const isExecute = this.reqWaterSupply(placeStorage, ableWaterVolume);
+      const isExecute = this.reqWaterSupply({
+        waterSupplyPlace: placeStorage,
+        thresholdKey,
+      });
       // 수위가 충분한 배수지가 없다면 배수지에 급수 요청
       if (!isExecute) {
         const drainagePlaceList = placeStorage
           .getPlaceNode(ndId.WATER_LEVEL)
           .getCallPlaceRankList();
 
+        // 급수가 실패하였다면 배수지에 급수 요청
         for (let index = 0; index < drainagePlaceList.length; index += 1) {
-          const isRequest = this.reqWaterFlow(
-            drainagePlaceList[index],
-            thresholdInfo,
-            null,
-            finalPlaceStorage,
-          );
-          if (isRequest) break;
+          const isRequest = this.reqWaterSupply({
+            waterSupplyPlace: _.nth(drainagePlaceList, index),
+            thresholdKey,
+          });
+          if (isRequest) {
+            return true;
+          }
         }
-
-        // drainagePlaceList.forEach(drainagePlace => {
-        //   this.reqWaterFlow(drainagePlace, thresholdInfo)
-        // })
-
-        // this.reqWaterSupply(drainagePlaceList, ableWaterVolume, placeStorage);
       }
     }
     // 현재 장소에서 배수를 하고자 할 경우
     if (isCall === false) {
-      return this.reqDrainage(placeStorage, ableWaterVolume);
+      return this.reqDrainage({
+        drainagePlace: placeStorage,
+        thresholdKey,
+      });
     }
   },
 
-  reqSimpleWaterSupply(waterSupplyPlaceNode) {},
-
   /**
    * 급수 명령 요청
-   * 적합한 수위를 갖는 배수지가 없을 경우 배수지에 급수 요청
-   * @param {PlaceStorage} waterSupplyPlace
-   * @param {number=} needWaterVolume
-   * @param {PlaceStorage=} finalWaterSupplyPlace
+   * @param {Object} waterSupplyInfo
+   * @param {PlaceStorage} waterSupplyInfo.waterSupplyPlace 급수지 장소
+   * @param {number=} waterSupplyInfo.needWaterVolume 받아야 하는 물의 양
+   * @param {string=} waterSupplyInfo.thresholdKey 급수지 수위 임계
+   * @param {PlaceStorage=} finalWaterSupplyPlace 최종 급수지
    */
-  reqWaterSupply(waterSupplyPlace, needWaterVolume, finalWaterSupplyPlace) {
+  reqWaterSupply(waterSupplyInfo, finalWaterSupplyPlace) {
+    const { waterSupplyPlace, thresholdKey } = waterSupplyInfo;
+    let { needWaterVolume } = waterSupplyInfo;
     // 급수 가능한 염수량이 없을 경우 계산
     if (!_.isNumber(needWaterVolume)) {
       // BU.CLIN(waterSupplyPlace);
       needWaterVolume = salinityFn.getWaterSupplyAbleWV(waterSupplyPlace);
     }
     // 급수지로 염수를 보낼 수 있는 배수지 목록을 가져옴
-    const drainagePlaceList = waterSupplyPlace
-      .getPlaceNode(ndId.WATER_LEVEL)
-      .getCallPlaceRankList();
+    const drainagePlaceList = waterSupplyPlace.getCallPlaceRankList(ndId.WATER_LEVEL);
 
     // 배수지 목록을 순회하면서 염수 이동 조건에 부합하는 장소를 찾아 명령을 보낼때까지 순회
     for (let index = 0; index < drainagePlaceList.length; index += 1) {
@@ -95,7 +95,8 @@ module.exports = {
         drainagePlace.forEach(drainPlace => {
           // 배수지와 최종 급수지가 같을 경우에는 실행하지 않음
           if (drainPlace !== finalWaterSupplyPlace) {
-            this.executeThresholdWaterSupply(drainPlace, waterSupplyPlace);
+            // 급수 요청
+            this.executeWaterFlow(drainagePlace, waterSupplyPlace, false, thresholdKey);
           }
         });
         return true;
@@ -107,44 +108,147 @@ module.exports = {
         // BU.CLI(needWaterVolume, drainageWV);
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
         if (drainageWV.drainageAbleWV >= needWaterVolume) {
-          this.executeThresholdWaterSupply(drainagePlace, waterSupplyPlace);
+          // 급수 요청
+          this.executeWaterFlow(drainagePlace, waterSupplyPlace, false, thresholdKey);
           return true;
         }
       }
     }
-
-    // 모든 배수지가 조건에 부합되지 않았으므로 배수지에 염수 이동 요청
-    // for (let index = 0; index < drainagePlaceList.length; index += 1) {
-    //   const drainagePlace = drainagePlaceList[index];
-    //   // 배수지에 급수 요청이 성공하였을 경우 종료
-    //   if (this.reqWaterSupply(drainagePlace, null, finalWaterSupplyPlace)) {
-    //     break;
-    //   }
-    // }
   },
 
   /**
-   * 임계치에 의한 염수 이동 명령
-   * 급수지에 설정 수위가 있을 경우에는 목표치 설정. 아닐 경우 목표치 없음
-   * @param {PlaceStorage} drainagePlace
-   * @param {PlaceStorage} waterSupplyPlace
+   * 염수 이동 명령 생성
+   * @param {PlaceStorage} drainagePlace 배수지 장소
+   * @param {PlaceStorage} waterSupplyPlace 급수지 장소
+   * @param {boolean=} isDrainageInvoker 현재 메소드를 요청한 주체가 배수지 장소인지 여부. 기본 값 true
+   * @param {string=} thresholdKey
+   * @example
+   * isDrainageInvoker >>> true = 배수지에서 배수가 필요하여 명령을 요청할 경우
+   * isDrainageInvoker >>> false = 급수지에서 급수가 필요하여 명령을 요청할 경우
    */
-  executeThresholdWaterSupply(drainagePlace, waterSupplyPlace) {
-    coreFacade.executeFlowControl(
-      commonFn.makeWaterFlowCommand(
-        {
-          placeNode: drainagePlace,
-        },
-        {
-          placeNode: waterSupplyPlace,
-          goalValue: waterSupplyPlace.getSetValue(ndId.WATER_LEVEL),
+  executeWaterFlow(drainagePlace, waterSupplyPlace, isDrainageInvoker = true, thresholdKey = '') {
+    /** @type {reqFlowCmdInfo} */
+    const waterFlowCommand = {
+      srcPlaceId: drainagePlace.getPlaceId(),
+      destPlaceId: waterSupplyPlace.getPlaceId(),
+      wrapCmdGoalInfo: {
+        goalDataList: [],
+      },
+    };
+
+    /** @type {csCmdGoalInfo[]} */
+    const goalDataList = [];
+    // 메소드를 요청한 주체가 배수지 일 경우
+    if (isDrainageInvoker) {
+      // 배수 임계치 키가 있을 경우
+      if (thresholdKey.length) {
+        const drainageGoal = commonFn.getPlaceThresholdValue(
+          drainagePlace,
+          ndId.WATER_LEVEL,
+          thresholdKey,
+        );
+        // 목표치가 존재하고 숫자일 경우에 Goal 추가
+        if (_.isNumber(drainageGoal)) {
+          goalDataList.push({
+            nodeId: drainagePlace.getNodeId(ndId.WATER_LEVEL),
+            goalValue: drainageGoal,
+            goalRange: goalDataRange.LOWER,
+            isCompleteClear: true,
+          });
+        }
+      }
+
+      // 급수지의 설정 수위가 있는지 확인
+      const waterSupplyGoal = commonFn.getPlaceThresholdValue(
+        waterSupplyPlace,
+        ndId.WATER_LEVEL,
+        pNS.NORMAL,
+      );
+      // 급수지의 목표 설정 수위가 존재할 경우 Goal추가
+      if (_.isNumber(waterSupplyGoal)) {
+        goalDataList.push({
+          nodeId: waterSupplyPlace.getNodeId(ndId.WATER_LEVEL),
+          goalValue: waterSupplyGoal,
           goalRange: goalDataRange.UPPER,
-        },
-      ),
-    );
+          isCompleteClear: true,
+        });
+      }
+    }
+    // 메소드를 요청한 주체가 급수지이고 급수 임계치 키가 있을 경우
+    else if (thresholdKey.length) {
+      const waterSupplyGoal = commonFn.getPlaceThresholdValue(
+        waterSupplyPlace,
+        ndId.WATER_LEVEL,
+        thresholdKey,
+      );
+
+      // 목표치가 존재하고 숫자일 경우에 Goal 추가
+      if (_.isNumber(waterSupplyGoal)) {
+        goalDataList.push({
+          nodeId: waterSupplyPlace.getNodeId(ndId.WATER_LEVEL),
+          goalValue: waterSupplyGoal,
+          goalRange: goalDataRange.UPPER,
+          isCompleteClear: true,
+        });
+      }
+    }
+    // 목표치 설정한 내용을 덮어씌움
+    waterFlowCommand.wrapCmdGoalInfo.goalDataList = goalDataList;
+    coreFacade.executeFlowControl(waterFlowCommand);
   },
 
-  reqDrainage(drainagePlace, ableWaterVolume, finalDrainagePlace) {},
+  /**
+   * 배수 명령 요청
+   * 적합한 수위를 갖는 배수지가 없을 경우 배수지에 급수 요청
+   * @param {Object} drainageInfo
+   * @param {PlaceStorage} drainageInfo.drainagePlace 배수지 장소
+   * @param {number=} drainageInfo.needWaterVolume 보내야 하는 물의 양
+   * @param {string=} drainageInfo.thresholdKey 배수지 수위 임계
+   * @param {PlaceStorage=} finalWaterSupplyPlace 최종 배수지
+   */
+  reqDrainage(drainageInfo, finalDrainagePlace) {
+    BU.CLI('reqDrainage');
+    const { drainagePlace, thresholdKey } = drainageInfo;
+    // BU.CLI(thresholdKey);
+    // BU.CLIN(drainagePlace, 1);
+    let { needWaterVolume } = drainageInfo;
+    // 급수 가능한 염수량이 없을 경우 계산
+    if (!_.isNumber(needWaterVolume)) {
+      // BU.CLIN(waterSupplyPlace);
+      needWaterVolume = salinityFn.getWaterSupplyAbleWV(drainagePlace);
+    }
+    // 배수지에서 염수를 받을 수 있는 급수지 목록을 가져옴
+    const waterSupplyPlaceList = drainagePlace.getPutPlaceRankList(ndId.WATER_LEVEL);
+
+    // 배수지 목록을 순회하면서 염수 이동 조건에 부합하는 장소를 찾아 명령을 보낼때까지 순회
+    for (let index = 0; index < waterSupplyPlaceList.length; index += 1) {
+      const waterSupplyPlace = waterSupplyPlaceList[index];
+
+      if (_.isArray(waterSupplyPlace)) {
+        // 그냥 염수 이동 후 완료 처리
+        waterSupplyPlace.forEach(wsPlace => {
+          // 급수지와 최종 배수지가 같을 경우에는 실행하지 않음
+          if (wsPlace !== finalDrainagePlace) {
+            // 배수 명령 요청
+            this.executeWaterFlow(drainagePlace, waterSupplyPlace, true, thresholdKey);
+          }
+        });
+        return true;
+      }
+
+      // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
+      if (waterSupplyPlace !== finalDrainagePlace) {
+        const drainageWV = this.getDrainageAbleWV(waterSupplyPlace);
+
+        // 설정과 하한선의 중간 염수량을 만족할 수 있다면
+        if (drainageWV.drainageAbleWV >= needWaterVolume) {
+          // 배수 명령 요청
+          this.executeWaterFlow(drainagePlace, waterSupplyPlace, true, thresholdKey);
+          return true;
+        }
+      }
+    }
+  },
 
   /**
    * m3 으로 반환

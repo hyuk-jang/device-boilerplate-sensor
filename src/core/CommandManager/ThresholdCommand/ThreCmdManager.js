@@ -123,7 +123,7 @@ class ThreCmdManager extends ThreCmdComponent {
       // 저장소를 Successor로 등록
       threCmdGoal.setSuccessor(threCmdStorage);
       // 노드 갱신 매니저에게 임계치 목표 객체를 옵저버로 등록
-      coreFacade.attachNodeObserver(goalInfo.nodeId, threCmdGoal);
+      coreFacade.attachNodeObserver(goalInfo.nodeId, threCmdGoal, true);
     });
 
     // 임계치 명령 저장소 추가

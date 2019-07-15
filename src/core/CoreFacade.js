@@ -139,9 +139,10 @@ class CoreFacade {
    *
    * @param {string|nodeInfo} node
    * @param {Observer} observer
+   * @param {boolean=} isHeader 옵저버의 위치를 가장 앞쪽 배치 여부 (목표 달성부터 처리해야 할 때 사용)
    */
-  attachNodeObserver(node, observer) {
-    this.controller.nodeUpdatorManager.attachNodeObserver(node, observer);
+  attachNodeObserver(node, observer, isHeader) {
+    this.controller.nodeUpdatorManager.attachNodeObserver(node, observer, isHeader);
   }
 
   /**
@@ -212,7 +213,6 @@ class CoreFacade {
    */
   executeFlowControl(reqFlowCmdInfo) {
     try {
-      // BU.CLIN(reqFlowCmdInfo, 1);
       this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
       // BU.error(error);

@@ -255,6 +255,8 @@ class OverlapCountCmdStrategy extends CmdStrategy {
 
       const coreFacade = new CoreFacade();
 
+      const currCmdModeName = coreFacade.getCurrCmdModeName();
+
       const { MEASURE, CONTROL, CANCEL } = reqWrapCmdType;
 
       const { RUNNING } = complexCmdStep;
@@ -264,7 +266,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
       const { wrapCmdType, wrapCmdUUID, wrapCmdGoalInfo } = complexWrapCmdInfo;
 
       // 제어 명령일 경우에만 RUNNING 여부 체크
-      if (wrapCmdType === CONTROL && coreFacade.getCurrCmdModeName() !== coreFacade.cmdModeName.MANUAL) {
+      if (wrapCmdType === CONTROL && currCmdModeName !== coreFacade.cmdModeName.MANUAL) {
         // 명령 RUNNING 상태 변경
         complexWrapCmdInfo.wrapCmdStep = RUNNING;
         isDeleteCmd = false;
@@ -272,6 +274,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
         // TODO: 제어 명령에 달성 목표가 있다면 임계치 관리자 생성
         if (!_.isEmpty(wrapCmdGoalInfo)) {
           // BU.CLI('임계치 명령 생성');
+          // BU.CLIN(complexWrapCmdInfo);
           this.cmdManager.threCmdManager.addThreCmdStorage(complexWrapCmdInfo);
         }
       }
