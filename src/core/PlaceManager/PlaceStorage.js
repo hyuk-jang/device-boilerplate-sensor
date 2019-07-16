@@ -111,7 +111,7 @@ class PlaceStorage extends PlaceComponent {
   /**
    * 급수지 Place Id 목록 반환
    * @param {string} nodeDefId Node Definition ID
-   * @return {PlaceStorage[]}
+   * @return {PlaceStorage[]|PlaceStorage[][]}
    */
   getCallPlaceRankList(nodeDefId) {
     return this.getPlaceNode(nodeDefId).getCallPlaceRankList();
@@ -120,7 +120,7 @@ class PlaceStorage extends PlaceComponent {
   /**
    * 급수지 Place Id 목록 반환
    * @param {string} nodeDefId Node Definition ID
-   * @return {PlaceStorage[]}
+   * @return {PlaceStorage[]|PlaceStorage[][]}
    */
   getPutPlaceRankList(nodeDefId) {
     return this.getPlaceNode(nodeDefId).getPutPlaceRankList();

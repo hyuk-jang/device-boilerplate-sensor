@@ -275,8 +275,9 @@ describe('수위 임계치 처리 테스트', function() {
    *        급수지(일반 증발지 2) 수위 UpperLimitOver(15) < 18 < Max(20)
    *      명령 요청 >>> [NEB_1_TO_NEB_2](R_CON) {GT= NEB_1.WL: 4, NEB_2.WL: 18}
    * 2. 급수지(일반 증발지 2)의 수위를 GT와 ULO 사이인 16으로 변경.
-   *  <test> 목표가 있는 명령이라도 수위 상한선에 걸리면 명령을 취소.
-   *      급수지 수위 상한선 >>> [NEB_1_TO_NEB_2](R_CAN)
+   *  <test> 목표가 있는 명령이라면 수위 상한선에 걸리려도 명령 속행
+   *  NEB_2.WL = 18. 목표 달성으로 인한 명령 취소
+   *      급수지 목표 달성 >>> [NEB_1_TO_NEB_2](R_CAN)
    *  <test> 수위 상한선에 의한 자동 배수 (설정 수위 복원)  :: 달성 목표: 배수지(일반 증발지 2) 수위 12cm 이하
    *      일반 증발지 2 수위 상한선 >>> [NEB_2_TO_BW_1](R_CON)
    * 3. 일반 증발지 2의 수위를 정상(10)으로 교체 후 1번 재요청
@@ -297,7 +298,7 @@ describe('수위 임계치 처리 테스트', function() {
    *  <test> 자동 급수 요청 우선 순위에 따라 급수 대상 탐색. 1순위(해주 1) 자격 미달에 의한 2순위 지역 급수 요청
    *      수위 하한선 >>> [NEB_1_TO_NEB_2](R_CON) :: 달성 목표: 급수지(일반 증발지 2) 수위 12cm 이상
    */
-  it.only('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
+  it('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -481,7 +482,7 @@ describe('수위 임계치 처리 테스트', function() {
    *  <test> 급수지에 염수를 하한선 및 설정 사이 50%를 공급할 수 없을 경우 급수지와 동일하지 않은 1순위 배수지로 염수 이동 요청(멀티)
    *    SEB_6.WL 하한선 > BW_3.WL 염수 이동 조건 불가 > [SEB_1,SEB_2,SEB_3,SEB_4,SEB_5][TO_BW_3](R_CON)
    */
-  it('염수 그룹화 이동', async () => {
+  it.only('염수 그룹화 이동', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -540,18 +541,16 @@ describe('수위 임계치 처리 테스트', function() {
 
     // * 일반 증발지 2의 수위 정상(10)으로 교체. NEB_2.WL = 10
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 12)]);
-    BU.CLI('@@@');
     // *    일반 증발지 2 목표 달성 >>> [BW_1_TO_NEB_2,NEB_1_TO_NEB_2](R_CAN)
     const BW_1_TO_NEB_2_CAN = await eventToPromise(control, 'completeCommand');
     // BU.CLIN(BW_1_TO_NEB_2_CON)
     const NEB_1_TO_NEB_2_CAN = await eventToPromise(control, 'completeCommand');
 
-    BU.CLI('@@@');
     // * 3. 해주 3의 수위를 최저치 설정. 수중 태양광 증발지 수위 하한선 설정.
     // *  BW_3.WL = 10, SEB_6.WL = 2
-    control.notifyDeviceData(null, [setNodeData(pn_WL_SEB_1, 2)]);
-    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_3, 40), setNodeData(pn_WL_SEB_6, 2)]);
-    // *  <test> 급수지에 염수를 하한선 및 설정 사이 50%를 공급할 수 없을 경우 급수지와 동일하지 않은 1순위 배수지로 염수 이동 요청(멀티)
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_3, 10), setNodeData(pn_WL_SEB_6, 2)]);
+    // *  <test> 급수지에 염수를 하한선 및 설정 사이 50%를 공급할 수 없을 경우
+    //  급수지와 동일하지 않은 1순위 배수지로 염수 이동 요청(멀티)
     // *    SEB_6.WL 하한선 > BW_3.WL 염수 이동 조건 불가 > [SEB_1,SEB_2,SEB_3,SEB_4,SEB_5][TO_BW_3](R_CON)
   });
 

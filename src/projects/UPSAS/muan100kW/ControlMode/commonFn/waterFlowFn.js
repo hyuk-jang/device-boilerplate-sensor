@@ -50,7 +50,6 @@ module.exports = {
         for (let index = 0; index < drainagePlaceList.length; index += 1) {
           const isRequest = this.reqWaterSupply({
             waterSupplyPlace: _.nth(drainagePlaceList, index),
-            thresholdKey,
           });
           if (isRequest) {
             return true;
@@ -80,8 +79,7 @@ module.exports = {
     let { needWaterVolume } = waterSupplyInfo;
     // 급수 가능한 염수량이 없을 경우 계산
     if (!_.isNumber(needWaterVolume)) {
-      // BU.CLIN(waterSupplyPlace);
-      needWaterVolume = salinityFn.getWaterSupplyAbleWV(waterSupplyPlace);
+      needWaterVolume = this.getWaterSupplyAbleWV(waterSupplyPlace, thresholdKey);
     }
     // 급수지로 염수를 보낼 수 있는 배수지 목록을 가져옴
     const drainagePlaceList = waterSupplyPlace.getCallPlaceRankList(ndId.WATER_LEVEL);
@@ -96,7 +94,7 @@ module.exports = {
           // 배수지와 최종 급수지가 같을 경우에는 실행하지 않음
           if (drainPlace !== finalWaterSupplyPlace) {
             // 급수 요청
-            this.executeWaterFlow(drainagePlace, waterSupplyPlace, false, thresholdKey);
+            this.executeWaterFlow(drainPlace, waterSupplyPlace, false, thresholdKey);
           }
         });
         return true;
@@ -104,8 +102,8 @@ module.exports = {
 
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (drainagePlace !== finalWaterSupplyPlace) {
-        const drainageWV = this.getDrainageAbleWV(drainagePlace);
-        // BU.CLI(needWaterVolume, drainageWV);
+        const drainageWV = this.getDrainageAbleWVInfo(drainagePlace);
+        BU.CLI(needWaterVolume, drainageWV);
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
         if (drainageWV.drainageAbleWV >= needWaterVolume) {
           // 급수 요청
@@ -199,7 +197,6 @@ module.exports = {
 
   /**
    * 배수 명령 요청
-   * 적합한 수위를 갖는 배수지가 없을 경우 배수지에 급수 요청
    * @param {Object} drainageInfo
    * @param {PlaceStorage} drainageInfo.drainagePlace 배수지 장소
    * @param {number=} drainageInfo.needWaterVolume 보내야 하는 물의 양
@@ -211,11 +208,11 @@ module.exports = {
     const { drainagePlace, thresholdKey } = drainageInfo;
     // BU.CLI(thresholdKey);
     // BU.CLIN(drainagePlace, 1);
-    let { needWaterVolume } = drainageInfo;
+    const { needWaterVolume } = drainageInfo;
     // 급수 가능한 염수량이 없을 경우 계산
     if (!_.isNumber(needWaterVolume)) {
       // BU.CLIN(waterSupplyPlace);
-      needWaterVolume = salinityFn.getWaterSupplyAbleWV(drainagePlace);
+      const drainageInfo = this.getDrainageAbleWVInfo(drainagePlace, thresholdKey);
     }
     // 배수지에서 염수를 받을 수 있는 급수지 목록을 가져옴
     const waterSupplyPlaceList = drainagePlace.getPutPlaceRankList(ndId.WATER_LEVEL);
@@ -238,7 +235,7 @@ module.exports = {
 
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (waterSupplyPlace !== finalDrainagePlace) {
-        const drainageWV = this.getDrainageAbleWV(waterSupplyPlace);
+        const drainageWV = this.getDrainageAbleWVInfo(waterSupplyPlace);
 
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
         if (drainageWV.drainageAbleWV >= needWaterVolume) {
@@ -270,14 +267,23 @@ module.exports = {
    * @description
    * WV: Water Volume, 수량, m3
    * @param {PlaceStorage} drainagePlace
+   * @param {string=} thresholdKey
    */
-  getDrainageAbleWV(drainagePlace) {
+  getDrainageAbleWVInfo(drainagePlace, thresholdKey = pNS.MIN_UNDER) {
     const placeNode = drainagePlace.getPlaceNode(ndId.WATER_LEVEL);
 
-    const currValue = placeNode.getNodeValue();
-    const minValue = placeNode.getMinValue();
-    const lowerLimitValue = placeNode.getLowerLimitValue();
+    // 최대치
+    const maxValue = placeNode.getMaxValue();
+    // 상한선
+    const upperLimitValue = placeNode.getUpperLimitValue();
+    // 설정치
     const setValue = placeNode.getSetValue();
+    // 현재 값
+    const currValue = placeNode.getNodeValue();
+    // 하한선
+    const lowerLimitValue = placeNode.getLowerLimitValue();
+    // 최저치
+    const minValue = placeNode.getMinValue();
 
     const drainageWVInfo = {
       // 최저 수위에 맞출 경우 염수량
@@ -288,51 +294,114 @@ module.exports = {
         : 0,
       // 설정 수위에 맞출 경우 필요 염수량
       setWV: _.isNumber(setValue) ? this.getCubicMeter(placeNode, setValue) : 0,
-      // 배수를 할 수 있는 염수량 (현재 염수량 - 최저 염수량)
-      drainageAbleWV: _.isNumber(currValue)
-        ? this.getCubicMeter(
-            placeNode,
-            // 현재 수위 - 최저 수위
-            currValue - minValue,
-          )
-        : 0,
+      // 배수를 할 수 있는 염수량
+      drainageAbleWV: 0,
       // 현재 장소에 재급수를 하였을 경우 필요한 최소 염수량
       // 재급수 최소 필요 수위 = 하한선 + (설정 - 하한선) / 2
-      needWaterSupplyWV: 0,
+      drainageAfterNeedWV: 0,
     };
-    // 배수 후 재급수 수위
-    drainageWVInfo.needWaterSupplyWV = _.chain(drainageWVInfo.setWV)
-      .subtract(drainageWVInfo.lowerLimitWV)
-      .divide(2)
-      .add(drainageWVInfo.lowerLimitWV)
-      // .round(2)
-      .value();
+
+    // 배수 수위가 설정 수위이고 값이 존재하고 수위 상한선이 존재할 경우
+    if (thresholdKey === pNS.NORMAL && _.isNumber(setValue) && _.isNumber(upperLimitValue)) {
+      // 그 중간값을 최소 배수 염수량이라고 정함
+      drainageWVInfo.drainageAbleWV = this.getCubicMeter(
+        placeNode,
+        _.subtract(
+          currValue,
+          _.chain(upperLimitValue)
+            .subtract(setValue)
+            .divide(2)
+            .add(setValue)
+            .round(2)
+            .value(),
+        ),
+      );
+    } else {
+      // 배수해야 하는 수위 하한선
+      const lowerLimit = commonFn.getPlaceThresholdValue(
+        drainagePlace,
+        ndId.WATER_LEVEL,
+        thresholdKey,
+      );
+
+      // 임계치가 존재하면 임계치로, 아니라면 최저로
+      const thresholdValue = _.isNumber(lowerLimit) ? lowerLimit : minValue;
+
+      if (_.isNumber(currValue) && _.isNumber(thresholdValue)) {
+        drainageWVInfo.drainageAbleWV = this.getCubicMeter(
+          placeNode,
+          _.subtract(currValue, thresholdValue),
+        );
+      }
+    }
+
+    // 배수 후 재급수 염수. 설정 수위와 하한선이 있다면 그 중간 값을 최소로 놓는다.
+    if (_.isNumber(setValue) && _.isNumber(lowerLimitValue)) {
+      drainageWVInfo.drainageAfterNeedWV = _.chain(drainageWVInfo.setWV)
+        .subtract(drainageWVInfo.lowerLimitWV)
+        .divide(2)
+        .add(drainageWVInfo.lowerLimitWV)
+        // .round(2)
+        .value();
+    } else if (_.isNumber(setValue)) {
+      // 설정 수위만 존재한다면 그 염수량으로 지정
+      drainageWVInfo.drainageAfterNeedWV = drainageWVInfo.setWV;
+    }
 
     return drainageWVInfo;
   },
 
   /**
-   * 배수지로부터 가져올 수 있는 염수량에 관한 정보
+   * 지정한 장소에서 급수 가능한 염수 량
    * @description
    * WV: Water Volume, 수량
-   * @param {PlaceStorage} drainagePlace 배수지
+   * @param {PlaceStorage} waterSupplyPlace
+   * @param {string=} thresholdKey
    */
-  getWaterSupplyAbleWV(drainagePlace) {
+  getWaterSupplyAbleWV(waterSupplyPlace, thresholdKey = pNS.MAX_OVER) {
     // BU.CLI(placeStorage.getPlaceId());
     try {
-      const placeNode = drainagePlace.getPlaceNode(ndId.WATER_LEVEL);
+      const placeNode = waterSupplyPlace.getPlaceNode(ndId.WATER_LEVEL);
       // 해당 장소에 수위가 없다면 무한대로 받을 수 있다고 가정(바다)
       if (placeNode === undefined) {
         return 10000;
       }
-      if (_.isNumber(placeNode.getNodeValue()) && _.isNumber(placeNode.getMaxValue())) {
-        // BU.CLIS(placeNode.getNodeValue(), placeNode.getMinValue(), placeStorage.getSquareMeter());
-        return _.chain(placeNode.getMaxValue())
-          .subtract(placeNode.getNodeValue()) // 최대 수위 - 현재 수위
-          .multiply(0.01) // cm -> m
-          .multiply(drainagePlace.getSquareMeter()) // m3 환산
-          .round(1) // 소수점 절삭
-          .value(); // 데이터 반환
+
+      // 최대치
+      const maxValue = placeNode.getMaxValue();
+      // 설정치
+      const setValue = placeNode.getSetValue();
+      // 현재 값
+      const currValue = placeNode.getNodeValue();
+      // 하한선
+      const lowerLimitValue = placeNode.getLowerLimitValue();
+
+      // 급수 수위가 설정 수위이며 값이 존재하고 수위 하한선이 존재할 경우
+      if (thresholdKey === pNS.NORMAL && _.isNumber(setValue) && _.isNumber(lowerLimitValue)) {
+        // 그 중간값을 최소 급수 염수량이라고 정함
+        return this.getCubicMeter(
+          placeNode,
+          _.chain(setValue)
+            .subtract(lowerLimitValue)
+            .divide(2)
+            .add(lowerLimitValue)
+            .subtract(currValue)
+            .round(2)
+            .value(),
+        );
+      }
+      // 받아야 하는 수위 상한선
+      const upperLimit = commonFn.getPlaceThresholdValue(
+        waterSupplyPlace,
+        ndId.WATER_LEVEL,
+        thresholdKey,
+      );
+
+      // 임계치가 존재하면 임계치로, 아니라면 최대치로
+      const thresholdValue = _.isNumber(upperLimit) ? upperLimit : maxValue;
+
+      if (_.isNumber(currValue) && _.isNumber(thresholdValue)) {
+        return this.getCubicMeter(placeNode, _.subtract(thresholdValue, currValue));
       }
     } catch (error) {
       throw error;
