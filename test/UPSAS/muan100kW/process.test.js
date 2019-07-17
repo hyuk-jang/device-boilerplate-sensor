@@ -133,7 +133,7 @@ describe('수위 임계치 처리 테스트', function() {
    *      배수지 수위 최저치 >>> [BW_5_TO_NCB](R_CAN)
    *  <test> 장소 임계치에 의한 명령 삭제 시 임계 명령 삭제 확인
    */
-  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -482,7 +482,7 @@ describe('수위 임계치 처리 테스트', function() {
    *  <test> 급수지에 염수를 하한선 및 설정 사이 50%를 공급할 수 없을 경우 급수지와 동일하지 않은 1순위 배수지로 염수 이동 요청(멀티)
    *    SEB_6.WL 하한선 > BW_3.WL 염수 이동 조건 불가 > [SEB_1,SEB_2,SEB_3,SEB_4,SEB_5][TO_BW_3](R_CON)
    */
-  it.only('염수 그룹화 이동', async () => {
+  it('염수 그룹화 이동', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -509,8 +509,9 @@ describe('수위 임계치 처리 테스트', function() {
     const ps_NEB_2 = placeManager.findPlace(pId.NEB_2);
     const pn_WL_NEB_2 = ps_NEB_2.getPlaceNode(ndId.WL);
     // * NEB_2.callPlaceRankList = [[BW_1,NEB_1]]
+    // 일반 증발지 수위 상한선 = 15cm
     pn_WL_NEB_2.upperLimitValue = {
-      value: 12,
+      value: 15,
       isCall: false,
     };
     pn_WL_NEB_2.callPlaceRankList = [[pId.BW_1, pId.NEB_1]];
@@ -546,7 +547,7 @@ describe('수위 임계치 처리 테스트', function() {
     // BU.CLIN(BW_1_TO_NEB_2_CON)
     const NEB_1_TO_NEB_2_CAN = await eventToPromise(control, 'completeCommand');
 
-    // * 3. 해주 3의 수위를 최저치 설정. 수중 태양광 증발지 수위 하한선 설정.
+    // * 3. 해주 3의 수위 최저치 설정. 수중 태양광 증발지 수위 하한선 설정.
     // *  BW_3.WL = 10, SEB_6.WL = 2
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_3, 10), setNodeData(pn_WL_SEB_6, 2)]);
     // *  <test> 급수지에 염수를 하한선 및 설정 사이 50%를 공급할 수 없을 경우

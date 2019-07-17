@@ -103,7 +103,7 @@ module.exports = {
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (drainagePlace !== finalWaterSupplyPlace) {
         const drainageWV = this.getDrainageAbleWVInfo(drainagePlace);
-        BU.CLI(needWaterVolume, drainageWV);
+        // BU.CLI(needWaterVolume, drainageWV);
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
         if (drainageWV.drainageAbleWV >= needWaterVolume) {
           // 급수 요청
@@ -208,13 +208,14 @@ module.exports = {
     const { drainagePlace, thresholdKey } = drainageInfo;
     // BU.CLI(thresholdKey);
     // BU.CLIN(drainagePlace, 1);
-    const { needWaterVolume } = drainageInfo;
+    let { needWaterVolume } = drainageInfo;
     // 급수 가능한 염수량이 없을 경우 계산
     if (!_.isNumber(needWaterVolume)) {
       // BU.CLIN(waterSupplyPlace);
-      const drainageInfo = this.getDrainageAbleWVInfo(drainagePlace, thresholdKey);
+      const drainageWVInfo = this.getDrainageAbleWVInfo(drainagePlace, thresholdKey);
+      needWaterVolume = drainageWVInfo.drainageAbleWV;
     }
-    // 배수지에서 염수를 받을 수 있는 급수지 목록을 가져옴
+    // 배수지에서 염수를 보낼 수 있는 급수지 목록을 가져옴
     const waterSupplyPlaceList = drainagePlace.getPutPlaceRankList(ndId.WATER_LEVEL);
 
     // 배수지 목록을 순회하면서 염수 이동 조건에 부합하는 장소를 찾아 명령을 보낼때까지 순회
@@ -235,10 +236,10 @@ module.exports = {
 
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (waterSupplyPlace !== finalDrainagePlace) {
-        const drainageWV = this.getDrainageAbleWVInfo(waterSupplyPlace);
+        const drainageWVInfo = this.getDrainageAbleWVInfo(waterSupplyPlace);
 
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
-        if (drainageWV.drainageAbleWV >= needWaterVolume) {
+        if (drainageWVInfo.drainageAbleWV >= needWaterVolume) {
           // 배수 명령 요청
           this.executeWaterFlow(drainagePlace, waterSupplyPlace, true, thresholdKey);
           return true;
@@ -272,6 +273,7 @@ module.exports = {
   getDrainageAbleWVInfo(drainagePlace, thresholdKey = pNS.MIN_UNDER) {
     const placeNode = drainagePlace.getPlaceNode(ndId.WATER_LEVEL);
 
+    // BU.CLI(drainagePlace.getPlaceId());
     // 최대치
     const maxValue = placeNode.getMaxValue();
     // 상한선
