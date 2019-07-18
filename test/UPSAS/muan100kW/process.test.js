@@ -44,7 +44,8 @@ const ndId = {
 };
 
 const pId = {
-  RV: 'RV',
+  RV_1: 'RV_1',
+  RV_2: 'RV_2',
   SEA: 'SEA',
   NEB_1: 'NEB_1',
   NEB_2: 'NEB_2',
@@ -83,8 +84,8 @@ function setNodeData(placeNode, setValue) {
   return _.get(placeNode, 'nodeInfo');
 }
 
-describe('수위 임계치 처리 테스트', function() {
-  this.timeout(5000);
+describe.only('수위 임계치 처리 테스트', function() {
+  this.timeout(10000);
 
   before(async () => {
     await control.init(dbInfo, config.uuid);
@@ -133,7 +134,7 @@ describe('수위 임계치 처리 테스트', function() {
    *      배수지 수위 최저치 >>> [BW_5_TO_NCB](R_CAN)
    *  <test> 장소 임계치에 의한 명령 삭제 시 임계 명령 삭제 확인
    */
-  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
@@ -185,8 +186,8 @@ describe('수위 임계치 처리 테스트', function() {
 
     // * trueNodeList: ['P_014'],
     expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(1);
-    // * falseNodeList: ['WD_008'],
-    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(1);
+    // * falseNodeList: ['WD_007','WD_008'],
+    expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(2);
 
     // * 3. 결정지의 수위를 Max값 이상(15cm) 설정.
     control.notifyDeviceData(null, [setNodeData(pn_WL_NCB, 15)]);
@@ -312,8 +313,8 @@ describe('수위 임계치 처리 테스트', function() {
     };
 
     // 저수지
-    const ps_RV = placeManager.findPlace(pId.RV);
-    const pn_WL_RV = ps_RV.getPlaceNode(ndId.WL);
+    const ps_RV_1 = placeManager.findPlace(pId.RV_1);
+    const pn_WL_RV_1 = ps_RV_1.getPlaceNode(ndId.WL);
     // 일반 증발지 1
     const ps_NEB_1 = placeManager.findPlace(pId.NEB_1);
     const pn_WL_NEB_1 = ps_NEB_1.getPlaceNode(ndId.WL);
@@ -418,7 +419,7 @@ describe('수위 임계치 처리 테스트', function() {
     // BU.CLIN(threCmdManager.getThreCmdStorage(wc_NEB_2_TO_BW_1));
     // expect(threCmdManager.getThreCmdStorage(wc_NEB_2_TO_BW_1))
 
-    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(3);
+    expect(cmdOverlapManager.getExistSimpleOverlapList(TRUE)).to.length(1);
     expect(cmdOverlapManager.getExistSimpleOverlapList(FALSE)).to.length(2);
     // * 3. 일반 증발지 2의 수위를 정상(10)으로 교체
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 10)]);
@@ -445,7 +446,7 @@ describe('수위 임계치 처리 테스트', function() {
     // *    일반 증발지 1 수위 하한선 >>> [RV_TO_NEB_1](R_CON) :: 달성 목표: 급수지(일반 증발지 1) 수위 10cm 이상
     /** @type {complexCmdWrapInfo} */
     const RV_TO_NEB_1_CON = await eventToPromise(control, 'completeCommand');
-    expect(getFlowCmd(pId.RV, pId.NEB_1).wrapCmdType).to.eq(reqWCT.CONTROL);
+    expect(getFlowCmd(pId.RV_1, pId.NEB_1).wrapCmdType).to.eq(reqWCT.CONTROL);
 
     // * 6. 해주 수위 최저치 10cm 변경, 일반 증발지 2 하한선 수위 4cm 변경
     // *  <test> 수위 하한선에 의한 배수지 탐색 시 모든 배수지가 수위 최저치 이하라면 1순위 배수지에 급수 요청
@@ -456,7 +457,7 @@ describe('수위 임계치 처리 테스트', function() {
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_1, 10)]);
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 4)]);
     // *    목표 달성 >>> [RV_TO_NEB_1](R_CAN)
-    expect(getFlowCmd(pId.RV, pId.NEB_1).wrapCmdType).to.eq(reqWCT.CANCEL);
+    expect(getFlowCmd(pId.RV_1, pId.NEB_1).wrapCmdType).to.eq(reqWCT.CANCEL);
     const RV_TO_NEB_1_CAN = await eventToPromise(control, 'completeCommand');
 
     // *  <test> 자동 급수 요청 우선 순위에 따라 급수 대상 탐색. 1순위(해주 1) 자격 미달에 의한 2순위 지역 급수 요청
@@ -566,8 +567,8 @@ describe('수위 임계치 처리 테스트', function() {
   // * 해주 및 증발지의 면적에 따른 해수 부피를 산정하여 명령 수행 가능성 여부를 결정한다.
 });
 
-describe.skip('염도 임계치 처리 테스트', function() {
-  this.timeout(5000);
+describe('염도 임계치 처리 테스트', function() {
+  this.timeout(10000);
 
   before(async () => {
     await control.init(dbInfo, config.uuid);
@@ -759,7 +760,6 @@ describe.skip('염도 임계치 처리 테스트', function() {
         }
       });
     }
-
     // * 3. BW 2 ~ 4의 수위를 140cm로 설정, DPs_1.WL = 5, DPs_1.S = 12 설정
     control.notifyDeviceData(null, [
       setNodeData(pn_WL_BW_2, 140),
@@ -785,7 +785,6 @@ describe.skip('염도 임계치 처리 테스트', function() {
     );
     expect(cmdManager.complexCmdList).to.length(0);
     expect(cmdOverlapManager.getExistOverlapStatusList()).to.length(0);
-
     // *  SEP_7.S = 20
     // *  <test> DPs_2.S_TULO(18)에 달성률이 66%이므로 명령 알고리즘 수행
     // 해주의 염수가 이를 수용하지 못하므로 실패

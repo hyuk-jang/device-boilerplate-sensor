@@ -131,8 +131,8 @@ class PlaceStorage extends PlaceComponent {
    * @param {string} nodeDefId Node Definition ID
    * @return {PlaceStorage[]}
    */
-  getGroupSrcList(nodeDefId) {
-    return this.getPlaceNode(nodeDefId).getGroupSrcList();
+  getGroupPlaceList(nodeDefId) {
+    return this.getPlaceNode(nodeDefId).getGroupPlaceList();
   }
 
   /** @param {string} nodeDefId Node Definition ID 노드 임계치 */

@@ -273,7 +273,7 @@ class CommandManager {
     // 통합 명령 UUID가 없을 경우
     if (!wrapCmdInfo) {
       // BU.CLI(this.complexCmdList);
-      throw new Error(`wrapCmdUUID: ${dcWrapCmdUUID} is not exist.`);
+      throw new Error(`dcWrapCmdId: ${dcWrapCmdId} ${dcWrapCmdType} is not exist.`);
     }
 
     const {
@@ -332,7 +332,7 @@ class CommandManager {
 
     // 모든 장치의 제어가 완료됐다면
     if (_.every(flattenEleCmdList, 'hasComplete')) {
-      BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
+      // BU.log(`M.UUID: ${this.controller.mainUUID || ''}`, `Complete: ${wrapCmdId} ${wrapCmdType}`);
 
       // 명령 완료 처리
       this.cmdStrategy.completeComplexCommand(wrapCmdInfo);

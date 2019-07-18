@@ -4,14 +4,14 @@ const { BU } = require('base-util-jh');
 
 const { constructorInfo, dcmConfigModel } = require('../../../../../core/CoreFacade');
 
-const { goalDataRange, reqWrapCmdType, placeNodeStatus } = dcmConfigModel;
+const { goalDataRange, reqWrapCmdType, placeNodeStatus: pNS } = dcmConfigModel;
 
 const AbstAlgorithm = require('../AbstAlgorithm');
 
 const { nodeDefIdInfo: ndId } = AbstAlgorithm;
 
-const commonFn = require('../commonFn/commonFn');
 const salinityFn = require('../commonFn/salinityFn');
+const waterFlowFn = require('../commonFn/waterFlowFn');
 
 class Salinity extends constructorInfo.PlaceThreshold {
   /**
@@ -35,10 +35,12 @@ class Salinity extends constructorInfo.PlaceThreshold {
    */
   handleUpperLimitOver(coreFacade, placeNode) {
     try {
-      BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
+      // BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
 
       // 염도 임계치 달성 시 이동할 장소 그룹
-      const placeStorageList = placeNode.getGroupSrcList();
+      const placeStorageList = placeNode.getGroupPlaceList();
+
+      // BU.CLIN(placeStorageList, 1);
 
       // 그룹으로 묶인 증발지의 염도 및 수위가 충분한 지역이 50% 이상 여부 체크
       if (!salinityFn.isDpToWsp(placeStorageList)) {
@@ -46,9 +48,10 @@ class Salinity extends constructorInfo.PlaceThreshold {
           `Place: ${placeNode.getPlaceId()}.It is not a moveable brine threshold group.`,
         );
       }
+
       // DrainagePlace Drinage_Able WaterVolume
       const drainageWVInfo = _(placeStorageList)
-        .map(placeStorage => salinityFn.getDrainageAbleWV(placeStorage))
+        .map(placeStorage => waterFlowFn.getDrainageAbleWVInfo(placeStorage, pNS.MIN_UNDER))
         .reduce((prev, next) => {
           _.forEach(prev, (value, key) => {
             _.set(prev, key, _.sum([value, _.get(next, key)]));
@@ -56,13 +59,14 @@ class Salinity extends constructorInfo.PlaceThreshold {
           return prev;
         });
 
-      BU.CLI(drainageWVInfo);
+      // BU.CLI(drainageWVInfo);
+
       // 배수지의 염수를 받을 수 있는 급수지를 탐색
       const waterSupplyInfo = salinityFn.getWaterSupplyAblePlace(
         placeNode,
         drainageWVInfo.drainageAbleWV,
       );
-      BU.CLIN(waterSupplyInfo);
+      // BU.CLIN(waterSupplyInfo);
 
       // 적정 급수지가 없다면 종료
       if (waterSupplyInfo.waterSupplyPlace === null) {
@@ -72,8 +76,8 @@ class Salinity extends constructorInfo.PlaceThreshold {
       }
       // 재급수를 해야할 최소 염수량(재급수 필요 염수량 - 최저 염수량 - 배수 후 남아있는 염수량)
       const needWaterVolume =
-        drainageWVInfo.needWaterSupplyWV - drainageWVInfo.minWV - waterSupplyInfo.drainageAfterWV;
-      BU.CLI(needWaterVolume);
+        drainageWVInfo.drainageAfterNeedWV - drainageWVInfo.minWV - waterSupplyInfo.drainageAfterWV;
+
       // 배수지에서 염수를 이동 후 적정 수위로 복원해줄 수 있는 해주 탐색(Base Place)
       const foundDrainagePlace = salinityFn.getDrainageAblePlace(placeNode, needWaterVolume);
       // BU.CLIN(foundDrainagePlace);

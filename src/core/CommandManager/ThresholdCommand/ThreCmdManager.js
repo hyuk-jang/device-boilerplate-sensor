@@ -62,7 +62,7 @@ class ThreCmdManager extends ThreCmdComponent {
    * @return {boolean} 삭제 성공 시 true, 아니라면 false
    */
   handleThreCmdClear(threCmdStorage) {
-    BU.CLI('handleThreCmdClear');
+    // BU.CLI('handleThreCmdClear');
     const {
       complexCmdWrapInfo,
       complexCmdWrapInfo: { wrapCmdId, wrapCmdFormat, srcPlaceId, destPlaceId },

@@ -3,7 +3,6 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const commonFn = require('./commonFn');
-const salinityFn = require('./salinityFn');
 
 const AbstAlgorithm = require('../AbstAlgorithm');
 
@@ -204,7 +203,7 @@ module.exports = {
    * @param {PlaceStorage=} finalWaterSupplyPlace 최종 배수지
    */
   reqDrainage(drainageInfo, finalDrainagePlace) {
-    BU.CLI('reqDrainage');
+    // BU.CLI('reqDrainage');
     const { drainagePlace, thresholdKey } = drainageInfo;
     // BU.CLI(thresholdKey);
     // BU.CLIN(drainagePlace, 1);
@@ -236,30 +235,16 @@ module.exports = {
 
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (waterSupplyPlace !== finalDrainagePlace) {
-        const drainageWVInfo = this.getDrainageAbleWVInfo(waterSupplyPlace);
+        const waterSupplyAbleWV = this.getWaterSupplyAbleWV(waterSupplyPlace);
 
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
-        if (drainageWVInfo.drainageAbleWV >= needWaterVolume) {
+        if (waterSupplyAbleWV >= needWaterVolume) {
           // 배수 명령 요청
           this.executeWaterFlow(drainagePlace, waterSupplyPlace, true, thresholdKey);
           return true;
         }
       }
     }
-  },
-
-  /**
-   * m3 으로 반환
-   * @param {PlaceNode} placeNode
-   * @param {number=} depthCm 수위가 지정안되어 있을 경우 현재 수위
-   */
-  getCubicMeter(placeNode, depthCm) {
-    depthCm = _.isNil(depthCm) ? placeNode.getNodeValue() : depthCm;
-    return _.chain(depthCm)
-      .multiply(0.01)
-      .multiply(placeNode.getSquareMeter())
-      .round(1) // 소수점 절삭
-      .value(); // 데이터 반환,
   },
 
   /**
@@ -274,8 +259,7 @@ module.exports = {
     const placeNode = drainagePlace.getPlaceNode(ndId.WATER_LEVEL);
 
     // BU.CLI(drainagePlace.getPlaceId());
-    // 최대치
-    const maxValue = placeNode.getMaxValue();
+
     // 상한선
     const upperLimitValue = placeNode.getUpperLimitValue();
     // 설정치
@@ -289,13 +273,13 @@ module.exports = {
 
     const drainageWVInfo = {
       // 최저 수위에 맞출 경우 염수량
-      minWV: _.isNumber(minValue) ? this.getCubicMeter(placeNode, minValue) : 0,
+      minWV: _.isNumber(minValue) ? commonFn.getCubicMeter(placeNode, minValue) : 0,
       // 하한선 수위에 맞출 경우 필요 염수량
       lowerLimitWV: _.isNumber(lowerLimitValue)
-        ? this.getCubicMeter(placeNode, lowerLimitValue)
+        ? commonFn.getCubicMeter(placeNode, lowerLimitValue)
         : 0,
       // 설정 수위에 맞출 경우 필요 염수량
-      setWV: _.isNumber(setValue) ? this.getCubicMeter(placeNode, setValue) : 0,
+      setWV: _.isNumber(setValue) ? commonFn.getCubicMeter(placeNode, setValue) : 0,
       // 배수를 할 수 있는 염수량
       drainageAbleWV: 0,
       // 현재 장소에 재급수를 하였을 경우 필요한 최소 염수량
@@ -306,17 +290,16 @@ module.exports = {
     // 배수 수위가 설정 수위이고 값이 존재하고 수위 상한선이 존재할 경우
     if (thresholdKey === pNS.NORMAL && _.isNumber(setValue) && _.isNumber(upperLimitValue)) {
       // 그 중간값을 최소 배수 염수량이라고 정함
-      drainageWVInfo.drainageAbleWV = this.getCubicMeter(
+      // 상한선과 설정 값의 50%를 최소 배수 수위로 함
+      drainageWVInfo.drainageAbleWV = commonFn.getCubicMeter(
         placeNode,
-        _.subtract(
-          currValue,
-          _.chain(upperLimitValue)
-            .subtract(setValue)
-            .divide(2)
-            .add(setValue)
-            .round(2)
-            .value(),
-        ),
+        _.chain(upperLimitValue)
+          .subtract(setValue)
+          .divide(2)
+          .add(setValue)
+          .round(2)
+          .thru(chainValue => _.subtract(currValue, chainValue))
+          .value(),
       );
     } else {
       // 배수해야 하는 수위 하한선
@@ -330,7 +313,7 @@ module.exports = {
       const thresholdValue = _.isNumber(lowerLimit) ? lowerLimit : minValue;
 
       if (_.isNumber(currValue) && _.isNumber(thresholdValue)) {
-        drainageWVInfo.drainageAbleWV = this.getCubicMeter(
+        drainageWVInfo.drainageAbleWV = commonFn.getCubicMeter(
           placeNode,
           _.subtract(currValue, thresholdValue),
         );
@@ -381,7 +364,7 @@ module.exports = {
       // 급수 수위가 설정 수위이며 값이 존재하고 수위 하한선이 존재할 경우
       if (thresholdKey === pNS.NORMAL && _.isNumber(setValue) && _.isNumber(lowerLimitValue)) {
         // 그 중간값을 최소 급수 염수량이라고 정함
-        return this.getCubicMeter(
+        return commonFn.getCubicMeter(
           placeNode,
           _.chain(setValue)
             .subtract(lowerLimitValue)
@@ -403,7 +386,7 @@ module.exports = {
       const thresholdValue = _.isNumber(upperLimit) ? upperLimit : maxValue;
 
       if (_.isNumber(currValue) && _.isNumber(thresholdValue)) {
-        return this.getCubicMeter(placeNode, _.subtract(thresholdValue, currValue));
+        return commonFn.getCubicMeter(placeNode, _.subtract(thresholdValue, currValue));
       }
     } catch (error) {
       throw error;

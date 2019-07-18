@@ -25,7 +25,7 @@ class PlaceNode extends PlaceComponent {
       minValue,
       callPlaceRankList = [],
       putPlaceRankList = [],
-      groupSrcList = [],
+      groupPlaceList,
     } = thresholdConfigInfo;
 
     this.maxValue = maxValue;
@@ -39,7 +39,7 @@ class PlaceNode extends PlaceComponent {
     /** 발신 우선 장소 목록 */
     this.putPlaceRankList = putPlaceRankList;
     /** 특정 조건 충족 시 그룹으로 묶을 장소 목록 */
-    this.groupSrcList = groupSrcList;
+    this.groupPlaceList = groupPlaceList;
 
     /** @type {PlaceComponent} */
     this.placeStorage;
@@ -137,9 +137,9 @@ class PlaceNode extends PlaceComponent {
    * 그룹 장소 목록 반환
    * @return {PlaceStorage[]}
    */
-  getGroupSrcList() {
-    if (this.groupSrcList.length) {
-      return _.map(this.groupSrcList, placeId => {
+  getGroupPlaceList() {
+    if (this.groupPlaceList.length) {
+      return _.map(this.groupPlaceList, placeId => {
         return this.placeStorage.findPlace(placeId);
       });
     }

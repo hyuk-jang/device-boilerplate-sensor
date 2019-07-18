@@ -116,7 +116,7 @@ class PlaceComponent extends Observer {
    * @param {string} nodeDefId Node Definition ID
    * @return {PlaceComponent[]}
    */
-  getGroupSrcList(nodeDefId) {}
+  getGroupPlaceList(nodeDefId) {}
 
   /** 노드 임계치 */
   getThresholdValue() {}
