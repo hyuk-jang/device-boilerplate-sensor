@@ -7,7 +7,7 @@ const AbstAlgorithm = require('../AbstAlgorithm');
 const CoreFacade = require('../../../../../core/CoreFacade');
 
 const {
-  constructorInfo: { PlaceComponent },
+  constructorInfo: { PlaceNode },
 } = CoreFacade;
 
 class ConcreteAlgorithm extends AbstAlgorithm {
@@ -38,14 +38,13 @@ class ConcreteAlgorithm extends AbstAlgorithm {
   /**
    * 노드 데이터 갱신
    * @param {CoreFacade} coreFacade Place Manager
-   * @param {placeManager} placeManager Place Manager
-   * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
+   * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpdateNode(coreFacade, placeNode) {
     try {
       const { nodeDefIdInfo } = AbstAlgorithm;
 
-      const { nodeStatusInfo: nodeStatus } = PlaceComponent;
+      const { nodeStatusInfo: nodeStatus } = PlaceNode;
 
       const currNodeDefId = placeNode.getNodeDefId();
 

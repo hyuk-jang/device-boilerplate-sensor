@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
 require('dotenv').config();
 const _ = require('lodash');
-const Promise = require('bluebird');
 const { expect } = require('chai');
 
 const eventToPromise = require('event-to-promise');
@@ -18,8 +17,6 @@ const {
     reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
   },
 } = CoreFacade;
-
-const MuanControl = require('../../../src/projects/UPSAS/muan/MuanControl');
 
 const ThreCmdComponent = require('../../../src/core/CommandManager/ThresholdCommand/ThreCmdComponent');
 
@@ -84,7 +81,7 @@ function setNodeData(placeNode, setValue) {
   return _.get(placeNode, 'nodeInfo');
 }
 
-describe.only('수위 임계치 처리 테스트', function() {
+describe('수위 임계치 처리 테스트', function() {
   this.timeout(10000);
 
   before(async () => {
@@ -567,7 +564,7 @@ describe.only('수위 임계치 처리 테스트', function() {
   // * 해주 및 증발지의 면적에 따른 해수 부피를 산정하여 명령 수행 가능성 여부를 결정한다.
 });
 
-describe('염도 임계치 처리 테스트', function() {
+describe.only('염도 임계치 처리 테스트', function() {
   this.timeout(10000);
 
   before(async () => {

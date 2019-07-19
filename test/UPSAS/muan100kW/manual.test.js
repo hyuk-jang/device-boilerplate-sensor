@@ -82,4 +82,30 @@ function setNodeData(placeNode, setValue) {
   return _.get(placeNode, 'nodeInfo');
 }
 
-describe('')
+describe('수동 테스트', function() {
+  this.timeout(5000);
+
+  before(async () => {
+    await control.init(dbInfo, config.uuid);
+    control.runFeature();
+
+    coreFacade.updateControlMode(controlMode.MANUAL);
+
+    control.inquiryAllDeviceStatus();
+    await eventToPromise(control, 'completeInquiryAllDeviceStatus');
+  });
+
+  beforeEach(async () => {
+    try {
+      control.executeSetControl({
+        wrapCmdId: 'closeAllDevice',
+        wrapCmdType: reqWCT.CONTROL,
+      });
+      await eventToPromise(control, 'completeCommand');
+    } catch (error) {
+      BU.error(error.message);
+    }
+  });
+
+  it('구동 테스트', () => {});
+});
