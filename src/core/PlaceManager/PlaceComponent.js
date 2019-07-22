@@ -56,19 +56,17 @@ class PlaceComponent extends Observer {
 
   /**
    * @desc Place Storage :::
-   * @param {PlaceComponent} placeComponent
+   * @param {PlaceNode} placeNode
    */
-  addPlaceNode(placeComponent) {}
+  addPlaceNode(placeNode) {}
 
   /**
    * @desc Place Storage :::
    * 장소 노드 객체를 조회하고자 할 경우
-   * @param {Object} placeNodeInfo NodeId or nodeInfo 객체
-   * @param {string=} placeNodeInfo.nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
-   * @param {nodeId|nodeInfo=} placeNodeInfo.node NodeId or nodeInfo 객체
-   * @return {PlaceComponent}
+   * @param {string} nodeDefId Node Definition Id (염도, 수위, 후면 온도 등등)
+   * @return {PlaceNode}
    */
-  getPlaceNode(placeNodeInfo) {}
+  getPlaceNode(nodeDefId) {}
 
   /**
    * @desc Place Storage, Place Node :::
@@ -138,9 +136,9 @@ class PlaceComponent extends Observer {
 
   /**
    * Place Node가 갱신이 되었을 경우 처리
-   * @param {PlaceComponent} placeNode
+   * @param {PlaceComponent} placeComponent
    */
-  handleUpdateNode(placeNode) {}
+  handleUpdateNode(placeComponent) {}
 }
 
 module.exports = PlaceComponent;

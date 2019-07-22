@@ -1,6 +1,4 @@
 const WaterLevel = require('./WaterLevel');
-const Salinity = require('./Salinity');
-const ModuleRearTemp = require('./ModuleRearTemp');
 
 const AbstAlgorithm = require('../AbstAlgorithm');
 
@@ -18,8 +16,6 @@ class ConcreteAlgorithm extends AbstAlgorithm {
     this.controlAlgorithm = controlAlgorithm;
 
     this.thresholdWL = new WaterLevel();
-    this.thresholdS = new Salinity();
-    this.thresholdMRT = new ModuleRearTemp();
   }
 
   /**
@@ -52,12 +48,6 @@ class ConcreteAlgorithm extends AbstAlgorithm {
       switch (nodeDefId) {
         case NODE_DEF.WATER_LEVEL:
           threAlgorithm = this.thresholdWL;
-          break;
-        case NODE_DEF.SALINITY:
-          threAlgorithm = this.thresholdS;
-          break;
-        case NODE_DEF.MODULE_REAR_TEMPERATURE:
-          threAlgorithm = this.thresholdMRT;
           break;
         default:
           break;

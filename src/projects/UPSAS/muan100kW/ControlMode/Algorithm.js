@@ -8,7 +8,7 @@ const PlaceComponent = require('../../../../core/PlaceManager/PlaceComponent');
 const Manual = require('./Manual');
 const SalternOptimization = require('./SalternOptimization');
 const PowerOptimization = require('./PowerOptimization');
-const Rain = require('./Rain');
+const Scenario = require('./Scenario');
 
 class Algorithm extends AbstAlgorithm {
   constructor() {
@@ -18,7 +18,7 @@ class Algorithm extends AbstAlgorithm {
     this.manualMode = new Manual(this);
     this.salternOptimizationMode = new SalternOptimization(this);
     this.powerOptimizationMode = new PowerOptimization(this);
-    this.rainMode = new Rain(this);
+    this.scenarioMode = new Scenario(this);
 
     /** @type {Algorithm} */
     this.currControlMode = this.manualMode;
@@ -54,7 +54,7 @@ class Algorithm extends AbstAlgorithm {
 
   /** 우천 제어 모드로 변경 */
   setRainMode() {
-    return this.changeControlMode(this.rainMode);
+    return this.changeControlMode(this.scenarioMode);
   }
 
   /**
@@ -86,7 +86,7 @@ class Algorithm extends AbstAlgorithm {
         break;
       // 우천 모드
       case RAIN:
-        nextControlMode = this.rainMode;
+        nextControlMode = this.scenarioMode;
         break;
       default:
         nextControlMode = this.currControlMode;

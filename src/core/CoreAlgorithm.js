@@ -13,12 +13,11 @@ class CoreAlgorithm {
 
   /**
    * 흐름 명령을 수행할 수 있는지 여부 체크
-   * @param {PlaceManager} placeManager
    * @param {string} srcPlaceId
    * @param {string} destPlaceId
    * @param {csCmdGoalInfo=} goalInfo
    */
-  isPossibleFlowCommand(placeManager, srcPlaceId, destPlaceId, goalInfo) {}
+  isPossibleFlowCommand(srcPlaceId, destPlaceId, goalInfo) {}
 
   /**
    * 노드 데이터 갱신

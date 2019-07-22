@@ -41,7 +41,7 @@ class PlaceStorage extends PlaceComponent {
     // 면적 정보가 있다면 정의, 아니라면 false
     this.placeSize = customPlaceInfo && customPlaceInfo.placeSize;
 
-    /** @type {PlaceComponent[]} */
+    /** @type {PlaceNode[]} */
     this.children = [];
   }
 
