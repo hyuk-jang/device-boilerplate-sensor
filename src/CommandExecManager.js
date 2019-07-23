@@ -165,7 +165,7 @@ class CommandExecManager {
 
   /**
    * 설정 명령 요청 수행
-   * @param {wsExecCmdInfo} reqSetCmdInfo 저장된 명령 ID
+   * @param {reqSetCmdInfo} reqSetCmdInfo 저장된 명령 ID
    */
   executeSetControl(reqSetCmdInfo) {
     // BU.CLI(reqSetCmdInfo);
@@ -178,7 +178,9 @@ class CommandExecManager {
 
       // BU.CLIN(this.model.mapCmdInfo);
       // 설정 명령 조회
-      const setCmdInfo = _.find(this.model.mapCmdInfo.setCmdList, { cmdId: wrapCmdId });
+      const setCmdInfo = _.find(this.model.mapCmdInfo.setCmdList, {
+        cmdId: wrapCmdId,
+      });
       // BU.CLI(setCmdInfo);
 
       if (setCmdInfo) {
@@ -196,7 +198,9 @@ class CommandExecManager {
           reqComplexCmd.reqCmdEleList = this.makeControlEleCmdList(setCmdInfo, rank);
         } else if (_.eq(wrapCmdType, reqWrapCmdType.RESTORE)) {
           // wrapCmdId를 가진 복합 명령 개체가 있는지 확인
-          const compelxCmdInfo = _.find(this.model.complexCmdList, { wrapCmdId });
+          const compelxCmdInfo = _.find(this.model.complexCmdList, {
+            wrapCmdId,
+          });
           // 명령이 실행중이지 않는다면 복원 명령을 내릴 수 없음.
           if (_.isEmpty(compelxCmdInfo)) {
             throw new Error(
@@ -293,7 +297,9 @@ class CommandExecManager {
     // BU.CLI(savedCommandInfo);
     try {
       const { savedCommandId, wrapCmdType } = savedCommandInfo;
-      const foundIt = _.find(this.model.excuteControlList, { cmdName: savedCommandId });
+      const foundIt = _.find(this.model.excuteControlList, {
+        cmdName: savedCommandId,
+      });
       if (foundIt) {
         const { trueList = [], falseList = [] } = foundIt;
         // 명령 제어 요청 일 경우

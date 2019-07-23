@@ -207,7 +207,35 @@ class CoreFacade {
   }
 
   /**
-   * 자동 프로세스에 의한 명령을 내릴 경우 사용.
+   * 단일 명령을 내릴경우
+   * 예외 발생 시 무시
+   * @param {reqSingleCmdInfo} reqSingleCmdInfo
+   */
+  executeSingleControl(reqSingleCmdInfo) {
+    try {
+      this.cmdExecManager.executeSingleControl(reqSingleCmdInfo);
+    } catch (error) {
+      // BU.error(error);
+      BU.error(error.message);
+    }
+  }
+
+  /**
+   * 설정 명령을 내릴경우
+   * 예외 발생 시 무시
+   * @param {reqSetCmdInfo} reqSetCmdInfo
+   */
+  executeSetControl(reqSetCmdInfo) {
+    try {
+      this.cmdExecManager.executeSetControl(reqSetCmdInfo);
+    } catch (error) {
+      // BU.error(error);
+      BU.error(error.message);
+    }
+  }
+
+  /**
+   * Flow 명령을 내릴 경우 사용.
    * 예외 발생 시 무시
    * @param {reqFlowCmdInfo} reqFlowCmdInfo
    */

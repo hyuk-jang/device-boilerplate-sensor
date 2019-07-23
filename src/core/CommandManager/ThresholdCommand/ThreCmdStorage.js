@@ -83,7 +83,10 @@ class ThreCmdStorage extends ThreCmdComponent {
    * @return {boolean} 임계 명령 완료 여부
    */
   isThreCmdClear() {
-    const isCompleteClear = !!_.find(this.children, { isClear: true, isCompleteClear: true });
+    const isCompleteClear = !!_.find(this.children, {
+      isClear: true,
+      isCompleteClear: true,
+    });
     // 필수 요소를
     if (isCompleteClear) return true;
 

@@ -88,22 +88,31 @@ class Model {
       const { srcPlaceId } = simpleCommandInfo;
 
       // 출발지 한글 이름
-      const srcPlaceName = _.chain(this.placeList)
-        .find({ place_id: srcPlaceId })
-        .get('place_name')
-        .value();
+      let { srcPlaceName } = simpleCommandInfo;
+
+      if (_.isNil(srcPlaceName)) {
+        srcPlaceName = _.chain(this.placeList)
+          .find({ place_id: srcPlaceId })
+          .get('place_name')
+          .value();
+      }
       // 출발지 한글이름 추가
+      // simpleCommandInfo.srcPlaceName ||
       _.set(simpleCommandInfo, 'srcPlaceName', srcPlaceName);
       // 목적지 목록을 순회하면서 상세 명령 정보 정의
       simpleCommandInfo.destList.forEach(scDesInfo => {
         const { destPlaceId } = scDesInfo;
+        let { destPlaceName } = scDesInfo;
         // 목적지 한글 이름
-        const destPlaceName = _.chain(this.placeList)
-          .find({ place_id: destPlaceId })
-          .get('place_name')
-          .value();
+        if (_.isNil(destPlaceName)) {
+          destPlaceName = _.chain(this.placeList)
+            .find({ place_id: destPlaceId })
+            .get('place_name')
+            .value();
+        }
+
         // 목적지 한글이름 추가 및 명령 정보 정의
-        _.set(simpleCommandInfo, 'destPlaceName', srcPlaceName);
+        // _.set(simpleCommandInfo, 'destPlaceName', srcPlaceName);
         _.set(scDesInfo, 'cmdId', `${srcPlaceId}_TO_${destPlaceId}`);
         _.set(scDesInfo, 'cmdName', `${srcPlaceName} → ${destPlaceName}`);
       });
