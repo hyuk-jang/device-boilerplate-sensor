@@ -17,8 +17,8 @@ class ScenarioCommand extends ScenarioComponent {
     /** @type {ScenarioComponent} */
     this.scenarioStorage;
 
-    /** @type {complexCmdWrapInfo} */
-    this.wrapCmdInfo;
+    /** @type {string} */
+    this.wrapCmdId;
 
     /** 시나리오 명령 실행 완료 여부 */
     this.isClear = false;
@@ -67,8 +67,26 @@ class ScenarioCommand extends ScenarioComponent {
     }
     // 명령 객체가 존재한다면 명령 실행 요청
     if (executeCmd) {
-      this.wrapCmdInfo = executeCmd.call(coreFacade, this.scenarioEleCmd);
+      /** @type {complexCmdWrapInfo} */
+      const result = executeCmd.call(coreFacade, this.scenarioEleCmd);
+      this.wrapCmdId = result.wrapCmdId;
       // _.set(this.wrapCmdInfo, 'scenarioObserver', this)
+    }
+  }
+
+  /** 실행 중인 명령 Id 반환 */
+  getWrapCmdId() {
+    return this.wrapCmdId;
+  }
+
+  /**
+   * 시나리오가 완료되었다고 판단
+   * @param {string} wrapCmdId
+   */
+  updateScenarioClear(wrapCmdId) {
+    if (wrapCmdId === this.wrapCmdId) {
+      this.wrapCmdId = null;
+      return this.handleScenarioClear();
     }
   }
 

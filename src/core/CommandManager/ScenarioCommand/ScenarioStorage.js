@@ -1,6 +1,7 @@
 const _ = require('lodash');
 
 const ScenarioComponent = require('./ScenarioComponent');
+const ScenarioCommand = require('./ScenarioCommand');
 
 /**
  * 명령 이터레이터
@@ -29,6 +30,30 @@ class ScenarioStorage extends ScenarioComponent {
     this.executeIndex = 0;
 
     /** @type {IterableIterator} */
+    this.iterator;
+  }
+
+  /**
+   *
+   * @param {mScenariCmdInfo[]|mScenariCmdInfo[][]} scenarioList
+   * @param {boolean} isSync 명령 동기화 여부
+   */
+  initScenario(scenarioList, isSync = true) {
+    this.isSync = isSync;
+
+    // 시나리오 명령 객체를 Tree 구조로 생성 후 반환
+    this.children = _.map(scenarioList, scenario => {
+      if (_.isArray(scenario)) {
+        const scenarioCommand = new ScenarioCommand();
+        scenarioCommand.setSuccessor(this);
+        return scenarioCommand;
+      }
+
+      const scenarioStorage = new ScenarioStorage();
+      scenarioStorage.setSuccessor(this);
+      return scenarioStorage.initScenario(scenario, !isSync);
+    });
+
     this.iterator = makeScenarioIterator(this.executeIndex, this.children);
   }
 
@@ -48,23 +73,23 @@ class ScenarioStorage extends ScenarioComponent {
     return this.isSync;
   }
 
-  /** @param {ScenarioComponent} scenarioComponent */
-  addScenario(scenarioComponent) {
-    // 이미 존재한다면 false 반환
-    if (_.findIndex(this.children, scenarioComponent) !== -1) return false;
-    // 삽입 후 true 반환
-    return this.children.push(scenarioComponent) && true;
-  }
+  // /** @param {ScenarioComponent} scenarioComponent */
+  // addScenario(scenarioComponent) {
+  //   // 이미 존재한다면 false 반환
+  //   if (_.findIndex(this.children, scenarioComponent) !== -1) return false;
+  //   // 삽입 후 true 반환
+  //   return this.children.push(scenarioComponent) && true;
+  // }
 
-  /** @param {ScenarioComponent} scenarioComponent */
-  removeScenario(scenarioComponent) {
-    // 해당 인자가 존재할 경우 삭제 후 true 반환
-    if (_.findIndex(this.children, scenarioComponent) === -1) {
-      _.pull(this.children, scenarioComponent);
-      return true;
-    }
-    return false;
-  }
+  // /** @param {ScenarioComponent} scenarioComponent */
+  // removeScenario(scenarioComponent) {
+  //   // 해당 인자가 존재할 경우 삭제 후 true 반환
+  //   if (_.findIndex(this.children, scenarioComponent) === -1) {
+  //     _.pull(this.children, scenarioComponent);
+  //     return true;
+  //   }
+  //   return false;
+  // }
 
   /** 시나리오 명령 실행 */
   executeScenario() {
@@ -84,6 +109,19 @@ class ScenarioStorage extends ScenarioComponent {
       // 다음 시나리오 Step 명령 요청
       this.children[this.executeIndex].executeScenario();
     }
+  }
+
+  /**
+   * 시나리오가 완료되었다고 판단
+   * @param {string} wrapCmdId
+   */
+  updateScenarioClear(wrapCmdId) {
+    // 동기 명령 일 경우 현재 실행 중인 명령 Step만 점검
+    if (this.isSync()) {
+      return this.children[this.executeIndex].updateScenarioClear(wrapCmdId);
+    }
+    // 비동기 명령일 경우 자식 요소에 모두 전파. 부합되는 명령이 존재할 경우 업데이트 처리하고 반환
+    return _.some(this.children, child => child.updateScenarioClear(wrapCmdId));
   }
 
   /** 현재 시나리오 명령 완료 여부 */

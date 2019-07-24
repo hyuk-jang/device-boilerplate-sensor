@@ -80,7 +80,7 @@ class Model {
    */
   initCommand() {
     const {
-      controlInfo: { flowCmdList, setCmdList },
+      controlInfo: { flowCmdList, setCmdList, scenarioCmdList },
     } = this.deviceMap;
 
     // 단순 명령을 쉽게 인식하기 위한 한글 명령을 입력
@@ -122,6 +122,7 @@ class Model {
       /** @type {flowCmdInfo[]} 기존 Map에 있는 Flow Command를 변형 처리 */
       flowCmdList,
       setCmdList,
+      scenarioCmdList,
     };
 
     this.mapCmdInfo = mapCmdInfo;
@@ -163,7 +164,23 @@ class Model {
   }
 
   /**
-   *
+   * 설정 명령을 찾고자 할 경우
+   * @param {string} cmdId
+   */
+  findSetCommand(cmdId) {
+    return _.find(this.mapCmdInfo.setCmdList, { cmdId });
+  }
+
+  /**
+   * 시나리오 명령을 찾고자 할 경우
+   * @param {string} scenarioId
+   */
+  findScenarioCommand(scenarioId) {
+    return _.find(this.mapCmdInfo.scenarioCmdList, { scenarioId });
+  }
+
+  /**
+   * 흐름 명령을 찾고자 할 경우
    * @param {Object} reqFlowCmd
    * @param {string=} reqFlowCmd.srcPlaceId 출발지 ID
    * @param {string=} reqFlowCmd.destPlaceId 목적지 Id
@@ -172,6 +189,7 @@ class Model {
    */
   findFlowCommand(reqFlowCmd) {
     const { cmdId = '', srcPlaceId = '', destPlaceId = '' } = reqFlowCmd;
+
     // 명령 Full ID로 찾고자 할 경우
     if (cmdId.length) {
       return _(this.mapCmdInfo.flowCmdList)
@@ -179,13 +197,15 @@ class Model {
         .flatten()
         .find({ cmdId });
     }
-
-    // 출발지와 목적지가 있을 경우
-    if (srcPlaceId.length && destPlaceId.length) {
-      const flowCmdInfo = _.find(this.mapCmdInfo.flowCmdList, { srcPlaceId });
-      if (flowCmdInfo !== undefined) {
-        return _.find(flowCmdInfo.destList, { destPlaceId });
-      }
+    try {
+      // 출발지와 목적지가 있을 경우
+      return _.chain(this.mapCmdInfo.flowCmdList)
+        .find({ srcPlaceId })
+        .get('destList')
+        .find({ destPlaceId })
+        .value();
+    } catch (error) {
+      return undefined;
     }
   }
 
