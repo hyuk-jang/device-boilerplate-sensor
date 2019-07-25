@@ -9,8 +9,6 @@ const OverlapCountCmdStrategy = require('./CommandStrategy/OverlapCountCmdStrate
 
 const CoreFacade = require('../CoreFacade');
 
-const CmdStorage = require('./Command/CmdStorage');
-
 const { dcmConfigModel } = CoreFacade;
 
 const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat } = dcmConfigModel;
@@ -27,10 +25,6 @@ class CommandManager {
 
     this.complexCmdList = complexCmdList;
 
-    // FIXME:
-    /** @type {CmdStorage[]} */
-    this.commandList = [];
-
     this.mapCmdInfo = mapCmdInfo;
 
     // 명령 전략가 등록
@@ -45,56 +39,6 @@ class CommandManager {
     // Command Manager를 Core Facde에 정의
     const coreFacade = new CoreFacade();
     coreFacade.setCmdManager(this);
-  }
-
-  /**
-   *
-   * @param {commandWrapInfo} cmdWrapInfo
-   * @param {Observer=} observer
-   */
-  executeCommand(cmdWrapInfo, observer) {
-    try {
-      const cmdStorage = new CmdStorage();
-      cmdStorage.executeCommand(cmdWrapInfo);
-
-      this.commandList.push(cmdStorage);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   *
-   * @param {commandWrapInfo} cmdWrapInfo
-   */
-  getCommand(cmdWrapInfo) {
-    return _.find(this.commandList, { cmdWrapInfo });
-  }
-
-  /**
-   * cmdWrapUuid으로 Command Stroage를 찾고자 할 경우
-   * @param {Object} cmdOption
-   * @param {string} cmdOption.cmdWrapUuid
-   */
-  getCommandByOption(cmdWrapUuid) {
-    return _.find(this.commandList, { cmdWrapUuid: cmdWrapUuid });
-  }
-
-  /**
-   * cmdElementUuid 만으로 Command Element를 찾고자 할 경우
-   * @param {string} cmdElementUuid
-   */
-  getCommandElement(cmdElementUuid) {
-    let commandElement;
-
-    // 명령 객체 목록에서 조회
-    _.some(this.commandList, commandInfo => {
-      const cmdElement = commandInfo.getCommandElement(cmdElementUuid);
-      // 찾았을 경우 객체이므로
-      commandElement = cmdElement;
-      return commandElement;
-    });
-    return commandElement;
   }
 
   init() {

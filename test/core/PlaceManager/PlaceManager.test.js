@@ -18,6 +18,19 @@ function Model() {
   this.placeRelationList = placeRelationList;
 }
 
+const CoreFacade = require('../../../src/core/CoreFacade');
+const NodeUpdatorManager = require('../../../src/core/Updator/NodeUpdator/NodeUpdatorManager');
+
+function Control() {
+  const coreFacade = new CoreFacade();
+  coreFacade.setControl(this);
+
+  this.nodeList = nodeList;
+  this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
+}
+
+const control = new Control();
+
 // 100kW 급 테스트
 describe('100kW 무안 테스트베드', function() {
   /**
@@ -28,8 +41,8 @@ describe('100kW 무안 테스트베드', function() {
    */
   it('PlaceStorage', function() {
     // 1. Place Manager Tree를 구성한다.
-    const placeManager = new PlaceManager(new Model());
-    placeManager.init();
+    const placeManager = new PlaceManager();
+    placeManager.init(new Model());
 
     // * 1. Place Manager Tree를 구성한다.
     // 장소는 총 4개. 중복 1개(SEB_1), Node 객체 연결 없는 장소 1개(WW_017).
@@ -37,25 +50,18 @@ describe('100kW 무안 테스트베드', function() {
     expect(placeManager.placeStorageList).to.length(2);
 
     // 수중 증발지 1 저장소 객체를
-    const seb1Storage = placeManager.getPlaceStorage('SEB_1');
-    const s001PlaceNode = seb1Storage.getPlaceNode('S_002');
+    const ps_SEB_1 = placeManager.findPlace('SEB_1');
+    const pn_WL_SEB_1 = ps_SEB_1.getPlaceNode('waterLevel');
 
     // 수중 태양광 1은 센서 4개(S_002, WL_008, MRT_001, BT_001)로 이루어짐
-    expect(seb1Storage.children).to.length(4);
-    expect(seb1Storage.getPlaceId()).to.eq('SEB_1');
-    // 임계치 호출 메소드가 정상적으로 요청되어야 한다
-    expect(s001PlaceNode.handleError());
-    expect(s001PlaceNode.handleLowerLimitUnder());
-    expect(s001PlaceNode.handleMaxOver());
-    expect(s001PlaceNode.handleMinUnder());
-    expect(s001PlaceNode.handleNormal());
-    expect(s001PlaceNode.handleUnknown());
-    expect(s001PlaceNode.handleUpperLimitOver());
+    expect(ps_SEB_1.children).to.length(4);
+    expect(ps_SEB_1.getPlaceId()).to.eq('SEB_1');
 
     // 염도 상한선 10.5도
-    expect(seb1Storage.getPlaceNode('S_002').upperLimitValue).to.eq(10.5);
+    console.log(ps_SEB_1.getPlaceNode('salinity'));
+    expect(ps_SEB_1.getPlaceNode('salinity').getUpperLimitValue()).to.eq(10.5);
     // 수위 하한선 2.9 cm
-    expect(seb1Storage.getPlaceNode('WL_008').lowerLimitValue).to.eq(2.9);
+    expect(ps_SEB_1.getPlaceNode('waterLevel').getLowerLimitValue()).to.eq(2.9);
 
     // 수중 태양광 2는 센서 3개(S_003, WL_009, MRT_002)로 이루어짐
     expect(placeManager.getPlaceStorage('SEB_2').children).to.length(3);
