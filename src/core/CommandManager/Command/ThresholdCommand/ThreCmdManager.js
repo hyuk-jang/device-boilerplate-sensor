@@ -6,7 +6,7 @@ const ThreCmdComponent = require('./ThreCmdComponent');
 const ThreCmdStorage = require('./ThreCmdStorage');
 const ThreCmdGoal = require('./ThreCmdGoal');
 
-const CoreFacade = require('../../CoreFacade');
+const CoreFacade = require('../../../CoreFacade');
 
 const { dcmConfigModel, dccFlagModel } = CoreFacade;
 
@@ -145,7 +145,7 @@ class ThreCmdManager extends ThreCmdComponent {
     threCmdStorage.threCmdLimitTimer && clearTimeout(threCmdStorage.threCmdLimitTimer);
 
     // Update Node 정보를 받는 옵저버 해제
-    threCmdStorage.children.forEach(threCmdGoal => {
+    threCmdStorage.threCmdGoals.forEach(threCmdGoal => {
       coreFacade.dettachNodeObserver(threCmdGoal.nodeId, threCmdGoal);
     });
 

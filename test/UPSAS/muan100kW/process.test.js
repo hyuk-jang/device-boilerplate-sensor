@@ -18,7 +18,7 @@ const {
   },
 } = CoreFacade;
 
-const ThreCmdComponent = require('../../../src/core/CommandManager/ThresholdCommand/ThreCmdComponent');
+const ThreCmdComponent = require('../../../src/core/CommandManager/Command/ThresholdCommand/ThreCmdComponent');
 
 const { goalDataRange } = ThreCmdComponent;
 

@@ -20,6 +20,8 @@ const {
 const CmdComponent = require('./CmdComponent');
 const CmdElement = require('./CmdElement');
 
+const ThreCmdStorage = require('./ThresholdCommand/ThreCmdStorage');
+
 class CmdStorage extends CmdComponent {
   /**
    *
@@ -31,10 +33,13 @@ class CmdStorage extends CmdComponent {
 
     this.cmdWrapInfo;
 
-    this.successor;
+    this.cmdManager;
 
     /** @type {CmdElement[]} */
     this.cmdElements = [];
+
+    /** @type {ThreCmdStorage} */
+    this.thresholdStorage;
 
     // 명령 초기화는 한번만 할 수 있음
 
@@ -52,7 +57,7 @@ class CmdStorage extends CmdComponent {
    */
   executeCommand(cmdWrapInfo, observers = []) {
     try {
-      const { wrapCmdFormat, wrapCmdId, realContainerCmdList } = cmdWrapInfo;
+      const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, realContainerCmdList } = cmdWrapInfo;
       // 명령 취소일 경우
       if (wrapCmdFormat === reqWCT.CANCEL) {
         throw new Error(`initCommand Error: ${wrapCmdId} is CANCEL`);
@@ -68,6 +73,9 @@ class CmdStorage extends CmdComponent {
 
       // 실제 제어할 목록 만큼 실행
       this.setCommandElements(realContainerCmdList);
+
+      // 명령 임계 설정
+      this.setThreshold(wrapCmdGoalInfo);
 
       // 명령 대기 상태로 전환
       this.updateCommandEvent(cmdEvent.WAIT);
@@ -85,7 +93,7 @@ class CmdStorage extends CmdComponent {
    */
   cancelCommand(cmdWrapInfo) {
     try {
-      const { wrapCmdFormat, wrapCmdId, realContainerCmdList } = cmdWrapInfo;
+      const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, realContainerCmdList } = cmdWrapInfo;
       // 명령 취소일 경우
       if (wrapCmdFormat !== reqWCT.CANCEL) {
         throw new Error(`cancelCommand Error: ${wrapCmdId} is CANCEL`);
@@ -97,15 +105,17 @@ class CmdStorage extends CmdComponent {
 
       // 세부 명령 객체 정의
       this.setCommandElements(realContainerCmdList);
+      // 임계 추적 삭제
+      this.removeThreshold();
+
+      // 임계 추적 정의
+      this.setThreshold(wrapCmdGoalInfo);
 
       // 명령 취소 상태로 전환
       this.updateCommandEvent(cmdEvent.CANCELING);
 
       // 취소 명령 요청 실행
       this.executeCommandFromDLC();
-
-      // Threshold 해제
-      // CmdElement 옵저버 해제
     } catch (error) {
       throw error;
     }
@@ -144,6 +154,50 @@ class CmdStorage extends CmdComponent {
         this.cmdElements.push(cmdElement);
       });
     });
+  }
+
+  /**
+   * 임계 추적 설정.
+   * @description cmdStep.COMPLETE 되었을 경우 동작
+   * @param {csCmdGoalContraintInfo} wrapCmdGoalInfo
+   */
+  setThreshold(wrapCmdGoalInfo = {}) {
+    // BU.CLI('addThreCmdStorage');
+    const { goalDataList = [], limitTimeSec } = wrapCmdGoalInfo;
+
+    // 임계치가 존재하지 않을 경우 임계 설정 하지 않음
+    if (!_.isNumber(limitTimeSec) && goalDataList.length === 0) {
+      return false;
+    }
+
+    // 누적 임계가 실행되는 것 방지를 위한 초기화
+    this.removeThreshold();
+
+    // 새로운 임계치 저장소 생성
+    const threCmdStorage = new ThreCmdStorage(wrapCmdGoalInfo);
+    // 매니저를 Successor로 등록
+    threCmdStorage.setSuccessor(this);
+
+    threCmdStorage.initThreCmd(wrapCmdGoalInfo);
+
+    // 임계치 추적 저장소 추가
+    this.thresholdStorage = threCmdStorage;
+
+    return true;
+  }
+
+  /**
+   * Threshold Command Storage에 걸려있는 임계치 타이머 삭제 및 Observer를 해제 후 삭제 처리
+   */
+  removeThreshold() {
+    // 해당 임계치 없다면 false 반환
+    if (_.isEmpty(this.thresholdStorage)) return false;
+
+    // 임계 추적 제거
+    this.thresholdStorage.resetThreshold();
+
+    // 임계 추적 초기화
+    this.thresholdStorage = {};
   }
 
   /** 명령 이벤트 발생 전파  */
@@ -210,6 +264,11 @@ class CmdStorage extends CmdComponent {
     return this.cmdWrapInfo.rank;
   }
 
+  /** @return {csCmdGoalContraintInfo} 명령 실행 우선 순위 */
+  getCmdWrapThreshold() {
+    return this.cmdWrapInfo.wrapCmdGoalInfo;
+  }
+
   /**
    *
    * @param {string} cmdEleUuid
@@ -219,47 +278,35 @@ class CmdStorage extends CmdComponent {
   }
 
   /**
-   * handleCommandClear 성공하였을 경우 알릴 Successor
-   * @param {CommandComponent} cmdComponent
+   * handleCommandClear 성공하였을 경우 알릴 Successor. Command Manager
+   * @param {CommandComponent} cmdManager
    */
-  setSuccessor(cmdComponent) {
-    this.successor = cmdComponent;
+  setSuccessor(cmdManager) {
+    this.cmdManager = cmdManager;
   }
 
-  /**
-   * 시나리오가 완료되었다고 판단
-   * @param {string} CmdWrapId
-   */
-  updateCommandClear(CmdWrapId) {
-    // 동기 명령 일 경우 현재 실행 중인 명령 Step만 점검
-    if (this.isSync()) {
-      return this.cmdElements[this.executeIndex].updateCommandClear(CmdWrapId);
-    }
-    // 비동기 명령일 경우 자식 요소에 모두 전파. 부합되는 명령이 존재할 경우 업데이트 처리하고 반환
-    return _.some(this.cmdElements, child => child.updateCommandClear(CmdWrapId));
-  }
-
-  /** 현재 시나리오 명령 완료 여부 */
+  /** 모든 세부 명령 완료 여부 */
   isCommandClear() {
-    // 동기 명령 일 경우 현재 실행 중인 명령 Step만 점검
-    if (this.isSync()) {
-      return this.cmdElements[this.executeIndex].isCommandClear();
-    }
-    // 자식 내 모든 시나리오가 처리되었는지 여부 확인
+    // 모든 세부 명령 처리 여부
     return _.every(this.cmdElements, child => child.isCommandClear());
   }
 
-  /** 단위 명령 요소가 완료되었을 경우 */
+  /** 세부 명령이 완료했을 경우 */
   handleCommandClear() {
-    // 진행 중인 시나리오가 완료되었을 경우
+    // 모든 세부 명령이 완료되었을 경우
     if (this.isCommandClear()) {
-      // 동기 시나리오 일 경우 다음 시나리오 Step 요청
-      if (this.isSync()) {
-        return this.executeCommandFromDLC();
+      // 임계 명령이 존재할 경우
+      if (this.setThreshold(this.getCmdWrapThreshold())) {
+        // 명령 목표 달성 진행 중
+        return this.updateCommandEvent(cmdEvent.RUNNING);
       }
-      // 모든 시나리오 요소가 완료되었으므로 상위 시나리오 개체에게 처리 요청
-      return this.successor.handleCommandClear();
+
+      // 명령 종료
+      this.updateCommandEvent(cmdEvent.END);
+      // 명령 관리자에게 완전 종료를 알림
+      return this.cmdManager.handleCommandClear();
     }
+    return this.updateCommandEvent(cmdEvent.PROCEED);
   }
 }
 module.exports = CmdStorage;

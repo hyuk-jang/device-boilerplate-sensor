@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const ThreCmdManager = require('./ThresholdCommand/ThreCmdManager');
+const ThreCmdManager = require('./Command/ThresholdCommand/ThreCmdManager');
 const CmdOverlapManager = require('./CommandOverlap/CmdOverlapManager');
 
 const ManualCmdStrategy = require('./CommandStrategy/ManualCmdStrategy');

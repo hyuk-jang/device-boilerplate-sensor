@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const ThreCmdManager = require('./ThresholdCommand/ThreCmdManager');
+const ThreCmdManager = require('./Command/ThresholdCommand/ThreCmdManager');
 const CmdOverlapManager = require('./CommandOverlap/CmdOverlapManager');
 
 const ManualCmdStrategy = require('./CommandStrategy/ManualCmdStrategy');
@@ -13,7 +13,13 @@ const CmdStorage = require('./Command/CmdStorage');
 
 const { dcmConfigModel } = CoreFacade;
 
-const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat } = dcmConfigModel;
+const {
+  complexCmdStep,
+  reqWrapCmdType,
+  reqWrapCmdFormat,
+  commandPickKey,
+  transmitToServerCommandType,
+} = dcmConfigModel;
 
 class CommandManager {
   /** @param {Model} model */
@@ -77,7 +83,7 @@ class CommandManager {
    * @param {string} cmdOption.cmdWrapUuid
    */
   getCommandByOption(cmdWrapUuid) {
-    return _.find(this.commandList, { cmdWrapUuid: cmdWrapUuid });
+    return _.find(this.commandList, { cmdWrapUuid });
   }
 
   /**
@@ -95,6 +101,27 @@ class CommandManager {
       return commandElement;
     });
     return commandElement;
+  }
+
+  /**
+   *
+   * @param {CmdStorage} cmdStorage
+   */
+  handleCommandClear(cmdStorage) {
+    // 명령 목록에서 제거
+    _.reject(this.commandList, cmdStorage);
+  }
+
+  /**
+   * 명령 이벤트 발생
+   * @param {CmdStorage} cmdStorage
+   */
+  updateCommandEvent(cmdStorage) {
+    // 업데이트 알림 (업데이트 된 명령)
+    this.controller.apiClient.transmitDataToServer({
+      commandType: transmitToServerCommandType.COMMAND,
+      data: [_.pick(cmdStorage.cmdWrapInfo, commandPickKey.FOR_SERVER)],
+    });
   }
 
   init() {

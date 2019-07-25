@@ -63,5 +63,8 @@ class CmdComponent {
 
   /** @param {CmdComponent} cmdComponent */
   handleCommandClear(cmdComponent) {}
+
+  /** @param {CmdComponent} cmdComponent */
+  handleThresholdClear(cmdComponent) {}
 }
 module.exports = CmdComponent;

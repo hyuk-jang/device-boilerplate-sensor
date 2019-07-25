@@ -12,7 +12,7 @@ const CoreFacade = require('../../../src/core/CoreFacade');
 
 const MuanControl = require('../../../src/projects/UPSAS/muan/MuanControl');
 
-const ThreCmdComponent = require('../../../src/core/CommandManager/ThresholdCommand/ThreCmdComponent');
+const ThreCmdComponent = require('../../../src/core/CommandManager/Command/ThresholdCommand/ThreCmdComponent');
 
 const { goalDataRange } = ThreCmdComponent;
 
@@ -544,7 +544,7 @@ describe('Automatic Mode', function() {
     tcgGoalRvTo1A = tcsRvTo1A.getThreCmdGoal(NODE_WL_001);
 
     // 새로운 임계치 명령이 등록되야함.
-    expect(tcsRvTo1A.children).length(1);
+    expect(tcsRvTo1A.threCmdGoals).length(1);
 
     // 딜레이 타이머만큼 기다림.
     await Promise.delay(2000);

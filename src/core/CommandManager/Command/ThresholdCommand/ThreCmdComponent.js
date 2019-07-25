@@ -1,4 +1,4 @@
-const Observer = require('../../Updator/Observer');
+const Observer = require('../../../Updator/Observer');
 
 /**
  * @interface
