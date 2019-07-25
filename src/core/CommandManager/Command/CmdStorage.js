@@ -52,12 +52,12 @@ class CmdStorage extends CmdComponent {
 
   /**
    * 최초 명령을 설정할 경우
-   * @param {commandWrapInfo} cmdWrapInfo
+   * @param {reqCommandInfo} cmdWrapInfo
    * @param {Observer[]} observers 명령의 실행 결과를 받을 옵저버
    */
   executeCommand(cmdWrapInfo, observers = []) {
     try {
-      const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, realContainerCmdList } = cmdWrapInfo;
+      const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, reqCmdEleList } = cmdWrapInfo;
       // 명령 취소일 경우
       if (wrapCmdFormat === reqWCT.CANCEL) {
         throw new Error(`initCommand Error: ${wrapCmdId} is CANCEL`);
@@ -72,16 +72,16 @@ class CmdStorage extends CmdComponent {
       this.cmdWrapInfo = cmdWrapInfo;
 
       // 실제 제어할 목록 만큼 실행
-      this.setCommandElements(realContainerCmdList);
+      this.setCommandElements(reqCmdEleList);
 
       // 명령 임계 설정
-      this.setThreshold(wrapCmdGoalInfo);
+      // this.setThreshold(wrapCmdGoalInfo);
 
       // 명령 대기 상태로 전환
       this.updateCommandEvent(cmdEvent.WAIT);
 
       // 명령 요청 실행
-      this.executeCommandFromDLC();
+      // this.executeCommandFromDLC();
     } catch (error) {
       throw error;
     }

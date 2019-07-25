@@ -404,10 +404,25 @@ class CommandExecManager {
 
   /**
    * 최종적으로 명령 생성 및 실행 요청
+   * @param {reqCommandInfo} reqCommandInfo
+   * @return {} 명령 요청 여부
+   */
+  executeComplexCommand(reqCommandInfo) {
+    // BU.CLI(reqComplexCmd);
+    try {
+      const coreFacade = new CoreFacade();
+      coreFacade.cmdManager.saveCommand(reqCommandInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 최종적으로 명령 생성 및 실행 요청
    * @param {reqComplexCmdInfo} reqComplexCmd
    * @return {complexCmdWrapInfo} 명령 요청 여부
    */
-  executeComplexCommand(reqComplexCmd) {
+  executeComplexCommand2(reqComplexCmd) {
     // BU.CLI(reqComplexCmd);
     try {
       process.env.LOG_DBS_EXEC_CO_HEADER === '1' && BU.CLI('executeComplexCommand', reqComplexCmd);
@@ -610,7 +625,7 @@ class CommandExecManager {
       wrapCmdId: 'inquiryAllDeviceStatus',
       wrapCmdName: '정기 장치 상태 계측',
       wrapCmdType: reqWrapCmdType.MEASURE,
-      reqCmdEleList: [{ nodeId: _.map(this.dataLoggerList, 'dl_id') }],
+      reqCmdEleList: [{ searchId: _.map(this.dataLoggerList, 'dl_id') }],
     };
 
     // BU.CLI(_.map(this.dataLoggerList, 'dl_id'));

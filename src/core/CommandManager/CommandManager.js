@@ -55,13 +55,25 @@ class CommandManager {
 
   /**
    *
-   * @param {commandWrapInfo} cmdWrapInfo
+   * @param {reqCommandInfo} reqCommandInfo 요청 명령 객체
+   */
+  saveCommand(reqCommandInfo) {
+    const { wrapCmdType, reqCmdEleList } = reqCommandInfo;
+
+    // 계측 명령일 경우에 명령 전략에 관계없이 추가
+
+    // 다른 명령일 경우에는 명령 전략에 따라서 추가
+  }
+
+  /**
+   *
+   * @param {reqComplexCmdInfo} reqCmdInfo
    * @param {Observer=} observer
    */
-  executeCommand(cmdWrapInfo, observer) {
+  executeCommand(reqCmdInfo, observer) {
     try {
       const cmdStorage = new CmdStorage();
-      cmdStorage.executeCommand(cmdWrapInfo);
+      cmdStorage.executeCommand(reqCmdInfo);
 
       this.commandList.push(cmdStorage);
     } catch (error) {

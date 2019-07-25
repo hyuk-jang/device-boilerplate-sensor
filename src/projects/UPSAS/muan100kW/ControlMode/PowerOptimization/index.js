@@ -10,6 +10,7 @@ const CoreFacade = require('../../../../../core/CoreFacade');
 
 const {
   constructorInfo: { PlaceNode },
+  dcmConfigModel: { placeNodeStatus: nodeStatus },
 } = CoreFacade;
 
 class ConcreteAlgorithm extends AbstAlgorithm {
@@ -45,8 +46,6 @@ class ConcreteAlgorithm extends AbstAlgorithm {
     try {
       // BU.CLI('handleUpdateNode');
       const { nodeDefIdInfo } = AbstAlgorithm;
-
-      const { nodeStatusInfo: nodeStatus } = PlaceNode;
 
       const currNodeDefId = placeNode.getNodeDefId();
 
