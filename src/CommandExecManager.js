@@ -62,7 +62,11 @@ class CommandExecManager {
       ],
     };
 
-    this.executeCommand(reqCommandOption);
+    try {
+      return this.executeCommand(reqCommandOption);
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -455,13 +459,12 @@ class CommandExecManager {
   /**
    * 최종적으로 명령 생성 및 실행 요청
    * @param {reqCommandInfo} reqCommandInfo
-   * @return {} 명령 요청 여부
    */
   executeCommand(reqCommandInfo) {
     // BU.CLI(reqComplexCmd);
     try {
       const coreFacade = new CoreFacade();
-      coreFacade.cmdManager.executeCommand(reqCommandInfo);
+      return coreFacade.cmdManager.executeCommand(reqCommandInfo);
     } catch (error) {
       throw error;
     }
@@ -669,17 +672,18 @@ class CommandExecManager {
     // BU.CLI('inquiryAllDeviceStatus');
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
+    try {
+      /** @type {reqMeasureCmdInfo} */
+      const reqMeasureCmdOption = {
+        wrapCmdId: 'inquiryAllDeviceStatus',
+        wrapCmdName: '정기 장치 상태 계측',
+        searchIdList: _.map(this.dataLoggerList, 'dl_id'),
+      };
 
-    /** @type {reqMeasureCmdInfo} */
-    const reqMeasureCmdOption = {
-      wrapCmdId: 'inquiryAllDeviceStatus',
-      wrapCmdName: '정기 장치 상태 계측',
-      searchIdList: _.map(this.dataLoggerList, 'dl_id'),
-    };
-
-    this.executeMeasure(reqMeasureCmdOption);
-
-    return;
+      return this.executeMeasure(reqMeasureCmdOption);
+    } catch (error) {
+      throw error;
+    }
 
     // BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
     // BU.CLI(reqComplexCmd);

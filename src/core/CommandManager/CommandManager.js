@@ -11,15 +11,12 @@ const CoreFacade = require('../CoreFacade');
 
 const CmdStorage = require('./Command/CmdStorage');
 
-const { dcmConfigModel } = CoreFacade;
-
 const {
-  complexCmdStep,
-  reqWrapCmdType,
-  reqWrapCmdFormat,
-  commandPickKey,
-  transmitToServerCommandType,
-} = dcmConfigModel;
+  dcmConfigModel,
+  dcmWsModel: { transmitToServerCommandType },
+} = CoreFacade;
+
+const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat, commandPickKey } = dcmConfigModel;
 
 class CommandManager {
   /** @param {Model} model */
@@ -57,6 +54,7 @@ class CommandManager {
    *
    * @param {reqCommandInfo} reqCommandInfo
    * @param {Observer=} observer
+   * @return {CmdStorage}
    */
   executeCommand(reqCommandInfo, observer) {
     try {
@@ -65,7 +63,7 @@ class CommandManager {
       // 계측 명령 일 경우에는 전략에 상관없이 요청
       if (wrapCmdFormat === reqWrapCmdFormat.MEASURE) {
         // 동일 명령이 존재하는지 체크
-        const foundCommand = _.find(this.commandList, { getCmdWrapId: wrapCmdId });
+        const foundCommand = _.find(this.commandList, { wrapCmdId });
         if (foundCommand) {
           throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
         }
@@ -81,14 +79,44 @@ class CommandManager {
 
         // 실제 장치로 명령 요청
         cmdStorage.executeCommandFromDLC();
+
+        return cmdStorage;
       }
       // 계측 명령이 아닐 경우 명령 전략에 따라 진행
-      else {
-        this.cmdStrategy.setCommand(reqCommandInfo);
-      }
+
+      this.cmdStrategy.setCommand(reqCommandInfo);
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * 저장소 데이터 관리. Data Logger Controller 객체로 부터 Message를 받은 경우 msgCode에 따라서 관리
+   * @example
+   * Device Client로부터 Message 수신
+   * @param {DataLoggerControl} dataLoggerController Data Logger Controller 객체
+   * @param {dcMessage} dcMessage 명령 수행 결과 데이터
+   */
+  updateCommandMessage(dataLoggerController, dcMessage) {}
+
+  /**
+   * Command Storage 에서 명령 상태 이벤트를 수신할 메소드
+   *
+   * @param {CmdStorage} cmdStorage
+   */
+  updateCommandEvent(cmdStorage) {
+    // FIXME: 임시. 메시지 전체 보냄
+    this.controller.apiClient.transmitDataToServer({
+      commandType: transmitToServerCommandType.COMMAND,
+      data: _(this.commandList).map(commandStorage =>
+        _.pick(commandStorage, commandPickKey.FOR_SERVER),
+      ),
+    });
+
+    // this.controller.apiClient.transmitDataToServer({
+    //   commandType: transmitToServerCommandType.COMMAND,
+    //   data: _(cmdStorage).pick(commandPickKey.FOR_SERVER),
+    // });
   }
 
   /**
@@ -207,18 +235,6 @@ class CommandManager {
   handleCommandClear(cmdStorage) {
     // 명령 목록에서 제거
     _.reject(this.commandList, cmdStorage);
-  }
-
-  /**
-   * 명령 이벤트 발생
-   * @param {CmdStorage} cmdStorage
-   */
-  updateCommandEvent(cmdStorage) {
-    // 업데이트 알림 (업데이트 된 명령)
-    this.controller.apiClient.transmitDataToServer({
-      commandType: transmitToServerCommandType.COMMAND,
-      data: [_.pick(cmdStorage.cmdWrapInfo, commandPickKey.FOR_SERVER)],
-    });
   }
 
   init() {

@@ -35,6 +35,9 @@ class CmdStorage extends CmdComponent {
 
     this.cmdManager;
 
+    /** 명령 진행 상태 WAIT, PROCEED, RUNNING, END, CANCELING  */
+    this.cmdEvent = '';
+
     /** @type {CmdElement[]} */
     this.cmdElements = [];
 
@@ -133,7 +136,7 @@ class CmdStorage extends CmdComponent {
 
   /** Data Logger Controller에게 명령 실행 요청 */
   executeCommandFromDLC() {
-    BU.CLI('executeCommandFromDLC')
+    BU.CLI('executeCommandFromDLC');
     // 명령 단계가 대기 중 일경우에만 요청 가능.
     if (this.cmdStep === cmdStep.WAIT) {
       this.cmdStep = cmdStep.PROCEED;
@@ -231,53 +234,58 @@ class CmdStorage extends CmdComponent {
       .includes(updatedCmdEvent)
       .value();
 
+    // 정해진 Event 값이 아니면 종료
     if (!isExistEvent) return false;
+
+    // 현재 명령 단계가 대기 단계이고 새로이 수신된 단계가 진행 중일 경우
+    if (updatedCmdEvent === cmdEvent.PROCEED) {
+      if (this.cmdEvent !== cmdEvent.WAIT) {
+        return false;
+      }
+      this.cmdEvent = updatedCmdEvent;
+      return this.notifyObserver();
+    }
 
     // 현재 이벤트와 다른 상태일 경우 전파
     if (this.cmdEvent !== updatedCmdEvent) {
       this.cmdEvent = updatedCmdEvent;
-      this.notifyObserver();
+      return this.notifyObserver();
     }
   }
 
-  /** @return {string} 명령 유일 UUID */
-  getCmdWrapUuid() {
-    return this.cmdWrapUuid;
-  }
-
-  /** @return {commandWrapInfo} 명령 요청 객체 정보 */
-  getCmdWrapInfo() {
-    return this.cmdWrapInfo;
-  }
-
   /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
-  getCmdWrapFormat() {
+  get wrapCmdFormat() {
     return this.cmdWrapInfo.wrapCmdFormat;
   }
 
   /** @return {string} 명령 타입, CONTROL, CANCEL, RESTORE, MEASURE */
-  getCmdWrapType() {
+  get wrapCmdType() {
     return this.cmdWrapInfo.wrapCmdType;
   }
 
   /** @return {string} 명령 ID */
-  getCmdWrapId() {
+  get wrapCmdId() {
     return this.cmdWrapInfo.wrapCmdId;
   }
 
   /** @return {string} 명령 이름 */
-  getCmdWrapName() {
+  get wrapCmdName() {
     return this.cmdWrapInfo.wrapCmdName;
   }
 
-  /** @return {number} 명령 실행 우선 순위 */
-  getCmdWrapRank() {
+  /** @return {string} 명령 실행 우선 순위 */
+  get rank() {
     return this.cmdWrapInfo.rank;
   }
 
-  /** @return {csCmdGoalContraintInfo} 명령 실행 우선 순위 */
-  getCmdWrapThreshold() {
+  /** @return {csCmdGoalContraintInfo} 임계 정보 */
+  get wrapCmdGoalInfo() {
     return this.cmdWrapInfo.wrapCmdGoalInfo;
+  }
+
+  /** @return {string} 명령 진행 상태 WAIT, PROCEED, RUNNING, END, CANCELING */
+  get wrapCmdStep() {
+    return this.cmdEvent;
   }
 
   /**
@@ -317,6 +325,12 @@ class CmdStorage extends CmdComponent {
       // 명령 관리자에게 완전 종료를 알림
       return this.cmdManager.handleCommandClear();
     }
+
+    // 명령을 취소하고 있는 상태
+    if (this.wrapCmdType === reqWCT.CANCEL) {
+      return this.updateCommandEvent(cmdEvent.CANCELING);
+    }
+    // 진행 중 상태
     return this.updateCommandEvent(cmdEvent.PROCEED);
   }
 }

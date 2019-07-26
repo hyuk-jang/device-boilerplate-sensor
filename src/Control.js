@@ -528,7 +528,7 @@ class Control extends EventEmitter {
     // const {COMMANDSET_EXECUTION_START, COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE} = dataLoggerController.definedCommandSetMessage;
     // const commandSet = dcMessage.commandSet;
 
-    this.model.manageComplexCommand(dataLoggerController, dcMessage);
+    // this.model.manageComplexCommand(dataLoggerController, dcMessage);
   }
 
   /**

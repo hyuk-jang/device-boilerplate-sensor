@@ -5,38 +5,45 @@ class CmdComponent {
    */
   setSuccessor(cmdComponent) {}
 
-  /** @return {string} 명령 유일 UUID */
-  getCmdWrapUuid() {
-    return this.cmdWrapUuid;
-  }
-
-  /** @return {commandWrapInfo} 명령 요청 객체 정보 */
-  getCmdWrapInfo() {
-    return this.cmdWrapInfo;
+  /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
+  get wrapCmdUuid() {
+    return undefined;
   }
 
   /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
-  getCmdWrapFormat() {
-    return this.cmdWrapInfo.cmdWrapFormat;
+  get wrapCmdFormat() {
+    return undefined;
   }
 
   /** @return {string} 명령 타입, CONTROL, CANCEL, RESTORE, MEASURE */
-  getCmdWrapType() {
-    return this.cmdWrapInfo.cmdWrapType;
+  get wrapCmdType() {
+    return undefined;
   }
 
   /** @return {string} 명령 ID */
-  getCmdWrapId() {
-    return this.cmdWrapInfo.cmdWrapId;
+  get wrapCmdId() {
+    return undefined;
   }
 
   /** @return {string} 명령 이름 */
-  getCmdWrapName() {
-    return this.cmdWrapInfo.cmdWrapName;
+  get wrapCmdName() {
+    return undefined;
   }
 
-  /** @return {number} 명령 실행 우선 순위 */
-  getCmdWrapRank() {}
+  /** @return {string} 명령 실행 우선 순위 */
+  get rank() {
+    return undefined;
+  }
+
+  /** @return {csCmdGoalContraintInfo} 임계 정보 */
+  get wrapCmdGoalInfo() {
+    return undefined;
+  }
+
+  /** @return {string} 명령 진행 상태 WAIT, PROCEED, RUNNING, END, CANCELING */
+  get wrapCmdStep() {
+    return undefined;
+  }
 
   /**
    * 시나리오가 완료되었다고 판단

@@ -8,6 +8,11 @@ const CmdComponent = require('./CmdComponent');
 
 const CoreFacade = require('../../CoreFacade');
 
+const {
+  dcmConfigModel: { commandStep },
+  dccFlagModel: { definedCommandSetMessage: dlcMessage },
+} = CoreFacade;
+
 class CmdElement extends CmdComponent {
   /**
    *
@@ -21,7 +26,7 @@ class CmdElement extends CmdComponent {
     this.cmdEleUuid = uuidv4();
     this.cmdEleInfo = cmdEleInfo;
 
-    this.hasClear = false;
+    this.cmdEleStep = commandStep.WAIT;
 
     const coreFacade = new CoreFacade();
     // 데이터 로거 컨트롤러 DLC
@@ -40,6 +45,29 @@ class CmdElement extends CmdComponent {
     this.cmdStorage = cmdStorage;
   }
 
+  /**
+   *
+   * @param {dlcMessage} commandSetMessage
+   */
+  updateCommand(commandSetMessage) {
+    // .commandStep = commandStep.WAIT;
+    switch (commandSetMessage) {
+      case dlcMessage.COMMANDSET_EXECUTION_START:
+        this.cmdEleStep = commandStep.PROCEED;
+        this.cmdStorage.updateCommandEvent(commandStep.PROCEED);
+        break;
+      case dlcMessage.COMMANDSET_EXECUTION_TERMINATE:
+      case dlcMessage.COMMANDSET_DELETE:
+        this.cmdEleStep = commandStep.COMPLETE;
+        this.hasClear = true;
+        this.cmdStorage.handleCommandClear(this);
+        break;
+
+      default:
+        break;
+    }
+  }
+
   /** 명령 실행 */
   executeCommandFromDLC() {
     // BU.CLI(this.getExecuteCmdInfo());
@@ -51,12 +79,14 @@ class CmdElement extends CmdComponent {
    */
   getExecuteCmdInfo() {
     const { nodeId, controlSetValue, singleControlType } = this.cmdEleInfo;
+    const { wrapCmdType, wrapCmdUuid, wrapCmdId, wrapCmdName, rank } = this.cmdStorage;
+
     return {
-      wrapCmdId: this.cmdStorage.getCmdWrapId(),
-      wrapCmdType: this.cmdStorage.getCmdWrapType(),
-      wrapCmdName: this.cmdStorage.getCmdWrapName(),
-      wrapCmdUUID: this.cmdStorage.getCmdWrapUuid(),
-      rank: this.cmdStorage.getCmdWrapRank(),
+      wrapCmdId,
+      wrapCmdType,
+      wrapCmdName,
+      wrapCmdUUID: wrapCmdUuid,
+      rank,
       nodeId,
       singleControlType,
       controlSetValue,
@@ -65,19 +95,11 @@ class CmdElement extends CmdComponent {
   }
 
   /**
-   * 명령 요소가 완료되었을 경우
-   */
-  updateCommandClear() {
-    this.hasClear = true;
-    return this.handleCommandClear();
-  }
-
-  /**
    * 현재 시나리오 명령 완료 여부
    * @return {boolean}
    */
   isCommandClear() {
-    return this.hasClear;
+    return this.cmdEleStep === commandStep.COMPLETE;
   }
 }
 module.exports = CmdElement;

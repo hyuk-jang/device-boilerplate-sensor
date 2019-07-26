@@ -11,7 +11,7 @@ const Model = require('./Model');
 const { MainConverter } = require('../../../device-protocol-converter-jh');
 
 const {
-  dcmConfigModel: { reqWrapCmdType, reqDeviceControlType },
+  dcmConfigModel: { reqWrapCmdFormat, reqWrapCmdType, reqDeviceControlType },
 } = require('../../../default-intelligence');
 
 class DataLoggerController extends DccFacade {
@@ -334,9 +334,10 @@ class DataLoggerController extends DccFacade {
       wrapCmdUUID,
       uuid,
       wrapCmdId = `${this.dataLoggerInfo.dl_id} ${reqDeviceControlType.MEASURE}`,
-      wrapCmdType = reqWrapCmdType.MEASURE,
+      wrapCmdType = reqWrapCmdFormat.MEASURE,
       rank = this.definedCommandSetRank.THIRD,
     } = executeCmd;
+    // BU.CLIN(executeCmd)
     // BU.CLI('orderOperationToDataLogger')
     try {
       if (!this.hasConnectedDevice) {
@@ -364,7 +365,7 @@ class DataLoggerController extends DccFacade {
       // BU.CLIN(this.manager.findCommandStorage({commandId: reqExecCmdInfo.wrapCmdId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
-      BU.CLIN(commandSet, 1)
+      // BU.CLIN(commandSet, 1)
       return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
       BU.CLI(error);

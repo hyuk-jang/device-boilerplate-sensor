@@ -23,7 +23,8 @@ const {
   nodePickKey,
   complexCmdPickKey,
   nodeDataType,
-  reqWrapCmdType,
+  reqWrapCmdType: reqWCT,
+  reqWrapCmdFormat: reqWCF,
   reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
 } = dcmConfigModel;
 
@@ -52,7 +53,7 @@ describe('Manual Mode', function() {
 
       // control.executeSetControl({
       //   wrapCmdId: 'closeAllDevice',
-      //   wrapCmdType: reqWrapCmdType.CONTROL,
+      //   wrapCmdType: reqWCT.CONTROL,
       // });
       // await eventToPromise(control, 'completeCommand');
     } catch (error) {
@@ -69,11 +70,14 @@ describe('Manual Mode', function() {
    * 4. 명령 완료하였을 경우 명령 열에서 삭제 처리
    */
   it.only('Duplicate Measurement Command', async () => {
-    const { cmdOverlapManager } = control.model.cmdManager;
+    const {
+      cmdManager,
+      cmdManager: { cmdOverlapManager },
+    } = control.model;
     // * 1. 정기 계측 명령을 요청
     // return;
-    const isSuccess = control.inquiryAllDeviceStatus();
-    expect(isSuccess).to.true;
+    const cmdStorage = control.inquiryAllDeviceStatus();
+    expect(cmdStorage.wrapCmdFormat).to.eq(reqWCF.MEASURE);
 
     // * 2. 정기 계측 명령을 중복하여 요청(무시되야 함)
     expect(() => control.inquiryAllDeviceStatus()).to.throw(Error);
@@ -86,7 +90,7 @@ describe('Manual Mode', function() {
 
     // * 4. 명령 완료하였을 경우 명령 열에서 삭제 처리
     let measureCmdList = _.filter(control.model.complexCmdList, {
-      wrapCmdType: reqWrapCmdType.MEASURE,
+      wrapCmdType: reqWCT.MEASURE,
     });
     expect(measureCmdList.length).to.eq(1);
 
@@ -95,7 +99,7 @@ describe('Manual Mode', function() {
     await eventToPromise(control, 'completeInquiryAllDeviceStatus');
 
     measureCmdList = _.filter(control.model.complexCmdList, {
-      wrapCmdType: reqWrapCmdType.MEASURE,
+      wrapCmdType: reqWCT.MEASURE,
     });
     expect(measureCmdList.length).to.eq(0);
   });
@@ -196,21 +200,21 @@ describe('Automatic Mode', function() {
   const rvToSEB1A = {
     srcPlaceId: 'RV',
     destPlaceId: 'SEB_1_A',
-    wrapCmdType: reqWrapCmdType.CONTROL,
+    wrapCmdType: reqWCT.CONTROL,
   };
 
   /** @type {reqFlowCmdInfo} 저수지 > 증발지 1-B */
   const rvToSEB1B = {
     srcPlaceId: 'RV',
     destPlaceId: 'SEB_1_B',
-    wrapCmdType: reqWrapCmdType.CONTROL,
+    wrapCmdType: reqWCT.CONTROL,
   };
 
   /** @type {reqFlowCmdInfo} 증발지 1-A > 해주 1 */
   const SEB1AToBW1 = {
     srcPlaceId: 'SEB_1_A',
     destPlaceId: 'BW_1',
-    wrapCmdType: reqWrapCmdType.CONTROL,
+    wrapCmdType: reqWCT.CONTROL,
   };
 
   before(async () => {
@@ -226,7 +230,7 @@ describe('Automatic Mode', function() {
       coreFacade.changeCmdStrategy(coreFacade.cmdModeName.MANUAL);
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
-        wrapCmdType: reqWrapCmdType.CONTROL,
+        wrapCmdType: reqWCT.CONTROL,
       });
       await eventToPromise(control, 'completeCommand');
     } catch (error) {
@@ -334,13 +338,13 @@ describe('Automatic Mode', function() {
     );
 
     // * 4. 증발지 1-A > 해주 1 명령 요청. 존재하지 않으므로 X
-    SEB1AToBW1.wrapCmdType = reqWrapCmdType.CANCEL;
+    SEB1AToBW1.wrapCmdType = reqWCT.CANCEL;
     expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(
       'The command(SEB_1_A_TO_BW_1) does not exist and you can not issue a CANCEL command.',
     );
 
     // * 5. 저수지 > 증발지 1-A 명령 취소.
-    rvToSEB1A.wrapCmdType = reqWrapCmdType.CANCEL;
+    rvToSEB1A.wrapCmdType = reqWCT.CANCEL;
     const cancelCmdRvTo1A = control.executeFlowControl(rvToSEB1A);
 
     // 실제 True 장치 목록
@@ -369,7 +373,7 @@ describe('Automatic Mode', function() {
     await eventToPromise(control, 'completeCommand');
 
     // * 6. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 X
-    SEB1AToBW1.wrapCmdType = reqWrapCmdType.CONTROL;
+    SEB1AToBW1.wrapCmdType = reqWCT.CONTROL;
     const cmdSEB1AToBW1 = control.executeFlowControl(SEB1AToBW1);
 
     // 실제 True 장치 목록
@@ -393,7 +397,7 @@ describe('Automatic Mode', function() {
 
     // * 7. 저수지 > 증발지 1-B 명령 취소.
     // * 'P_002', 'V_002', 'V_006' 순으로 닫힘. OC 해제
-    rvToSEB1B.wrapCmdType = reqWrapCmdType.CANCEL;
+    rvToSEB1B.wrapCmdType = reqWCT.CANCEL;
     const cancelCmdRvTo1B = control.executeFlowControl(rvToSEB1B);
 
     // 실제 True 장치 목록
@@ -421,7 +425,7 @@ describe('Automatic Mode', function() {
 
     // * 8. 증발지 1-A > 해주 1 명령 취소.
     // * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
-    SEB1AToBW1.wrapCmdType = reqWrapCmdType.CANCEL;
+    SEB1AToBW1.wrapCmdType = reqWCT.CANCEL;
     const cancelCmdSEB1AToBW1 = control.executeFlowControl(SEB1AToBW1);
 
     // 실제 True 장치 목록
@@ -464,7 +468,7 @@ describe('Automatic Mode', function() {
     nodeInfo.data = 3;
 
     // * 1. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 수위 조작 후 명령 삭제 확인.
-    rvToSEB1A.wrapCmdType = reqWrapCmdType.CONTROL;
+    rvToSEB1A.wrapCmdType = reqWCT.CONTROL;
     rvToSEB1A.wrapCmdGoalInfo = {
       goalDataList: [
         {
