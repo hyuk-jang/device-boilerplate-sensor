@@ -187,10 +187,55 @@ class CmdOverlapManager extends CmdOverlapComponent {
   /**
    * 명령 충돌 체크. 수동 모드를 제외하고 체크 처리.
    * 누적 명령 충돌이 일어나지 않고 Overlap Status 객체가 존재하지 않는다면 생성
+   * @param {reqCommandInfo} reqCommandInfo 복합 명령 객체
+   * @return {boolean} 충돌이 발생할 경우 true, 아니라면 false, 에러가 생길경우 throw
+   */
+  isConflictCommand(reqCommandInfo) {
+    try {
+      const { wrapCmdId, wrapCmdUUID, reqCmdEleList } = reqCommandInfo;
+      // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
+      _.forEach(reqCmdEleList, containerCmdInfo => {
+        const {
+          singleControlType: conType,
+          controlSetValue: conSetValue,
+          
+        } = containerCmdInfo;
+
+        // 각 노드들을 확인
+        _.forEach(eleCmdList, eleCmdInfo => {
+          const { nodeId } = eleCmdInfo;
+
+          // 해당 Node를 가진 명령 누적 저장소 호출
+          const overlapStorage = this.getOverlapStorage(nodeId);
+
+          const existWCUs = overlapStorage.getOverlapStatus(conType, conSetValue).getOverlapWCUs();
+
+          // 이미 존재하고 있는 Wrap Command UUID 라면 에러
+          if (_.includes(existWCUs, wrapCmdUUID)) {
+            throw new Error(`A node(${nodeId}) same WCU(${wrapCmdUUID}) already exists.`);
+          }
+
+          // 충돌 체크 (해당 저장소에 다른 명령 누적이 기존재하는지 체크)
+          const existOverlapInfo = overlapStorage.getExistWcuListExceptOption(conType, conSetValue);
+
+          if (!_.isEmpty(existOverlapInfo)) {
+            throw new Error(
+              `Conflict of WCI(${wrapCmdId}) SingleControlType(${conType}) of node(${nodeId})`,
+            );
+          }
+        });
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+  /**
+   * 명령 충돌 체크. 수동 모드를 제외하고 체크 처리.
+   * 누적 명령 충돌이 일어나지 않고 Overlap Status 객체가 존재하지 않는다면 생성
    * @param {complexCmdWrapInfo} complexCmdWrapInfo 복합 명령 객체
    * @return {boolean} 충돌이 발생할 경우 true, 아니라면 false, 에러가 생길경우 throw
    */
-  isConflictCommand(complexCmdWrapInfo) {
+  isConflictCommand2(complexCmdWrapInfo) {
     try {
       const { wrapCmdId, wrapCmdUUID, containerCmdList } = complexCmdWrapInfo;
       // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가

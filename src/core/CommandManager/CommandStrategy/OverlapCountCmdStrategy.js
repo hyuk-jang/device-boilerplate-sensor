@@ -13,6 +13,56 @@ const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType }
 
 class OverlapCountCmdStrategy extends CmdStrategy {
   /**
+   *
+   * @param {reqCommandInfo} reqCommandInfo
+   */
+  setCommand(reqCommandInfo) {
+    const { wrapCmdType, wrapCmdId, reqCmdEleList } = reqCommandInfo;
+
+    this.isPossibleCommand(reqCommandInfo);
+
+    try {
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 각 제어 모드 별로 체크하고자 하는 내용 체크
+   * @param {reqCommandInfo} reqCommandInfo
+   * @return {boolean} 충돌 true, 아닐 경우 false
+   */
+  isPossibleCommand(reqCommandInfo) {
+    const coreFacade = new CoreFacade();
+    try {
+      const {
+        wrapCmdType,
+        wrapCmdFormat,
+        srcPlaceId,
+        destPlaceId,
+        wrapCmdGoalInfo,
+      } = reqCommandInfo;
+
+      let isPossible = false;
+
+      // 제어 요청일 경우에 충돌 체크
+      if (wrapCmdType === reqWrapCmdType.CONTROL) {
+        // 명령 충돌 체크
+        isPossible = !this.cmdManager.cmdOverlapManager.isConflictCommand(reqCommandInfo);
+
+        // 흐름 명령을 요청할 경우
+        if (wrapCmdFormat === reqWrapCmdFormat.FLOW) {
+          isPossible = coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId, wrapCmdGoalInfo);
+        }
+      }
+
+      return isPossible;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * @abstract
    * 각 제어 모드 별로 체크하고자 하는 내용 체크
    * @param {complexCmdWrapInfo} complexCmdWrapInfo

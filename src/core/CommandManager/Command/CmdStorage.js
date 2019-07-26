@@ -46,18 +46,18 @@ class CmdStorage extends CmdComponent {
     // 명령 이벤트를 받을 옵저버
     this.cmdEventObservers = [];
 
-    _.once(this.executeCommand);
+    _.once(this.setCommand);
     _.once(this.cancelCommand);
   }
 
   /**
    * 최초 명령을 설정할 경우
-   * @param {reqCommandInfo} cmdWrapInfo
+   * @param {commandWrapInfo} cmdWrapInfo
    * @param {Observer[]} observers 명령의 실행 결과를 받을 옵저버
    */
-  executeCommand(cmdWrapInfo, observers = []) {
+  setCommand(cmdWrapInfo, observers = []) {
     try {
-      const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, reqCmdEleList } = cmdWrapInfo;
+      const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, containerCmdList } = cmdWrapInfo;
       // 명령 취소일 경우
       if (wrapCmdFormat === reqWCT.CANCEL) {
         throw new Error(`initCommand Error: ${wrapCmdId} is CANCEL`);
@@ -72,7 +72,7 @@ class CmdStorage extends CmdComponent {
       this.cmdWrapInfo = cmdWrapInfo;
 
       // 실제 제어할 목록 만큼 실행
-      this.setCommandElements(reqCmdEleList);
+      this.setCommandElements(containerCmdList);
 
       // 명령 임계 설정
       // this.setThreshold(wrapCmdGoalInfo);
@@ -90,8 +90,9 @@ class CmdStorage extends CmdComponent {
   /**
    * 명령을 취소할 경우
    * @param {commandWrapInfo} cmdWrapInfo
+   * @param {Observer[]} observers 명령의 실행 결과를 받을 옵저버
    */
-  cancelCommand(cmdWrapInfo) {
+  cancelCommand(cmdWrapInfo, observers) {
     try {
       const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, realContainerCmdList } = cmdWrapInfo;
       // 명령 취소일 경우
@@ -102,6 +103,9 @@ class CmdStorage extends CmdComponent {
       this.cmdWrapInfo = cmdWrapInfo;
       // 명령 단계를 대기 상태로 교체
       this.cmdStep = cmdStep.WAIT;
+
+      // 이벤트를 받을 옵저버 정의
+      this.cmdEventObservers = _.concat(this.cmdEventObservers, observers);
 
       // 세부 명령 객체 정의
       this.setCommandElements(realContainerCmdList);
@@ -121,8 +125,15 @@ class CmdStorage extends CmdComponent {
     }
   }
 
+  /**
+   * 현재 수행 중인 명령을 복원
+   * @description True 장치를 False 로 교체
+   */
+  restoreCommand() {}
+
   /** Data Logger Controller에게 명령 실행 요청 */
   executeCommandFromDLC() {
+    BU.CLI('executeCommandFromDLC')
     // 명령 단계가 대기 중 일경우에만 요청 가능.
     if (this.cmdStep === cmdStep.WAIT) {
       this.cmdStep = cmdStep.PROCEED;
@@ -135,7 +146,7 @@ class CmdStorage extends CmdComponent {
 
   /**
    * 세부 명령 실행 객체 목록 생성
-   * @param {CommandContainerInfo[]} commandContainerList
+   * @param {commandContainerInfo[]} commandContainerList
    */
   setCommandElements(commandContainerList) {
     this.cmdElements = [];
@@ -241,22 +252,22 @@ class CmdStorage extends CmdComponent {
 
   /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
   getCmdWrapFormat() {
-    return this.cmdWrapInfo.CmdWrapFormat;
+    return this.cmdWrapInfo.wrapCmdFormat;
   }
 
   /** @return {string} 명령 타입, CONTROL, CANCEL, RESTORE, MEASURE */
   getCmdWrapType() {
-    return this.cmdWrapInfo.CmdWrapType;
+    return this.cmdWrapInfo.wrapCmdType;
   }
 
   /** @return {string} 명령 ID */
   getCmdWrapId() {
-    return this.cmdWrapInfo.CmdWrapId;
+    return this.cmdWrapInfo.wrapCmdId;
   }
 
   /** @return {string} 명령 이름 */
   getCmdWrapName() {
-    return this.cmdWrapInfo.CmdWrapName;
+    return this.cmdWrapInfo.wrapCmdName;
   }
 
   /** @return {number} 명령 실행 우선 순위 */

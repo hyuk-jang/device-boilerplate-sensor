@@ -42,6 +42,7 @@ class CmdElement extends CmdComponent {
 
   /** 명령 실행 */
   executeCommandFromDLC() {
+    // BU.CLI(this.getExecuteCmdInfo());
     this.dataLoggerController.requestCommand(this.getExecuteCmdInfo());
   }
 

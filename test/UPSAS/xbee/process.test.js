@@ -40,7 +40,7 @@ const coreFacade = new CoreFacade();
 // const control = new MuanControl(config);
 
 describe('Manual Mode', function() {
-  this.timeout(10000);
+  this.timeout(5000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
@@ -50,11 +50,11 @@ describe('Manual Mode', function() {
     try {
       coreFacade.changeCmdStrategy(coreFacade.cmdModeName.MANUAL);
 
-      control.executeSetControl({
-        wrapCmdId: 'closeAllDevice',
-        wrapCmdType: reqWrapCmdType.CONTROL,
-      });
-      await eventToPromise(control, 'completeCommand');
+      // control.executeSetControl({
+      //   wrapCmdId: 'closeAllDevice',
+      //   wrapCmdType: reqWrapCmdType.CONTROL,
+      // });
+      // await eventToPromise(control, 'completeCommand');
     } catch (error) {
       BU.error(error.message);
     }
@@ -68,7 +68,7 @@ describe('Manual Mode', function() {
    * 3. 정기 계측 명령 처리 시 O.C에는 영향을 미치지 않음
    * 4. 명령 완료하였을 경우 명령 열에서 삭제 처리
    */
-  it('Duplicate Measurement Command', async () => {
+  it.only('Duplicate Measurement Command', async () => {
     const { cmdOverlapManager } = control.model.cmdManager;
     // * 1. 정기 계측 명령을 요청
     // return;

@@ -55,30 +55,97 @@ class CommandManager {
 
   /**
    *
-   * @param {reqCommandInfo} reqCommandInfo 요청 명령 객체
-   */
-  saveCommand(reqCommandInfo) {
-    const { wrapCmdType, reqCmdEleList } = reqCommandInfo;
-
-    // 계측 명령일 경우에 명령 전략에 관계없이 추가
-
-    // 다른 명령일 경우에는 명령 전략에 따라서 추가
-  }
-
-  /**
-   *
-   * @param {reqComplexCmdInfo} reqCmdInfo
+   * @param {reqCommandInfo} reqCommandInfo
    * @param {Observer=} observer
    */
-  executeCommand(reqCmdInfo, observer) {
+  executeCommand(reqCommandInfo, observer) {
     try {
-      const cmdStorage = new CmdStorage();
-      cmdStorage.executeCommand(reqCmdInfo);
+      const { wrapCmdFormat, wrapCmdType, wrapCmdId, reqCmdEleList } = reqCommandInfo;
 
-      this.commandList.push(cmdStorage);
+      // 계측 명령 일 경우에는 전략에 상관없이 요청
+      if (wrapCmdFormat === reqWrapCmdFormat.MEASURE) {
+        // 동일 명령이 존재하는지 체크
+        const foundCommand = _.find(this.commandList, { getCmdWrapId: wrapCmdId });
+        if (foundCommand) {
+          throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
+        }
+        // 실제 수행할 장치를 정제
+        const commandWrapInfo = this.refineReqCommand(reqCommandInfo);
+
+        // 계측 명령 설정
+        const cmdStorage = new CmdStorage();
+
+        cmdStorage.setCommand(commandWrapInfo, [observer]);
+        // 명령 목록에 추가
+        this.commandList.push(cmdStorage);
+
+        // 실제 장치로 명령 요청
+        cmdStorage.executeCommandFromDLC();
+      }
+      // 계측 명령이 아닐 경우 명령 전략에 따라 진행
+      else {
+        this.cmdStrategy.setCommand(reqCommandInfo);
+      }
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * 존재하지 않는 NodeId 혹은 DataLogger, DLC 접속이 되지 않은 장치는 배제
+   * @param {reqCommandInfo} reqCommandInfo
+   * @return {commandWrapInfo}
+   */
+  refineReqCommand(reqCommandInfo) {
+    const coreFacade = new CoreFacade();
+    // 이상있는 장치는 제거 후 재 저장
+
+    /** @type {commandContainerInfo[]} */
+    const containerCmdList = [];
+
+    reqCommandInfo.reqCmdEleList.forEach(cmdEleInfo => {
+      const { searchIdList, controlSetValue, singleControlType, rank } = cmdEleInfo;
+
+      /** @type {commandContainerInfo} */
+      const commandContainer = {
+        singleControlType,
+        controlSetValue,
+        nodeIdList: [],
+      };
+
+      commandContainer.nodeIdList = _.filter(searchIdList, searchId => {
+        const dataLoggerController = coreFacade.model.findDataLoggerController(searchId);
+
+        let errMsg = '';
+        if (_.isUndefined(dataLoggerController)) {
+          errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
+          // BU.CLI(errMsg);
+        } else if (!_.get(dataLoggerController, 'hasConnectedDevice')) {
+          errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
+          // BU.CLI(errMsg);
+        }
+        if (errMsg.length) {
+          // BU.CLI(errMsg);
+          // BU.errorLog(
+          //   'executeComplexCmd',
+          //   `mainUUID: ${
+          //     this.mainUUID
+          //   } nodeId: ${currNodeId} singleControlType: ${singleControlType} msg: ${errMsg}`,
+          // );
+        } else {
+          return true;
+        }
+      });
+
+      // 조회할 장치가 있을 경우에만 삽입
+      if (commandContainer.nodeIdList.length) {
+        containerCmdList.push(commandContainer);
+      }
+    });
+
+    _.set(reqCommandInfo, 'containerCmdList', containerCmdList);
+    _.set(reqCommandInfo, 'realContainerCmdList', []);
+    return reqCommandInfo;
   }
 
   /**
@@ -90,12 +157,30 @@ class CommandManager {
   }
 
   /**
-   * cmdWrapUuid으로 Command Stroage를 찾고자 할 경우
-   * @param {Object} cmdOption
-   * @param {string} cmdOption.cmdWrapUuid
+   * cmdWrapOption으로 Command Stroage를 찾고자 할 경우
+   * @param {Object} searchOption
+   * @param {string=} searchOption.cmdWrapUuid
+   * @param {string=} searchOption.cmdWrapId
+   * @param {string=} searchOption.cmdWrapType
    */
-  getCommandByOption(cmdWrapUuid) {
-    return _.find(this.commandList, { cmdWrapUuid });
+  getCommandByOption(searchOption) {
+    const { cmdWrapUuid, cmdWrapId, cmdWrapType } = searchOption;
+
+    return _.find(this.commandList, cmdStorage => {
+      // UUID를 직접 지정할 경우
+      if (_.isString(cmdWrapUuid)) {
+        return cmdWrapUuid === cmdStorage.getCmdWrapUuid();
+      }
+
+      // 명령 ID로 찾을 경우
+      if (_.isString(cmdWrapId)) {
+        // 명령 ID가 일치할 경우
+        if (cmdWrapId === cmdStorage.getCmdWrapId()) {
+          // 명령 Type까지 지정할 경우
+          return _.isString(cmdWrapType) ? cmdWrapType === cmdStorage.getCmdWrapType() : true;
+        }
+      }
+    });
   }
 
   /**

@@ -33,6 +33,39 @@ class CommandExecManager {
   }
 
   /**
+   * 계측 명령
+   * @param {reqMeasureCmdInfo} reqMeasureCmdInfo
+   */
+  executeMeasure(reqMeasureCmdInfo) {
+    // BU.CLI(reqMeasureCmdInfo);
+    const {
+      wrapCmdType = reqWrapCmdType.CONTROL,
+      wrapCmdId,
+      wrapCmdName,
+      searchIdList,
+      rank,
+    } = reqMeasureCmdInfo;
+
+    /** @type {reqCommandInfo} 복합 명령으로 정의 */
+    const reqCommandOption = {
+      wrapCmdFormat: reqWrapCmdFormat.MEASURE,
+      wrapCmdId,
+      wrapCmdType,
+      wrapCmdName,
+      rank,
+      reqCmdEleList: [
+        {
+          singleControlType: reqDeviceControlType.MEASURE,
+          searchIdList,
+          rank,
+        },
+      ],
+    };
+
+    this.executeCommand(reqCommandOption);
+  }
+
+  /**
    * @desc 수동 모드에서만 사용 가능
    * 외부에서 단일 명령을 내릴경우
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
@@ -89,7 +122,7 @@ class CommandExecManager {
         throw new Error(`wrapCmdId: ${reqComplexCmd.wrapCmdId} is exist`);
       }
 
-      return this.executeComplexCommand(reqComplexCmd);
+      return this.executeCommand(reqComplexCmd);
     } catch (error) {
       BU.errorLog('excuteControl', 'Error', error);
       throw error;
@@ -157,7 +190,7 @@ class CommandExecManager {
       }
 
       // BU.CLI(reqComplexCmd);
-      return this.executeComplexCommand(reqComplexCmd);
+      return this.executeCommand(reqComplexCmd);
     } catch (error) {
       throw error;
     }
@@ -184,13 +217,28 @@ class CommandExecManager {
       // BU.CLI(setCmdInfo);
 
       if (setCmdInfo) {
-        /** @type {reqComplexCmdInfo} */
-        const reqComplexCmd = {
-          wrapCmdId,
-          wrapCmdName: '',
-          wrapCmdType,
+        /** @type {reqCommandInfo} */
+        const reqCommandOption = {
           wrapCmdFormat: reqWrapCmdFormat.SET,
-          reqCmdEleList: [],
+          wrapCmdId,
+          wrapCmdType,
+          wrapCmdName: setCmdInfo.cmdName,
+          reqCmdEleList: this.makeControlEleCmdList(setCmdInfo, rank),
+        };
+
+        return this.executeCommand(reqCommandOption);
+      }
+
+      return;
+
+      if (setCmdInfo) {
+        /** @type {reqCommandInfo} */
+        const reqComplexCmd = {
+          wrapCmdFormat: reqWrapCmdFormat.SET,
+          wrapCmdId,
+          wrapCmdType,
+          wrapCmdName: setCmdInfo.cmdName,
+          reqCmdEleList: this.makeControlEleCmdList(setCmdInfo, rank),
         };
 
         // 명령을 요청할 경우
@@ -220,7 +268,7 @@ class CommandExecManager {
           reqComplexCmd.reqCmdEleList = this.makeRestoreEleCmdList(setCmdInfo, rank);
         }
 
-        return this.executeComplexCommand(reqComplexCmd);
+        return this.executeCommand(reqComplexCmd);
       }
       throw new Error(`wrapCmdId: ${wrapCmdId} does not exist.`);
     } catch (error) {
@@ -246,6 +294,7 @@ class CommandExecManager {
       reqCmdEleList.push({
         singleControlType: reqDeviceControlType.TRUE,
         nodeId: trueNodeList,
+        searchIdList: trueNodeList,
         rank,
       });
     }
@@ -255,6 +304,7 @@ class CommandExecManager {
       reqCmdEleList.push({
         singleControlType: reqDeviceControlType.FALSE,
         nodeId: falseNodeList,
+        searchIdList: trueNodeList,
         rank,
       });
     }
@@ -361,7 +411,7 @@ class CommandExecManager {
       });
     }
 
-    return this.executeComplexCommand(reqComplexCmd);
+    return this.executeCommand(reqComplexCmd);
   }
 
   /**
@@ -399,7 +449,7 @@ class CommandExecManager {
     //   });
     // }
 
-    return this.executeComplexCommand(reqComplexCmd);
+    return this.executeCommand(reqComplexCmd);
   }
 
   /**
@@ -407,11 +457,11 @@ class CommandExecManager {
    * @param {reqCommandInfo} reqCommandInfo
    * @return {} 명령 요청 여부
    */
-  executeComplexCommand(reqCommandInfo) {
+  executeCommand(reqCommandInfo) {
     // BU.CLI(reqComplexCmd);
     try {
       const coreFacade = new CoreFacade();
-      coreFacade.cmdManager.saveCommand(reqCommandInfo);
+      coreFacade.cmdManager.executeCommand(reqCommandInfo);
     } catch (error) {
       throw error;
     }
@@ -620,19 +670,22 @@ class CommandExecManager {
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
 
-    /** @type {reqComplexCmdInfo} */
-    const reqComplexCmd = {
+    /** @type {reqMeasureCmdInfo} */
+    const reqMeasureCmdOption = {
       wrapCmdId: 'inquiryAllDeviceStatus',
       wrapCmdName: '정기 장치 상태 계측',
-      wrapCmdType: reqWrapCmdType.MEASURE,
-      reqCmdEleList: [{ searchId: _.map(this.dataLoggerList, 'dl_id') }],
+      searchIdList: _.map(this.dataLoggerList, 'dl_id'),
     };
+
+    this.executeMeasure(reqMeasureCmdOption);
+
+    return;
 
     // BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
     // BU.CLI(reqComplexCmd);
 
     try {
-      const { realContainerCmdList } = this.executeComplexCommand(reqComplexCmd);
+      const { realContainerCmdList } = this.executeCommand(reqMeasureCmdOption);
 
       if (
         !_(realContainerCmdList)

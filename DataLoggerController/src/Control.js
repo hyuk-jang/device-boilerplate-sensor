@@ -364,6 +364,7 @@ class DataLoggerController extends DccFacade {
       // BU.CLIN(this.manager.findCommandStorage({commandId: reqExecCmdInfo.wrapCmdId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
+      BU.CLIN(commandSet, 1)
       return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
       BU.CLI(error);

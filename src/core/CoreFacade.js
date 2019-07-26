@@ -36,6 +36,7 @@ class CoreFacade {
     instance = this;
 
     this.controller;
+    this.model;
     this.cmdManager;
     this.cmdExecManager;
     this.placeManager;
@@ -60,6 +61,14 @@ class CoreFacade {
 
     coreNodeList = this.controller.nodeList;
     corePlaceList = this.controller.placeList;
+  }
+
+  /**
+   * 명령 관리자 정의
+   * @param {Model} model
+   */
+  setModel(model) {
+    this.model = model;
   }
 
   /**

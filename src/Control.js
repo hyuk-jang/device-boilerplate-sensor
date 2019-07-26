@@ -275,6 +275,10 @@ class Control extends EventEmitter {
       this.model = new this.Model(this);
       this.model.init();
 
+      // 모델 등록
+      const coreFacade = new CoreFacade();
+      coreFacade.setModel(this.model);
+
       this.commandExecManager = new CommandExecManager(this);
 
       return this.dataLoggerControllerList;

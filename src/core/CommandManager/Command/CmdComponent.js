@@ -17,22 +17,22 @@ class CmdComponent {
 
   /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
   getCmdWrapFormat() {
-    return this.cmdWrapInfo.CmdWrapFormat;
+    return this.cmdWrapInfo.cmdWrapFormat;
   }
 
   /** @return {string} 명령 타입, CONTROL, CANCEL, RESTORE, MEASURE */
   getCmdWrapType() {
-    return this.cmdWrapInfo.CmdWrapType;
+    return this.cmdWrapInfo.cmdWrapType;
   }
 
   /** @return {string} 명령 ID */
   getCmdWrapId() {
-    return this.cmdWrapInfo.CmdWrapId;
+    return this.cmdWrapInfo.cmdWrapId;
   }
 
   /** @return {string} 명령 이름 */
   getCmdWrapName() {
-    return this.cmdWrapInfo.CmdWrapName;
+    return this.cmdWrapInfo.cmdWrapName;
   }
 
   /** @return {number} 명령 실행 우선 순위 */
