@@ -24,7 +24,7 @@ class ConcreteAlgorithm extends AbstAlgorithm {
     this.thresholdS = new Salinity();
     this.thresholdMRT = new ModuleRearTemp();
 
-    this.cmdModeName = new CoreFacade().cmdModeName.OVERLAP_COUNT;
+    this.cmdStrategyName = new CoreFacade().cmdStrategyType.OVERLAP_COUNT;
   }
 
   /**
@@ -32,8 +32,8 @@ class ConcreteAlgorithm extends AbstAlgorithm {
    */
   updateControlMode() {
     const coreFacade = new CoreFacade();
-    if (coreFacade.getCurrCmdModeName() !== this.cmdModeName) {
-      coreFacade.changeCmdStrategy(this.cmdModeName);
+    if (coreFacade.getCurrCmdStrategyType() !== this.cmdStrategyName) {
+      coreFacade.changeCmdStrategy(this.cmdStrategyName);
     }
   }
 

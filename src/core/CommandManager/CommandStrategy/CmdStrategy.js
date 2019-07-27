@@ -3,13 +3,13 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const {
-  dcmConfigModel: { reqDeviceControlType },
+  dcmConfigModel: { reqDeviceControlType, reqWrapCmdFormat: reqWCF },
 } = require('../../CoreFacade');
 
 /**
  * 프로젝트 별로 모드가 여러개일 경우 updateControMode를 재구현 하여 Cmd Manager의 cmdStrategist 재정의
  */
-class CmdStrategist {
+class CmdStrategy {
   /** @param {CommandManager} cmdManager */
   constructor(cmdManager) {
     this.cmdManager = cmdManager;
@@ -17,6 +17,77 @@ class CmdStrategist {
 
   /** 제어 모드가 변경되었을 경우 선행 작업이 이루어져야 할 내용이 있다면 작성 */
   init() {}
+
+  /**
+   *
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeCommand(reqCmdInfo) {
+    const { wrapCmdId } = reqCmdInfo;
+    try {
+      switch (reqCmdInfo.wrapCmdFormat) {
+        case reqWCF.SINGLE:
+          return this.executeSingleControl(reqCmdInfo);
+        case reqWCF.SET:
+          return this.executeSetControl(reqCmdInfo);
+        case reqWCF.FLOW:
+          return this.executeFlowControl(reqCmdInfo);
+        case reqWCF.SCENARIO:
+          return this.executeScenarioControl(reqCmdInfo);
+        default:
+          throw new Error(
+            `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
+          );
+      }
+    } catch (error) {
+      BU.CLI(error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * 단일 명령 전략
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeSingleControl(reqCmdInfo) {
+    const { wrapCmdId } = reqCmdInfo;
+    throw new Error(
+      `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
+    );
+  }
+
+  /**
+   * 단일 명령 전략
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeSetControl(reqCmdInfo) {
+    const { wrapCmdId } = reqCmdInfo;
+    throw new Error(
+      `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
+    );
+  }
+
+  /**
+   * 단일 명령 전략
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeFlowControl(reqCmdInfo) {
+    const { wrapCmdId } = reqCmdInfo;
+    throw new Error(
+      `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
+    );
+  }
+
+  /**
+   * 단일 명령 전략
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeScenarioControl(reqCmdInfo) {
+    const { wrapCmdId } = reqCmdInfo;
+    throw new Error(
+      `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
+    );
+  }
 
   /**
    * @abstract
@@ -88,4 +159,4 @@ class CmdStrategist {
     return true;
   }
 }
-module.exports = CmdStrategist;
+module.exports = CmdStrategy;

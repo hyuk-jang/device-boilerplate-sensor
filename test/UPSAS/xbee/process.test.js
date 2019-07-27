@@ -20,6 +20,8 @@ const { dcmConfigModel } = CoreFacade;
 
 const {
   complexCmdStep,
+  commandEvent: cmdEvent,
+  commandStep: cmdStep,
   nodePickKey,
   complexCmdPickKey,
   nodeDataType,
@@ -49,7 +51,7 @@ describe('Manual Mode', function() {
 
   beforeEach(async () => {
     try {
-      coreFacade.changeCmdStrategy(coreFacade.cmdModeName.MANUAL);
+      coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.MANUAL);
 
       // control.executeSetControl({
       //   wrapCmdId: 'closeAllDevice',
@@ -69,7 +71,7 @@ describe('Manual Mode', function() {
    * 3. 정기 계측 명령 처리 시 O.C에는 영향을 미치지 않음
    * 4. 명령 완료하였을 경우 명령 열에서 삭제 처리
    */
-  it.only('Duplicate Measurement Command', async () => {
+  it('Duplicate Measurement Command', async () => {
     const {
       cmdManager,
       cmdManager: { cmdOverlapManager },
@@ -89,19 +91,12 @@ describe('Manual Mode', function() {
     // BU.CLI(ocLength);
 
     // * 4. 명령 완료하였을 경우 명령 열에서 삭제 처리
-    let measureCmdList = _.filter(control.model.complexCmdList, {
-      wrapCmdType: reqWCT.MEASURE,
-    });
-    expect(measureCmdList.length).to.eq(1);
+    expect(cmdManager.getCmdStorageList({ wrapCmdFormat: reqWCF.MEASURE })).to.length(1);
 
-    // BU.CLI('@@@@@@@@@@@@@');
+    await eventToPromise(control, cmdStep.END);
 
-    await eventToPromise(control, 'completeInquiryAllDeviceStatus');
-
-    measureCmdList = _.filter(control.model.complexCmdList, {
-      wrapCmdType: reqWCT.MEASURE,
-    });
-    expect(measureCmdList.length).to.eq(0);
+    // 정기 계측 명령 완료 했으므로
+    expect(cmdManager.getCmdStorageList({ wrapCmdFormat: reqWCF.MEASURE })).to.length(0);
   });
 
   /**
@@ -112,10 +107,13 @@ describe('Manual Mode', function() {
    * 3. 밸브 2번을 킨다.
    * 4. 동작 중에 1~2번을 한번 더 시도한다.(명령이 등록되지 않아야한다.)
    * 5. 명령 완료 순서는 펌프 > 수문 > 밸브
-   * 6. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
    */
   it('Single Command Flow', async () => {
-    const { cmdOverlapManager } = control.model.cmdManager;
+    const {
+      cmdManager,
+      cmdManager: { cmdOverlapManager },
+    } = control.model;
+
     /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
     const openGateCmd = {
       nodeId: 'WD_005',
@@ -139,7 +137,7 @@ describe('Manual Mode', function() {
     const onPumpWC = control.executeSingleControl(openPumpCmd);
     const openValveWC = control.executeSingleControl(openValveCmd);
 
-    // * 3. 동작 중에 1~2번을 한번 더 시도한다.(명령이 등록되지 않아야한다.)
+    // * 4. 동작 중에 1~2번을 한번 더 시도한다.(명령이 등록되지 않아야한다.)
     expect(() => control.executeSingleControl(openGateCmd)).to.throw(Error);
     expect(() => control.executeSingleControl(openPumpCmd)).to.throw(Error);
     expect(() => control.executeSingleControl(openValveCmd)).to.throw(Error);
@@ -148,35 +146,23 @@ describe('Manual Mode', function() {
     // 명령 실행 순서: 수문 > 펌프 > 밸브
     // 명령 완료 순서: 펌프 > 수문 > 밸브
 
-    const firstCompleteWC = await eventToPromise(control, 'completeCommand');
+    const firstCompleteWC = await eventToPromise(control, cmdStep.END);
 
     expect(onPumpWC.wrapCmdId).to.eq(firstCompleteWC.wrapCmdId);
 
-    // * 4. 명령 완료하였을 경우 O.C reservedExecUU는 삭제처리 되어야 한다.
-    // 첫번째 명령 완료: 펌프 >> O.C reservedExecUU는 삭제
+    expect(cmdManager.getCmdStorageList()).to.length(2);
+
     expect(
       cmdOverlapManager
         .getOverlapStatus(openPumpCmd.nodeId, openPumpCmd.singleControlType)
         .getReservedECU(),
     ).to.eq('');
 
-    // 첫번째 명령 완료: 수문은 >> O.C reservedExecUU는 유지
-    expect(
-      cmdOverlapManager
-        .getOverlapStatus(openGateCmd.nodeId, openGateCmd.singleControlType)
-        .getReservedECU(),
-    ).to.not.eq('');
+    const secondCompleteWC = await eventToPromise(control, cmdStep.END);
+    expect(cmdManager.getCmdStorageList()).to.length(1);
 
-    const secondCompleteWC = await eventToPromise(control, 'completeCommand');
-
-    // 첫번째 명령 완료: 수문은 >> O.C reservedExecUU는 유지
-    expect(
-      cmdOverlapManager
-        .getOverlapStatus(openGateCmd.nodeId, openGateCmd.singleControlType)
-        .getReservedECU(),
-    ).to.eq('');
-
-    const thirdCompleteWC = await eventToPromise(control, 'completeCommand');
+    const thirdCompleteWC = await eventToPromise(control, cmdStep.END);
+    expect(cmdManager.getCmdStorageList()).to.length(0);
 
     // 5. 명령 완료 순서는 펌프 > 수문 > 밸브
     expect(firstCompleteWC).to.deep.eq(onPumpWC);
@@ -227,7 +213,7 @@ describe('Automatic Mode', function() {
 
   beforeEach(async () => {
     try {
-      coreFacade.changeCmdStrategy(coreFacade.cmdModeName.MANUAL);
+      coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.MANUAL);
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWCT.CONTROL,
@@ -237,7 +223,7 @@ describe('Automatic Mode', function() {
       BU.error(error.message);
     }
 
-    coreFacade.changeCmdStrategy(coreFacade.cmdModeName.OVERLAP_COUNT);
+    coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.OVERLAP_COUNT);
   });
 
   /**
@@ -262,7 +248,7 @@ describe('Automatic Mode', function() {
    * 8. 증발지 1-A > 해주 1 명령 취소.
    * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
    */
-  it('Multi Flow Command Control & Conflict & Cancel', async () => {
+  it.only('Multi Flow Command Control & Conflict & Cancel', async () => {
     const { cmdOverlapManager } = control.model.cmdManager;
     // BU.CLI('Multi Flow Command Control & Conflict & Cancel');
     // 1. 저수지 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인

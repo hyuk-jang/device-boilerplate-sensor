@@ -16,7 +16,13 @@ const {
   dcmWsModel: { transmitToServerCommandType },
 } = CoreFacade;
 
-const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat, commandPickKey } = dcmConfigModel;
+const {
+  complexCmdStep,
+  commandStep: cmdStep,
+  reqWrapCmdType,
+  reqWrapCmdFormat,
+  commandPickKey,
+} = dcmConfigModel;
 
 class CommandManager {
   /** @param {Model} model */
@@ -39,15 +45,18 @@ class CommandManager {
     // 명령 전략가 등록
     this.cmdStrategy;
 
-    // 명령 모드
-    this.cmdModeType = {
+    // 명령 전략 모드 종류
+    this.cmdStrategyType = {
       MANUAL: 'MANUAL',
       OVERLAP_COUNT: 'OVERLAP_COUNT',
+      SCENARIO: 'SCENARIO',
     };
 
     // Command Manager를 Core Facde에 정의
     const coreFacade = new CoreFacade();
     coreFacade.setCmdManager(this);
+
+    this.coreFacade = coreFacade;
   }
 
   /**
@@ -64,16 +73,21 @@ class CommandManager {
       if (wrapCmdFormat === reqWrapCmdFormat.MEASURE) {
         // 동일 명령이 존재하는지 체크
         const foundCommand = _.find(this.commandList, { wrapCmdId });
+
         if (foundCommand) {
           throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
         }
         // 실제 수행할 장치를 정제
         const commandWrapInfo = this.refineReqCommand(reqCommandInfo);
 
+        return this.executeRealCommand(commandWrapInfo);
+
         // 계측 명령 설정
         const cmdStorage = new CmdStorage();
+        // 옵저버 추가
+        cmdStorage.attachObserver(this);
 
-        cmdStorage.setCommand(commandWrapInfo, [observer]);
+        cmdStorage.setCommand(commandWrapInfo);
         // 명령 목록에 추가
         this.commandList.push(cmdStorage);
 
@@ -84,7 +98,33 @@ class CommandManager {
       }
       // 계측 명령이 아닐 경우 명령 전략에 따라 진행
 
-      this.cmdStrategy.setCommand(reqCommandInfo);
+      return this.cmdStrategy.executeCommand(reqCommandInfo);
+    } catch (error) {
+      // BU.CLI(error);
+      BU.error(error.message);
+      throw error;
+    }
+  }
+
+  /**
+   *
+   * @param {commandWrapInfo} cmdWrapInfo 실제 내릴 명령 객체 정보
+   */
+  executeRealCommand(cmdWrapInfo) {
+    try {
+      // 명령 저장소 생성
+      const cmdStorage = new CmdStorage();
+      // 옵저버 추가
+      cmdStorage.attachObserver(this);
+
+      cmdStorage.setCommand(cmdWrapInfo);
+      // 명령 목록에 추가
+      this.commandList.push(cmdStorage);
+
+      // 실제 장치로 명령 요청
+      cmdStorage.executeCommandFromDLC();
+
+      return cmdStorage;
     } catch (error) {
       throw error;
     }
@@ -97,7 +137,23 @@ class CommandManager {
    * @param {DataLoggerControl} dataLoggerController Data Logger Controller 객체
    * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
-  updateCommandMessage(dataLoggerController, dcMessage) {}
+  updateCommandMessage(dataLoggerController, dcMessage) {
+    try {
+      const {
+        commandSet: { wrapCmdUUID, uuid },
+        msgCode,
+      } = dcMessage;
+
+      // BU.CLIN(commandSet);
+
+      this.getCmdStorage({ wrapCmdUuid: wrapCmdUUID })
+        .getCmdEle({ cmdEleUuid: uuid })
+        .updateCommand(msgCode);
+    } catch (error) {
+      BU.CLI(error);
+      throw error;
+    }
+  }
 
   /**
    * Command Storage 에서 명령 상태 이벤트를 수신할 메소드
@@ -105,6 +161,7 @@ class CommandManager {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandEvent(cmdStorage) {
+    // BU.CLI(cmdStorage.cmdStep);
     // FIXME: 임시. 메시지 전체 보냄
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCommandType.COMMAND,
@@ -117,110 +174,153 @@ class CommandManager {
     //   commandType: transmitToServerCommandType.COMMAND,
     //   data: _(cmdStorage).pick(commandPickKey.FOR_SERVER),
     // });
-  }
 
-  /**
-   * 존재하지 않는 NodeId 혹은 DataLogger, DLC 접속이 되지 않은 장치는 배제
-   * @param {reqCommandInfo} reqCommandInfo
-   * @return {commandWrapInfo}
-   */
-  refineReqCommand(reqCommandInfo) {
-    const coreFacade = new CoreFacade();
-    // 이상있는 장치는 제거 후 재 저장
+    // 명령 완료를 받았을 경우
+    if (cmdStorage.cmdStep === cmdStep.END) {
+      this.handleCommandClear(cmdStorage);
+    }
 
-    /** @type {commandContainerInfo[]} */
-    const containerCmdList = [];
-
-    reqCommandInfo.reqCmdEleList.forEach(cmdEleInfo => {
-      const { searchIdList, controlSetValue, singleControlType, rank } = cmdEleInfo;
-
-      /** @type {commandContainerInfo} */
-      const commandContainer = {
-        singleControlType,
-        controlSetValue,
-        nodeIdList: [],
-      };
-
-      commandContainer.nodeIdList = _.filter(searchIdList, searchId => {
-        const dataLoggerController = coreFacade.model.findDataLoggerController(searchId);
-
-        let errMsg = '';
-        if (_.isUndefined(dataLoggerController)) {
-          errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
-          // BU.CLI(errMsg);
-        } else if (!_.get(dataLoggerController, 'hasConnectedDevice')) {
-          errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
-          // BU.CLI(errMsg);
-        }
-        if (errMsg.length) {
-          // BU.CLI(errMsg);
-          // BU.errorLog(
-          //   'executeComplexCmd',
-          //   `mainUUID: ${
-          //     this.mainUUID
-          //   } nodeId: ${currNodeId} singleControlType: ${singleControlType} msg: ${errMsg}`,
-          // );
-        } else {
-          return true;
-        }
-      });
-
-      // 조회할 장치가 있을 경우에만 삽입
-      if (commandContainer.nodeIdList.length) {
-        containerCmdList.push(commandContainer);
-      }
-    });
-
-    _.set(reqCommandInfo, 'containerCmdList', containerCmdList);
-    _.set(reqCommandInfo, 'realContainerCmdList', []);
-    return reqCommandInfo;
+    this.controller.emit(cmdStorage.cmdStep, cmdStorage);
   }
 
   /**
    *
-   * @param {commandWrapInfo} cmdWrapInfo
+   * @param {CmdStorage} cmdStorage
    */
-  getCommand(cmdWrapInfo) {
-    return _.find(this.commandList, { cmdWrapInfo });
+  handleCommandClear(cmdStorage) {
+    // BU.CLI('handleCommandClear');
+    // BU.CLIN(cmdStorage);
+    // BU.CLIN(this.commandList);
+    // 명령 목록에서 제거
+    _.pull(this.commandList, cmdStorage);
   }
 
   /**
-   * cmdWrapOption으로 Command Stroage를 찾고자 할 경우
-   * @param {Object} searchOption
-   * @param {string=} searchOption.cmdWrapUuid
-   * @param {string=} searchOption.cmdWrapId
-   * @param {string=} searchOption.cmdWrapType
+   * 존재하지 않는 NodeId 혹은 DataLogger, DLC 접속이 되지 않은 장치는 배제
+   * @param {reqCommandInfo} reqCmdInfo
+   * @param {boolean=} isThrow 장치와 연결이 되지 않았거나 존재하지 않는 searchIdList가 존재할 경우 throw 여부. 기본 값 default
+   * @return {commandWrapInfo}
    */
-  getCommandByOption(searchOption) {
-    const { cmdWrapUuid, cmdWrapId, cmdWrapType } = searchOption;
+  refineReqCommand(reqCmdInfo, isThrow = false) {
+    // 이상있는 장치는 제거 후 재 저장
 
-    return _.find(this.commandList, cmdStorage => {
-      // UUID를 직접 지정할 경우
-      if (_.isString(cmdWrapUuid)) {
-        return cmdWrapUuid === cmdStorage.getCmdWrapUuid();
-      }
+    try {
+      /** @type {commandContainerInfo[]} */
+      const containerCmdList = [];
 
-      // 명령 ID로 찾을 경우
-      if (_.isString(cmdWrapId)) {
-        // 명령 ID가 일치할 경우
-        if (cmdWrapId === cmdStorage.getCmdWrapId()) {
-          // 명령 Type까지 지정할 경우
-          return _.isString(cmdWrapType) ? cmdWrapType === cmdStorage.getCmdWrapType() : true;
-        }
+      reqCmdInfo.reqCmdEleList.forEach(cmdEleInfo => {
+        const { searchIdList, controlSetValue, singleControlType } = cmdEleInfo;
+
+        _.forEach(searchIdList, searchId => {
+          /** @type {commandContainerInfo} */
+          const cmdContainer = {
+            singleControlType,
+            controlSetValue,
+            isIgnore: false,
+            nodeId: searchId,
+          };
+          const dataLoggerController = this.model.findDataLoggerController(searchId);
+
+          let errMsg = '';
+          if (isThrow && _.isUndefined(dataLoggerController)) {
+            errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
+            throw new Error(errMsg);
+            // BU.CLI(errMsg);
+          } else if (isThrow && !_.get(dataLoggerController, 'hasConnectedDevice')) {
+            errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
+            throw new Error(errMsg);
+            // BU.CLI(errMsg);
+          } else {
+            containerCmdList.push(cmdContainer);
+          }
+        });
+      });
+
+      _.set(reqCmdInfo, 'containerCmdList', containerCmdList);
+      // _.set(reqCmdInfo, 'realContainerCmdList', []);
+      return reqCmdInfo;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 제어하고자 하는 명령이 존재하거나 현재 상태값과 동일하다면 해당 명령을 제외 처리
+   * 제외 처리시 >>> commandContainerInfo.isIgnore = true
+   * @param {commandContainerInfo[]} containerCmdList
+   */
+  calcDefaultRealContainerCmd(containerCmdList) {
+    containerCmdList.forEach(containerInfo => {
+      const foundCmdEle = this.getLastCmdEle(containerInfo);
+
+      // 기존재할 경우
+      if (foundCmdEle instanceof CmdStorage) {
+        containerInfo.isIgnore = true;
+      } else {
+        // 현재 값과 제어할려는 값이 동일할 경우 true, 다르다면 false
+        containerInfo.isIgnore = this.isEqualCurrNodeData(containerInfo);
       }
     });
   }
 
   /**
-   * cmdElementUuid 만으로 Command Element를 찾고자 할 경우
-   * @param {string} cmdElementUuid
+   * @param {commandContainerInfo} containerInfo
+   * @example
+   * singleControlType
+   * 0: Close, Off
+   * 1: Open, On
+   * undefined, 2: Status
+   * 3: Set   --> controlSetValue 가 필수적으로 입력
    */
-  getCommandElement(cmdElementUuid) {
+  isEqualCurrNodeData(containerInfo) {
+    const { nodeId, singleControlType, controlSetValue } = containerInfo;
+    // BU.CLI(singleControlType, nodeId);
+    const nodeInfo = this.coreFacade.getNodeInfo(nodeId);
+
+    const cmdName = this.convertControlValueToString(nodeInfo, singleControlType);
+    // 설정 제어 값이 존재
+    if (_.isNil(controlSetValue)) {
+      // node 현재 값과 동일하다면 제어 요청하지 않음
+      if (_.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName))) {
+        return true;
+      }
+      // 동일하지 않을 경우
+      return false;
+    }
+    // 설정 값이 존재한다면 그 값과 현재 node 값을 비교
+    return _.eq(nodeInfo.data, controlSetValue);
+  }
+
+  /**
+   *
+   * @param {cmdStorageSearch} storageSearchInfo
+   * @return {CmdStorage}
+   */
+  getCmdStorage(storageSearchInfo) {
+    // BU.CLI(storageSearchInfo);
+    return _.find(this.commandList, storageSearchInfo);
+  }
+
+  /**
+   * cmdWrapOption으로 Command Stroage를 찾고자 할 경우
+   * @param {cmdStorageSearch} storageSearchInfo
+   * @return {CmdStorage[]}
+   */
+  getCmdStorageList(storageSearchInfo) {
+    return _.filter(this.commandList, storageSearchInfo);
+  }
+
+  /**
+   * cmdElementUuid 만으로 Command Element를 찾고자 할 경우
+   * @param {cmdElementSearch} cmdElementSearch
+   * @return {CmdElement}
+   */
+  getCmdEle(cmdElementSearch) {
     let commandElement;
 
     // 명령 객체 목록에서 조회
-    _.some(this.commandList, commandInfo => {
-      const cmdElement = commandInfo.getCommandElement(cmdElementUuid);
+    _.some(this.commandList, cmdStorage => {
+      const cmdElement = cmdStorage.getCmdEle(cmdElementSearch);
       // 찾았을 경우 객체이므로
       commandElement = cmdElement;
       return commandElement;
@@ -229,12 +329,30 @@ class CommandManager {
   }
 
   /**
-   *
-   * @param {CmdStorage} cmdStorage
+   * cmdElementSearch 에 맞는 최종적으로 내릴 명령
+   * @param {cmdElementSearch} cmdElementSearch
+   * @return {CmdElement}
    */
-  handleCommandClear(cmdStorage) {
-    // 명령 목록에서 제거
-    _.reject(this.commandList, cmdStorage);
+  getLastCmdEle(cmdElementSearch) {
+    // BU.CLI(cmdElementSearch);
+    return _(this.getCmdEleList(cmdElementSearch))
+      .sortBy('rank')
+      .head();
+  }
+
+  /**
+   * cmdWrapOption으로 Command Stroage를 찾고자 할 경우
+   * @param {cmdElementSearch} cmdElementSearch
+   * @return {CmdElement[]}
+   */
+  getCmdEleList(cmdElementSearch) {
+    // BU.CLIN(this.commandList);
+    const result = _(this.commandList)
+      .map(cmdStorage => cmdStorage.getCmdEleList(cmdElementSearch))
+      .flatten()
+      .value();
+    // BU.CLIN(result);
+    return result;
   }
 
   init() {
@@ -254,8 +372,8 @@ class CommandManager {
   }
 
   /** 명령 전략이 수동인지 자동인지 여부 */
-  getCurrCmdModeName() {
-    const { MANUAL, OVERLAP_COUNT } = this.cmdModeType;
+  getCurrCmdStrategyType() {
+    const { MANUAL, OVERLAP_COUNT } = this.cmdStrategyType;
 
     let currMode;
 
@@ -273,13 +391,14 @@ class CommandManager {
    * @param {string} cmdMode 자동 명령 모드 여부
    */
   changeCmdStrategy(cmdMode) {
-    BU.CLI('changeCmdStrategy', cmdMode);
+    // BU.CLI('changeCmdStrategy', cmdMode);
     let isChanged = false;
 
-    const { MANUAL, OVERLAP_COUNT } = this.cmdModeType;
+    const { MANUAL, OVERLAP_COUNT } = this.cmdStrategyType;
 
     switch (cmdMode) {
       case MANUAL:
+        // BU.CLI(this.cmdStrategy instanceof ManualCmdStrategy);
         isChanged = !(this.cmdStrategy instanceof ManualCmdStrategy);
         isChanged && (this.cmdStrategy = new ManualCmdStrategy(this));
         break;
@@ -290,6 +409,8 @@ class CommandManager {
       default:
         break;
     }
+
+    // BU.CLI(isChanged);
 
     return isChanged;
   }

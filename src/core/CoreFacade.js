@@ -100,19 +100,24 @@ class CoreFacade {
     this.coreAlgorithm.updateControlMode(controlMode);
   }
 
+  /** @param {string} nodeId */
+  getNodeInfo(nodeId) {
+    return _.find(coreNodeList, { node_id: nodeId });
+  }
+
   /** 현재 제어 모드 */
   getCurrControlMode() {
     return this.coreAlgorithm.getCurrControlMode();
   }
 
   /** 명령 모드 종류 */
-  get cmdModeName() {
-    return this.cmdManager.cmdModeType;
+  get cmdStrategyType() {
+    return this.cmdManager.cmdStrategyType;
   }
 
   /** 현재 명령 모드 명 */
-  getCurrCmdModeName() {
-    return this.cmdManager.getCurrCmdModeName();
+  getCurrCmdStrategyType() {
+    return this.cmdManager.getCurrCmdStrategyType();
   }
 
   /**
@@ -140,6 +145,8 @@ class CoreFacade {
    */
   changeCmdStrategy(cmdMode) {
     // BU.debugConsole();
+    // BU.CLI(this.cmdManager.getControMode());
+
     // BU.CLI('changeCmdStrategy', cmdMode);
     return this.cmdManager.changeCmdStrategy(cmdMode);
   }

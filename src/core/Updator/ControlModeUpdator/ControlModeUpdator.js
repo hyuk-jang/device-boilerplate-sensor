@@ -1,5 +1,7 @@
 const _ = require('lodash');
 
+const { BU } = require('base-util-jh');
+
 const Updator = require('../Updator');
 
 class ControlModeUpdator extends Updator {
@@ -44,6 +46,7 @@ class ControlModeUpdator extends Updator {
 
   /** @param {string} controlMode 제어 모드 변경 */
   updateMode(controlMode) {
+    BU.debugConsole();
     // 기존 제어모드에서 변경이 있을 경우 알림
     if (this.controlMode !== controlMode) {
       this.controlMode = controlMode;

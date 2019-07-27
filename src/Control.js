@@ -341,6 +341,7 @@ class Control extends EventEmitter {
    * @param {string} controlMode
    */
   changeControlMode(controlMode) {
+    BU.CLI(controlMode);
     this.controlModeUpdator.updateMode(controlMode);
   }
 
@@ -360,7 +361,7 @@ class Control extends EventEmitter {
   executeSingleControl(reqSingleCmdInfo) {
     const coreFacade = new CoreFacade();
     try {
-      if (coreFacade.getCurrCmdModeName() !== coreFacade.cmdModeName.MANUAL) {
+      if (coreFacade.getCurrCmdStrategyType() !== coreFacade.cmdStrategyType.MANUAL) {
         throw new Error('Single control is only possible in manual mode.');
       }
       return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
@@ -378,7 +379,7 @@ class Control extends EventEmitter {
     // BU.CLIN(reqFlowCmdInfo);
     const coreFacade = new CoreFacade();
     try {
-      if (coreFacade.getCurrCmdModeName() === coreFacade.cmdModeName.MANUAL) {
+      if (coreFacade.getCurrCmdStrategyType() === coreFacade.cmdStrategyType.MANUAL) {
         throw new Error('The flow command is not available in manual mode.');
       }
       return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);
@@ -440,7 +441,11 @@ class Control extends EventEmitter {
    * 정기적인 Router Status 탐색
    */
   inquiryAllDeviceStatus() {
-    return this.commandExecManager.inquiryAllDeviceStatus();
+    try {
+      return this.commandExecManager.inquiryAllDeviceStatus();
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -525,9 +530,9 @@ class Control extends EventEmitter {
    * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
   notifyDeviceMessage(dataLoggerController, dcMessage) {
+    this.model.cmdManager.updateCommandMessage(dataLoggerController, dcMessage);
     // const {COMMANDSET_EXECUTION_START, COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE} = dataLoggerController.definedCommandSetMessage;
     // const commandSet = dcMessage.commandSet;
-
     // this.model.manageComplexCommand(dataLoggerController, dcMessage);
   }
 

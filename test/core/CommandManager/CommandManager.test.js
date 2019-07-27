@@ -96,8 +96,8 @@ describe('CmdOverlap', function() {
     // 명령 임계치 매니저 생성
     const cmdOverlapManager = new CmdOverlapManager({
       nodeList,
-      cmdModeType,
-      getCurrCmdModeName: () => cmdModeType.OVERLAP_COUNT,
+      cmdStrategyType: cmdModeType,
+      getCurrCmdStrategyType: () => cmdModeType.OVERLAP_COUNT,
     });
 
     const A_TO_B = _.find(wrapCmdList, { wrapCmdId: 'A_TO_B' });
@@ -205,14 +205,14 @@ describe.only('명령 관리', function() {
     expect(cmdMan.commandList).to.length(1);
 
     // 명령 조회 테스트
-    const Cs_A_TO_B_CON = cmdMan.getCommand(A_TO_B_CON);
+    const Cs_A_TO_B_CON = cmdMan.getCmdStorage(A_TO_B_CON);
     expect(Cs_A_TO_B_CON.getCmdWrapInfo()).to.deep.eq(A_TO_B_CON);
 
     // 명령 Ele 조회 테스트
     const cmdElement = Cs_A_TO_B_CON.cmdElements[0];
 
     // Cmd Element UUId 만으로 조회 성공
-    expect(cmdMan.getCommandElement(cmdElement.cmdEleUuid)).to.deep.eq(cmdElement);
+    expect(cmdMan.getCmdEle(cmdElement.cmdEleUuid)).to.deep.eq(cmdElement);
 
     expect(Cs_A_TO_B_CON.cmdElements).to.length(3);
   });

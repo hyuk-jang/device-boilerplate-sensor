@@ -5,6 +5,39 @@ const CmdStrategy = require('./CmdStrategy');
 
 class ManualCmdStrategy extends CmdStrategy {
   /**
+   * 단일 명령 전략
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeSingleControl(reqCmdInfo) {
+    try {
+      const { wrapCmdId, reqCmdEleList } = reqCmdInfo;
+      const { searchIdList, singleControlType, controlSetValue } = _.head(reqCmdEleList);
+
+      const nodeId = _.head(searchIdList);
+
+      // 현재 실행하고 있는 명령
+      const lastCmdEle = this.cmdManager.getLastCmdEle({
+        nodeId,
+        singleControlType,
+        controlSetValue,
+      });
+
+      // 제어할 계획이 존재할 경우 실행하지 않음
+      if (lastCmdEle) {
+        throw new Error(`The ${wrapCmdId} command is already registered.`);
+      }
+
+      const wrapCmdInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
+
+      this.cmdManager.calcDefaultRealContainerCmd(wrapCmdInfo.containerCmdList);
+
+      return this.cmdManager.executeRealCommand(wrapCmdInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * @implements
    * 현재 값과 틀리거나 장치 제어 예약이 없는 경우 실제 제어 목록으로 산출
    * @param {complexCmdWrapInfo} complexCmdWrapInfo

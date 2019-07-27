@@ -132,7 +132,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
 
     // 명령 모드가 자동일 경우에 누적 명령 반영
     // BU.CLIN(this.cmdManager);
-    if (this.cmdManager.getCurrCmdModeName() !== this.cmdManager.cmdModeType.MANUAL) {
+    if (this.cmdManager.getCurrCmdStrategyType() !== this.cmdManager.cmdStrategyType.MANUAL) {
       containerCmdList.forEach(containerCmdInfo => {
         const {
           singleControlType: conType,
@@ -195,11 +195,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
       const { wrapCmdId, wrapCmdUUID, reqCmdEleList } = reqCommandInfo;
       // 각각의 제어 명령들의 존재 여부 체크. 없을 경우 추가
       _.forEach(reqCmdEleList, containerCmdInfo => {
-        const {
-          singleControlType: conType,
-          controlSetValue: conSetValue,
-          
-        } = containerCmdInfo;
+        const { singleControlType: conType, controlSetValue: conSetValue } = containerCmdInfo;
 
         // 각 노드들을 확인
         _.forEach(eleCmdList, eleCmdInfo => {
@@ -229,6 +225,7 @@ class CmdOverlapManager extends CmdOverlapComponent {
       throw error;
     }
   }
+
   /**
    * 명령 충돌 체크. 수동 모드를 제외하고 체크 처리.
    * 누적 명령 충돌이 일어나지 않고 Overlap Status 객체가 존재하지 않는다면 생성

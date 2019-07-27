@@ -46,11 +46,11 @@ class CommandExecManager {
       rank,
     } = reqMeasureCmdInfo;
 
-    /** @type {reqCommandInfo} 복합 명령으로 정의 */
+    /** @type {reqCommandInfo} 명령 실행 설정 객체 */
     const reqCommandOption = {
       wrapCmdFormat: reqWrapCmdFormat.MEASURE,
-      wrapCmdId,
       wrapCmdType,
+      wrapCmdId,
       wrapCmdName,
       rank,
       reqCmdEleList: [
@@ -85,8 +85,37 @@ class CommandExecManager {
       controlSetValue,
       rank = definedCommandSetRank.SECOND,
     } = reqSingleCmdInfo;
+
     // 제어하고자 하는 노드 정보를 가져옴
     const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+
+    try {
+      // 사용자가 알 수 있는 제어 구문으로 변경
+      const cmdName = this.model.convertControlValueToString(nodeInfo, singleControlType);
+
+      /** @type {reqCommandInfo} 명령 실행 설정 객체 */
+      const reqCommandOption = {
+        wrapCmdFormat: reqWrapCmdFormat.SINGLE,
+        wrapCmdType,
+        wrapCmdId: `${nodeId}_${cmdName}${_.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`}`,
+        wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
+        rank,
+        reqCmdEleList: [
+          {
+            singleControlType,
+            searchIdList: [nodeId],
+            rank,
+          },
+        ],
+      };
+      return this.executeCommand(reqCommandOption);
+    } catch (error) {
+      BU.errorLog('excuteControl', 'Error', error);
+      throw error;
+    }
+
+    // 제어하고자 하는 노드 정보를 가져옴
+    // const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
 
     try {
       // 사용자가 알 수 있는 제어 구문으로 변경
@@ -106,12 +135,12 @@ class CommandExecManager {
 
       /** @type {reqCmdEleInfo} 단일 제어 구문을 wrapCmd Ele 요소로 정의 */
       const reqCmdEle = { nodeId, singleControlType, controlSetValue, rank };
-      /** @type {reqComplexCmdInfo} 복합 명령으로 정의 */
+      /** @type {reqCommandInfo}  */
       const reqComplexCmd = {
-        wrapCmdId: `${nodeId}_${cmdName}${_.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`}`,
-        wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
-        wrapCmdType,
         wrapCmdFormat: reqWrapCmdFormat.SINGLE,
+        wrapCmdId: `${nodeId}_${cmdName}${_.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`}`,
+        wrapCmdType,
+        wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
         reqCmdEleList: [reqCmdEle],
       };
 
@@ -221,11 +250,11 @@ class CommandExecManager {
       // BU.CLI(setCmdInfo);
 
       if (setCmdInfo) {
-        /** @type {reqCommandInfo} */
+        /** @type {reqCommandInfo} 명령 실행 설정 객체 */
         const reqCommandOption = {
           wrapCmdFormat: reqWrapCmdFormat.SET,
-          wrapCmdId,
           wrapCmdType,
+          wrapCmdId,
           wrapCmdName: setCmdInfo.cmdName,
           reqCmdEleList: this.makeControlEleCmdList(setCmdInfo, rank),
         };

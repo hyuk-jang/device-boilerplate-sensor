@@ -21,7 +21,7 @@ class ConcreteAlgorithm extends AbstAlgorithm {
     this.thresholdS = new Salinity();
     this.thresholdMRT = new ModuleRearTemp();
 
-    this.cmdModeName = new CoreFacade().cmdModeName.MANUAL;
+    this.cmdStrategyName = new CoreFacade().cmdStrategyType.MANUAL;
   }
 
   /**
@@ -30,8 +30,8 @@ class ConcreteAlgorithm extends AbstAlgorithm {
   updateControlMode() {
     const coreFacade = new CoreFacade();
     // 현재 명령 모드가 수동이 아니라면 수동 명령 모드로 변경
-    if (coreFacade.getCurrCmdModeName() !== this.cmdModeName) {
-      coreFacade.changeCmdStrategy(this.cmdModeName);
+    if (coreFacade.getCurrCmdStrategyType() !== this.cmdStrategyName) {
+      coreFacade.changeCmdStrategy(this.cmdStrategyName);
     }
   }
 

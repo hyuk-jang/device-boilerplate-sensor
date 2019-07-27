@@ -9,24 +9,28 @@ const CmdComponent = require('./CmdComponent');
 const CoreFacade = require('../../CoreFacade');
 
 const {
-  dcmConfigModel: { commandStep },
+  dcmConfigModel: { commandStep: cmdStep },
   dccFlagModel: { definedCommandSetMessage: dlcMessage },
 } = CoreFacade;
 
 class CmdElement extends CmdComponent {
   /**
    *
-   * @param {Object} cmdEleInfo
-   * @param {string} cmdEleInfo.nodeId Node ID
-   * @param {number} cmdEleInfo.singleControlType 제어 정보, TRUE, FALSE, SET, MEASURE
-   * @param {number=} cmdEleInfo.controlSetValue SET 일 경우 설정 값
+   * @param {commandContainerInfo} cmdEleInfo
    */
   constructor(cmdEleInfo) {
     super();
     this.cmdEleUuid = uuidv4();
     this.cmdEleInfo = cmdEleInfo;
 
-    this.cmdEleStep = commandStep.WAIT;
+    const { nodeId, isIgnore, singleControlType, controlSetValue } = cmdEleInfo;
+
+    this.nodeId = nodeId;
+    this.isIgnore = isIgnore;
+    this.singleControlType = singleControlType;
+    this.controlSetValue = controlSetValue;
+
+    this.cmdEleStep = cmdStep.WAIT;
 
     const coreFacade = new CoreFacade();
     // 데이터 로거 컨트롤러 DLC
@@ -45,21 +49,31 @@ class CmdElement extends CmdComponent {
     this.cmdStorage = cmdStorage;
   }
 
+  /** @return {string} 명령 실행 우선 순위 */
+  get rank() {
+    return this.cmdStorage.rank;
+  }
+
+  // /** @return {boolean} 명령 실행 무시 여부 */
+  // get isIgnore() {
+  //   return this.cmdEleInfo.isIgnore;
+  // }
+
   /**
    *
    * @param {dlcMessage} commandSetMessage
    */
   updateCommand(commandSetMessage) {
-    // .commandStep = commandStep.WAIT;
+    // BU.CLI(commandSetMessage);
+
     switch (commandSetMessage) {
       case dlcMessage.COMMANDSET_EXECUTION_START:
-        this.cmdEleStep = commandStep.PROCEED;
-        this.cmdStorage.updateCommandEvent(commandStep.PROCEED);
+        this.cmdEleStep = cmdStep.PROCEED;
+        this.cmdStorage.updateCommandEvent(cmdStep.PROCEED);
         break;
       case dlcMessage.COMMANDSET_EXECUTION_TERMINATE:
       case dlcMessage.COMMANDSET_DELETE:
-        this.cmdEleStep = commandStep.COMPLETE;
-        this.hasClear = true;
+        this.cmdEleStep = cmdStep.END;
         this.cmdStorage.handleCommandClear(this);
         break;
 
@@ -99,7 +113,7 @@ class CmdElement extends CmdComponent {
    * @return {boolean}
    */
   isCommandClear() {
-    return this.cmdEleStep === commandStep.COMPLETE;
+    return this.cmdEleStep === cmdStep.END;
   }
 }
 module.exports = CmdElement;

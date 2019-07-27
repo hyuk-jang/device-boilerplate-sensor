@@ -28,8 +28,8 @@ class ConcreteAlgorithm extends AbstAlgorithm {
   updateControlMode() {
     const coreFacade = new CoreFacade();
     // 현재 명령 모드가 수동이 아니라면 수동 명령 모드로 변경
-    if (coreFacade.getCurrCmdModeName() !== coreFacade.cmdModeName.MANUAL) {
-      coreFacade.changeCmdStrategy(coreFacade.cmdModeName.MANUAL);
+    if (coreFacade.getCurrCmdStrategyType() !== coreFacade.cmdStrategyType.MANUAL) {
+      coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.MANUAL);
     }
   }
 

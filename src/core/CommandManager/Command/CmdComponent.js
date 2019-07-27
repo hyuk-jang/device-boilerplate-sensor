@@ -1,4 +1,6 @@
-class CmdComponent {
+const Updator = require('../../Updator/Updator');
+
+class CmdComponent extends Updator {
   /**
    * handleCommandClear 성공하였을 경우 알릴 Successor
    * @param {CmdComponent} cmdComponent
@@ -44,6 +46,20 @@ class CmdComponent {
   get wrapCmdStep() {
     return undefined;
   }
+
+  /**
+   * 옵션에 맞는 명령 Element 개체 1개 반환
+   * @param {cmdElementSearch} cmdElementSearch
+   * @return {CmdComponent}
+   */
+  getCmdEle(cmdElementSearch) {}
+
+  /**
+   * 옵션에 맞는 명령 Element 개체 목록 반환
+   * @param {cmdElementSearch} cmdElementSearch
+   * @return {CmdComponent[]}
+   */
+  getCmdEleList(cmdElementSearch) {}
 
   /**
    * 시나리오가 완료되었다고 판단
