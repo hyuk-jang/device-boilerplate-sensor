@@ -83,12 +83,15 @@ class CmdStorage extends CmdComponent {
   }
 
   /**
-   * 명령을 취소할 경우
+   * 명령을 취소할 경우. DLC로 진행되지 않은 명령은 취소.
+   * cmdElements정리 및 임계치 존재 시 제거
+   * 복원 명령 존재 시 요청
    * @param {commandWrapInfo} cmdWrapInfo
+   * @param {commandContainerInfo[]} restoreCmdList 복원 명령 목록
    */
-  cancelCommand(cmdWrapInfo) {
+  cancelCommand(cmdWrapInfo, restoreCmdList = []) {
     try {
-      const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, realContainerCmdList } = cmdWrapInfo;
+      const { wrapCmdFormat, wrapCmdId } = cmdWrapInfo;
       // 명령 취소일 경우
       if (wrapCmdFormat !== reqWCT.CANCEL) {
         throw new Error(`cancelCommand Error: ${wrapCmdId} is CANCEL`);
@@ -98,19 +101,30 @@ class CmdStorage extends CmdComponent {
       // 명령 단계를 대기 상태로 교체
       // this.cmdStep = cmdStep.WAIT;
 
-      // 세부 명령 객체 정의
-      this.setCommandElements(realContainerCmdList);
-      // 임계 추적 삭제
-      this.removeThreshold();
+      // TODO: DLC로 진행되지 않은 명령은 취소.
+      _(this.cmdElements)
+        .filter(cmdEle => !cmdEle.isCommandClear())
+        .forEach(cmdEle => cmdEle.cancelCommandFromDLC());
 
-      // 임계 추적 정의
-      this.setThreshold(wrapCmdGoalInfo);
+      // TODO: cmdElements정리 및 임계치 존재 시 제거
+      if (this.thresholdStorage) {
+        this.removeThreshold();
+      }
 
-      // 명령 취소 상태로 전환
-      this.updateCommandEvent(cmdStep.WAIT);
+      this.cmdElements = [];
 
-      // 취소 명령 요청 실행
-      this.executeCommandFromDLC();
+      // 복원 명령 존재 시 요청
+      if (restoreCmdList.length) {
+        // 요청해야 할 복원 세부 명령 등록
+        this.setCommandElements(restoreCmdList);
+        // 명령 단계를 대기 단계로 조정
+        this.updateCommandEvent(cmdStep.WAIT);
+        // 취소 명령 요청 실행
+        return this.executeCommandFromDLC();
+      }
+
+      // 복원 명령이 존재하지 않을 경우 완료 이벤트 발생
+      return this.updateCommandEvent(cmdStep.END);
     } catch (error) {
       throw error;
     }
@@ -297,7 +311,8 @@ class CmdStorage extends CmdComponent {
    * @return {CmdElement[]}
    */
   getCmdEleList(cmdElementSearch) {
-    // BU.CLI(cmdElementSearch);
+    BU.CLIN(_.map(this.cmdElements, 'nodeId'));
+    BU.CLI(this.cmdElements.length, cmdElementSearch);
     return _.filter(this.cmdElements, cmdElementSearch);
   }
 
@@ -326,14 +341,16 @@ class CmdStorage extends CmdComponent {
     // BU.CLI(cmdElement.cmdEleUuid, cmdElement.cmdEleStep);
     // 모든 세부 명령이 완료되었을 경우
     if (this.isCommandClear()) {
-      // 임계 명령이 존재할 경우
+      // 임계 명령이 존재할 경우 자동으로 실행 중 상태로 변경
       if (this.setThreshold(this.wrapCmdGoalInfo)) {
         // 명령 목표 달성 진행 중
         return this.updateCommandEvent(cmdStep.RUNNING);
       }
 
+      // 명령 요청 처리 완료 메시지를 전송
+      return this.updateCommandEvent(cmdStep.COMPLETE);
       // 명령 종료
-      this.updateCommandEvent(cmdStep.END);
+      // this.updateCommandEvent(cmdStep.END);
       // 명령 관리자에게 완전 종료를 알림
       // return this.cmdManager.handleCommandClear();
     }

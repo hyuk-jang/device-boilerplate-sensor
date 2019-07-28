@@ -14,6 +14,158 @@ const { complexCmdStep, reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType }
 class OverlapCountCmdStrategy extends CmdStrategy {
   /**
    *
+   * @param {reqCommandInfo} reqCmdInfo 기존에 존재하는 명령
+   */
+  cancelCommand(reqCmdInfo) {
+    const { wrapCmdId } = reqCmdInfo;
+    // 복원해야할 명령이 있는지 계산
+    const foundCmdStoarge = this.cmdManager.getCmdStorage({
+      wrapCmdId,
+    });
+
+    // 명령이 존재하지 않을 경우 Throw
+    if (_.isEmpty(foundCmdStoarge)) {
+      throw new Error(`commandId: ${wrapCmdId} does not exist.`);
+    }
+
+    // 명령 저장소에서 설정 객체를 불러옴
+    const {
+      cmdWrapInfo: { containerCmdList },
+    } = foundCmdStoarge;
+
+    /** @type {commandContainerInfo[]} Restore Command 생성 */
+    const restoreContainerList = _.chain(containerCmdList)
+      // 실제 True 하는 장치 필터링
+      .filter({ singleControlType: reqDeviceControlType.TRUE })
+      // True 처리하는 개체가 유일한 개체 목록 추출
+      .filter(containerInfo => {
+        const { nodeId, singleControlType } = containerInfo;
+
+        // 저장소에 존재하는 cmdElements 중에서 해당 nodeId와 제어 값이 동일한 개체 목록 추출
+        const existStorageList = this.cmdManager.getCmdEleList({ nodeId, singleControlType });
+        return existStorageList.length <= 1;
+      })
+      // True가 해제되면 False로 자동 복원 명령 생성
+      .map(containerInfo => {
+        const { nodeId } = containerInfo;
+        /** @type {commandContainerInfo} */
+        const newContainerInfo = {
+          nodeId,
+          singleControlType: reqDeviceControlType.FALSE,
+        };
+        return newContainerInfo;
+      })
+      .value();
+
+    // 명령 저장소에 명령 취소 요청
+    foundCmdStoarge.cancelCommand(reqCmdInfo, restoreContainerList);
+
+    return restoreContainerList;
+  }
+
+  /**
+   *
+   * @param {commandContainerInfo[]} cmdContainerList 기존에 존재하는 명령
+   */
+  isConflict(cmdContainerList) {
+    const { TRUE, FALSE } = reqDeviceControlType;
+    // 제어할려고 하는 Node와 제어 상태를 바꿀려는 명령이 존재하는지 체크
+    return _.some(cmdContainerList, cmdContainerInfo => {
+      const { nodeId, singleControlType } = cmdContainerInfo;
+      return !!this.cmdManager.getCmdEle({
+        nodeId,
+        singleControlType: singleControlType === TRUE ? FALSE : TRUE,
+      });
+    });
+  }
+
+  /**
+   * 누적 카운팅에서 공통으로 제어할 명령 로직
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeDefaultControl(reqCmdInfo) {
+    try {
+      const { wrapCmdId, wrapCmdType, srcPlaceId, destPlaceId, reqCmdEleList } = reqCmdInfo;
+
+      // 취소 명령 요청이 들어 올 경우 실행중인 명령 탐색
+      if (wrapCmdType === reqWrapCmdType.CANCEL) {
+        return this.cancelCommand(reqCmdInfo);
+      }
+
+      // 실제 수행할 장치를 정제
+      const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
+
+      // 충돌 여부 검증
+      const isConflict = this.isConflict(commandWrapInfo.containerCmdList);
+
+      if (isConflict) {
+        throw new Error(`Conflict of WCI(${wrapCmdId})`);
+      }
+
+      return this.cmdManager.executeRealCommand(commandWrapInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 단일 명령 전략
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeFlowControl(reqCmdInfo) {
+    BU.CLI(reqCmdInfo);
+    try {
+      return this.executeDefaultControl(reqCmdInfo);
+      const { wrapCmdId, wrapCmdType, srcPlaceId, destPlaceId, reqCmdEleList } = reqCmdInfo;
+      const { searchIdList, singleControlType, controlSetValue } = _.head(reqCmdEleList);
+
+      // 취소 명령 요청이 들어 올 경우 실행중인 명령 탐색
+      if (wrapCmdType === reqWrapCmdType.CANCEL) {
+        return this.cancelCommand(reqCmdInfo);
+      }
+
+      // 충돌 여부 검증
+      const isConflict = this.isConflict(restoreContainerList);
+
+      if (isConflict) {
+        throw new Error(`Conflict of WCI(${wrapCmdId})`);
+      }
+
+      const flowCmdStorage = this.cmdManager.getCmdStorage({
+        srcPlaceId,
+        destPlaceId,
+      });
+
+      // 명령이 존재하지 않을 경우 Throw
+      if (_.isEmpty(flowCmdStorage)) {
+        throw new Error(`commandId: ${wrapCmdId} does not exist.`);
+      }
+      const nodeId = _.head(searchIdList);
+
+      // 현재 실행하고 있는 명령
+      const lastCmdEle = this.cmdManager.getLastCmdEle({
+        nodeId,
+        singleControlType,
+        controlSetValue,
+      });
+
+      // 제어할 계획이 존재할 경우 실행하지 않음
+      if (lastCmdEle) {
+        throw new Error(`The ${wrapCmdId} command is already registered.`);
+      }
+
+      const wrapCmdInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
+
+      this.cmdManager.calcDefaultRealContainerCmd(wrapCmdInfo.containerCmdList);
+
+      return this.cmdManager.executeRealCommand(wrapCmdInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   *
    * @param {reqCommandInfo} reqCommandInfo
    */
   setCommand(reqCommandInfo) {

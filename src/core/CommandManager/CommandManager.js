@@ -249,6 +249,13 @@ class CommandManager {
    * 제외 처리시 >>> commandContainerInfo.isIgnore = true
    * @param {commandContainerInfo[]} containerCmdList
    */
+  calcRestoreContainerCmd(containerCmdList) {}
+
+  /**
+   * 제어하고자 하는 명령이 존재하거나 현재 상태값과 동일하다면 해당 명령을 제외 처리
+   * 제외 처리시 >>> commandContainerInfo.isIgnore = true
+   * @param {commandContainerInfo[]} containerCmdList
+   */
   calcDefaultRealContainerCmd(containerCmdList) {
     containerCmdList.forEach(containerInfo => {
       const foundCmdEle = this.getLastCmdEle(containerInfo);

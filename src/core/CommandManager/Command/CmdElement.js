@@ -73,7 +73,7 @@ class CmdElement extends CmdComponent {
         break;
       case dlcMessage.COMMANDSET_EXECUTION_TERMINATE:
       case dlcMessage.COMMANDSET_DELETE:
-        this.cmdEleStep = cmdStep.END;
+        this.cmdEleStep = cmdStep.COMPLETE;
         this.cmdStorage.handleCommandClear(this);
         break;
 
@@ -86,6 +86,12 @@ class CmdElement extends CmdComponent {
   executeCommandFromDLC() {
     // BU.CLI(this.getExecuteCmdInfo());
     this.dataLoggerController.requestCommand(this.getExecuteCmdInfo());
+  }
+
+  /** 명령 취소 */
+  cancelCommandFromDLC() {
+    // BU.CLI(this.getExecuteCmdInfo());
+    return this.dataLoggerController.deleteCommandSet(this.cmdEleUuid);
   }
 
   /**
@@ -113,7 +119,7 @@ class CmdElement extends CmdComponent {
    * @return {boolean}
    */
   isCommandClear() {
-    return this.cmdEleStep === cmdStep.END;
+    return this.cmdEleStep === cmdStep.COMPLETE;
   }
 }
 module.exports = CmdElement;

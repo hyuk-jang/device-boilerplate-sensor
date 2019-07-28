@@ -337,7 +337,7 @@ class CommandExecManager {
       reqCmdEleList.push({
         singleControlType: reqDeviceControlType.FALSE,
         nodeId: falseNodeList,
-        searchIdList: trueNodeList,
+        searchIdList: falseNodeList,
         rank,
       });
     }

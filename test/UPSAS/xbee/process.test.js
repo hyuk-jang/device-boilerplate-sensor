@@ -20,7 +20,6 @@ const { dcmConfigModel } = CoreFacade;
 
 const {
   complexCmdStep,
-  commandEvent: cmdEvent,
   commandStep: cmdStep,
   nodePickKey,
   complexCmdPickKey,
@@ -41,6 +40,29 @@ const main = new Main();
 const control = main.createControl(config);
 const coreFacade = new CoreFacade();
 // const control = new MuanControl(config);
+
+const pId = {
+  RV: 'RV',
+  SEA: 'SEA',
+  NEB_1: 'NEB_1',
+  NEB_2: 'NEB_2',
+  NCB: 'NCB',
+  SEB_1_A: 'SEB_1_A',
+  SEB_1_B: 'SEB_1_B',
+  SEB_1_C: 'SEB_1_C',
+  SEB_1_D: 'SEB_1_D',
+  SEB_2: 'SEB_2',
+  SEB_3: 'SEB_3',
+  SEB_4: 'SEB_4',
+  BW_1: 'BW_1',
+  BW_2: 'BW_2',
+  BW_3: 'BW_3',
+};
+
+const sConV = {
+  TRUE: { singleControlType: TRUE },
+  FALSE: { singleControlType: FALSE },
+};
 
 describe('Manual Mode', function() {
   this.timeout(5000);
@@ -152,12 +174,6 @@ describe('Manual Mode', function() {
 
     expect(cmdManager.getCmdStorageList()).to.length(2);
 
-    expect(
-      cmdOverlapManager
-        .getOverlapStatus(openPumpCmd.nodeId, openPumpCmd.singleControlType)
-        .getReservedECU(),
-    ).to.eq('');
-
     const secondCompleteWC = await eventToPromise(control, cmdStep.END);
     expect(cmdManager.getCmdStorageList()).to.length(1);
 
@@ -172,6 +188,21 @@ describe('Manual Mode', function() {
     // BU.CLIN(control.nodeList);
   });
 
+  // /**
+  //  * @desc T.C 3 [수동 모드]
+  //  * @description
+  //  * @tutorial
+  //  * 1. 수문 5번 Open, 펌프 1번 On
+  //  * [WD_005_OPEN](R_CON), [P_001_ON](R_CON)
+  //  * 2. closeAllDevice Set 명령 호출 시 수문 5 번, 펌프 1번 Close/Off 동작 확인
+  //  *  <test> 모든 장치 Close 명령 요청 시 존재하는 명령만 수행 여부 테스트
+  //  * 3. 수문 5번 Open, 펌프 1번 On, 밸브 2번 Open
+  //  * 3. rainMode Set 명령 호출 시
+  //  */
+  // it('Set Command', async () => {
+
+  // })
+
   /**
    * @desc T.C 3 [수동 모드]
    * @description
@@ -183,21 +214,21 @@ describe('Automatic Mode', function() {
   this.timeout(5000);
 
   /** @type {reqFlowCmdInfo} 저수지 > 증발지 1-A */
-  const rvToSEB1A = {
+  const RV_TO_SEB_1_A = {
     srcPlaceId: 'RV',
     destPlaceId: 'SEB_1_A',
     wrapCmdType: reqWCT.CONTROL,
   };
 
   /** @type {reqFlowCmdInfo} 저수지 > 증발지 1-B */
-  const rvToSEB1B = {
+  const RV_TO_SEB_1_B = {
     srcPlaceId: 'RV',
     destPlaceId: 'SEB_1_B',
     wrapCmdType: reqWCT.CONTROL,
   };
 
   /** @type {reqFlowCmdInfo} 증발지 1-A > 해주 1 */
-  const SEB1AToBW1 = {
+  const SEB_1_A_TO_BW_1 = {
     srcPlaceId: 'SEB_1_A',
     destPlaceId: 'BW_1',
     wrapCmdType: reqWCT.CONTROL,
@@ -208,7 +239,8 @@ describe('Automatic Mode', function() {
     control.runFeature();
 
     control.inquiryAllDeviceStatus();
-    await eventToPromise(control, 'completeInquiryAllDeviceStatus');
+
+    await eventToPromise(control, cmdStep.END);
   });
 
   beforeEach(async () => {
@@ -218,7 +250,7 @@ describe('Automatic Mode', function() {
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWCT.CONTROL,
       });
-      await eventToPromise(control, 'completeCommand');
+      await eventToPromise(control, cmdStep.END);
     } catch (error) {
       BU.error(error.message);
     }
@@ -231,13 +263,13 @@ describe('Automatic Mode', function() {
    * 다중 흐름 명령을 요청하고 이에 반하는 흐름 명령을 요청하여 충돌 체크가 제대로 동작하는지 확인
    * @description
    * 1. 저수지 > 증발지 1-A 명령 요청.
-   * trueNodeList: ['V_006', 'V_001', 'P_002'],
+   * trueNodeList: ['V_006','V_001','P_002'],
    * falseNodeList: ['GV_001'],
    * 2. 저수지 > 증발지 1-B 명령 요청. 명령 충돌 발생 X
-   * trueNodeList: ['V_006', 'V_002', 'P_002'],
+   * trueNodeList: ['V_006','V_002','P_002'],
    * falseNodeList: ['GV_002'],
    * 3. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 O
-   * trueNodeList: ['GV_001', 'WD_013', 'WD_010'],
+   * trueNodeList: ['GV_001','WD_013','WD_010'],
    * falseNodeList: ['WD_016'],
    * 4. 증발지 1-A > 해주 1 명령 취소. 존재하지 않으므로 X
    * 5. 저수지 > 증발지 1-A 명령 취소.
@@ -249,27 +281,40 @@ describe('Automatic Mode', function() {
    * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
    */
   it.only('Multi Flow Command Control & Conflict & Cancel', async () => {
-    const { cmdOverlapManager } = control.model.cmdManager;
+    const {
+      cmdManager,
+      cmdManager: { cmdOverlapManager },
+    } = control.model;
     // BU.CLI('Multi Flow Command Control & Conflict & Cancel');
     // 1. 저수지 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
-    const cmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+    const cs_RV_TO_SEB_1_A = control.executeFlowControl(RV_TO_SEB_1_A);
 
-    // 실제 True 장치 목록
-    let realTrueCmd = _.find(cmdRvTo1A.realContainerCmdList, {
-      singleControlType: TRUE,
-    });
-    //  실제 False 장치 목록
-    let realFalseCmd = _.find(cmdRvTo1A.realContainerCmdList, {
-      singleControlType: FALSE,
+    const ceList_RV_TO_SEB_1_A = cmdManager.getCmdStorage({
+      wrapCmdUuid: cs_RV_TO_SEB_1_A.wrapCmdUuid,
     });
 
-    // 실제 False 장치는 없어야 한다. 기존 상태가 모두 False 이기 때문
-    expect(_.isEmpty(realFalseCmd)).to.true;
+    /**
+     * @param {cmdStorage} cmdStorage
+     * @param {cmdElementSearch} cmdEleSearchInfo
+     */
+    function getNodeIdList(cmdStorage, cmdEleSearchInfo) {
+      return cmdStorage.getCmdEleList(cmdEleSearchInfo).map(cmdEle => cmdEle.nodeId);
+    }
 
-    let realTrueNodes = _.map(realTrueCmd.eleCmdList, 'nodeId');
+    // BU.CLIN(cs_RV_TO_SEB_1_A.getCmdEleList({ singleControlType: TRUE }), 1);
+    // * trueNodeList: ['V_006','V_001','P_002'],
+    expect(getNodeIdList(cs_RV_TO_SEB_1_A, sConV.TRUE)).to.deep.equal(['V_006', 'V_001', 'P_002']);
 
-    // 실제 여는 장치는 아래와 같아야 한다.
-    expect(realTrueNodes).to.deep.equal(['V_006', 'V_001', 'P_002']);
+    // * falseNodeList: ['GV_001'],
+    expect(getNodeIdList(cs_RV_TO_SEB_1_A, sConV.FALSE)).to.deep.equal(['GV_001']);
+    // BU.CLIN(cs_RV_TO_SEB_1_A.getCmdEleList({ singleControlType: FALSE }), 1);
+
+    BU.CLI('@@@@@@');
+    const end_cs_RV_TO_SEB_1_A = await eventToPromise(control, cmdStep.END);
+
+    BU.CLI('@@@@@@');
+
+    expect(end_cs_RV_TO_SEB_1_A).to.deep.equal(cs_RV_TO_SEB_1_A);
 
     // BU.CLI(_(existOverlapList).map('overlapStatusList').flatten().value())
 
@@ -284,7 +329,7 @@ describe('Automatic Mode', function() {
     // * trueList: ['V_006', 'V_002', 'P_002'],
     // * falseList: ['GV_002'],
     // await Promise.delay(100);
-    const cmdRvTo1B = control.executeFlowControl(rvToSEB1B);
+    const cmdRvTo1B = control.executeFlowControl(RV_TO_SEB_1_B);
 
     // 실제 True 장치 목록
     realTrueCmd = _.find(cmdRvTo1B.realContainerCmdList, {
@@ -319,19 +364,19 @@ describe('Automatic Mode', function() {
     // * trueNodeList: ['GV_001', 'WD_013', 'WD_010'],
     // * falseNodeList: ['WD_016'],
     // BU.CLI(control.executeFlowControl(SEB1AToBW1))
-    expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(
+    expect(() => control.executeFlowControl(SEB_1_A_TO_BW_1)).to.throw(
       `Conflict of WCI(SEB_1_A_TO_BW_1) SingleControlType(${TRUE}) of node(GV_001)`,
     );
 
     // * 4. 증발지 1-A > 해주 1 명령 요청. 존재하지 않으므로 X
-    SEB1AToBW1.wrapCmdType = reqWCT.CANCEL;
-    expect(() => control.executeFlowControl(SEB1AToBW1)).to.throw(
+    SEB_1_A_TO_BW_1.wrapCmdType = reqWCT.CANCEL;
+    expect(() => control.executeFlowControl(SEB_1_A_TO_BW_1)).to.throw(
       'The command(SEB_1_A_TO_BW_1) does not exist and you can not issue a CANCEL command.',
     );
 
     // * 5. 저수지 > 증발지 1-A 명령 취소.
-    rvToSEB1A.wrapCmdType = reqWCT.CANCEL;
-    const cancelCmdRvTo1A = control.executeFlowControl(rvToSEB1A);
+    RV_TO_SEB_1_A.wrapCmdType = reqWCT.CANCEL;
+    const cancelCmdRvTo1A = control.executeFlowControl(RV_TO_SEB_1_A);
 
     // 실제 True 장치 목록
     realTrueCmd = _.find(cancelCmdRvTo1A.realContainerCmdList, {
@@ -359,8 +404,8 @@ describe('Automatic Mode', function() {
     await eventToPromise(control, 'completeCommand');
 
     // * 6. 증발지 1-A > 해주 1 명령 요청. 명령 충돌 발생 X
-    SEB1AToBW1.wrapCmdType = reqWCT.CONTROL;
-    const cmdSEB1AToBW1 = control.executeFlowControl(SEB1AToBW1);
+    SEB_1_A_TO_BW_1.wrapCmdType = reqWCT.CONTROL;
+    const cmdSEB1AToBW1 = control.executeFlowControl(SEB_1_A_TO_BW_1);
 
     // 실제 True 장치 목록
     realTrueCmd = _.find(cmdSEB1AToBW1.realContainerCmdList, {
@@ -383,8 +428,8 @@ describe('Automatic Mode', function() {
 
     // * 7. 저수지 > 증발지 1-B 명령 취소.
     // * 'P_002', 'V_002', 'V_006' 순으로 닫힘. OC 해제
-    rvToSEB1B.wrapCmdType = reqWCT.CANCEL;
-    const cancelCmdRvTo1B = control.executeFlowControl(rvToSEB1B);
+    RV_TO_SEB_1_B.wrapCmdType = reqWCT.CANCEL;
+    const cancelCmdRvTo1B = control.executeFlowControl(RV_TO_SEB_1_B);
 
     // 실제 True 장치 목록
     realTrueCmd = _.find(cancelCmdRvTo1B.realContainerCmdList, {
@@ -411,8 +456,8 @@ describe('Automatic Mode', function() {
 
     // * 8. 증발지 1-A > 해주 1 명령 취소.
     // * OC는 전부 해제, 존재 명령 X, 모든 장치는 닫힘
-    SEB1AToBW1.wrapCmdType = reqWCT.CANCEL;
-    const cancelCmdSEB1AToBW1 = control.executeFlowControl(SEB1AToBW1);
+    SEB_1_A_TO_BW_1.wrapCmdType = reqWCT.CANCEL;
+    const cancelCmdSEB1AToBW1 = control.executeFlowControl(SEB_1_A_TO_BW_1);
 
     // 실제 True 장치 목록
     realTrueCmd = _.find(cancelCmdSEB1AToBW1.realContainerCmdList, {
@@ -454,8 +499,8 @@ describe('Automatic Mode', function() {
     nodeInfo.data = 3;
 
     // * 1. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 수위 10cm. 수위 조작 후 명령 삭제 확인.
-    rvToSEB1A.wrapCmdType = reqWCT.CONTROL;
-    rvToSEB1A.wrapCmdGoalInfo = {
+    RV_TO_SEB_1_A.wrapCmdType = reqWCT.CONTROL;
+    RV_TO_SEB_1_A.wrapCmdGoalInfo = {
       goalDataList: [
         {
           goalValue: 10,
@@ -474,7 +519,7 @@ describe('Automatic Mode', function() {
      */
 
     // 저수지 > 증발지 1-A 명령 요청
-    let wcRvTo1A = control.executeFlowControl(rvToSEB1A);
+    let wcRvTo1A = control.executeFlowControl(RV_TO_SEB_1_A);
     // 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
     console.time('Step 1');
@@ -514,7 +559,7 @@ describe('Automatic Mode', function() {
     console.time('Step 2');
 
     // * 2. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 시간 초과 후 명령 삭제 확인.
-    rvToSEB1A.wrapCmdGoalInfo = {
+    RV_TO_SEB_1_A.wrapCmdGoalInfo = {
       limitTimeSec: 1,
       goalDataList: [
         {
@@ -525,7 +570,7 @@ describe('Automatic Mode', function() {
       ],
     };
 
-    wcRvTo1A = control.executeFlowControl(rvToSEB1A);
+    wcRvTo1A = control.executeFlowControl(RV_TO_SEB_1_A);
 
     // 제어 명령이 완료되기를 기다림
     await eventToPromise(control, 'completeCommand');
