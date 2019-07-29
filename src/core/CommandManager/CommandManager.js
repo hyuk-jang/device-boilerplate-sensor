@@ -10,6 +10,7 @@ const OverlapCountCmdStrategy = require('./CommandStrategy/OverlapCountCmdStrate
 const CoreFacade = require('../CoreFacade');
 
 const CmdStorage = require('./Command/CmdStorage');
+const CmdElement = require('./Command/CmdElement');
 
 const {
   dcmConfigModel,
@@ -19,9 +20,10 @@ const {
 const {
   complexCmdStep,
   commandStep: cmdStep,
+  commandPickKey,
+  goalDataRange: goalDR,
   reqWrapCmdType,
   reqWrapCmdFormat,
-  commandPickKey,
 } = dcmConfigModel;
 
 class CommandManager {
@@ -109,13 +111,15 @@ class CommandManager {
   /**
    *
    * @param {commandWrapInfo} cmdWrapInfo 실제 내릴 명령 객체 정보
+   * @param {Observer=}
    */
-  executeRealCommand(cmdWrapInfo) {
+  executeRealCommand(cmdWrapInfo, observer) {
     try {
       // 명령 저장소 생성
       const cmdStorage = new CmdStorage();
       // 옵저버 추가
-      cmdStorage.attachObserver(this);
+      // BU.CLIN(observer, 1);
+      cmdStorage.attachObserver(observer || this);
 
       cmdStorage.setCommand(cmdWrapInfo);
       // 명령 목록에 추가
@@ -160,8 +164,22 @@ class CommandManager {
    *
    * @param {CmdStorage} cmdStorage
    */
-  updateCommandEvent(cmdStorage) {
+  updateCommandStep(cmdStorage) {
     // BU.CLI(cmdStorage.cmdStep);
+    //  명령 완료를 받았을 경우
+    if (cmdStorage.cmdStep === cmdStep.COMPLETE) {
+      this.removeCommandStorage(cmdStorage);
+    }
+
+    this.notifyUpdateCommandStep(cmdStorage);
+  }
+
+  /**
+   * 명령 단계를 공지
+   * Command Storage 에서 명령 상태 이벤트를 수신할 메소드
+   * @param {CmdStorage} cmdStorage
+   */
+  notifyUpdateCommandStep(cmdStorage) {
     // FIXME: 임시. 메시지 전체 보냄
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCommandType.COMMAND,
@@ -169,25 +187,19 @@ class CommandManager {
         _.pick(commandStorage, commandPickKey.FOR_SERVER),
       ),
     });
+    this.controller.emit(cmdStorage.cmdStep, cmdStorage);
 
     // this.controller.apiClient.transmitDataToServer({
     //   commandType: transmitToServerCommandType.COMMAND,
     //   data: _(cmdStorage).pick(commandPickKey.FOR_SERVER),
     // });
-
-    // 명령 완료를 받았을 경우
-    if (cmdStorage.cmdStep === cmdStep.END) {
-      this.handleCommandClear(cmdStorage);
-    }
-
-    this.controller.emit(cmdStorage.cmdStep, cmdStorage);
   }
 
   /**
    *
    * @param {CmdStorage} cmdStorage
    */
-  handleCommandClear(cmdStorage) {
+  removeCommandStorage(cmdStorage) {
     // BU.CLI('handleCommandClear');
     // BU.CLIN(cmdStorage);
     // BU.CLIN(this.commandList);
@@ -257,11 +269,13 @@ class CommandManager {
    * @param {commandContainerInfo[]} containerCmdList
    */
   calcDefaultRealContainerCmd(containerCmdList) {
+    // BU.CLIN(containerCmdList);
     containerCmdList.forEach(containerInfo => {
+      // 마지막으로 실제 제어할 cmdElement를 가져옴
       const foundCmdEle = this.getLastCmdEle(containerInfo);
 
       // 기존재할 경우
-      if (foundCmdEle instanceof CmdStorage) {
+      if (foundCmdEle instanceof CmdElement) {
         containerInfo.isIgnore = true;
       } else {
         // 현재 값과 제어할려는 값이 동일할 경우 true, 다르다면 false
@@ -280,6 +294,7 @@ class CommandManager {
    * 3: Set   --> controlSetValue 가 필수적으로 입력
    */
   isEqualCurrNodeData(containerInfo) {
+    // BU.CLI(containerInfo);
     const { nodeId, singleControlType, controlSetValue } = containerInfo;
     // BU.CLI(singleControlType, nodeId);
     const nodeInfo = this.coreFacade.getNodeInfo(nodeId);
@@ -297,6 +312,7 @@ class CommandManager {
     // 설정 값이 존재한다면 그 값과 현재 node 값을 비교
     return _.eq(nodeInfo.data, controlSetValue);
   }
+
 
   /**
    *
@@ -342,9 +358,11 @@ class CommandManager {
    */
   getLastCmdEle(cmdElementSearch) {
     // BU.CLI(cmdElementSearch);
-    return _(this.getCmdEleList(cmdElementSearch))
+    const cmdElement = _(this.getCmdEleList(cmdElementSearch))
       .sortBy('rank')
       .head();
+
+    return cmdElement;
   }
 
   /**

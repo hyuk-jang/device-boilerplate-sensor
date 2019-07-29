@@ -1,10 +1,14 @@
 const _ = require('lodash');
 
+const { BU } = require('base-util-jh');
+
 const CmdComponent = require('../CmdComponent');
 
+const CoreFacade = require('../../../CoreFacade');
+
 const {
-  dcmConfigModel: { goalDataRange },
-} = require('../../../CoreFacade');
+  dcmConfigModel: { goalDataRange: goalDR },
+} = CoreFacade;
 
 /**
  * 명령 달성 목표가 생성될 때 마다 객체를 생성.
@@ -28,8 +32,40 @@ class ThreCmdGoal extends CmdComponent {
     this.goalRange = goalRange;
     // 이 달성 목표만 성공하면 모든 조건 클리어 여부
     this.isCompleteClear = isCompleteClear;
-    // 달성 목표 성공 여부
-    this.isClear = false;
+
+    const coreFacade = new CoreFacade();
+
+    this.nodeInfo = coreFacade.getNodeInfo(nodeId);
+  }
+
+  /**
+   * @param {csCmdGoalInfo} goalInfo 목표치 정보
+   */
+  static isReachGoal(goalInfo) {
+    // BU.log('@@', goalInfo);
+    const coreFacade = new CoreFacade();
+
+    const { nodeId, goalValue, goalRange } = goalInfo;
+
+    const { data } = coreFacade.getNodeInfo(nodeId);
+
+    let isReachGoal = false;
+
+    switch (goalRange) {
+      case goalDR.EQUAL:
+        isReachGoal = data === goalValue;
+        break;
+      case goalDR.LOWER:
+        isReachGoal = data <= goalValue;
+        break;
+      case goalDR.UPPER:
+        isReachGoal = data >= goalValue;
+        break;
+      default:
+        break;
+    }
+
+    return isReachGoal;
   }
 
   /**
@@ -38,6 +74,23 @@ class ThreCmdGoal extends CmdComponent {
    */
   get threCmdGoalId() {
     return this.nodeId;
+  }
+
+  // 달성 목표 성공 여부
+  /**
+   * @return {boolean} 목표 달성 시 ture, 실패 시 false
+   */
+  get isClear() {
+    const { data } = this.nodeInfo;
+
+    let isClear = false;
+
+    if (_.isNumber(data)) {
+      isClear = this.isReachNumGoal(data);
+    } else if (_.isString(data)) {
+      isClear = this.isReachStrGoal(data);
+    }
+    return isClear;
   }
 
   /**
@@ -61,40 +114,25 @@ class ThreCmdGoal extends CmdComponent {
    * @param {nodeInfo} nodeInfo
    */
   updateNode(nodeInfo) {
-    // BU.CLIN(nodeInfo);
-    const { data } = nodeInfo;
-
-    let isClear = false;
-
-    if (_.isNumber(data)) {
-      isClear = this.updateNumValue(data);
-    } else if (_.isString(data)) {
-      isClear = this.updateStrValue(data);
-    }
-
-    // 성공하지 못한 상태에서 성공 상태로 넘어갔을 경우에만 전파
-    if (isClear === true && this.isClear === false) {
-      this.isClear = isClear;
-
-      this.thresholdStorage.handleThreCmdClear(this);
-    }
+    return this.isClear && this.thresholdStorage.handleThresholdClear(this);
   }
 
   /**
    * @param {number} deviceData number 형식 데이터
    */
-  updateNumValue(deviceData) {
+  isReachNumGoal(deviceData) {
+    const { data } = this.nodeInfo;
     let isClear = false;
 
     switch (this.goalRange) {
-      case goalDataRange.EQUAL:
-        isClear = deviceData === this.goalValue;
+      case goalDR.EQUAL:
+        isClear = data === this.goalValue;
         break;
-      case goalDataRange.LOWER:
-        isClear = deviceData <= this.goalValue;
+      case goalDR.LOWER:
+        isClear = data <= this.goalValue;
         break;
-      case goalDataRange.UPPER:
-        isClear = deviceData >= this.goalValue;
+      case goalDR.UPPER:
+        isClear = data >= this.goalValue;
         break;
       default:
         break;
@@ -106,9 +144,9 @@ class ThreCmdGoal extends CmdComponent {
   /**
    * @param {string} deviceData string 형식 데이터
    */
-  updateStrValue(deviceData) {
+  isReachStrGoal(deviceData) {
     // 문자 데이터일 경우에는 달성 목표가 EQUAL이어야만 함. 문자 상하 비교 불가
-    if (this.goalRange !== goalDataRange.EQUAL) return false;
+    if (this.goalRange !== goalDR.EQUAL) return false;
 
     // 대소 문자의 차이가 있을 수 있으므로 소문자로 변환 후 비교
     return _.lowerCase(deviceData) === _.lowerCase(this.goalValue);

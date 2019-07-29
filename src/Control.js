@@ -361,9 +361,9 @@ class Control extends EventEmitter {
   executeSingleControl(reqSingleCmdInfo) {
     const coreFacade = new CoreFacade();
     try {
-      if (coreFacade.getCurrCmdStrategyType() !== coreFacade.cmdStrategyType.MANUAL) {
-        throw new Error('Single control is only possible in manual mode.');
-      }
+      // if (coreFacade.getCurrCmdStrategyType() !== coreFacade.cmdStrategyType.MANUAL) {
+      //   throw new Error('Single control is only possible in manual mode.');
+      // }
       return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
     } catch (error) {
       throw error;
@@ -379,9 +379,9 @@ class Control extends EventEmitter {
     // BU.CLIN(reqFlowCmdInfo);
     const coreFacade = new CoreFacade();
     try {
-      if (coreFacade.getCurrCmdStrategyType() === coreFacade.cmdStrategyType.MANUAL) {
-        throw new Error('The flow command is not available in manual mode.');
-      }
+      // if (coreFacade.getCurrCmdStrategyType() === coreFacade.cmdStrategyType.MANUAL) {
+      //   throw new Error('The flow command is not available in manual mode.');
+      // }
       return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
       throw error;

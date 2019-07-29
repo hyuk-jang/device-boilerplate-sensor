@@ -63,6 +63,6 @@ class ThreCmdComponent extends Observer {
    * @param {ThreCmdComponent} thresholdCommand
    * @return {ThreCmdComponent}
    */
-  handleThreCmdClear(thresholdCommand) {}
+  handleThresholdClear(thresholdCommand) {}
 }
 module.exports = ThreCmdComponent;

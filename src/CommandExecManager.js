@@ -84,6 +84,7 @@ class CommandExecManager {
       singleControlType,
       controlSetValue,
       rank = definedCommandSetRank.SECOND,
+      wrapCmdGoalInfo,
     } = reqSingleCmdInfo;
 
     // 제어하고자 하는 노드 정보를 가져옴
@@ -99,14 +100,14 @@ class CommandExecManager {
         wrapCmdType,
         wrapCmdId: `${nodeId}_${cmdName}${_.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`}`,
         wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
-        rank,
         reqCmdEleList: [
           {
             singleControlType,
             searchIdList: [nodeId],
-            rank,
           },
         ],
+        wrapCmdGoalInfo,
+        rank,
       };
       return this.executeCommand(reqCommandOption);
     } catch (error) {
@@ -180,8 +181,20 @@ class CommandExecManager {
       const flowCmdDestInfo = this.model.findFlowCommand(reqFlowCmdInfo);
       // 세부 흐름 명령이 존재하지 않을 경우
       if (_.isEmpty(flowCmdDestInfo)) {
-        throw new Error(`flow command: ${srcPlaceId}_TO_${destPlaceId} not found`);
+        throw new Error(`The flow command: ${srcPlaceId}_TO_${destPlaceId} not found`);
       }
+
+      /** @type {reqCommandInfo} 명령 실행 설정 객체 */
+      const reqCommandOption = {
+        wrapCmdFormat: reqWrapCmdFormat.FLOW,
+        wrapCmdType,
+        wrapCmdId: flowCmdDestInfo.cmdId,
+        wrapCmdName: flowCmdDestInfo.cmdName,
+        reqCmdEleList: this.makeControlEleCmdList(flowCmdDestInfo, rank),
+        wrapCmdGoalInfo,
+      };
+
+      return this.executeCommand(reqCommandOption);
 
       // 실제 WrapCmdId와 wrapCmdName을 가져옴
       const { cmdId: wrapCmdId, cmdName } = flowCmdDestInfo;
@@ -240,29 +253,33 @@ class CommandExecManager {
         wrapCmdId,
         wrapCmdType = reqWrapCmdType.CONTROL,
         rank = definedCommandSetRank.SECOND,
+        wrapCmdGoalInfo,
       } = reqSetCmdInfo;
 
       // BU.CLIN(this.model.mapCmdInfo);
+      // const setCmdInfo = _.find(this.model.mapCmdInfo.setCmdList, {
+      //   cmdId: wrapCmdId,
+      // });
+
       // 설정 명령 조회
-      const setCmdInfo = _.find(this.model.mapCmdInfo.setCmdList, {
-        cmdId: wrapCmdId,
-      });
-      // BU.CLI(setCmdInfo);
-
-      if (setCmdInfo) {
-        /** @type {reqCommandInfo} 명령 실행 설정 객체 */
-        const reqCommandOption = {
-          wrapCmdFormat: reqWrapCmdFormat.SET,
-          wrapCmdType,
-          wrapCmdId,
-          wrapCmdName: setCmdInfo.cmdName,
-          reqCmdEleList: this.makeControlEleCmdList(setCmdInfo, rank),
-        };
-
-        return this.executeCommand(reqCommandOption);
+      const setCmdInfo = this.model.findSetCommand(wrapCmdId);
+      // 세부 흐름 명령이 존재하지 않을 경우
+      if (_.isEmpty(setCmdInfo)) {
+        throw new Error(`set command: ${wrapCmdId} not found`);
       }
 
-      return;
+      /** @type {reqCommandInfo} 명령 실행 설정 객체 */
+      const reqCommandOption = {
+        wrapCmdFormat: reqWrapCmdFormat.SET,
+        wrapCmdType,
+        wrapCmdId,
+        wrapCmdName: setCmdInfo.cmdName,
+        reqCmdEleList: this.makeControlEleCmdList(setCmdInfo, rank),
+        wrapCmdGoalInfo,
+        rank,
+      };
+
+      return this.executeCommand(reqCommandOption);
 
       if (setCmdInfo) {
         /** @type {reqCommandInfo} */

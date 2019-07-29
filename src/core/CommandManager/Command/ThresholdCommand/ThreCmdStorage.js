@@ -1,5 +1,7 @@
 const _ = require('lodash');
 
+const { BU } = require('base-util-jh');
+
 const CmdComponent = require('../CmdComponent');
 const ThreCmdComponent = require('./ThreCmdComponent');
 const ThreCmdGoal = require('./ThreCmdGoal');
@@ -23,7 +25,7 @@ class ThreCmdStorage extends CmdComponent {
     this.threCmdGoals = [];
 
     this.threCmdLimitTimer;
-    this.cmdStroage;
+    this.cmdStorage;
   }
 
   /**
@@ -40,6 +42,7 @@ class ThreCmdStorage extends CmdComponent {
 
     // 설정 타이머가 존재한다면 제한 시간 타이머 동작
     if (_.isNumber(limitTimeSec)) {
+      // BU.CLI('임계 타이머 작동');
       this.startLimiter(limitTimeSec);
     }
 
@@ -65,8 +68,7 @@ class ThreCmdStorage extends CmdComponent {
     // 해당 임계치 없다면 false 반환
     const coreFacade = new CoreFacade();
 
-    this.thresholdStorage.threCmdLimitTimer &&
-      clearTimeout(this.thresholdStorage.threCmdLimitTimer);
+    this.threCmdLimitTimer && clearTimeout(this.threCmdLimitTimer);
 
     // Update Node 정보를 받는 옵저버 해제
     this.threCmdGoalList.forEach(threCmdGoal => {
@@ -79,7 +81,7 @@ class ThreCmdStorage extends CmdComponent {
    * @param {CmdComponent} cmdStorage Threshold Command Manager
    */
   setSuccessor(cmdStorage) {
-    this.cmdStroage = cmdStorage;
+    this.cmdStorage = cmdStorage;
   }
 
   /**
@@ -89,7 +91,8 @@ class ThreCmdStorage extends CmdComponent {
   startLimiter(limitTimeSec) {
     this.threCmdLimitTimer = setTimeout(() => {
       // 제한 시간 초과로 달성 목표를 이루었다고 판단
-      this.cmdStroage.handleThresholdClear();
+      // BU.CLIN(this.cmdStorage);
+      this.cmdStorage.handleThresholdClear();
     }, limitTimeSec * 1000);
   }
 
@@ -132,12 +135,15 @@ class ThreCmdStorage extends CmdComponent {
    * @return {boolean} 임계 명령 완료 여부
    */
   isThreCmdClear() {
+    // BU.CLI(_.map(this.threCmdGoals, goal => _.pick(goal, ['nodeId', 'isClear'])));
+    // 중요 달성 목표를 가진 개체가 존재하는지 체크
     const isCompleteClear = !!_.find(this.threCmdGoals, {
       isClear: true,
       isCompleteClear: true,
     });
-    // 필수 요소를
+    // 중요 달성 목표를 달성 하였다면
     if (isCompleteClear) return true;
+    // 아닐 경우 모든 달성 목표를 클리어해야 true
 
     return _.every(this.threCmdGoals, 'isClear');
   }
@@ -147,11 +153,12 @@ class ThreCmdStorage extends CmdComponent {
    * @param {ThreCmdGoal} threCmdGoal
    */
   handleThresholdClear(threCmdGoal) {
+    // BU.CLI('handleThresholdClear');
     // 요청 처리된 임계치가 isCompleteClear 거나
     // 모든 조건이 충족되었다면 Successor에게 임계치 명령 달성 처리 의뢰
     if (threCmdGoal.isCompleteClear || this.isThreCmdClear()) {
       this.threCmdLimitTimer && clearTimeout(this.threCmdLimitTimer);
-      this.cmdStroage.handleThresholdClear();
+      this.cmdStorage.handleThresholdClear();
     }
   }
 }

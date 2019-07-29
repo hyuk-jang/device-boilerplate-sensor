@@ -23,7 +23,7 @@ class CmdElement extends CmdComponent {
     this.cmdEleUuid = uuidv4();
     this.cmdEleInfo = cmdEleInfo;
 
-    const { nodeId, isIgnore, singleControlType, controlSetValue } = cmdEleInfo;
+    const { nodeId, isIgnore = false, singleControlType, controlSetValue } = cmdEleInfo;
 
     this.nodeId = nodeId;
     this.isIgnore = isIgnore;
@@ -69,7 +69,7 @@ class CmdElement extends CmdComponent {
     switch (commandSetMessage) {
       case dlcMessage.COMMANDSET_EXECUTION_START:
         this.cmdEleStep = cmdStep.PROCEED;
-        this.cmdStorage.updateCommandEvent(cmdStep.PROCEED);
+        this.cmdStorage.updateCommandStep(cmdStep.PROCEED);
         break;
       case dlcMessage.COMMANDSET_EXECUTION_TERMINATE:
       case dlcMessage.COMMANDSET_DELETE:
@@ -84,7 +84,6 @@ class CmdElement extends CmdComponent {
 
   /** 명령 실행 */
   executeCommandFromDLC() {
-    // BU.CLI(this.getExecuteCmdInfo());
     this.dataLoggerController.requestCommand(this.getExecuteCmdInfo());
   }
 
@@ -119,7 +118,47 @@ class CmdElement extends CmdComponent {
    * @return {boolean}
    */
   isCommandClear() {
-    return this.cmdEleStep === cmdStep.COMPLETE;
+    return this.isIgnore || this.cmdEleStep === cmdStep.COMPLETE;
+  }
+
+  /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
+  get wrapCmdUuid() {
+    return this.cmdStorage.wrapCmdUuid;
+  }
+
+  /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
+  get wrapCmdFormat() {
+    return this.cmdStorage.wrapCmdFormat;
+  }
+
+  /** @return {string} 명령 타입, CONTROL, CANCEL, RESTORE, MEASURE */
+  get wrapCmdType() {
+    return this.cmdStorage.wrapCmdType;
+  }
+
+  /** @return {string} 명령 ID */
+  get wrapCmdId() {
+    return this.cmdStorage.wrapCmdId;
+  }
+
+  /** @return {string} 명령 이름 */
+  get wrapCmdName() {
+    return this.cmdStorage.wrapCmdName;
+  }
+
+  /** @return {string} 명령 실행 우선 순위 */
+  get wrapCmdRank() {
+    return this.cmdStorage.rank;
+  }
+
+  /** @return {csCmdGoalContraintInfo} 임계 정보 */
+  get wrapCmdGoalInfo() {
+    return this.cmdStorage.wrapCmdGoalInfo;
+  }
+
+  /** @return {string} 명령 진행 상태 WAIT, PROCEED, RUNNING, END, CANCELING */
+  get wrapCmdStep() {
+    return this.cmdStep;
   }
 }
 module.exports = CmdElement;

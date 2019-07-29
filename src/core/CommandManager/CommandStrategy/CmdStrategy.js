@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const {
-  dcmConfigModel: { reqDeviceControlType, reqWrapCmdFormat: reqWCF },
+  dcmConfigModel: { reqDeviceControlType, reqWrapCmdFormat: reqWCF, commandStep: cmdStep },
 } = require('../../CoreFacade');
 
 /**
@@ -26,6 +26,8 @@ class CmdStrategy {
     const { wrapCmdId } = reqCmdInfo;
     try {
       switch (reqCmdInfo.wrapCmdFormat) {
+        // case reqWCF.MEASURE:
+        //   return this.executeMeasureControl(reqCmdInfo);
         case reqWCF.SINGLE:
           return this.executeSingleControl(reqCmdInfo);
         case reqWCF.SET:
@@ -40,9 +42,50 @@ class CmdStrategy {
           );
       }
     } catch (error) {
-      BU.CLI(error.message);
+      // BU.error(error.message);
       throw error;
     }
+  }
+
+  removeCommand() {}
+
+  /**
+   * 명령 이벤트가 발생되었을 경우
+   * @param {CmdStorage} cmdStorage
+   */
+  updateCommandStep(cmdStorage) {
+    // BU.CLI(cmdStorage.cmdStep);
+    // 명령 단계가 완료 또는 종료 일 경우
+    if (cmdStorage.cmdStep === cmdStep.COMPLETE || cmdStorage.cmdStep === cmdStep.END) {
+      this.cmdManager.removeCommandStorage(cmdStorage);
+    }
+
+    return this.cmdManager.notifyUpdateCommandStep(cmdStorage);
+  }
+
+  /**
+   * 단일 명령 전략
+   * @param {reqCommandInfo} reqCmdInfo
+   */
+  executeMeasureControl(reqCmdInfo) {
+    const { wrapCmdId } = reqCmdInfo;
+
+    const cmdStorage = this.cmdManager.getCmdStorage({
+      wrapCmdId,
+    });
+
+    if (cmdStorage) {
+      throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
+    }
+
+    // 실제 수행할 장치를 정제
+    const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
+
+    return this.executeRealCommand(commandWrapInfo);
+
+    throw new Error(
+      `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
+    );
   }
 
   /**
