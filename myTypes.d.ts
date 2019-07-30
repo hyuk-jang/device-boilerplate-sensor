@@ -3,7 +3,7 @@ import Model from './src/Model';
 import CoreFacade from './src/core/CoreFacade';
 import CommandExecManager from './src/CommandExecManager';
 import CommandManager from './src/core/CommandManager/CommandManager';
-import CmdStorage from 'module./src/core/CommandManager/Command/CmdStorage'
+import CmdStorage from './src/core/CommandManager/Command/CmdStorage'
 import CmdStrategy from './src/core/CommandManager/CommandStrategy/CmdStrategy';
 import PlaceComponent from './src/core/PlaceManager/PlaceComponent';
 import PlaceStorage from './src/core/PlaceManager/PlaceStorage';

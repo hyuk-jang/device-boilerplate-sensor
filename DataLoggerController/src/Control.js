@@ -317,6 +317,10 @@ class DataLoggerController extends DccFacade {
       // BU.CLIN(commandSet);
       // 장치로 명령 요청
       this.executeCommand(commandSet);
+
+      // if (_.map(this.nodeList, 'node_id').includes('P_001')) {
+      //   BU.CLIN(commandSet, 1);
+      // }
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
       return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
@@ -467,9 +471,11 @@ class DataLoggerController extends DccFacade {
       // 명령 수행이 완료
       // 현재 데이터 업데이트, 명령 목록에서 해당 명령 제거
       case COMMANDSET_EXECUTION_TERMINATE:
+        renewalNodeList = this.model.completeOnData();
+        this.model.completeRequestCommandSet(dcMessage.commandSet);
+        break;
       case COMMANDSET_DELETE:
         // BU.CLI(this.model.tempStorage);
-        renewalNodeList = this.model.completeOnData();
         this.model.completeRequestCommandSet(dcMessage.commandSet);
         break;
       // 지연 명령 수행 처리.
@@ -518,6 +524,9 @@ class DataLoggerController extends DccFacade {
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcData(dcData) {
+    // if (_.map(this.nodeList, 'node_id').includes('P_001')) {
+    //   BU.CLI(dcData.commandSet.uuid, _.head(dcData.commandSet.cmdList).data);
+    // }
     process.env.LOG_DLC_ON_DATA === '1' && super.onDcData(dcData);
 
     try {

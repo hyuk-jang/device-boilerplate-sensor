@@ -33,11 +33,23 @@ class CmdStorage extends CmdComponent {
 
     this.wrapCmdInfo;
 
-    /** 명령 진행 상태 WAIT, PROCEED, RUNNING, END, CANCELING  */
+    /**
+     * 명령 실행 단계
+     * WAIT: 명령이 대기열에 올라가있는 리스트, 아직 장치 제어 요청이 일어나기 전
+     * PROCEED: 명령이 진행되었을 경우
+     * COMPLETE: 명령 요청 처리가 완료되었을 경우
+     * RUNNING: COMPLETE 처리가 되었지만 지켜보고자 할 경우, (Goal 달성 및 실행 중 명령으로 둘 경우 )
+     * CANCELING: 종전에 요청한 명령을 DLC에 취소를 요청하는 중
+     * RESTORE: CANCELING 완료 후 복원 명령이 있을 경우 해당 명령의 완료를 기다리는 경우
+     * END: 명령의 종료할 경우.(Goal 달성 및 삭제)
+     */
     this.cmdStep = '';
 
-    /** @type {CmdElement[]} */
+    /** @type {CmdElement[]} 장치에 명령을 요청 및 관리하는 객체 */
     this.cmdElements = [];
+
+    /** @type {commandContainerInfo[]} CANCELING 처리 후 복원할 명령 목록 */
+    this.restoreCmdList = [];
 
     /** @type {ThreCmdStorage} */
     this.thresholdStorage;
@@ -54,22 +66,15 @@ class CmdStorage extends CmdComponent {
    */
   setCommand(wrapCmdInfo) {
     try {
-      const { wrapCmdFormat, wrapCmdId, wrapCmdGoalInfo, containerCmdList } = wrapCmdInfo;
-
       // 명령 객체 정보 저장
       this.wrapCmdInfo = wrapCmdInfo;
+      const { containerCmdList } = wrapCmdInfo;
 
       // 실제 제어할 목록 만큼 실행
       this.setCommandElements(containerCmdList);
 
-      // 명령 임계 설정
-      // this.setThreshold(wrapCmdGoalInfo);
-
       // 명령 대기 상태로 전환
-      this.updateCommandStep(cmdStep.WAIT);
-
-      // 명령 요청 실행
-      // this.executeCommandFromDLC();
+      return this.updateCommandStep(cmdStep.WAIT);
     } catch (error) {
       throw error;
     }
@@ -89,54 +94,66 @@ class CmdStorage extends CmdComponent {
 
       // 취소 상태로 변경 및 명령 진행 단계는 대기 단계로 변경
       this.wrapCmdInfo.wrapCmdType = reqWCT.CANCEL;
+      // 명령 단계를 CANCELING으로 교체
+      this.cmdStep = cmdStep.CANCELING;
+      // 복원 명령 정의
+      this.restoreCmdList = restoreCmdList;
 
-      // 명령 단계를 대기 상태로 교체
-      // this.cmdStep = cmdStep.WAIT;
-
-      // TODO: DLC로 진행되지 않은 명령은 취소.
-      _(this.cmdElements)
-        .filter(cmdEle => !cmdEle.isCommandClear())
-        .forEach(cmdEle => cmdEle.cancelCommandFromDLC());
-
-      // TODO: cmdElements정리 및 임계치 존재 시 제거
+      // 임계 명령 해제
       if (this.thresholdStorage) {
         this.removeThreshold();
       }
 
-      // 자식 명령 객체 초기화
-      this.cmdElements = [];
-
-      // 복원 명령 존재 시 요청
-      if (restoreCmdList.length) {
-        // BU.CLIN(restoreCmdList);
-        // BU.CLI('복원 명령 진행');
-        // 요청해야 할 복원 세부 명령 등록
-        this.setCommandElements(restoreCmdList);
-        // 명령 단계를 대기 단계로 조정
-        this.updateCommandStep(cmdStep.WAIT);
-
-        // BU.CLIN(this.cmdElements);
-        // 취소 명령 요청 실행
-        return this.executeCommandFromDLC();
+      // 이미 모든 명령을 완료한 상태라면 즉시 복원 명령 요청
+      if (this.isCommandClear()) {
+        return this.restoreCommand();
       }
-
-      // 복원 명령이 존재하지 않을 경우 완료 이벤트 발생
-      return this.updateCommandStep(cmdStep.END);
+      // 아직 완료되지 못한 개체 취소 요청
+      _.forEach(this.cmdElements, cmdElement => {
+        if (!cmdElement.isCommandClear()) {
+          cmdElement.cancelCommandFromDLC();
+        }
+      });
     } catch (error) {
       throw error;
     }
   }
 
+  /**
+   * CANCELLING 과정
+   */
+  restoreCommand() {
+    if (this.restoreCmdList.length) {
+      // BU.CLIN(restoreCmdList);
+      // 명령 단계: RESTORE 교체
+      this.updateCommandStep(cmdStep.RESTORE);
+      // 자식 명령 객체 초기화
+      this.cmdElements = [];
+      // BU.CLI('복원 명령 발송');
+      // BU.CLIN(this.restoreCmdList);
+      // 요청해야 할 복원 세부 명령 등록
+      this.setCommandElements(this.restoreCmdList);
+
+      // 복원 명령 요청
+      return this.executeCommandFromDLC();
+    }
+    // 복원 명령이 없담녀 최종적인 명령 단계: END 교체
+    return this.updateCommandStep(cmdStep.END);
+  }
+
   /** Data Logger Controller에게 명령 실행 요청 */
   executeCommandFromDLC() {
     // BU.CLI('executeCommandFromDLC', this.cmdStep);
-    // 명령 단계가 대기 중 일경우에만 요청 가능.
-    if (this.cmdStep === cmdStep.WAIT) {
-      // 무시하는 개체를 제외하고 검색
-      _(this.cmdElements)
-        .filter({ isIgnore: false })
-        .forEach(cmdEle => cmdEle.executeCommandFromDLC());
+    // 모든 명령이 완료된 경우라면 요청하지 않음
+    if (this.isCommandClear()) {
+      // 명령 스택자체가 없을 경우 동시에 notify가 발생하므로 약간의 지연을 갖추고 발송
+      return setImmediate(() => this.handleCommandClear());
     }
+    // BU.CLIN(this.cmdElements);
+    // 세부 명령 객체에게 장치 제어 명령 요청
+    this.cmdElements.forEach(cmdElement => {
+      cmdElement.executeCommandFromDLC();
+    });
   }
 
   /**
@@ -155,13 +172,12 @@ class CmdStorage extends CmdComponent {
   }
 
   /**
-   * 임계 추적 설정.
+   * 달성 목표 임계 추적 설정.
    * @description cmdStep.COMPLETE 되었을 경우 동작
    * @param {csCmdGoalContraintInfo} wrapCmdGoalInfo
    */
   setThreshold(wrapCmdGoalInfo = {}) {
     // BU.CLI('setThreshold', wrapCmdGoalInfo);
-
     const { goalDataList, limitTimeSec } = wrapCmdGoalInfo;
 
     // 임계치가 존재하지 않을 경우 임계 설정 하지 않음
@@ -172,11 +188,11 @@ class CmdStorage extends CmdComponent {
     // 누적 임계가 실행되는 것 방지를 위한 초기화
     this.removeThreshold();
 
-    let isCompleteClear = false;
+    let isClearGoals = false;
     // 달성 목표가 존재하고 이미 해당 목표를 완료하였는지 체크
     if (_.isArray(goalDataList) && goalDataList.length) {
       // 달성 목표가 있을 경우 초기 값은 true
-      isCompleteClear = true;
+      isClearGoals = true;
 
       for (let index = 0; index < goalDataList.length; index += 1) {
         const goalInfo = goalDataList[index];
@@ -188,18 +204,18 @@ class CmdStorage extends CmdComponent {
         if (isReachGoal) {
           // 달성 목표 개체가 중요 개체일 경우
           if (goalInfo.isCompleteClear) {
-            isCompleteClear = true;
+            isClearGoals = true;
             break;
           }
         } else {
           // 달성하지 못하였다면 false
-          isCompleteClear = false;
+          isClearGoals = false;
         }
       }
     }
 
     // 달성 목표에 도달하였을 경우 임계 추적 객체를 생성하지 않고 종료
-    if (isCompleteClear) {
+    if (isClearGoals) {
       return this.updateCommandStep(cmdStep.END);
     }
 
@@ -210,7 +226,7 @@ class CmdStorage extends CmdComponent {
 
     threCmdStorage.initThreCmd(wrapCmdGoalInfo);
 
-    // 임계치 추적 저장소 추가
+    // 임계치 추적 저장소 정의
     this.thresholdStorage = threCmdStorage;
 
     return true;
@@ -242,38 +258,38 @@ class CmdStorage extends CmdComponent {
 
   /**
    * 명령 이벤트가 발생되었을 경우
-   * @param {string} updatedStorageStep 명령 저장소에 적용될 cmdStep
+   * @param {string} updatedCmdStep 명령 저장소에 적용될 cmdStep
    */
-  updateCommandStep(updatedStorageStep) {
-    // BU.CLI(updatedStorageStep);
+  updateCommandStep(updatedCmdStep) {
+    BU.CLI(updatedCmdStep);
     // 이벤트 목록에 부합되는지 확인
-    const isExistEvent = _.chain(cmdStep)
+    const isExistStep = _.chain(cmdStep)
       .values()
-      .includes(updatedStorageStep)
+      .includes(updatedCmdStep)
       .value();
 
     // 정해진 Event 값이 아니면 종료
     // BU.CLI(isExistEvent);
-    if (!isExistEvent) return false;
+    if (!isExistStep) return false;
 
     // 현재 이벤트와 다른 상태일 경우 전파
-    if (this.cmdStep !== updatedStorageStep) {
-      this.cmdStep = updatedStorageStep;
+    if (this.cmdStep !== updatedCmdStep) {
+      this.cmdStep = updatedCmdStep;
       return this.notifyObserver();
     }
   }
 
-  /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
+  /** @return {string} 명령 저장소 유일 UUID */
   get wrapCmdUuid() {
     return this.cmdStorageUuid;
   }
 
-  /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
+  /** @return {string} 명령 형식, MEASURE, SINGLE, SET, FLOW, SCENARIO */
   get wrapCmdFormat() {
     return this.wrapCmdInfo.wrapCmdFormat;
   }
 
-  /** @return {string} 명령 타입, CONTROL, CANCEL, RESTORE, MEASURE */
+  /** @return {string} 명령 타입, CONTROL, CANCEL */
   get wrapCmdType() {
     return this.wrapCmdInfo.wrapCmdType;
   }
@@ -298,7 +314,7 @@ class CmdStorage extends CmdComponent {
     return this.wrapCmdInfo.wrapCmdGoalInfo;
   }
 
-  /** @return {string} 명령 진행 상태 WAIT, PROCEED, RUNNING, END, CANCELING */
+  /** @return {string} 명령 진행 단계: WAIT, PROCEED, COMPLETE, RUNNING, CANCELING, RESTORE, END */
   get wrapCmdStep() {
     return this.cmdStep;
   }
@@ -325,11 +341,10 @@ class CmdStorage extends CmdComponent {
 
   /** 모든 세부 명령 완료 여부 */
   isCommandClear() {
-    // 모든 세부 명령 처리 여부
     // BU.CLI(_.map(this.cmdElements, 'cmdEleStep'));
 
-    // BU.CLIN(this.cmdElements);
-    return _.every(this.cmdElements, child => child.isCommandClear());
+    // 모든 세부 명령 처리 여부
+    return _.every(this.cmdElements, cmdElement => cmdElement.isCommandClear());
   }
 
   /**
@@ -338,27 +353,32 @@ class CmdStorage extends CmdComponent {
    */
   handleCommandClear(cmdElement) {
     // BU.CLI(cmdElement.cmdEleUuid, cmdElement.cmdEleStep);
+
     // 모든 세부 명령이 완료되었을 경우
     if (this.isCommandClear()) {
-      // BU.CLI('this.isCommandClear');
-      // 취소 명령이라면 명령 종료
-      if (this.wrapCmdType === reqWCT.CANCEL) {
-        // BU.CLI('명령 종료!!!');
+      // 명령 취소를 완료하였을 경우 복원 명령 요청
+      if (this.cmdStep === cmdStep.CANCELING) {
+        return this.restoreCommand();
+      }
+
+      // 복원 명령을 완료할 경우 명령 단계: END
+      if (this.cmdStep === cmdStep.RESTORE) {
         return this.updateCommandStep(cmdStep.END);
       }
-      // 임계 명령이 존재할 경우 자동으로 실행 중 상태로 변경
-      // BU.CLIN(this.wrapCmdGoalInfo, 1);
+
+      // 임계 명령이 존재할 경우 명령 단계: RUNNING
       if (_.isObject(this.wrapCmdGoalInfo) && this.setThreshold(this.wrapCmdGoalInfo)) {
-        // BU.CLI(cmdStep.RUNNING);
-        // 명령 목표 달성 진행 중
         return this.updateCommandStep(cmdStep.RUNNING);
       }
 
-      // 명령 요청 처리 완료 메시지를 전송
+      // 달성 목표가 없고 명령 취소가 아니라면 명령 단계: COMPLETE
       return this.updateCommandStep(cmdStep.COMPLETE);
     }
-    // 진행 중 상태
-    return this.updateCommandStep(cmdStep.PROCEED);
+
+    // 명령 단계: WAIT 일 경우 명령 단계: PROCEED
+    if (this.cmdStep === cmdStep.WAIT && _.get(cmdElement, 'cmdEleStep') === cmdStep.PROCEED) {
+      return this.updateCommandStep(cmdStep.PROCEED);
+    }
   }
 
   /** @param {ThreCmdStorage} threCmdStorage */
@@ -367,7 +387,7 @@ class CmdStorage extends CmdComponent {
     // 임계 명령 삭제
     this.removeThreshold();
 
-    // 명령 종료 업데이트
+    // 임계 명령이 종료되었으므로 명령 단계: END
     return this.updateCommandStep(cmdStep.END);
   }
 }

@@ -83,26 +83,11 @@ class CommandManager {
         const commandWrapInfo = this.refineReqCommand(reqCommandInfo);
 
         return this.executeRealCommand(commandWrapInfo);
-
-        // 계측 명령 설정
-        const cmdStorage = new CmdStorage();
-        // 옵저버 추가
-        cmdStorage.attachObserver(this);
-
-        cmdStorage.setCommand(commandWrapInfo);
-        // 명령 목록에 추가
-        this.commandList.push(cmdStorage);
-
-        // 실제 장치로 명령 요청
-        cmdStorage.executeCommandFromDLC();
-
-        return cmdStorage;
       }
       // 계측 명령이 아닐 경우 명령 전략에 따라 진행
 
       return this.cmdStrategy.executeCommand(reqCommandInfo);
     } catch (error) {
-      // BU.CLI(error);
       BU.error(error.message);
       throw error;
     }
@@ -142,20 +127,23 @@ class CommandManager {
    * @param {dcMessage} dcMessage 명령 수행 결과 데이터
    */
   updateCommandMessage(dataLoggerController, dcMessage) {
+    const {
+      commandSet: { wrapCmdUUID, uuid },
+      msgCode,
+    } = dcMessage;
     try {
-      const {
-        commandSet: { wrapCmdUUID, uuid },
-        msgCode,
-      } = dcMessage;
-
       // BU.CLIN(commandSet);
 
       this.getCmdStorage({ wrapCmdUuid: wrapCmdUUID })
         .getCmdEle({ cmdEleUuid: uuid })
         .updateCommand(msgCode);
     } catch (error) {
-      BU.CLI(error);
-      throw error;
+      // _.map(this.commandList, cmdStorage => {
+      //   BU.CLI(cmdStorage.wrapCmdUuid, cmdStorage.wrapCmdInfo);
+      // });
+      BU.error(msgCode, error.message);
+      // NOTE: 명령 삭제 후 발생한 이벤트에 대해서는 무시함.
+      // throw error;
     }
   }
 
@@ -165,7 +153,7 @@ class CommandManager {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    // BU.CLI(cmdStorage.cmdStep);
+    BU.CLI('updateCommandStep >>> Default', cmdStorage.cmdStep);
     //  명령 완료를 받았을 경우
     if (cmdStorage.cmdStep === cmdStep.COMPLETE) {
       this.removeCommandStorage(cmdStorage);
@@ -200,11 +188,10 @@ class CommandManager {
    * @param {CmdStorage} cmdStorage
    */
   removeCommandStorage(cmdStorage) {
-    // BU.CLI('handleCommandClear');
-    // BU.CLIN(cmdStorage);
-    // BU.CLIN(this.commandList);
+    // BU.CLI('removeCommandStorage', this.commandList.length);
     // 명령 목록에서 제거
     _.pull(this.commandList, cmdStorage);
+    // BU.CLI('removeCommandStorage', this.commandList.length);
   }
 
   /**
@@ -273,7 +260,9 @@ class CommandManager {
     containerCmdList.forEach(containerInfo => {
       // 마지막으로 실제 제어할 cmdElement를 가져옴
       const foundCmdEle = this.getLastCmdEle(containerInfo);
+      // _.assign(containerInfo, { isLive: true });
 
+      // BU.CLIN(foundCmdEle, 1);
       // 기존재할 경우
       if (foundCmdEle instanceof CmdElement) {
         containerInfo.isIgnore = true;
@@ -303,6 +292,7 @@ class CommandManager {
     // 설정 제어 값이 존재
     if (_.isNil(controlSetValue)) {
       // node 현재 값과 동일하다면 제어 요청하지 않음
+      // BU.CLI(_.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName)));
       if (_.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName))) {
         return true;
       }
@@ -312,7 +302,6 @@ class CommandManager {
     // 설정 값이 존재한다면 그 값과 현재 node 값을 비교
     return _.eq(nodeInfo.data, controlSetValue);
   }
-
 
   /**
    *

@@ -54,26 +54,28 @@ class CmdElement extends CmdComponent {
     return this.cmdStorage.rank;
   }
 
-  // /** @return {boolean} 명령 실행 무시 여부 */
-  // get isIgnore() {
-  //   return this.cmdEleInfo.isIgnore;
-  // }
-
   /**
    *
    * @param {dlcMessage} commandSetMessage
    */
   updateCommand(commandSetMessage) {
     // BU.CLI(commandSetMessage);
+    // if (this.nodeId === 'P_001') {
+    //   const coreFacade = new CoreFacade();
+    //   BU.CLI(commandSetMessage, coreFacade.getNodeInfo(this.nodeId).data);
+    // }
 
     switch (commandSetMessage) {
       case dlcMessage.COMMANDSET_EXECUTION_START:
         this.cmdEleStep = cmdStep.PROCEED;
-        this.cmdStorage.updateCommandStep(cmdStep.PROCEED);
+        // 삭제 처리되지 않았을 경우 저장소에 알림
+        this.cmdStorage.handleCommandClear(this);
+        // this.cmdStorage.updateCommandStep(cmdStep.PROCEED);
         break;
       case dlcMessage.COMMANDSET_EXECUTION_TERMINATE:
       case dlcMessage.COMMANDSET_DELETE:
         this.cmdEleStep = cmdStep.COMPLETE;
+        // 삭제 처리되지 않았을 경우 저장소에 알림
         this.cmdStorage.handleCommandClear(this);
         break;
 
@@ -84,13 +86,23 @@ class CmdElement extends CmdComponent {
 
   /** 명령 실행 */
   executeCommandFromDLC() {
+    // 무시를 하는 경우라면 요청하지 않음
+    if (this.isIgnore) {
+      return;
+    }
+    // if (this.nodeId === 'P_001') {
+    //   BU.CLI(this.getExecuteCmdInfo());
+    // }
     this.dataLoggerController.requestCommand(this.getExecuteCmdInfo());
   }
 
   /** 명령 취소 */
   cancelCommandFromDLC() {
-    // BU.CLI(this.getExecuteCmdInfo());
-    return this.dataLoggerController.deleteCommandSet(this.cmdEleUuid);
+    if (this.isIgnore) {
+      return;
+    }
+    // BU.CLI('명령 취소', this.getExecuteCmdInfo());
+    return this.dataLoggerController.deleteCommandSet({ uuid: this.cmdEleUuid });
   }
 
   /**
@@ -121,17 +133,17 @@ class CmdElement extends CmdComponent {
     return this.isIgnore || this.cmdEleStep === cmdStep.COMPLETE;
   }
 
-  /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
+  /** @return {string} 명령 저장소 유일 UUID */
   get wrapCmdUuid() {
     return this.cmdStorage.wrapCmdUuid;
   }
 
-  /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
+  /** @return {string} 명령 형식, MEASURE, SINGLE, SET, FLOW, SCENARIO */
   get wrapCmdFormat() {
     return this.cmdStorage.wrapCmdFormat;
   }
 
-  /** @return {string} 명령 타입, CONTROL, CANCEL, RESTORE, MEASURE */
+  /** @return {string} 명령 타입, CONTROL, CANCEL */
   get wrapCmdType() {
     return this.cmdStorage.wrapCmdType;
   }
@@ -156,9 +168,9 @@ class CmdElement extends CmdComponent {
     return this.cmdStorage.wrapCmdGoalInfo;
   }
 
-  /** @return {string} 명령 진행 상태 WAIT, PROCEED, RUNNING, END, CANCELING */
+  /** @return {string} 명령 진행 단계: WAIT, PROCEED, COMPLETE, RUNNING, CANCELING, RESTORE, END */
   get wrapCmdStep() {
-    return this.cmdStep;
+    return this.cmdStorage.cmdStep;
   }
 }
 module.exports = CmdElement;

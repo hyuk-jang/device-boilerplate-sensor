@@ -103,7 +103,7 @@ function convertConToCan(reqFlowCmdInfo) {
 
 // 수동 전략
 describe('Manual Strategy', function() {
-  this.timeout(10000);
+  this.timeout(20000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
@@ -135,11 +135,11 @@ describe('Manual Strategy', function() {
     const cmdStorage = control.inquiryAllDeviceStatus();
     expect(cmdStorage.wrapCmdFormat).to.eq(reqWCF.MEASURE);
 
-    BU.CLI('1 단계 완료');
+    BU.CLI('TC_1 >>> 1 단계 완료');
 
     // * 2. 정기 계측 명령을 중복하여 요청(무시되야 함)
     expect(() => control.inquiryAllDeviceStatus()).to.throw(Error);
-    BU.CLI('2 단계 완료');
+    BU.CLI('TC_1 >>> 2 단계 완료');
 
     // * 3. 명령 완료하였을 경우 명령 열에서 삭제 처리
     expect(cmdManager.getCmdStorageList({ wrapCmdFormat: reqWCF.MEASURE })).to.length(1);
@@ -148,52 +148,77 @@ describe('Manual Strategy', function() {
 
     // 정기 계측 명령 완료 했으므로
     expect(cmdManager.getCmdStorageList({ wrapCmdFormat: reqWCF.MEASURE })).to.length(0);
-    BU.CLI('3 단계 완료');
+    BU.CLI('TC_1 >>> 3 단계 완료');
   });
 
   /**
    * @desc T.C 2 [수동 모드]
    * @description
-   * 1. 수문 5번을 연다.
-   * 2. 펌프 1번을 킨다.
-   * 3. 밸브 2번을 킨다.
-   * 4. 동작 중에 1~2번을 한번 더 시도한다.(명령이 등록되지 않아야한다.)
-   * 5. 명령 완료 순서는 펌프 > 수문 > 밸브
+   * 1. 수문 OPEN, 펌프 ON, 밸브 OPEN
+   *  <test> 장치 동작 테스트
+   *      명령 요청 >>> [WD_005][OPEN], [P_002][ON], [V_002][OPEN]
+   *  <test> 명령 완료 후 명령 스택에서 삭제
+   *      COMPLETE 이벤트 발생 3회 >>> 명령 스택에서 제거
+   * 2. 수문 CLOSE, 수문 CLOSE, 펌프 OFF, 밸브 CLOSE
+   *  <test> 중복 명령 발생 시 미처리
+   *      명령 요청 >>> [WD_005][CLOSE], [WD_005][CLOSE]{Fail}, [P_002][OFF], [V_002][CLOSE]
+   *      수문 CLOSE 1회 예외 발생
+   * 3. 펌프 ON 명령 요청 후 펌프 명령 취소
+   *  <test> 명령 수행 중에 명령 취소 발생 시 해당 명령 저장소에 취소 요청 처리 및 복원
+   *      명령 요청 >>> [P_002][ON](R_CON), [P_002][ON](R_CAN)
+   *  4. 펌프 ON 명령 요청 및 COMPLETE 이벤트 발생 후 펌프 ON 명령 취소
+   *  <test> 명령 스택에 존재하지 않는 명령 취소 시 명령 저장소 생성 및 복원
+   *      명령 요청 >>> [P_002][ON] COMPLETE 대기 >>> [P_002][ON](R_CAN)
    */
   it('Single Command Flow', async () => {
     const { cmdManager } = control.model;
 
-    /** @type {reqCmdEleInfo} 1. 수문 5번을 연다. */
-    const openGateCmd = {
+    const pumpNodeId = 'P_001';
+
+    /** @type {reqCmdEleInfo}  */
+    const OPEN_GATE = {
       nodeId: 'WD_005',
       singleControlType: TRUE,
     };
+    /** @type {reqCmdEleInfo}  */
+    const CLOSE_GATE = {
+      nodeId: 'WD_005',
+      singleControlType: FALSE,
+    };
 
-    /** @type {reqCmdEleInfo} 2. 펌프 1번을 킨다. */
-    const openPumpCmd = {
-      nodeId: 'P_001',
+    /** @type {reqCmdEleInfo} */
+    const ON_PUMP = {
+      nodeId: pumpNodeId,
       singleControlType: TRUE,
     };
 
-    /** @type {reqCmdEleInfo} 3. 밸브 2번을 킨다. */
-    const openValveCmd = {
+    /** @type {reqCmdEleInfo} */
+    const OFF_PUMP = {
+      nodeId: pumpNodeId,
+      singleControlType: FALSE,
+    };
+
+    /** @type {reqCmdEleInfo} */
+    const OPEN_VALVE = {
       nodeId: 'V_002',
       singleControlType: TRUE,
     };
 
-    // 장치들 명령 요청
-    const openGateWC = control.executeSingleControl(openGateCmd);
-    const onPumpWC = control.executeSingleControl(openPumpCmd);
-    const openValveWC = control.executeSingleControl(openValveCmd);
+    /** @type {reqCmdEleInfo} */
+    const CLOSE_VALVE = {
+      nodeId: 'V_002',
+      singleControlType: FALSE,
+    };
 
-    // * 4. 동작 중에 1~2번을 한번 더 시도한다.(명령이 등록되지 않아야한다.)
-    expect(() => control.executeSingleControl(openGateCmd)).to.throw(Error);
-    expect(() => control.executeSingleControl(openPumpCmd)).to.throw(Error);
-    expect(() => control.executeSingleControl(openValveCmd)).to.throw(Error);
-
-    // 명령 완료 순서는 DPC 각 장치별 제어에 따른 status 지연 명령 시간에 따라 결정
+    // * 1. 수문 OPEN, 펌프 ON, 밸브 OPEN
+    // *  <test> 장치 동작 테스트
+    // *      명령 요청 >>> [WD_005][OPEN], [P_002][ON], [V_002][OPEN]
+    const cs_OPEN_GATE = control.executeSingleControl(OPEN_GATE);
+    let cs_ON_PUMP = control.executeSingleControl(ON_PUMP);
+    const cs_OPEN_VALVE = control.executeSingleControl(OPEN_VALVE);
+    // *  <test> 명령 완료 후 명령 스택에서 삭제
+    // *      COMPLETE 이벤트 발생 3회 >>> 명령 스택에서 제거
     await eventToPromise(control, cmdStep.COMPLETE);
-
     expect(cmdManager.getCmdStorageList()).to.length(2);
 
     await eventToPromise(control, cmdStep.COMPLETE);
@@ -201,29 +226,80 @@ describe('Manual Strategy', function() {
 
     await eventToPromise(control, cmdStep.COMPLETE);
     expect(cmdManager.getCmdStorageList()).to.length(0);
+
+    BU.CLI('TC_2 >>> 1 단계 완료');
+
+    // * 2. 수문 CLOSE, 수문 CLOSE, 펌프 OFF, 밸브 CLOSE
+    // *  <test> 중복 명령 발생 시 미처리
+    // *      명령 요청 >>> [WD_005][CLOSE], [WD_005][CLOSE]{Fail}, [P_002][OFF], [V_002][CLOSE]
+    const cs_CLOSE_GATE = control.executeSingleControl(CLOSE_GATE);
+    const cs_OFF_PUMP = control.executeSingleControl(OFF_PUMP);
+    const cs_CLOSE_VALVE = control.executeSingleControl(CLOSE_VALVE);
+    // *      수문 CLOSE 1회 예외 발생
+    expect(() => control.executeSingleControl(CLOSE_GATE)).to.throw(Error);
+    expect(cmdManager.getCmdStorageList()).to.length(3);
+    await eventToPromise(control, cmdStep.COMPLETE);
+    await eventToPromise(control, cmdStep.COMPLETE);
+    await eventToPromise(control, cmdStep.COMPLETE);
+    expect(cmdManager.getCmdStorageList()).to.length(0);
+
+    BU.CLI('TC_2 >>> 2 단계 완료');
+
+    // * 3. 펌프 ON 명령 요청 후 펌프 명령 취소
+    // *  <test> 명령 수행 중에 명령 취소 발생 시 해당 명령 저장소에 취소 요청 처리 및 복원
+    // *      명령 요청 >>> [P_002][ON](R_CON), [P_002][ON](R_CAN)
+    cs_ON_PUMP = control.executeSingleControl(ON_PUMP);
+    let cs_can_ON_PUMP = control.executeSingleControl(convertConToCan(ON_PUMP));
+
+    // 진행 중인 명령 저장소에 취소 요청을 한 것이므로 같은 UUID를 가짐
+    expect(cs_ON_PUMP.wrapCmdUuid).to.eq(cs_can_ON_PUMP.wrapCmdUuid);
+
+    // 명령 취소 상태로 변경됨
+    expect(cs_ON_PUMP.wrapCmdType).to.eq(reqWCT.CANCEL);
+
+    await eventToPromise(control, cmdStep.END);
+    // 펌프의 상태는 닫힘 상태
+    expect(coreFacade.getNodeInfo(pumpNodeId).data).to.eq('OFF');
+
+    expect(cmdManager.getCmdStorageList()).to.length(0);
+
+    BU.CLI('TC_2 >>> 3 단계 완료');
+
+    // *  4. 펌프 ON 명령 요청 및 COMPLETE 이벤트 발생 후 펌프 ON 명령 취소
+    // *  <test> 명령 스택에 존재하지 않는 명령 취소 시 명령 저장소 생성 및 복원
+    // *      명령 요청 >>> [P_002][ON] COMPLETE 대기 >>> [P_002][ON](R_CAN)
+    cs_ON_PUMP = control.executeSingleControl(ON_PUMP);
+    await eventToPromise(control, cmdStep.COMPLETE);
+    cs_can_ON_PUMP = control.executeSingleControl(convertConToCan(ON_PUMP));
+    // 존재하지 않는 명령 저장소에 취소 요청을 한 것이므로 다른 UUID를 가짐
+    expect(cs_ON_PUMP.wrapCmdUuid).to.not.eq(cs_can_ON_PUMP.wrapCmdUuid);
+    expect(cmdManager.getCmdStorageList()).to.length(1);
+    await eventToPromise(control, cmdStep.COMPLETE);
+    expect(cmdManager.getCmdStorageList()).to.length(0);
+
+    BU.CLI('TC_2 >>> 4 단계 완료');
+    // 명령 완료 순서는 DPC 각 장치별 제어에 따른 status 지연 명령 시간에 따라 결정
+
     // BU.CLIN(control.nodeList);
   });
-
-  // /**
-  //  * @desc T.C 3 [수동 모드]
-  //  * @description
-  //  * @tutorial
-  //  * 1. 수문 5번 Open, 펌프 1번 On
-  //  * [WD_005_OPEN](R_CON), [P_001_ON](R_CON)
-  //  * 2. closeAllDevice Set 명령 호출 시 수문 5 번, 펌프 1번 Close/Off 동작 확인
-  //  *  <test> 모든 장치 Close 명령 요청 시 존재하는 명령만 수행 여부 테스트
-  //  * 3. 수문 5번 Open, 펌프 1번 On, 밸브 2번 Open
-  //  * 3. rainMode Set 명령 호출 시
-  //  */
-  // it('Set Command', async () => {
-
-  // })
 
   /**
    * @desc T.C 3 [수동 모드]
    * @description
+   * @tutorial
+   * 1. 수문 5번 Open, 펌프 1번 On
+   * [WD_005_OPEN](R_CON), [P_001_ON](R_CON)
+   * 2. closeAllDevice Set 명령 호출 시 수문 5 번, 펌프 1번 Close/Off 동작 확인
+   *  <test> 모든 장치 Close 명령 요청 시 존재하는 명령만 수행 여부 테스트
+   * 3. 수문 5번 Open, 펌프 1번 On, 밸브 2번 Open
+   * 3. rainMode Set 명령 호출 시
    */
-  // it('bindingPlaceList', async () => {});
+  it.only('Set Command', async () => {});
+
+  /**
+   * @desc T.C 4 [수동 모드]
+   */
+  it.skip('Flow Command', async () => {});
 });
 
 // 누적 카운팅 전략
@@ -262,6 +338,7 @@ describe('OverlapCount Strategy', function() {
 
   beforeEach(async () => {
     try {
+      coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.MANUAL);
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWCT.CONTROL,
@@ -269,14 +346,14 @@ describe('OverlapCount Strategy', function() {
 
       await eventToPromise(control, cmdStep.COMPLETE);
     } catch (error) {
-      BU.error(error.message);
+      BU.error(error);
     }
 
     coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.OVERLAP_COUNT);
   });
 
   /**
-   * @desc T.C 1 [자동 모드]
+   * @desc T.C 5 [자동 모드]
    * 다중 흐름 명령을 요청하고 이에 반하는 흐름 명령을 요청하여 충돌 체크가 제대로 동작하는지 확인
    * @description
    * 1. 저수지 > 증발지 1-A 명령 요청
@@ -310,8 +387,13 @@ describe('OverlapCount Strategy', function() {
     // BU.CLI('Multi Flow Command Control & Conflict & Cancel');
     // 1. 저수지 > 증발지 1-A 명령 요청. 펌프 2, 밸브 6, 밸브 1 . 실제 제어 true 확인 및 overlap 확인
     // *      명령 요청 >>> [RV_TO_SEB_1_A](R_CON)
+
     const cs_RV_TO_SEB_1_A = control.executeFlowControl(RV_TO_SEB_1_A);
 
+    // 동일 명령 요청 시 예외
+    expect(() => control.executeFlowControl(RV_TO_SEB_1_A)).to.throw(
+      'wrapCmdId: RV_TO_SEB_1_A is exist.',
+    );
     const ceList_RV_TO_SEB_1_A = cmdManager.getCmdStorage({
       wrapCmdUuid: cs_RV_TO_SEB_1_A.cmdStorageUuid,
     });
@@ -326,6 +408,8 @@ describe('OverlapCount Strategy', function() {
 
     // * REAL_FALSE: [], IGNORE_FALSE: ['GV_001']
     expect(getNodeIds(cs_RV_TO_SEB_1_A, sConV.IGNORE_FALSE)).to.deep.equal(['GV_001']);
+
+    BU.CLI('TC_5 >>> 1 단계 완료');
 
     // * 2. 저수지 > 증발지 1-B 명령 요청. 실제 제어 추가 확인 V_002
     // *      명령 요청 >>> [RV_TO_SEB_1_B](R_CON)
@@ -362,6 +446,7 @@ describe('OverlapCount Strategy', function() {
     await eventToPromise(control, cmdStep.COMPLETE);
     // 현재 실행중인 명령은 2개
     expect(cmdManager.getCmdStorageList()).to.length(2);
+    BU.CLI('TC_5 >>> 2 단계 완료');
 
     // * 3. 증발지 1-A > 해주 1 명령 요청. ['GV_001'] 과의 충돌 발생
     // *  <test> 자동 명령에서는 명령 충돌 시 수행하지 않음
@@ -369,6 +454,7 @@ describe('OverlapCount Strategy', function() {
     expect(() => control.executeFlowControl(SEB_1_A_TO_BW_1)).to.throw(
       'SEB_1_A_TO_BW_1 and RV_TO_SEB_1_A conflicted with GV_001.',
     );
+    BU.CLI('TC_5 >>> 3 단계 완료');
     // * 4. 증발지 1-A > 해주 1 명령 취소. 존재하지 않으므로 X
     // *  <test> 실행 중인 명령이 존재하지 않을 경우 명령 취소 불가
 
@@ -376,13 +462,15 @@ describe('OverlapCount Strategy', function() {
     expect(() => control.executeFlowControl(convertConToCan(SEB_1_A_TO_BW_1))).to.throw(
       'FLOW >>> SEB_1_A_TO_BW_1 does not exist.',
     );
-
+    BU.CLI('TC_5 >>> 4 단계 완료');
     // * 5. 저수지 > 증발지 1-A 명령 취소.
     // *  <test> True 누적 카운팅 제거 시 장치 상태 False로 복원
     // *      명령 요청 >>> [RV_TO_SEB_1_A](R_CAN). ['V_001_Close'](R_RES)
     const cs_can_RV_TO_SEB_1_A = control.executeFlowControl(convertConToCan(RV_TO_SEB_1_A));
+
     expect(getNodeIds(cs_can_RV_TO_SEB_1_A, sConV.REAL_FALSE)).to.deep.eq(['V_001']);
     // 명령 취소 상태로 변경됨
+
     expect(
       cmdManager.getCmdStorage({ wrapCmdUuid: cs_RV_TO_SEB_1_A.cmdStorageUuid }).wrapCmdType,
     ).to.eq(reqWCT.CANCEL);
@@ -392,6 +480,7 @@ describe('OverlapCount Strategy', function() {
     // 명령 cmdStep END 발생 시 cmdManager.commandList 스택에서 제거됨
     expect(cmdManager.getCmdStorage({ wrapCmdUuid: cs_RV_TO_SEB_1_A.cmdStorageUuid })).to.be
       .undefined;
+    BU.CLI('TC_5 >>> 5 단계 완료');
 
     // * 6. 증발지 1-A > 해주 1 명령 요청.
     // *      명령 요청 >>> [SEB_1_A_TO_RV](R_CON)
@@ -427,6 +516,8 @@ describe('OverlapCount Strategy', function() {
       }),
     ).to.length(2);
 
+    BU.CLI('TC_5 >>> 6 단계 완료');
+
     // * 7. 저수지 > 증발지 1-B 명령 취소.
     // *      명령 요청 >>> [RV_TO_SEB_1_B](R_CAN). ['P_002','V_002','V_006'](R_RES)
     cs_RV_TO_SEB_1_B = control.executeFlowControl(convertConToCan(RV_TO_SEB_1_B));
@@ -453,6 +544,8 @@ describe('OverlapCount Strategy', function() {
         isIgnore: true,
       }),
     ).to.length(1);
+
+    BU.CLI('TC_5 >>> 7 단계 완료');
 
     // * 8. 증발지 1-A > 해주 1 명령 취소.
     // *      모든 장치 False, 명령 스택 X
@@ -484,10 +577,12 @@ describe('OverlapCount Strategy', function() {
     ).to.length(0);
 
     expect(cmdManager.getCmdStorageList()).to.length(0);
+
+    BU.CLI('TC_5 >>> 8 단계 완료');
   });
 
   /**
-   * @desc T.C 2 [자동 모드]
+   * @desc T.C 6 [자동 모드]
    * 달성 목표가 있는 명령은 장치 제어 완료 시 COMPLETE 메시지 대신 RUNNING 이벤트 발송
    * 달성 목표 도달 시 cmdManager 명령 스택에서 제거
    * @description
@@ -512,7 +607,7 @@ describe('OverlapCount Strategy', function() {
    *      명령 요청 >>> [RV_TO_NEB_1_A](R_CON) ::
    *      현재 값 달성치 도달  >>> [RV_TO_NEB_1_A][END]
    * 4. 저수지 > 증발지 1-A 명령 요청.
-   *  달성 목표: WL_001 >= 10, BT >= 30, MRT >= 50, 제한 시간 2 Sec
+   *  달성 목표: WL_001 >= 10, BT <= 30, MRT <= 50, 제한 시간 2 Sec
    *      명령 요청 >>> [RV_TO_NEB_1_A](R_CON)
    *  <test> 다수 달성 목표가 존재할 경우 isCompleteClear.true 개체가 없을 시 모든 목표 달성 시 종료
    */
@@ -638,7 +733,7 @@ describe('OverlapCount Strategy', function() {
     // 명령이 완료되기를 기다림
     expect(cmdManager.getCmdStorageList()).to.length(0);
 
-    BU.CLI('TC 1단계 완료');
+    BU.CLI('TC_6 >>> 1 단계 완료');
 
     // await Promise.delay(2000);
 
@@ -680,7 +775,7 @@ describe('OverlapCount Strategy', function() {
 
     // *    증발지 1-A 결정지의 수위를 Set값(10cm) 설정.
 
-    BU.CLI('TC 2단계 완료');
+    BU.CLI('TC_6 >>> 2 단계 완료');
 
     // * 3. 저수지 > 증발지 1-A 명령 요청. 달성 제한 시간: 2 Sec. 다수 목표
     const cs_TC_3_RV_TO_SEB_1_A = control.executeFlowControl(TC_3_RV_TO_SEB_1_A);
@@ -690,12 +785,12 @@ describe('OverlapCount Strategy', function() {
     // *      현재 값 달성치 도달  >>> [RV_TO_NEB_1_A][END]
     await eventToPromise(control, cmdStep.END);
 
-    BU.CLI('TC 3단계 완료');
+    BU.CLI('TC_6 >>> 3 단계 완료');
 
     // * 4. 저수지 > 증발지 1-A 명령 요청. 달성 목표: 배수지 수위 (2cm) 이하, 급수지 수위(10cm 이상), 제한 시간 2 Sec
     const cs_TC_4_RV_TO_SEB_1_A = control.executeFlowControl(TC_4_RV_TO_SEB_1_A);
     await eventToPromise(control, cmdStep.RUNNING);
-    // *  달성 목표: WL_001 >= 10, BT >= 30, MRT >= 50, 제한 시간 2 Sec
+    // *  달성 목표: WL_001 >= 10, BT <= 30, MRT <= 50, 제한 시간 2 Sec
     // BT = 25, 염수 온도를 목표치 이하로 설정
     NODE_BT.data = 25;
     control.notifyDeviceData(null, [NODE_BT]);
@@ -735,7 +830,7 @@ describe('OverlapCount Strategy', function() {
 
     expect(cmdManager.getCmdStorageList()).to.length(0);
 
-    BU.CLI('TC 4단계 완료');
+    BU.CLI('TC_6 >>> 4 단계 완료');
   });
 });
 

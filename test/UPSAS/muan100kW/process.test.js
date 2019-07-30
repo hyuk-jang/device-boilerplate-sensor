@@ -10,17 +10,20 @@ const config = require('./config');
 const Main = require('../../../src/Main');
 const CoreFacade = require('../../../src/core/CoreFacade');
 
-const {
-  dcmConfigModel: {
-    complexCmdStep,
-    reqWrapCmdType: reqWCT,
-    reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
-  },
-} = CoreFacade;
-
 const ThreCmdComponent = require('../../../src/core/CommandManager/Command/ThresholdCommand/ThreCmdComponent');
 
 const { goalDataRange } = ThreCmdComponent;
+
+const { dcmConfigModel } = CoreFacade;
+
+const Timeout = setTimeout(function() {}, 0).constructor;
+
+const {
+  commandStep: cmdStep,
+  reqWrapCmdType: reqWCT,
+  reqWrapCmdFormat: reqWCF,
+  reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
+} = dcmConfigModel;
 
 process.env.NODE_ENV = 'development';
 
@@ -62,6 +65,16 @@ const pId = {
   BW_5: 'BW_5',
 };
 
+/** SingleControlValue 검색 형식 */
+const sConV = {
+  TRUE: { singleControlType: TRUE },
+  REAL_TRUE: { singleControlType: TRUE, isIgnore: false },
+  IGNORE_TRUE: { singleControlType: TRUE, isIgnore: true },
+  FALSE: { singleControlType: FALSE },
+  REAL_FALSE: { singleControlType: FALSE, isIgnore: false },
+  IGNORE_FALSE: { singleControlType: FALSE, isIgnore: true },
+};
+
 /** 제어 모드 */
 const controlMode = {
   MANUAL: 'MANUAL',
@@ -81,6 +94,42 @@ function setNodeData(placeNode, setValue) {
   return _.get(placeNode, 'nodeInfo');
 }
 
+/**
+ * cmdStorage 내의 cmdElements nodeId 목록 반환
+ * @param {cmdStorage} cmdStorage
+ * @param {cmdElementSearch} cmdEleSearchInfo
+ */
+function getNodeIds(cmdStorage, cmdEleSearchInfo) {
+  return cmdStorage.getCmdEleList(cmdEleSearchInfo).map(cmdEle => cmdEle.nodeId);
+}
+
+/**
+ * 간단한 cmdStorage 내의 cmdElements 정보 반환
+ * @param {CmdStorage} cmdStorage
+ */
+function getSimpleCmdElementsInfo(cmdStorage) {
+  return _.map(cmdStorage.getCmdEleList(), cmdEle => {
+    return {
+      nodeId: cmdEle.nodeId,
+      isIgnore: cmdEle.isIgnore,
+      singleControlType: cmdEle.singleControlType,
+      cmdEleStep: cmdEle.cmdEleStep,
+    };
+  });
+}
+
+/**
+ * 기존 명령 객체 클론.
+ * 요청 명령의 Wrap Cmd Type을 CANCEL 로 교체하여 반환
+ * @param {reqFlowCmdInfo} reqFlowCmdInfo
+ */
+function convertConToCan(reqFlowCmdInfo) {
+  return _.chain(reqFlowCmdInfo)
+    .clone()
+    .set('wrapCmdType', reqWCT.CANCEL)
+    .value();
+}
+
 describe('수위 임계치 처리 테스트', function() {
   this.timeout(10000);
 
@@ -88,27 +137,42 @@ describe('수위 임계치 처리 테스트', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
-    coreFacade.updateControlMode(controlMode.MANUAL);
+    const hi = control.inquiryAllDeviceStatus();
+    // BU.CLIN(hi)
 
-    control.inquiryAllDeviceStatus();
-    await eventToPromise(control, 'completeInquiryAllDeviceStatus');
+    BU.CLI('가자고 어서');
+    await eventToPromise(control, cmdStep.COMPLETE);
+
+    BU.CLIN('뭐하냐');
+
+    const simpleNodeList = _.map(control.nodeList, nodeInfo => {
+      const { node_id, data } = nodeInfo;
+      return { node_id, data };
+    });
+
+    BU.CLI(simpleNodeList);
+
+    // BU.CLIN(control.nodeList);
   });
 
-  beforeEach(async () => {
-    try {
-      control.executeSetControl({
-        wrapCmdId: 'closeAllDevice',
-        wrapCmdType: reqWCT.CONTROL,
-      });
-      await eventToPromise(control, 'completeCommand');
-    } catch (error) {
-      BU.error(error.message);
-    }
+  // beforeEach(async () => {
+  //   try {
+  //     coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.MANUAL);
+  //     control.executeSetControl({
+  //       wrapCmdId: 'closeAllDevice',
+  //       wrapCmdType: reqWCT.CONTROL,
+  //     });
 
-    coreFacade.updateControlMode(controlMode.POWER_OPTIMIZATION);
-  });
+  //     await eventToPromise(control, cmdStep.COMPLETE);
+  //   } catch (error) {
+  //     BU.error(error.message);
+  //   }
+
+  //   coreFacade.updateControlMode(controlMode.POWER_OPTIMIZATION);
+  // });
 
   /**
+   * @desc T.C 1
    * 자동 염수 이동 명령이 없는 장소에 일반 염수 이동 명령을 내릴 경우
    * 배수지 수위 최저치(Min) 및 급수지 수위 최대치(Max)에 의해 명령 취소 테스트
    * @tutorial
@@ -131,12 +195,14 @@ describe('수위 임계치 처리 테스트', function() {
    *      배수지 수위 최저치 >>> [BW_5_TO_NCB](R_CAN)
    *  <test> 장소 임계치에 의한 명령 삭제 시 임계 명령 삭제 확인
    */
-  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { placeManager } = control.model;
     const {
       cmdManager,
       cmdManager: { cmdOverlapManager, threCmdManager },
     } = control.model;
+
+    return;
 
     // 저수지
     const ps_BW_5 = placeManager.findPlace(pId.BW_5);
@@ -564,7 +630,7 @@ describe('수위 임계치 처리 테스트', function() {
   // * 해주 및 증발지의 면적에 따른 해수 부피를 산정하여 명령 수행 가능성 여부를 결정한다.
 });
 
-describe.only('염도 임계치 처리 테스트', function() {
+describe('염도 임계치 처리 테스트', function() {
   this.timeout(10000);
 
   before(async () => {
