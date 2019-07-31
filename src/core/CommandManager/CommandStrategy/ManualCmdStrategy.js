@@ -20,7 +20,7 @@ class ManualCmdStrategy extends CmdStrategy {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    BU.CLI('updateCommandStep >>> ManualCmdStrategy', cmdStorage.cmdStep);
+    // BU.CLI('updateCommandStep >>> ManualCmdStrategy', cmdStorage.cmdStep);
     // 명령 단계가 완료 또는 종료 일 경우
     if (cmdStorage.cmdStep === cmdStep.COMPLETE || cmdStorage.cmdStep === cmdStep.END) {
       this.cmdManager.removeCommandStorage(cmdStorage);

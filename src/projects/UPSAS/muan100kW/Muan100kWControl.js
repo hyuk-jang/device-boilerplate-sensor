@@ -18,7 +18,21 @@ const blockConfig = require('./block.config');
 const M100kPlaceAlgorithm = require('./PlaceThreAlgo/M100kPlaceAlgorithm');
 const Algorithm = require('./ControlMode/Algorithm');
 
+// const { nodeDefIdInfo: ndId } = Algorithm;
+
 const CoreFacade = require('../../../core/CoreFacade');
+
+const commonFn = require('./ControlMode/commonFn/commonFn');
+
+const {
+  dcmConfigModel: {
+    reqWrapCmdFormat: reqWCF,
+    reqWrapCmdType: reqWCT,
+    placeNodeStatus: pNS,
+    goalDataRange: goalDR,
+    commandStep: cmdStep,
+  },
+} = CoreFacade;
 
 class MuanControl extends Control {
   // /** @param {integratedDataLoggerConfig} config */
@@ -86,6 +100,24 @@ class MuanControl extends Control {
     const coreFacade = new CoreFacade();
     // coreFacade.setCoreAlgorithm(new M100kPlaceAlgorithm());
     coreFacade.setCoreAlgorithm(new Algorithm());
+
+    // 명령 종료가 떨어지면 장소 이벤트 갱신 처리
+    this.on(cmdStep.END, commandStorage => {
+      /** @type {CmdStorage} */
+      const {
+        wrapCmdInfo: { wrapCmdFormat, wrapCmdId, srcPlaceId, destPlaceId },
+      } = commandStorage;
+
+      switch (wrapCmdFormat) {
+        case reqWCF.FLOW:
+          // BU.CLI('지역 갱신을 시작하지', wrapCmdId);
+          commonFn.emitReloadPlaceStorage(srcPlaceId);
+          commonFn.emitReloadPlaceStorage(destPlaceId);
+          break;
+        default:
+          break;
+      }
+    });
   }
 
   /**

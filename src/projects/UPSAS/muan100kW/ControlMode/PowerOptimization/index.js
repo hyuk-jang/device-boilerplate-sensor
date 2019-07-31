@@ -9,7 +9,6 @@ const AbstAlgorithm = require('../AbstAlgorithm');
 const CoreFacade = require('../../../../../core/CoreFacade');
 
 const {
-  constructorInfo: { PlaceNode },
   dcmConfigModel: { placeNodeStatus: nodeStatus },
 } = CoreFacade;
 
@@ -32,6 +31,7 @@ class ConcreteAlgorithm extends AbstAlgorithm {
    */
   updateControlMode() {
     const coreFacade = new CoreFacade();
+
     if (coreFacade.getCurrCmdStrategyType() !== this.cmdStrategyName) {
       coreFacade.changeCmdStrategy(this.cmdStrategyName);
     }

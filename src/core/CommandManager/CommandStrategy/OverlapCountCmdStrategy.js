@@ -21,7 +21,10 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    BU.CLI('updateCommandStep >>> OverlapCountCmdStrategy', cmdStorage.cmdStep);
+    // BU.CLI(
+    //   'updateCommandStep >>> OverlapCountCmdStrategy',
+    //   `${cmdStorage.wrapCmdId} ${cmdStorage.cmdStep}`,
+    // );
     // 명령 종료 일 경우
     if (cmdStorage.cmdStep === cmdStep.END) {
       // 명령 취소 처리가 되었을 경우 삭제
@@ -31,6 +34,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
       }
 
       // 명령 완료가 되었다면 명령 취소 요청
+      // BU.CLI('업데이트 없이 CANCEL');
       return this.cancelCommand(cmdStorage);
     }
 
@@ -69,7 +73,11 @@ class OverlapCountCmdStrategy extends CmdStrategy {
         const { nodeId, singleControlType } = containerInfo;
 
         // 저장소에 존재하는 cmdElements 중에서 해당 nodeId와 제어 값이 동일한 개체 목록 추출
-        const existStorageList = this.cmdManager.getCmdEleList({ nodeId, singleControlType });
+        const existStorageList = this.cmdManager.getCmdEleList({
+          nodeId,
+          singleControlType,
+          isLive: true,
+        });
         return existStorageList.length <= 1;
       })
       // True가 해제되면 False로 자동 복원 명령 생성
@@ -184,8 +192,16 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeFlowControl(reqCmdInfo) {
-    // BU.CLI(reqCmdInfo);
+    // BU.CLIN(reqCmdInfo);
     try {
+      const { wrapCmdType, srcPlaceId, destPlaceId } = reqCmdInfo;
+
+      if (wrapCmdType === reqWCT.CANCEL) {
+        return this.cancelCommand(reqCmdInfo);
+      }
+      // 흐름 명령 가능 여부 체크 (급배수지 환경 조건 고려[수위, 염도, 온도 등등등])
+      this.cmdManager.coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId);
+
       return this.executeDefaultControl(reqCmdInfo);
     } catch (error) {
       throw error;

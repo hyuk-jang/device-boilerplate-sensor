@@ -490,6 +490,13 @@ class Control extends EventEmitter {
    * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
    */
   notifyDeviceData(dataLoggerController, renewalNodeList) {
+    // BU.CLI(
+    //   '@@@@@@@@@@@ notifyDeviceData',
+    //   this.model.getAllNodeStatus(
+    //     CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
+    //     renewalNodeList,
+    //   ),
+    // );
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
@@ -498,9 +505,14 @@ class Control extends EventEmitter {
 
       const dataList = this.model.getAllNodeStatus(
         CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
-        renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
+        renewalNodeList,
       );
+      // const dataList = this.model.getAllNodeStatus(
+      //   CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
+      //   renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
+      // );
 
+      // BU.CLIN(dataList);
       // API 접속이 이루어져 있고 데이터가 있을 경우에만 전송
       if (this.apiClient.isConnect && dataList.length) {
         this.apiClient.transmitDataToServer({
@@ -510,7 +522,7 @@ class Control extends EventEmitter {
       }
     } catch (error) {
       // 예외는 기록만 함
-      // BU.error(error.message);
+      BU.error(error.message);
       throw error;
     }
   }

@@ -170,13 +170,25 @@ class PlaceStorage extends PlaceComponent {
    * @param {string|string[]=} nodeDefId Node Definition ID, 없을 경우 전체 갱신
    */
   updateNode(nodeDefId) {
-    if (_.isEmpty(nodeDefId)) {
+    // 배열로 갱신을 할 경우
+    if (_.isArray(nodeDefId)) {
+      nodeDefId.forEach(nodeDef => {
+        const placeNode = this.getPlaceNode(nodeDef);
+        if (placeNode) {
+          placeNode.updateNode();
+        }
+      });
+    } else if (_.isString(nodeDefId)) {
+      this.getPlaceNode(nodeDefId).updateNode();
+    } else {
       this.children.forEach(child => {
         child.updateNode();
       });
-    } else if (_.isString(nodeDefId) && nodeDefId.length) {
-      this.getPlaceNode(nodeDefId).updateNode();
     }
+    // if (_.isEmpty(nodeDefId)) {
+    // } else if (_.isString(nodeDefId) && nodeDefId.length) {
+    //   this.getPlaceNode(nodeDefId).updateNode();
+    // }
   }
 
   /**

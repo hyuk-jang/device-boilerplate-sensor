@@ -208,12 +208,14 @@ module.exports = {
     // BU.CLI(thresholdKey);
     // BU.CLIN(drainagePlace, 1);
     let { needWaterVolume } = drainageInfo;
+    // BU.CLI(needWaterVolume);
     // 급수 가능한 염수량이 없을 경우 계산
     if (!_.isNumber(needWaterVolume)) {
       // BU.CLIN(waterSupplyPlace);
       const drainageWVInfo = this.getDrainageAbleWVInfo(drainagePlace, thresholdKey);
       needWaterVolume = drainageWVInfo.drainageAbleWV;
     }
+    // BU.CLI(needWaterVolume);
     // 배수지에서 염수를 보낼 수 있는 급수지 목록을 가져옴
     const waterSupplyPlaceList = drainagePlace.getPutPlaceRankList(ndId.WATER_LEVEL);
 
@@ -236,6 +238,7 @@ module.exports = {
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (waterSupplyPlace !== finalDrainagePlace) {
         const waterSupplyAbleWV = this.getWaterSupplyAbleWV(waterSupplyPlace);
+        // BU.CLI(waterSupplyAbleWV, needWaterVolume);
 
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
         if (waterSupplyAbleWV >= needWaterVolume) {
@@ -256,6 +259,7 @@ module.exports = {
    * @param {string=} thresholdKey
    */
   getDrainageAbleWVInfo(drainagePlace, thresholdKey = pNS.MIN_UNDER) {
+    // BU.CLIN(drainagePlace);
     const placeNode = drainagePlace.getPlaceNode(ndId.WATER_LEVEL);
 
     // BU.CLI(drainagePlace.getPlaceId());

@@ -26,7 +26,12 @@ class CmdElement extends CmdComponent {
     const { nodeId, isIgnore = false, singleControlType, controlSetValue } = cmdEleInfo;
 
     this.nodeId = nodeId;
+
+    /** 현재 명령 개체가 가치 있음 여부 (명령 취소가 활성화 될경우 false 처리) */
+    this.isLive = true;
+    /** 실제로는 제어나 취소를 하지 않는 옵션. 현재 값과 같거나 다른 명령에서 요청 중일 경우 활성화 */
     this.isIgnore = isIgnore;
+
     this.singleControlType = singleControlType;
     this.controlSetValue = controlSetValue;
 
@@ -61,8 +66,8 @@ class CmdElement extends CmdComponent {
   updateCommand(commandSetMessage) {
     // BU.CLI(commandSetMessage);
     // if (this.nodeId === 'P_001') {
-    //   const coreFacade = new CoreFacade();
-    //   BU.CLI(commandSetMessage, coreFacade.getNodeInfo(this.nodeId).data);
+    // const coreFacade = new CoreFacade();
+    // BU.CLI(commandSetMessage, coreFacade.getNodeInfo(this.nodeId).data);
     // }
 
     switch (commandSetMessage) {
@@ -166,6 +171,16 @@ class CmdElement extends CmdComponent {
   /** @return {csCmdGoalContraintInfo} 임계 정보 */
   get wrapCmdGoalInfo() {
     return this.cmdStorage.wrapCmdGoalInfo;
+  }
+
+  /** @return {string} 출발지 장소 Id */
+  get srcPlaceId() {
+    return this.cmdStorage.srcPlaceId;
+  }
+
+  /** @return {string} 목적지 장소 Id */
+  get destPlaceId() {
+    return this.cmdStorage.destPlaceId;
   }
 
   /** @return {string} 명령 진행 단계: WAIT, PROCEED, COMPLETE, RUNNING, CANCELING, RESTORE, END */

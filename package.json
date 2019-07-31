@@ -15,7 +15,9 @@
     ]
   },
   "scripts": {
-    "test": "mocha test/UPSAS/muan100kW/manual.test.js -w",
+    "test": "mocha test/UPSAS/muan100kW/process.test.js -w",
+    "test:muan6": "mocha test/UPSAS/muan/process.test.js -w",
+    "test:muan100": "mocha test/UPSAS/muan100kW/process.test.js -w",
     "start": "nodemon --trace-warnings index",
     "generate-docs": "node_modules/.bin/jsdoc -c jsdoc.json",
     "build": "pkg . --out-path dist",

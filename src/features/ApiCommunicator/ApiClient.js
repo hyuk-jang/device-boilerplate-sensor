@@ -104,7 +104,7 @@ class ApiClient extends DeviceManager {
   transmitDataToServer(transDataToServerInfo = {}) {
     // BU.debugConsole();
     const { commandType, data } = transDataToServerInfo;
-    // BU.CLI('transmitDataToServer', data);
+    // BU.CLIN(data);
     try {
       // BU.CLI('transDataToServerInfo');
       // 소켓 연결이 되지 않으면 명령 전송 불가

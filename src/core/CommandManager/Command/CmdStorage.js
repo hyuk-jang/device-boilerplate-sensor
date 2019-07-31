@@ -87,15 +87,18 @@ class CmdStorage extends CmdComponent {
    * @param {commandContainerInfo[]} restoreCmdList 복원 명령 목록
    */
   cancelCommand(restoreCmdList = []) {
+    // BU.CLI('cancelCommand');
     try {
       if (_.isEmpty(this.wrapCmdInfo)) {
         throw new Error('wrapCmdInfo does not exist.');
       }
 
+      // BU.CLI(restoreCmdList);
+
       // 취소 상태로 변경 및 명령 진행 단계는 대기 단계로 변경
       this.wrapCmdInfo.wrapCmdType = reqWCT.CANCEL;
       // 명령 단계를 CANCELING으로 교체
-      this.cmdStep = cmdStep.CANCELING;
+      // this.cmdStep = cmdStep.CANCELING;
       // 복원 명령 정의
       this.restoreCmdList = restoreCmdList;
 
@@ -106,10 +109,21 @@ class CmdStorage extends CmdComponent {
 
       // 이미 모든 명령을 완료한 상태라면 즉시 복원 명령 요청
       if (this.isCommandClear()) {
-        return this.restoreCommand();
+        // setImmediate의 틈을 비집고 들어올까봐 초기화
+        this.cmdElements = [];
+        return setImmediate(() => {
+          this.restoreCommand();
+        });
       }
+
+      // 명령 단계를 CANCELING으로 교체
+      BU.CLI('명령 단계 CANCELING');
+      this.updateCommandStep(cmdStep.CANCELING);
+
       // 아직 완료되지 못한 개체 취소 요청
       _.forEach(this.cmdElements, cmdElement => {
+        // 취소 중이므로 살아있는 객체여부 false
+        cmdElement.isLive = false;
         if (!cmdElement.isCommandClear()) {
           cmdElement.cancelCommandFromDLC();
         }
@@ -123,16 +137,20 @@ class CmdStorage extends CmdComponent {
    * CANCELLING 과정
    */
   restoreCommand() {
+    // BU.CLI('restoreCommand');
+    // 비동기 처리 과정 때문에 명령 단계 공지를 받지 못하는 경우가 있기 때문에 chaining 을 지연시킴
+
     if (this.restoreCmdList.length) {
       // BU.CLIN(restoreCmdList);
-      // 명령 단계: RESTORE 교체
-      this.updateCommandStep(cmdStep.RESTORE);
       // 자식 명령 객체 초기화
       this.cmdElements = [];
       // BU.CLI('복원 명령 발송');
       // BU.CLIN(this.restoreCmdList);
       // 요청해야 할 복원 세부 명령 등록
       this.setCommandElements(this.restoreCmdList);
+
+      // 명령 단계: RESTORE 교체
+      this.updateCommandStep(cmdStep.RESTORE);
 
       // 복원 명령 요청
       return this.executeCommandFromDLC();
@@ -261,7 +279,7 @@ class CmdStorage extends CmdComponent {
    * @param {string} updatedCmdStep 명령 저장소에 적용될 cmdStep
    */
   updateCommandStep(updatedCmdStep) {
-    BU.CLI(updatedCmdStep);
+    // BU.CLI(this.wrapCmdId, updatedCmdStep);
     // 이벤트 목록에 부합되는지 확인
     const isExistStep = _.chain(cmdStep)
       .values()
@@ -314,6 +332,16 @@ class CmdStorage extends CmdComponent {
     return this.wrapCmdInfo.wrapCmdGoalInfo;
   }
 
+  /** @return {string} 출발지 장소 Id */
+  get srcPlaceId() {
+    return this.wrapCmdInfo.srcPlaceId;
+  }
+
+  /** @return {string} 목적지 장소 Id */
+  get destPlaceId() {
+    return this.wrapCmdInfo.destPlaceId;
+  }
+
   /** @return {string} 명령 진행 단계: WAIT, PROCEED, COMPLETE, RUNNING, CANCELING, RESTORE, END */
   get wrapCmdStep() {
     return this.cmdStep;
@@ -352,7 +380,7 @@ class CmdStorage extends CmdComponent {
    *  세부 명령이 완료했을 경우
    */
   handleCommandClear(cmdElement) {
-    // BU.CLI(cmdElement.cmdEleUuid, cmdElement.cmdEleStep);
+    // BU.CLI(cmdElement.nodeId, this.cmdStep);
 
     // 모든 세부 명령이 완료되었을 경우
     if (this.isCommandClear()) {
@@ -368,6 +396,7 @@ class CmdStorage extends CmdComponent {
 
       // 임계 명령이 존재할 경우 명령 단계: RUNNING
       if (_.isObject(this.wrapCmdGoalInfo) && this.setThreshold(this.wrapCmdGoalInfo)) {
+        // BU.CLI('@@@@@@@@@@@ RUNNING', this.wrapCmdId);
         return this.updateCommandStep(cmdStep.RUNNING);
       }
 
@@ -383,7 +412,7 @@ class CmdStorage extends CmdComponent {
 
   /** @param {ThreCmdStorage} threCmdStorage */
   handleThresholdClear() {
-    // BU.CLI('handleThresholdClear');
+    // BU.CLI('handleThresholdClear', this.wrapCmdId);
     // 임계 명령 삭제
     this.removeThreshold();
 

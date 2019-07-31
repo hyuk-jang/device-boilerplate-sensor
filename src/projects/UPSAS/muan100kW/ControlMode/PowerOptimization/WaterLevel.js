@@ -39,7 +39,21 @@ class WaterLevel extends PlaceThreshold {
       const destPlaceId = placeNode.getPlaceId();
 
       // 현재 장소의 배수 명령 취소
-      commonFn.cancelWaterSupply(coreFacade.getFlowCommandList(null, destPlaceId, reqWCT.CONTROL));
+      const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+        destPlaceId,
+        wrapCmdType: reqWCT.CONTROL,
+      });
+      // BU.CLIN(cmdList);
+      commonFn.cancelWaterSupply(cmdStorageList);
+
+      // 남아있는 명령 저장소
+      const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+        destPlaceId,
+      });
+
+      // 진행 중인 급수 명령이 있다면 상한선 처리하지 않음
+      if (existCmdStorageList.length) return false;
+
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청
@@ -57,14 +71,24 @@ class WaterLevel extends PlaceThreshold {
   handleUpperLimitOver(coreFacade, placeNode) {
     BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
     try {
+      // 급수지 장소 Id
+      const destPlaceId = placeNode.getPlaceId();
+
       // 진행중인 급수 명령 취소 및 남아있는 급수 명령 존재 여부 반환
-      const isProceedFlowCmd = commonFn.cancelWaterSupplyWithAlgorithm(placeNode, true);
+      commonFn.cancelWaterSupplyWithAlgorithm(placeNode, true);
+
+      // 남아있는 명령 저장소
+      const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+        destPlaceId,
+      });
 
       // 진행 중인 급수 명령이 있다면 상한선 처리하지 않음
-      if (isProceedFlowCmd) return false;
+      if (existCmdStorageList.length) return false;
 
+      // BU.CLI('복원을 해야지?');
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
+      // BU.CLIN(thresholdInfo);
       // 임계 정보에 대한 염수 이동 명령 요청
       waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, placeNodeStatus.NORMAL);
     } catch (error) {
@@ -89,9 +113,17 @@ class WaterLevel extends PlaceThreshold {
     // BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
     try {
       // 진행중인 배수 명령 취소 및 남아있는 배수 명령 존재 여부 반환
-      const isProceedFlowCmd = commonFn.cancelDrainageWithAlgorithm(placeNode, true);
+      // 배수지 장소 Id
+      const srcPlaceId = placeNode.getPlaceId();
+
+      commonFn.cancelDrainageWithAlgorithm(placeNode, true);
+
+      const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+        srcPlaceId,
+      });
+
       // 진행 중인 배수 명령이 있다면 하한선 처리하지 않음
-      if (isProceedFlowCmd) return false;
+      if (existCmdStorageList.length) return false;
 
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
@@ -114,8 +146,21 @@ class WaterLevel extends PlaceThreshold {
       // 배수지 장소 Id
       const srcPlaceId = placeNode.getPlaceId();
 
+      const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+        srcPlaceId,
+        wrapCmdType: reqWCT.CONTROL,
+      });
+
       // 현재 장소의 배수 명령 취소
-      commonFn.cancelDrainage(coreFacade.getFlowCommandList(srcPlaceId, null, reqWCT.CONTROL));
+      commonFn.cancelDrainage(cmdStorageList);
+
+      const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+        srcPlaceId,
+      });
+
+      // 진행 중인 배수 명령이 있다면 하한선 처리하지 않음
+      if (existCmdStorageList.length) return false;
+
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청

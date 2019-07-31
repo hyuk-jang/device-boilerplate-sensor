@@ -103,7 +103,7 @@ function convertConToCan(reqFlowCmdInfo) {
 
 // 수동 전략
 describe('Manual Strategy', function() {
-  this.timeout(20000);
+  this.timeout(5000);
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
@@ -294,7 +294,7 @@ describe('Manual Strategy', function() {
    * 3. 수문 5번 Open, 펌프 1번 On, 밸브 2번 Open
    * 3. rainMode Set 명령 호출 시
    */
-  it.only('Set Command', async () => {});
+  it.skip('Set Command', async () => {});
 
   /**
    * @desc T.C 4 [수동 모드]
@@ -463,14 +463,22 @@ describe('OverlapCount Strategy', function() {
       'FLOW >>> SEB_1_A_TO_BW_1 does not exist.',
     );
     BU.CLI('TC_5 >>> 4 단계 완료');
+
     // * 5. 저수지 > 증발지 1-A 명령 취소.
     // *  <test> True 누적 카운팅 제거 시 장치 상태 False로 복원
     // *      명령 요청 >>> [RV_TO_SEB_1_A](R_CAN). ['V_001_Close'](R_RES)
     const cs_can_RV_TO_SEB_1_A = control.executeFlowControl(convertConToCan(RV_TO_SEB_1_A));
 
-    expect(getNodeIds(cs_can_RV_TO_SEB_1_A, sConV.REAL_FALSE)).to.deep.eq(['V_001']);
-    // 명령 취소 상태로 변경됨
+    expect(getNodeIds(cs_can_RV_TO_SEB_1_A, sConV.REAL_TRUE)).to.deep.eq([
+      'V_006',
+      'V_001',
+      'P_002',
+    ]);
 
+    await eventToPromise(control, cmdStep.RESTORE);
+    expect(getNodeIds(cs_can_RV_TO_SEB_1_A, sConV.REAL_FALSE)).to.deep.eq(['V_001']);
+
+    // 명령 취소 상태로 변경됨
     expect(
       cmdManager.getCmdStorage({ wrapCmdUuid: cs_RV_TO_SEB_1_A.cmdStorageUuid }).wrapCmdType,
     ).to.eq(reqWCT.CANCEL);

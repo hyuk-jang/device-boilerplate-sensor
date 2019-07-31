@@ -29,6 +29,7 @@ class Algorithm extends AbstAlgorithm {
    * @param {Algorithm} controlMode
    */
   changeControlMode(controlMode) {
+    // BU.CLIS(this.currControlMode, controlMode);
     if (this.currControlMode !== controlMode) {
       this.currControlMode = controlMode;
       this.currControlMode.updateControlMode();
@@ -62,7 +63,7 @@ class Algorithm extends AbstAlgorithm {
    * @param {string} controlMode
    */
   updateControlMode(controlMode) {
-    BU.CLI('updateControlMode', controlMode);
+    // BU.CLI('updateControlMode', controlMode);
     let nextControlMode;
 
     //  제어 모드를 불러옴

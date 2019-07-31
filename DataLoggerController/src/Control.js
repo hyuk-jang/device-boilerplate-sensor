@@ -533,6 +533,8 @@ class DataLoggerController extends DccFacade {
       const { DONE, ERROR, WAIT } = this.definedCommanderResponse;
       const { eventCode, data } = this.converter.parsingUpdateData(dcData);
 
+      // BU.CLI(eventCode, data);
+
       if (process.env.LOG_DLC_PARSER_DATA === '1') {
         const haveData = [];
         _.forEach(data, (v, key) => {

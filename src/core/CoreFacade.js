@@ -92,6 +92,7 @@ class CoreFacade {
    * @param {PlaceManager} placeManager
    */
   setPlaceManager(placeManager) {
+    BU.CLI('@@@@@@@@@@@@ setPlaceManager');
     this.placeManager = placeManager;
   }
 
@@ -128,6 +129,21 @@ class CoreFacade {
    * @return {complexCmdWrapInfo[]}
    */
   getFlowCommandList(srcPlaceId = '', destPlaceId = '', wrapCmdType) {
+    const where = {};
+    _.isString(srcPlaceId) && srcPlaceId.length && _.assign(where, { srcPlaceId });
+    _.isString(destPlaceId) && destPlaceId.length && _.assign(where, { destPlaceId });
+    _.isString(wrapCmdType) && wrapCmdType.length && _.assign(where, { wrapCmdType });
+
+    const result = this.cmdManager.getCmdStorageList(where);
+
+    return result;
+
+    return this.cmdManager.getCmdStorageList({
+      srcPlaceId,
+      destPlaceId,
+      wrapCmdType,
+    });
+
     return this.cmdManager.getFlowCommandList(srcPlaceId, destPlaceId, wrapCmdType);
   }
 
@@ -216,9 +232,13 @@ class CoreFacade {
    */
   reloadPlaceStorage(placeId, nodeDefId) {
     try {
+      // BU.CLI('reloadPlaceStorage', placeId, nodeDefId);
+      // BU.CLIN(this.placeManager.getPlaceStorage(placeId));
       this.placeManager.getPlaceStorage(placeId).updateNode(nodeDefId);
     } catch (error) {
-      BU.error(error.message);
+      // BU.CLIN(this.placeManager.getPlaceStorage(placeId))
+      // BU.error(error);
+      // BU.error(error);
     }
   }
 
@@ -256,11 +276,12 @@ class CoreFacade {
    * @param {reqFlowCmdInfo} reqFlowCmdInfo
    */
   executeFlowControl(reqFlowCmdInfo) {
+    // BU.CLIN(reqFlowCmdInfo);
     try {
       this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
       // BU.error(error);
-      BU.error(error.message);
+      // BU.error(error.message);
     }
   }
 }

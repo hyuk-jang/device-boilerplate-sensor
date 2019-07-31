@@ -22,8 +22,8 @@ const {
   commandStep: cmdStep,
   commandPickKey,
   goalDataRange: goalDR,
-  reqWrapCmdType,
-  reqWrapCmdFormat,
+  reqWrapCmdType: reqWCT,
+  reqWrapCmdFormat: reqWCF,
 } = dcmConfigModel;
 
 class CommandManager {
@@ -72,7 +72,7 @@ class CommandManager {
       const { wrapCmdFormat, wrapCmdType, wrapCmdId, reqCmdEleList } = reqCommandInfo;
 
       // 계측 명령 일 경우에는 전략에 상관없이 요청
-      if (wrapCmdFormat === reqWrapCmdFormat.MEASURE) {
+      if (wrapCmdFormat === reqWCF.MEASURE) {
         // 동일 명령이 존재하는지 체크
         const foundCommand = _.find(this.commandList, { wrapCmdId });
 
@@ -88,6 +88,8 @@ class CommandManager {
 
       return this.cmdStrategy.executeCommand(reqCommandInfo);
     } catch (error) {
+      // BU.error(error.stack);
+      // console.error(error)
       BU.error(error.message);
       throw error;
     }
@@ -100,6 +102,7 @@ class CommandManager {
    */
   executeRealCommand(cmdWrapInfo, observer) {
     try {
+      // BU.CLIN(cmdWrapInfo.containerCmdList)
       // 명령 저장소 생성
       const cmdStorage = new CmdStorage();
       // 옵저버 추가
@@ -128,7 +131,7 @@ class CommandManager {
    */
   updateCommandMessage(dataLoggerController, dcMessage) {
     const {
-      commandSet: { wrapCmdUUID, uuid },
+      commandSet: { wrapCmdUUID, uuid, commandId, nodeId },
       msgCode,
     } = dcMessage;
     try {
@@ -141,7 +144,8 @@ class CommandManager {
       // _.map(this.commandList, cmdStorage => {
       //   BU.CLI(cmdStorage.wrapCmdUuid, cmdStorage.wrapCmdInfo);
       // });
-      BU.error(msgCode, error.message);
+      // BU.CLIN(this.getCmdStorage({ wrapCmdUuid: wrapCmdUUID }).getCmdEle({ cmdEleUuid: uuid }));
+      BU.error(`${commandId} ${nodeId} ${msgCode}`, error.message);
       // NOTE: 명령 삭제 후 발생한 이벤트에 대해서는 무시함.
       // throw error;
     }
@@ -153,7 +157,7 @@ class CommandManager {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    BU.CLI('updateCommandStep >>> Default', cmdStorage.cmdStep);
+    // BU.CLI('updateCommandStep >>> Default', cmdStorage.cmdStep);
     //  명령 완료를 받았을 경우
     if (cmdStorage.cmdStep === cmdStep.COMPLETE) {
       this.removeCommandStorage(cmdStorage);
@@ -168,13 +172,18 @@ class CommandManager {
    * @param {CmdStorage} cmdStorage
    */
   notifyUpdateCommandStep(cmdStorage) {
+    // BU.CLI('notifyUpdateCommandStep', cmdStorage.cmdStep);
     // FIXME: 임시. 메시지 전체 보냄
+    // BU.CLI(_.pick(cmdStorage, commandPickKey.FOR_SERVER));
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCommandType.COMMAND,
-      data: _(this.commandList).map(commandStorage =>
-        _.pick(commandStorage, commandPickKey.FOR_SERVER),
-      ),
+      // data: [_.pick(cmdStorage, commandPickKey.FOR_SERVER)],
+      // data: _.map(this.commandList, cmdStorage => _.pick(cmdStorage, commandPickKey.FOR_SERVER)),
+      data: _(this.commandList)
+        .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
+        .value(),
     });
+
     this.controller.emit(cmdStorage.cmdStep, cmdStorage);
 
     // this.controller.apiClient.transmitDataToServer({
@@ -465,7 +474,7 @@ class CommandManager {
    */
   getFlowCommandList(srcPlaceId = '', destPlaceId = '', wrapCmdType) {
     // BU.CLIS(srcPlaceId, destPlaceId);
-    const whereInfo = { wrapCmdFormat: reqWrapCmdFormat.FLOW };
+    const whereInfo = { wrapCmdFormat: reqWCF.FLOW };
     if (_.isString(wrapCmdType)) {
       whereInfo.wrapCmdType = wrapCmdType;
     }
@@ -505,7 +514,7 @@ class CommandManager {
       this.cmdStrategy.isPossibleSaveComplexCommand(complexCmdWrapInfo);
 
       // 계측 명령이라면 실제 제어목록 산출하지 않음
-      if (wrapCmdType === reqWrapCmdType.MEASURE) {
+      if (wrapCmdType === reqWCT.MEASURE) {
         complexCmdWrapInfo.realContainerCmdList = containerCmdList;
       } else {
         // 제어하고자 하는 장치 중에 이상있는 장치 여부 검사
@@ -540,11 +549,11 @@ class CommandManager {
       complexCmdWrapInfo.wrapCmdStep = complexCmdStep.WAIT;
 
       // 명령 취소가 요청이 정상적으로 처리되었다면 기존 제어 명령은 제거 처리
-      if (wrapCmdType === reqWrapCmdType.CANCEL) {
+      if (wrapCmdType === reqWCT.CANCEL) {
         // 명령이 존재하는 index 조회
         const foundIndex = _.findIndex(this.complexCmdList, {
           wrapCmdId,
-          wrapCmdType: reqWrapCmdType.CONTROL,
+          wrapCmdType: reqWCT.CONTROL,
         });
 
         // 만약 Threshold Goal가 존재한다면 제거
@@ -654,7 +663,7 @@ class CommandManager {
     eleCmdInfo.hasComplete = true;
 
     // 계측 명령이 아닐 경우 단위 명령 추적 삭제.
-    if (wrapCmdType !== reqWrapCmdType.MEASURE) {
+    if (wrapCmdType !== reqWCT.MEASURE) {
       // Overlap Status Reserverd Element Command UUID 모두 삭제
       this.cmdOverlapManager.getOverlapStatusWithECU(dcCmdUUID).forEach(overlapStatus => {
         overlapStatus.resetReservedECU();

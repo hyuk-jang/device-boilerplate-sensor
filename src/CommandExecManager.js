@@ -177,6 +177,8 @@ class CommandExecManager {
         rank = definedCommandSetRank.SECOND,
       } = reqFlowCmdInfo;
 
+      // BU.CLI(reqFlowCmdInfo)
+
       // 세부 명령 흐름 조회
       const flowCmdDestInfo = this.model.findFlowCommand(reqFlowCmdInfo);
       // 세부 흐름 명령이 존재하지 않을 경우
@@ -190,8 +192,11 @@ class CommandExecManager {
         wrapCmdType,
         wrapCmdId: flowCmdDestInfo.cmdId,
         wrapCmdName: flowCmdDestInfo.cmdName,
+        srcPlaceId,
+        destPlaceId,
         reqCmdEleList: this.makeControlEleCmdList(flowCmdDestInfo, rank),
         wrapCmdGoalInfo,
+        rank,
       };
 
       return this.executeCommand(reqCommandOption);

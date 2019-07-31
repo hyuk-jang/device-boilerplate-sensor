@@ -25,7 +25,7 @@ class PlaceNode extends PlaceComponent {
       minValue,
       callPlaceRankList = [],
       putPlaceRankList = [],
-      groupPlaceList,
+      groupPlaceList = [],
     } = thresholdConfigInfo;
 
     this.maxValue = maxValue;
@@ -189,6 +189,8 @@ class PlaceNode extends PlaceComponent {
    */
   updateNode() {
     const { data } = this.nodeInfo;
+
+    // BU.CLI('updateNode', data);
 
     let nextNodeStatus;
 

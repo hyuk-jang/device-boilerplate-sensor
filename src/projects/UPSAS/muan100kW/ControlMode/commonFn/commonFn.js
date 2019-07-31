@@ -9,7 +9,7 @@ const CoreFacade = require('../../../../../core/CoreFacade');
 const { nodeDefIdInfo: ndId } = AbstAlgorithm;
 
 const {
-  dcmConfigModel: { reqWrapCmdType: reqWCT, placeNodeStatus, goalDataRange },
+  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, placeNodeStatus, goalDataRange },
 } = CoreFacade;
 
 const coreFacade = new CoreFacade();
@@ -24,56 +24,54 @@ const cancelFlowCmdTypeInfo = {
 module.exports = {
   /**
    * 실행 중인 흐름 명령 취소
-   * @param {complexCmdWrapInfo|complexCmdWrapInfo[]} wrapCommand
+   * @param {CmdStorage[]} cmdStorageList
    */
-  cancelWaterFlow(wrapCommand, cancelFlowCmdType = cancelFlowCmdTypeInfo.BOTH) {
-    if (_.isEmpty(wrapCommand)) return true;
-    // BU.CLI('cancelFlowCommandWaterSupply');
-    // BU.CLIN(wrapCommand);
-    if (Array.isArray(wrapCommand) && wrapCommand.length) {
-      return wrapCommand.forEach(wrapCmdInfo =>
-        this.cancelWaterFlow(wrapCmdInfo, cancelFlowCmdType),
-      );
-    }
-    // 해당 염수 이동 명령 삭제 요청
-    const cloneWrapCmdInfo = _.clone(wrapCommand);
-    cloneWrapCmdInfo.wrapCmdType = reqWCT.CANCEL;
-    // BU.CLIN(cloneWrapCmdInfo)
-    coreFacade.executeFlowControl(cloneWrapCmdInfo);
+  cancelWaterFlow(cmdStorageList, cancelFlowCmdType = cancelFlowCmdTypeInfo.BOTH) {
+    if (_.isEmpty(cmdStorageList)) return true;
 
-    switch (cancelFlowCmdType) {
-      case cancelFlowCmdTypeInfo.DRAINAGE:
-        // 급수지 노드 목록 업데이트
-        this.emitReloadPlaceStorage(cloneWrapCmdInfo.destPlaceId);
-        break;
-      case cancelFlowCmdTypeInfo.WATER_SUPPLY:
-        // 배수지 노드 목록 업데이트
-        this.emitReloadPlaceStorage(cloneWrapCmdInfo.srcPlaceId);
-        break;
-      case cancelFlowCmdTypeInfo.BOTH:
-        // 배수지 노드 목록 업데이트
-        this.emitReloadPlaceStorage(cloneWrapCmdInfo.srcPlaceId);
-        this.emitReloadPlaceStorage(cloneWrapCmdInfo.destPlaceId);
-        break;
-      default:
-        break;
-    }
+    cmdStorageList.forEach(cmdStorage => {
+      const { srcPlaceId, destPlaceId } = cmdStorage;
+      coreFacade.executeFlowControl({
+        srcPlaceId,
+        destPlaceId,
+        wrapCmdType: reqWCT.CANCEL,
+      });
+
+      // // BU.CLI(cancelFlowCmdType);
+      // switch (cancelFlowCmdType) {
+      //   case cancelFlowCmdTypeInfo.DRAINAGE:
+      //     // 급수지 노드 목록 업데이트
+      //     this.emitReloadPlaceStorage(destPlaceId);
+      //     break;
+      //   case cancelFlowCmdTypeInfo.WATER_SUPPLY:
+      //     // 배수지 노드 목록 업데이트
+      //     this.emitReloadPlaceStorage(srcPlaceId);
+      //     break;
+      //   case cancelFlowCmdTypeInfo.BOTH:
+      //     // 배수지 노드 목록 업데이트
+      //     this.emitReloadPlaceStorage(srcPlaceId);
+      //     this.emitReloadPlaceStorage(destPlaceId);
+      //     break;
+      //   default:
+      //     break;
+      // }
+    });
   },
 
   /**
    * 실행 중인 급수 명령 취소
-   * @param {complexCmdWrapInfo|complexCmdWrapInfo[]} wrapCommand
+   * @param {CmdStorage[]} cmdStorageList
    */
-  cancelWaterSupply(wrapCommand) {
-    this.cancelWaterFlow(wrapCommand, cancelFlowCmdTypeInfo.WATER_SUPPLY);
+  cancelWaterSupply(cmdStorageList) {
+    this.cancelWaterFlow(cmdStorageList, cancelFlowCmdTypeInfo.WATER_SUPPLY);
   },
 
   /**
    * 실행 중인 배수 명령 취소
-   * @param {complexCmdWrapInfo|complexCmdWrapInfo[]} wrapCommand
+   * @param {CmdStorage[]} cmdStorageList
    */
-  cancelDrainage(wrapCommand) {
-    this.cancelWaterFlow(wrapCommand, cancelFlowCmdTypeInfo.DRAINAGE);
+  cancelDrainage(cmdStorageList) {
+    this.cancelWaterFlow(cmdStorageList, cancelFlowCmdTypeInfo.DRAINAGE);
   },
 
   /**
@@ -86,22 +84,33 @@ module.exports = {
     // 급수지 ID
     const waterSupplyPlaceId = placeNode.getPlaceId();
 
-    const currFlowCmds = coreFacade.getFlowCommandList(null, waterSupplyPlaceId, reqWCT.CONTROL);
+    const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      destPlaceId: waterSupplyPlaceId,
+      wrapCmdType: reqWCT.CONTROL,
+    });
+
+    // const currFlowCmds = coreFacade.getFlowCommandList(null, waterSupplyPlaceId, reqWCT.CONTROL);
+
+    // BU.CLIN(currFlowCmds);
 
     // 진행 중인 배수 명령이 존재하지 않는다면 false
-    if (!currFlowCmds.length) return false;
+    if (!cmdStorageList.length) return false;
 
-    // 배수를 진행하고 있는 명령 들 중 목표치가 없거나 달성됐다면 취소를 함
-    currFlowCmds.forEach(flowCmdInfo => {
-      // 목표치 확인은 있으나 아직 임계에 도달하지 못한다면 취소 명령 하지 않음
-      if (isGoalConfirm && !coreFacade.isThreCmdClear(flowCmdInfo)) {
-        return;
+    // 배수를 진행하고 있는 명령 들 중 조건에 따라 취소
+    cmdStorageList.forEach(cmdStorage => {
+      // 임계 명령을 체크하지 않을 경우
+      if (!isGoalConfirm) {
+        this.cancelWaterSupply([cmdStorage]);
       }
-      this.cancelWaterSupply(flowCmdInfo);
+      // // 목표치 확인은 있으나 아직 임계에 도달하지 못한다면 취소 명령 하지 않음
+      //   if (isGoalConfirm && !coreFacade.isThreCmdClear(cmdStorage)) {
+      //     return;
+      //   }
+      // this.cancelWaterSupply(cmdStorage);
     });
     // 명령을 취소 처리할 수 있는 사항에 대해서 취소하였어도 남아있는 제어 명령이 있을경우 false
 
-    return coreFacade.getFlowCommandList(null, waterSupplyPlaceId, reqWCT.CONTROL).length;
+    // return coreFacade.getFlowCommandList(null, waterSupplyPlaceId, reqWCT.CONTROL).length;
   },
 
   /**
@@ -113,22 +122,40 @@ module.exports = {
   cancelDrainageWithAlgorithm(placeNode, isGoalConfirm) {
     // 배수지 장소 Id
     const drainagePlaceId = placeNode.getPlaceId();
+
+    const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      srcPlaceId: drainagePlaceId,
+      wrapCmdType: reqWCT.CONTROL,
+    });
+
     // 실행 중인 염수 이동 명령 목록을 가져옴
-    const currFlowCmds = coreFacade.getFlowCommandList(drainagePlaceId, null, reqWCT.CONTROL);
+    // const currFlowCmds = coreFacade.getFlowCommandList(drainagePlaceId, null, reqWCT.CONTROL);
 
     // 진행 중인 배수 명령이 존재하지 않는다면 false
-    if (!currFlowCmds.length) return false;
+    if (!cmdStorageList.length) return false;
+
+    cmdStorageList.forEach(cmdStorage => {
+      // 임계 명령을 체크하지 않을 경우
+      if (!isGoalConfirm) {
+        this.cancelWaterSupply([cmdStorage]);
+      }
+      // // 목표치 확인은 있으나 아직 임계에 도달하지 못한다면 취소 명령 하지 않음
+      //   if (isGoalConfirm && !coreFacade.isThreCmdClear(cmdStorage)) {
+      //     return;
+      //   }
+      // this.cancelWaterSupply(cmdStorage);
+    });
 
     // 배수를 진행하고 있는 명령 들 중 목표치가 없거나 달성됐다면 취소를 함
-    currFlowCmds.forEach(flowCmdInfo => {
-      // 목표치 확인은 있으나 아직 임계에 도달하지 못한다면 취소 명령 하지 않음
-      if (isGoalConfirm && !coreFacade.isThreCmdClear(flowCmdInfo)) {
-        return;
-      }
-      this.cancelDrainage(flowCmdInfo);
-    });
-    // 명령을 취소 처리할 수 있는 사항에 대해서 취소하였어도 남아있는 제어 명령이 있을경우 false
-    return coreFacade.getFlowCommandList(drainagePlaceId, null, reqWCT.CONTROL).length;
+    // currFlowCmds.forEach(flowCmdInfo => {
+    //   // 목표치 확인은 있으나 아직 임계에 도달하지 못한다면 취소 명령 하지 않음
+    //   if (isGoalConfirm && !coreFacade.isThreCmdClear(flowCmdInfo)) {
+    //     return;
+    //   }
+    //   this.cancelDrainage(flowCmdInfo);
+    // });
+    // // 명령을 취소 처리할 수 있는 사항에 대해서 취소하였어도 남아있는 제어 명령이 있을경우 false
+    // return coreFacade.getFlowCommandList(drainagePlaceId, null, reqWCT.CONTROL).length;
   },
 
   /**
@@ -215,6 +242,7 @@ module.exports = {
    * @param {string} placeId Node Definition ID, 없을 경우 전체 갱신
    */
   emitReloadPlaceStorage(placeId) {
+    // BU.CLI('emitReloadPlaceStorage', placeId);
     coreFacade.reloadPlaceStorage(placeId, [
       ndId.SALINITY,
       ndId.MODULE_REAR_TEMPERATURE,

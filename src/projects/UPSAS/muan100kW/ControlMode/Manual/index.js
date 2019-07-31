@@ -1,3 +1,5 @@
+const { BU } = require('base-util-jh');
+
 const WaterLevel = require('./WaterLevel');
 const Salinity = require('./Salinity');
 const ModuleRearTemp = require('./ModuleRearTemp');
@@ -7,7 +9,7 @@ const AbstAlgorithm = require('../AbstAlgorithm');
 const CoreFacade = require('../../../../../core/CoreFacade');
 
 const {
-  constructorInfo: { PlaceNode },
+  dcmConfigModel: { placeNodeStatus: nodeStatus },
 } = CoreFacade;
 
 class ConcreteAlgorithm extends AbstAlgorithm {
@@ -29,6 +31,7 @@ class ConcreteAlgorithm extends AbstAlgorithm {
    */
   updateControlMode() {
     const coreFacade = new CoreFacade();
+
     // 현재 명령 모드가 수동이 아니라면 수동 명령 모드로 변경
     if (coreFacade.getCurrCmdStrategyType() !== this.cmdStrategyName) {
       coreFacade.changeCmdStrategy(this.cmdStrategyName);
@@ -43,8 +46,6 @@ class ConcreteAlgorithm extends AbstAlgorithm {
   handleUpdateNode(coreFacade, placeNode) {
     try {
       const { nodeDefIdInfo } = AbstAlgorithm;
-
-      const { nodeStatusInfo: nodeStatus } = PlaceNode;
 
       const currNodeDefId = placeNode.getNodeDefId();
 
