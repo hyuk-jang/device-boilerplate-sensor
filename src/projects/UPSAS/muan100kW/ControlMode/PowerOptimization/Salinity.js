@@ -38,7 +38,7 @@ class Salinity extends PlaceThreshold {
    */
   handleUpperLimitOver(coreFacade, placeNode) {
     try {
-      // BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
+      BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
 
       // 염도 임계치 달성 시 이동할 장소 그룹
       const placeStorageList = placeNode.getGroupPlaceList();
@@ -80,6 +80,8 @@ class Salinity extends PlaceThreshold {
       // 재급수를 해야할 최소 염수량(재급수 필요 염수량 - 최저 염수량 - 배수 후 남아있는 염수량)
       const needWaterVolume =
         drainageWVInfo.drainageAfterNeedWV - drainageWVInfo.minWV - waterSupplyInfo.drainageAfterWV;
+
+      BU.CLI(needWaterVolume);
 
       // 배수지에서 염수를 이동 후 적정 수위로 복원해줄 수 있는 해주 탐색(Base Place)
       const foundDrainagePlace = salinityFn.getDrainageAblePlace(placeNode, needWaterVolume);

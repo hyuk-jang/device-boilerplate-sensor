@@ -810,15 +810,29 @@ describe('염도 임계치 처리 테스트', function() {
    *  [SEB_6_TO_BW_4,SEB_7_TO_BW_4,SEB_8_TO_BW_4](R_CON)  ::: 달성 목표: SEB_WL_TMU
    *  >>> [SEB_6_TO_BW_4][RUNNING], [SEB_7_TO_BW_4][RUNNING],[SEB_8_TO_BW_4][RUNNING]
    * 3. 데이터를 초기 상태로 돌리고 해주 2, 3의 수위를 20cm로 맞춤
-   *  DPs_2.WL = 5cm, BW_2.WL = 20, BW_3.WL = 20
+   *  DPs_2.WL = 5cm, BW_2.WL = 110, BW_3.WL = 20
    *  진행 중인 DPs_2_TO_BW_4 명령 취소
    *    명령 취소: [SEB_6_TO_BW_4](R_CAN), [SEB_7_TO_BW_4](R_CAN), [SEB_8_TO_BW_4](R_CAN)
    *  <test> 명령이 순차적으로 해제될 때 누적 카운팅이 최종적으로 해제되는 장치 Close 처리
    *  >>> [SEB_6_TO_BW_4][CANCELING] -> ['GV_115'](CLOSE)
    *  >>> [SEB_7_TO_BW_4][CANCELING] -> ['GV_117'](CLOSE)
    *  >>> [SEB_8_TO_BW_4][CANCELING] -> ['GV_119','GV_103'](CLOSE)
-   *  DPs_2.S = 20
-   *  <test> BP(BW_3)의 염수가 부족하기 때문에 BP에 염수를 댈 수 있는 배급수 실행
+   *  DPs_2.S = 20,
+   *  DPs_2 >>> drainageAfterNeedWV: 12, drainageAfterWV: 6, minWV: 3, setWV: 15, lowerLimitWV: 9
+   *  BW_4.waterSupplyAbleWV: 6, DPs_2.drainageAfterWV: 6
+   *  DPs_2.needWaterVolume: drainageAfterNeedWV - minWV - drainageAfterWV = 3
+   *  BW_3.WL: 110, BW_3.drainageAbleWV: 27
+   *  <test> 배급수 조건 고려 시 BP(BW_3)의 염수가 부족할 경우 BP에 염수를 댈 수 있는 배급수 실행
+   *  >>> [SEB_1_TO_BW_3][COMPLETE], [SEB_2_TO_BW_3][COMPLETE],[SEB_3_TO_BW_3][COMPLETE]
+   *  >>> [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE]
+   * 4. BW_2.WL = 20, [DPs_1_TO_BW3](R_CAN)
+   *  <test> 배급수 조건 고려 시 BP(BW_3)의 염수가 부족할 경우 BP에 염수를 댈 수 있는 배급수 실행
+   *  >>> [SEB_1_TO_BW_3][CANCELING] -> ['GV_105'](CLOSE)
+   *  >>> [SEB_2_TO_BW_3][CANCELING] -> ['GV_107'](CLOSE)
+   *  >>> [SEB_3_TO_BW_3][CANCELING] -> ['GV_109'](CLOSE)
+   *  >>> [SEB_4_TO_BW_3][CANCELING] -> ['GV_111'](CLOSE)
+   *  >>> [SEB_5_TO_BW_3][CANCELING] -> ['GV_113','GV_104','GV_102'](CLOSE)
+   *    DPs_1.BP 인 BW_2.drainageAbleWV: 1.8 이므로 명령 실행 불가, BW_2 급수 요청 명령 요청
    *    [NEB_2_TO_BW_2](R_CON)
    */
   it.only('염도 상한선 도달에 따른 자동 염수 이동', async () => {
@@ -928,6 +942,7 @@ describe('염도 임계치 처리 테스트', function() {
         }
       });
     }
+
     // * 1. BW 2 ~ 4의 수위를 140cm로 설정, DPs_1.WL = 5, DPs_1.S = 12 설정
     control.notifyDeviceData(null, [
       setNodeData(pn_WL_BW_2, 140),
@@ -968,6 +983,7 @@ describe('염도 임계치 처리 테스트', function() {
     // *  BW_4.WL = 100cm, SEP_7.S = 20
     // setPlaceStorage(DPs_2, 4);
     // 배급수를 하기에 충분한 염수가 준비되어 있으므로 명령 실행됨.
+
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_4, 100), setNodeData(pn_S_SEB_7, 20)]);
 
     // *  <test> DPs_2의 현재 염수량과 WSP이 허용하는 염수량의 차를 구하여 DP의 남아있는 염수량 계산
@@ -1007,9 +1023,9 @@ describe('염도 임계치 처리 테스트', function() {
     BU.CLI('TC_5 >>> 2 단계 완료');
 
     // * 3. 데이터를 초기 상태로 돌리고 해주 2, 3의 수위를 20cm로 맞춤
-    // *  DPs_2.WL = 5cm, DPs_2.S = 10, BW_2.WL = 20, BW_3.WL = 20
+    // *  DPs_2.WL = 5cm, DPs_2.S = 10, BW_2.WL = 100, BW_3.WL = 20
     setPlaceStorage(DPs_2, 5, 10);
-    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_2, 20)]);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_2, 100)]);
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_3, 20)]);
 
     // *  진행 중인 DPs_2_TO_BW_4 명령 취소
