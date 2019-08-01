@@ -75,6 +75,7 @@ module.exports = {
    */
   reqWaterSupply(waterSupplyInfo, finalWaterSupplyPlace) {
     const { waterSupplyPlace, thresholdKey } = waterSupplyInfo;
+    // BU.CLI(waterSupplyPlace.getPlaceId(), thresholdKey);
     let { needWaterVolume } = waterSupplyInfo;
     // 급수 가능한 염수량이 없을 경우 계산
     if (!_.isNumber(needWaterVolume)) {
@@ -102,6 +103,7 @@ module.exports = {
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (drainagePlace !== finalWaterSupplyPlace) {
         const drainageWV = this.getDrainageAbleWVInfo(drainagePlace);
+        // BU.CLI(drainagePlace.getPlaceId(), drainageWV, needWaterVolume);
         // BU.CLI(needWaterVolume, drainageWV);
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
         if (drainageWV.drainageAbleWV >= needWaterVolume) {
@@ -237,8 +239,8 @@ module.exports = {
 
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (waterSupplyPlace !== finalDrainagePlace) {
-        const waterSupplyAbleWV = this.getWaterSupplyAbleWV(waterSupplyPlace);
-        // BU.CLI(waterSupplyAbleWV, needWaterVolume);
+        const waterSupplyAbleWV = this.getWaterSupplyAbleWV(waterSupplyPlace, thresholdKey);
+        BU.CLI(waterSupplyAbleWV, needWaterVolume);
 
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
         if (waterSupplyAbleWV >= needWaterVolume) {
@@ -290,7 +292,7 @@ module.exports = {
       // 재급수 최소 필요 수위 = 하한선 + (설정 - 하한선) / 2
       drainageAfterNeedWV: 0,
     };
-
+    // BU.CLI(drainagePlace.getPlaceId(), thresholdKey);
     // 배수 수위가 설정 수위이고 값이 존재하고 수위 상한선이 존재할 경우
     if (thresholdKey === pNS.NORMAL && _.isNumber(setValue) && _.isNumber(upperLimitValue)) {
       // 그 중간값을 최소 배수 염수량이라고 정함
@@ -337,6 +339,7 @@ module.exports = {
       drainageWVInfo.drainageAfterNeedWV = drainageWVInfo.setWV;
     }
 
+    // BU.CLI(drainageWVInfo);
     return drainageWVInfo;
   },
 
@@ -347,8 +350,8 @@ module.exports = {
    * @param {PlaceStorage} waterSupplyPlace
    * @param {string=} thresholdKey
    */
-  getWaterSupplyAbleWV(waterSupplyPlace, thresholdKey = pNS.MAX_OVER) {
-    // BU.CLI(placeStorage.getPlaceId());
+  getWaterSupplyAbleWV(waterSupplyPlace, thresholdKey) {
+    // BU.CLI(waterSupplyPlace.getPlaceId(), thresholdKey);
     try {
       const placeNode = waterSupplyPlace.getPlaceNode(ndId.WATER_LEVEL);
       // 해당 장소에 수위가 없다면 무한대로 받을 수 있다고 가정(바다)
@@ -364,6 +367,24 @@ module.exports = {
       const currValue = placeNode.getNodeValue();
       // 하한선
       const lowerLimitValue = placeNode.getLowerLimitValue();
+      // // 최저치
+      // const minValue = placeNode.getMinValue();
+
+      // const waterSupplyWVInfo = {
+      //   // 최저 수위에 맞출 경우 염수량
+      //   minWV: _.isNumber(minValue) ? commonFn.getCubicMeter(placeNode, minValue) : 0,
+      //   // 하한선 수위에 맞출 경우 필요 염수량
+      //   lowerLimitWV: _.isNumber(lowerLimitValue)
+      //     ? commonFn.getCubicMeter(placeNode, lowerLimitValue)
+      //     : 0,
+      //   // 설정 수위에 맞출 경우 필요 염수량
+      //   setWV: _.isNumber(setValue) ? commonFn.getCubicMeter(placeNode, setValue) : 0,
+      //   // 급수를 최대 할 수 있는 염수량
+      //   waterSupplyAbleWV: 0,
+      //   // 현재 장소에 재급수를 하였을 경우 필요한 최소 염수량
+      //   // 재급수 최소 필요 수위 = 하한선 + (설정 - 하한선) / 2
+      //   waterSupply: 0,
+      // };
 
       // 급수 수위가 설정 수위이며 값이 존재하고 수위 하한선이 존재할 경우
       if (thresholdKey === pNS.NORMAL && _.isNumber(setValue) && _.isNumber(lowerLimitValue)) {

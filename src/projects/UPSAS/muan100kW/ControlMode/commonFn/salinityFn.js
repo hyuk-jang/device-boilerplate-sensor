@@ -93,16 +93,17 @@ module.exports = {
    * 원천지(Base Place)로부터 염수를 공급 받을 수 있는 급수지를 찾고 결과를 예상한 후 반환
    * @param {PlaceNode} waterSupplyPlaceNode 임계 염도가 발생한 원천 염도 노드
    * @param {number} needWaterVolume 받아야 하는 염수량 (m3)
+   * @return {PlaceStorage[]|PlaceStorage[][]}
    */
   getDrainageAblePlace(waterSupplyPlaceNode, needWaterVolume) {
     // BU.CLI(waterSupplyPlaceNodeS.getPlaceId(), needWaterVolume);
     // 급수지의 장소 정보와 수용 가능한 급수량
-    let drainagePlace = null;
+    let drainagePlace;
 
     const placeNodeWL = waterSupplyPlaceNode.getPlaceNode(ndId.WATER_LEVEL);
 
     // 염도 임계치 목록 중에서 염수 이동이 가능한 급수지를 찾음
-    _.find(placeNodeWL.getCallPlaceRankList(), drainageStorage => {
+    _.some(placeNodeWL.getCallPlaceRankList(), drainageStorage => {
       // 급수지에서 받을 수 있는 염수량 계산
       const drainageWVInfo = waterFlowFn.getDrainageAbleWVInfo(drainageStorage, pNS.MIN_UNDER);
 

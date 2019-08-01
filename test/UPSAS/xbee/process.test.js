@@ -37,6 +37,8 @@ const control = main.createControl(config);
 const coreFacade = new CoreFacade();
 // const control = new MuanControl(config);
 
+const defaultTimeout = 10;
+
 const pId = {
   RV: 'RV',
   SEA: 'SEA',
@@ -103,7 +105,7 @@ function convertConToCan(reqFlowCmdInfo) {
 
 // 수동 전략
 describe('Manual Strategy', function() {
-  this.timeout(5000);
+  this.timeout(5000 * defaultTimeout);
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
@@ -304,7 +306,7 @@ describe('Manual Strategy', function() {
 
 // 누적 카운팅 전략
 describe('OverlapCount Strategy', function() {
-  this.timeout(10000);
+  this.timeout(10000 * defaultTimeout);
 
   /** @type {reqFlowCmdInfo} 저수지 > 증발지 1-A */
   const RV_TO_SEB_1_A = {
@@ -469,13 +471,6 @@ describe('OverlapCount Strategy', function() {
     // *      명령 요청 >>> [RV_TO_SEB_1_A](R_CAN). ['V_001_Close'](R_RES)
     const cs_can_RV_TO_SEB_1_A = control.executeFlowControl(convertConToCan(RV_TO_SEB_1_A));
 
-    expect(getNodeIds(cs_can_RV_TO_SEB_1_A, sConV.REAL_TRUE)).to.deep.eq([
-      'V_006',
-      'V_001',
-      'P_002',
-    ]);
-
-    await eventToPromise(control, cmdStep.RESTORE);
     expect(getNodeIds(cs_can_RV_TO_SEB_1_A, sConV.REAL_FALSE)).to.deep.eq(['V_001']);
 
     // 명령 취소 상태로 변경됨

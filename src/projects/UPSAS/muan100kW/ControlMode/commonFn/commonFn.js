@@ -231,6 +231,7 @@ module.exports = {
         thresholdValue = placeStorage.getSetValue(nodeDefId);
         break;
       default:
+        thresholdValue = 0;
         break;
     }
 

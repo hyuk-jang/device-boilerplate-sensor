@@ -110,7 +110,7 @@ class WaterLevel extends PlaceThreshold {
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
   handleLowerLimitUnder(coreFacade, placeNode) {
-    // BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
+    BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
     try {
       // 진행중인 배수 명령 취소 및 남아있는 배수 명령 존재 여부 반환
       // 배수지 장소 Id
@@ -128,6 +128,7 @@ class WaterLevel extends PlaceThreshold {
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청
+      // BU.CLI('waterFlowFn.reqWaterFlow');
       waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, placeNodeStatus.NORMAL);
     } catch (error) {
       // BU.CLIN(error);
@@ -163,6 +164,8 @@ class WaterLevel extends PlaceThreshold {
 
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
+
+      // BU.CLI(thresholdInfo);
       // 임계 정보에 대한 염수 이동 명령 요청
       waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, placeNodeStatus.NORMAL);
     } catch (error) {

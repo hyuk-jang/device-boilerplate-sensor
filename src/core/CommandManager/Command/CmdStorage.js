@@ -109,15 +109,11 @@ class CmdStorage extends CmdComponent {
 
       // 이미 모든 명령을 완료한 상태라면 즉시 복원 명령 요청
       if (this.isCommandClear()) {
-        // setImmediate의 틈을 비집고 들어올까봐 초기화
-        this.cmdElements = [];
-        return setImmediate(() => {
-          this.restoreCommand();
-        });
+        return this.restoreCommand();
       }
 
       // 명령 단계를 CANCELING으로 교체
-      BU.CLI('명령 단계 CANCELING');
+      // BU.CLI('명령 단계 CANCELING');
       this.updateCommandStep(cmdStep.CANCELING);
 
       // 아직 완료되지 못한 개체 취소 요청
@@ -412,7 +408,7 @@ class CmdStorage extends CmdComponent {
 
   /** @param {ThreCmdStorage} threCmdStorage */
   handleThresholdClear() {
-    // BU.CLI('handleThresholdClear', this.wrapCmdId);
+    BU.CLI('handleThresholdClear', this.wrapCmdId);
     // 임계 명령 삭제
     this.removeThreshold();
 

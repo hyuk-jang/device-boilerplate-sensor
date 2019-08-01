@@ -258,11 +258,11 @@ describe('수위 임계치 처리 테스트', function() {
     // *    급수지 수위 최대치 >>> [BW_5_TO_NCB](R_CAN)
 
     // 복원 단계 대기
-    await eventToPromise(control, cmdStep.RESTORE);
-    // 아직 복원 명령 전이므로 * REAL_TRUE: [], IGNORE_TRUE: []
-    expect(getNodeIds(cs_BW_5_To_NCB, sConV.REAL_TRUE)).to.deep.equal([]);
-    // * REAL_FALSE: ['P_013], IGNORE_FALSE: []
-    expect(getNodeIds(BW_5_To_NCB_WC_CONTROL, sConV.REAL_FALSE)).to.deep.equal(['P_013']);
+    // await eventToPromise(control, cmdStep.RESTORE);
+    // // 아직 복원 명령 전이므로 * REAL_TRUE: [], IGNORE_TRUE: []
+    // expect(getNodeIds(cs_BW_5_To_NCB, sConV.REAL_TRUE)).to.deep.equal([]);
+    // // * REAL_FALSE: ['P_013], IGNORE_FALSE: []
+    // expect(getNodeIds(BW_5_To_NCB_WC_CONTROL, sConV.REAL_FALSE)).to.deep.equal(['P_013']);
 
     // 종료 단계 대기
     await eventToPromise(control, cmdStep.END);
@@ -524,7 +524,6 @@ describe('수위 임계치 처리 테스트', function() {
     control.notifyDeviceData(null, [setNodeData(pn_WL_NEB_2, 10)]);
     // *    목표 달성 >>> [NEB_2_TO_BW_1](R_CAN)
     // const cs_can_NEB_2_TO_BW_1 = await eventToPromise(control, cmdStep.CANCELING);
-    await eventToPromise(control, cmdStep.RESTORE);
     // *  >>> [NEB_2_TO_BW_1][END]
     await eventToPromise(control, cmdStep.END);
 
@@ -559,7 +558,7 @@ describe('수위 임계치 처리 테스트', function() {
     // *    일반 증발지 1 수위 하한선 >>> [RV_TO_NEB_1](R_CON) :: 달성 목표: 급수지(일반 증발지 1) 수위 10cm 이상
     // *  >>> [RV_TO_NEB_1][RUNNING]
     /** @type {CmdStorage} */
-    let cs_RV_TO_NEB_1 = await eventToPromise(control, cmdStep.RUNNING);
+    const cs_RV_TO_NEB_1 = await eventToPromise(control, cmdStep.RUNNING);
     expect(getFlowCmd(pId.RV_1, pId.NEB_1).wrapCmdType).to.eq(reqWCT.CONTROL);
 
     BU.CLI('TC_2 >>> 5 단계 완료');
@@ -580,7 +579,6 @@ describe('수위 임계치 처리 테스트', function() {
     // *    목표 달성 >>> [RV_TO_NEB_1](R_CAN)
     expect(getFlowCmd(pId.RV_1, pId.NEB_1).wrapCmdType).to.eq(reqWCT.CANCEL);
 
-    cs_RV_TO_NEB_1 = await eventToPromise(control, cmdStep.RESTORE);
     // *  >>> [RV_TO_NEB_1][END]
     await eventToPromise(control, cmdStep.END);
 
@@ -601,6 +599,10 @@ describe('수위 임계치 처리 테스트', function() {
    * 급수지에서 염수를 받을 배수지가 동시에 다수인 경우 다수 명령 생성
    * 급수지에서 염수를 수급받을 배수지 모두가 염수가 최저치일 경우 배수지에 채우는 명령(멀티)
    * @description
+   *      해주 1 BW_WV: 12m * 3m * 1.5m = 54 m3, 0.1m 당 3.6 m3
+   *      해주 2 BW_WV: 9m * 3m * 1.5m = 40.5 m3, 0.1m 당 2.7 m3
+   *      해주 3, 4 BW_WV: 4m * 3m * 1.5m = 18 m3, 0.1m 당 1.2 m3
+   *      수중태양광 증발지 SEB_WV: 3.56m * 28m * 0.15m = 14.95 m3 = 15 m3, 0.01 m 당 1 m3
    * @tutorial
    * 1. NEB_2의 급수 순위를 [BW_1,NEB_1]에서 [[BW_1,NEB_1]]로 변경
    *    NEB_2.callPlaceRankList = [[BW_1,NEB_1]]
@@ -613,13 +615,34 @@ describe('수위 임계치 처리 테스트', function() {
    *  <test> 동시 명령 중 목표 완료 시 동시 종료 테스트
    *    일반 증발지 2 목표 달성 >>> [BW_1_TO_NEB_2,NEB_1_TO_NEB_2](R_CAN)
    *  >>> [BW_1_TO_NEB_2][END], [NEB_1_TO_NEB_2][END]
-   * 3. BW_3.WL = 10 (최저치) SEB_6.WL = 2 (하한선)
+   * 3. BW_3.WL = 20,  SEB_6.WL = 2 (하한선)
    *  <test> 급수지에 염수를 (하한선 + (Set - 하한선)/2) 공급할 수 없을 경우
    *          급수지와 동일하지 않은 1순위 배수지로 염수 이동 요청(멀티)
+   *    BW_3.AbleWV: 1.2 m3, SEB_6.WV: (3 + (5-3)/2) - 2 = 2 m3
    *    SEB_6.WL 하한선 > BW_3.WL 염수 이동 조건 불가 > [SEB_1,SEB_2,SEB_3,SEB_4,SEB_5][TO_BW_3](R_CON)
    * 급수 강제 이동은 Goal이 없기 때문에 명령 단계: Complete
-   *  >>> [SEB_1_TO_BW_3][COMPLETE], [SEB_2_TO_BW_3][COMPLETE],[SEB_3_TO_BW_3][COMPLETE]
-   *  >>> [SEB_4_TO_BW_3][COMPLETE],[SEB_5_TO_BW_3][COMPLETE],
+   *  >>> [SEB_1_TO_BW_3][COMPLETE], [SEB_2_TO_BW_3][COMPLETE], [SEB_3_TO_BW_3][COMPLETE]
+   *  >>> [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE],
+   * 4. BW_2.WL = 20, SEB_1.WL = 0, SEB_2.WL = 0,
+   *  <test> 동시 명령 중 목표 달성 시 개별 취소
+   *    SEB_1.WL, SEB_2.WL 수위 최저치로 인한 명령 취소
+   *  >>> [SEB_1_TO_BW_3][END], [SEB_2_TO_BW_3][END], [SEB_3_TO_BW_3][COMPLETE]
+   *  >>> [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE],
+   *  <test> DP 염수 부족으로 인한 BP(단일) 강제 급수 진행
+   *    BW_2.WL: 20, BW_2.Able_WV: (20-10) * 0.27 = 2.7 m3, SEB_1.Need_WV: (3 + (5-3)/2) = 4 m3
+   *    BW_2.Able_WV(2.7) < SEB_1.Need_WV(4) 이므로 DP 강제 급수 진행
+   *      강제 요청 >>> [NEB_2_TO_BW_2](R_CON), 강제 급수이므로 목표치 없음
+   *       2번 요청 일어나나 1번은 무시
+   *  >>> [SEB_3_TO_BW_3][COMPLETE], [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE],
+   *  >>> [NEB_2_TO_BW_2][COMPLETE]
+   * 5. BW_2.WL = 30, SEB_1.WL = 0, SEB_2.WL = 0,
+   *  <test> 급수 요건 고려 시 개별적으로 고려.
+   *    SEB_1.Need_WV: 4, SEB_2.Need_WV: 4, BW_2.Able_WV: (30-10) * 0.27 = 5.4 m3,
+   *    합산 처리하면 불가능하나 개별적으로 보면 4 < 5.7 이므로 염수 이동
+   *  >>> [SEB_3_TO_BW_3][COMPLETE], [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE],
+   *  >>> [NEB_2_TO_BW_2][COMPLETE],
+   *  >>> [BW_2_TO_SEB_1][RUNNING], [BW_2_TO_SEB_2][RUNNING]
+   *
    */
   it('염수 그룹화 이동', async () => {
     const { placeManager } = control.model;
@@ -658,6 +681,9 @@ describe('수위 임계치 처리 테스트', function() {
     // 수중 증발지 1
     const ps_SEB_1 = placeManager.findPlace(pId.SEB_1);
     const pn_WL_SEB_1 = ps_SEB_1.getPlaceNode(ndId.WL);
+    // 수중 증발지 2
+    const ps_SEB_2 = placeManager.findPlace(pId.SEB_2);
+    const pn_WL_SEB_2 = ps_SEB_2.getPlaceNode(ndId.WL);
     // 수중 증발지 6
     const ps_SEB_6 = placeManager.findPlace(pId.SEB_6);
     const pn_WL_SEB_6 = ps_SEB_6.getPlaceNode(ndId.WL);
@@ -698,7 +724,7 @@ describe('수위 임계치 처리 테스트', function() {
     // * 3. BW_3.WL = 10 (최저치) SEB_6.WL = 2 (하한선)
     // *  <test> 급수지에 염수를 (하한선 + (Set - 하한선)/2) 공급할 수 없을 경우
     // *          급수지와 동일하지 않은 1순위 배수지로 염수 이동 요청(멀티)
-    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_3, 10), setNodeData(pn_WL_SEB_6, 2)]);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_3, 20), setNodeData(pn_WL_SEB_6, 2)]);
 
     // *    SEB_6.WL 하한선 > BW_3.WL 염수 이동 조건 불가 > [SEB_1,SEB_2,SEB_3,SEB_4,SEB_5][TO_BW_3](R_CON)
     // * 급수 강제 이동은 Goal이 없기 때문에 명령 단계: Complete
@@ -713,6 +739,95 @@ describe('수위 임계치 처리 테스트', function() {
     expect(cmdManager.getCmdStorageList()).to.length(5);
 
     BU.CLI('TC_3 >>> 3 단계 완료');
+
+    // * 4. BW_2.WL = 20, SEB_1.WL = 0, SEB_2.WL = 0,
+    // *  <test> 동시 명령 중 목표 달성 시 개별 취소
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_2, 20)]);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_SEB_1, 0)]);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_SEB_2, 0)]);
+    // *    SEB_1.WL, SEB_2.WL 수위 최저치로 인한 명령 취소
+    // *  >>> [SEB_1_TO_BW_3][END], [SEB_2_TO_BW_3][END], [SEB_3_TO_BW_3][COMPLETE]
+    // *  >>> [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE],
+    await eventToPromise(control, cmdStep.END);
+    await eventToPromise(control, cmdStep.END);
+    // *  <test> DP 염수 부족으로 인한 BP(단일) 강제 급수 진행
+    // *    BW_2.WL: 20, BW_2.Able_WV: (20-10) * 0.27 = 2.7 m3, SEB_1.Need_WV: (3 + (5-3)/2) = 4 m3
+    // *    BW_2.Able_WV(2.7) < SEB_1.Need_WV(4) 이므로 DP 강제 급수 진행
+    // *      강제 요청 >>> [NEB_2_TO_BW_2](R_CON), 단일 강제 급수이므로 달성 목표 발생
+    /** @type {CmdStorage} */
+    const cs_NEB_2_TO_BW_2 = await eventToPromise(control, cmdStep.COMPLETE);
+
+    expect(getNodeIds(cs_NEB_2_TO_BW_2, sConV.REAL_TRUE)).to.deep.eq(['WD_006']);
+    expect(getNodeIds(cs_NEB_2_TO_BW_2, sConV.IGNORE_FALSE)).to.length(2);
+    // *       2번 요청 일어나나 1번은 무시
+    // *  >>> [SEB_3_TO_BW_3][COMPLETE], [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE],
+    // *  >>> [NEB_2_TO_BW_2][RUNNING]
+
+    BU.CLI('TC_3 >>> 4 단계 완료');
+
+    // * 5. BW_2.WL = 30, SEB_1.WL = 0, SEB_2.WL = 0,
+    control.notifyDeviceData(null, [setNodeData(pn_WL_BW_2, 30)]);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_SEB_1, 0)]);
+    control.notifyDeviceData(null, [setNodeData(pn_WL_SEB_2, 0)]);
+    // *  <test> 급수 요건 고려 시 개별적으로 고려.
+    // *    SEB_1.Need_WV: 4, SEB_2.Need_WV: 4, BW_2.Able_WV: (30-10) * 0.27 = 5.4 m3,
+    // *    합산 처리하면 불가능하나 개별적으로 보면 4 < 5.7 이므로 염수 이동
+    // *  >>> [SEB_3_TO_BW_3][COMPLETE], [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE],
+    // *  >>> [NEB_2_TO_BW_2][RUNNING],
+    // *  >>> [BW_2_TO_SEB_1][RUNNING], [BW_2_TO_SEB_2][RUNNING]
+    await eventToPromise(control, cmdStep.RUNNING);
+    await eventToPromise(control, cmdStep.RUNNING);
+
+    // 장치 FALSE, Ignore: true 목록
+    // [
+    //   'GV_101' * 3, [SEB_3_TO_BW_3], [SEB_4_TO_BW_3], [SEB_5_TO_BW_3]
+    //   'GV_103' * 3, [SEB_3_TO_BW_3], [SEB_4_TO_BW_3], [SEB_5_TO_BW_3]
+    //   'GV_105', [BW_2_TO_SEB_1]
+    //   'GV_106', [BW_2_TO_SEB_1]
+    //   'GV_107', [BW_2_TO_SEB_2]
+    //   'GV_108', [BW_2_TO_SEB_2]
+    //   'GV_110', [SEB_3_TO_BW_3]
+    //   'GV_112', [SEB_4_TO_BW_3]
+    //   'GV_114', [SEB_5_TO_BW_3]
+    //   'WD_004', [NEB_2_TO_BW_2]
+    //   'WD_005', [NEB_2_TO_BW_2]
+    // ];
+    expect(
+      cmdManager.getCmdEleList({
+        singleControlType: FALSE,
+        isIgnore: true,
+      }),
+    ).to.length(15);
+
+    // 장치 TRUE, Ignore: true 목록 (실제 장치 제어)
+    // [
+    //   'GV_102' * 3, [SEB_3_TO_BW_3], [SEB_4_TO_BW_3], [SEB_5_TO_BW_3] (SEB_1_TO_BW_3) 에서 유실됨
+    //   'GV_104' * 3, [SEB_3_TO_BW_3], [SEB_4_TO_BW_3], [SEB_5_TO_BW_3] (SEB_1_TO_BW_3) 에서 유실됨
+    // ]
+    expect(
+      cmdManager.getCmdEleList({
+        singleControlType: TRUE,
+        isIgnore: true,
+      }),
+    ).to.length(6);
+
+    // 장치 TRUE, Ignore: false 목록 (실제 장치 제어)
+    // [
+    //   'GV_109', [SEB_3_TO_BW_3]
+    //   'GV_111', [SEB_4_TO_BW_3],
+    //   'GV_113', [SEB_5_TO_BW_3],
+    //   'P_004',  [BW_2_TO_SEB_1]
+    //   'P_005',  [BW_2_TO_SEB_2]
+    //   'WD_006', [NEB_2_TO_BW_2]
+    // ];
+    expect(
+      cmdManager.getCmdEleList({
+        singleControlType: TRUE,
+        isIgnore: false,
+      }),
+    ).to.length(6);
+
+    BU.CLI('TC_3 >>> 5 단계 완료');
   });
 
   /**
@@ -779,9 +894,13 @@ describe('염도 임계치 처리 테스트', function() {
    *      DPs_1.putPlaceRankList = [BW_3]
    *      DPs_2.putPlaceRankList = [BW_4,BW_3,SEA]
    *    DPs, WSP의 Ab_WV 계산(width * height * depth / 1000000000). cm3 => m3
-   *      해주 2 BW_WV_TMU: 9m * 3m * 1.5m = 40.5 m3
-   *      해주 3, 4 BW_WV_TMO: 4m * 3m * 1.5m = 18 m3
+   *      해주 1 BW_WV: 12m * 3m * 1.5m = 54 m3, 0.01m 당 0.36 m3
+   *      해주 2 BW_WV: 9m * 3m * 1.5m = 40.5 m3, 0.01m 당 0.27 m3
+   *      해주 3, 4 BW_WV: 4m * 3m * 1.5m = 18 m3, 0.01m 당 0.12 m3
+   *      수중태양광 증발지 SEB_WV: 3.56m * 28m * 0.15m = 14.95 m3 = 15 m3, 0.01 m 당 1 m3
    *      해주 3, 4 BW_WV_TMU: 4m * 3m * 0.1m = 1.2 m3
+   *      일반 증발지 1 NEB_1_WV: 33m * 20m * 0.20m = 132 m3 = 0.01 m 당 6.6 m3
+   *      일반 증발지 2 NEB_2_WV: 33m * 10m * 0.20m = 66 m3 = 0.01 m 당 3.3 m3
    *      수중태양광 증발지 SEB_WV_TMO: 3.56m * 28m * 0.15m = 14.95 m3 = 15 m3
    *      수중태양광 증발지 SEB_WV_TULO: 3.56m * 28m * 0.07m = 7 m3
    *      수중태양광 증발지 SEB_WV_TS: 3.56m * 28m * 0.05m = 5 m3
@@ -814,26 +933,63 @@ describe('염도 임계치 처리 테스트', function() {
    *  진행 중인 DPs_2_TO_BW_4 명령 취소
    *    명령 취소: [SEB_6_TO_BW_4](R_CAN), [SEB_7_TO_BW_4](R_CAN), [SEB_8_TO_BW_4](R_CAN)
    *  <test> 명령이 순차적으로 해제될 때 누적 카운팅이 최종적으로 해제되는 장치 Close 처리
-   *  >>> [SEB_6_TO_BW_4][CANCELING] -> ['GV_115'](CLOSE)
-   *  >>> [SEB_7_TO_BW_4][CANCELING] -> ['GV_117'](CLOSE)
-   *  >>> [SEB_8_TO_BW_4][CANCELING] -> ['GV_119','GV_103'](CLOSE)
-   *  DPs_2.S = 20,
-   *  DPs_2 >>> drainageAfterNeedWV: 12, drainageAfterWV: 6, minWV: 3, setWV: 15, lowerLimitWV: 9
-   *  BW_4.waterSupplyAbleWV: 6, DPs_2.drainageAfterWV: 6
-   *  DPs_2.needWaterVolume: drainageAfterNeedWV - minWV - drainageAfterWV = 3
-   *  BW_3.WL: 110, BW_3.drainageAbleWV: 27
-   *  <test> 배급수 조건 고려 시 BP(BW_3)의 염수가 부족할 경우 BP에 염수를 댈 수 있는 배급수 실행
-   *  >>> [SEB_1_TO_BW_3][COMPLETE], [SEB_2_TO_BW_3][COMPLETE],[SEB_3_TO_BW_3][COMPLETE]
-   *  >>> [SEB_4_TO_BW_3][COMPLETE], [SEB_5_TO_BW_3][COMPLETE]
-   * 4. BW_2.WL = 20, [DPs_1_TO_BW3](R_CAN)
-   *  <test> 배급수 조건 고려 시 BP(BW_3)의 염수가 부족할 경우 BP에 염수를 댈 수 있는 배급수 실행
+   *  >>> [SEB_6_TO_BW_4][END] -> ['GV_115'](CLOSE)
+   *  >>> [SEB_7_TO_BW_4][END] -> ['GV_117'](CLOSE)
+   *  >>> [SEB_8_TO_BW_4][END] -> ['GV_119','GV_103'](CLOSE)
+   * 4. 배급수 명령 진행 1단계 점핑 가능 테스트
+   *  <test> DP: DPs_2, WSP: BW_4, BP: BW_3, 배급수 불가로 인한 상위 호출 테스트
+   *    DPs_2.drainageAbleWV: 12, BW_4.waterSupplyAbleWV: 6
+   *    DPs_2.drainageAfterWV: 12 - 6
+   *    DPs_2.needWV: (하한선 + (Set - 하한선) / 2) - 최저치 = (3 + (5 - 3) / 2) - 1 =  3 * 3 = 9
+   *    DPs_2.realNeedWV: needWV - drainageAfterWV = 9 - 6 = 3
+   *    BW_3.Able_WV: (20-10) * 0.12 = 1.2
+   *      DPs_2.realNeedWV <= BW_3.Able_WV 이어야 하지만  3 > 1.2
+   *      BP(BW_3)에서 급수를 진행할 수 없으므로 BP에 급수 요청
+   *      다음 지역에 배급수 조건 탐색. DP = DPs_1, WSP = BW_3
+   *  <test> 배급수 요청. DP: DPs_1, WSP: BW_3, BP: BW_2, BP 만족으로 인한 염수 이동
+   *    DPs_1.drainageAbleWV: 20, BW_3.waterSupplyAbleWV: (150 - 20) * 0.12 =  15.6
+   *    DPs_1.drainageAfterWV: 20 - 15.6
+   *    DPs_1.needWV: (하한선 + (Set - 하한선) / 2) - 최저치 = (3 + (5 - 3) / 2) - 1 =  3 * 5 = 15
+   *    DPs_1.realNeedWV: needWV - drainageAfterWV = 15 - 4.4 = 11.6
+   *    BW_2.Able_WV: (110-10) * 0.27 = 27
+   *      DPs_1.realNeedWV <= BW_2.Able_WV 이어야 하지만  11.6 < 27
+   *      조건에 만족에 의한 염수 이동 요청 >>> [DPs_2_TO_BW_3](R_CON) 달성목표 DPs_2.WL_TMU
+   *  >>> [SEB_1_TO_BW_3][RUNNING], [SEB_2_TO_BW_3][RUNNING],[SEB_3_TO_BW_3][RUNNING]
+   *  >>> [SEB_4_TO_BW_3][RUNNING], [SEB_5_TO_BW_3][RUNNING]
+   * 5. 배급수 명령 진행 2단계 점핑 가능 테스트
+   * BW_2.WL = 20, SEB_1.WL = 1, BW_3.WL = 150
+   *    명령 달성 >>> [SEB_1_TO_BW_3](R_CAN)
+   *    급수지 수위 최대치 >>> [DPs_2_TO_BW_3](R_CAN)
    *  >>> [SEB_1_TO_BW_3][CANCELING] -> ['GV_105'](CLOSE)
    *  >>> [SEB_2_TO_BW_3][CANCELING] -> ['GV_107'](CLOSE)
    *  >>> [SEB_3_TO_BW_3][CANCELING] -> ['GV_109'](CLOSE)
    *  >>> [SEB_4_TO_BW_3][CANCELING] -> ['GV_111'](CLOSE)
    *  >>> [SEB_5_TO_BW_3][CANCELING] -> ['GV_113','GV_104','GV_102'](CLOSE)
-   *    DPs_1.BP 인 BW_2.drainageAbleWV: 1.8 이므로 명령 실행 불가, BW_2 급수 요청 명령 요청
-   *    [NEB_2_TO_BW_2](R_CON)
+   *  DPs_2.S = 20, NEB_2.WL = 11
+   *  <test> DP: DPs_2, WSP: BW_4, BP: BW_3, 배급수 불가로 인한 상위 호출 테스트
+   *    DPs_2.drainageAbleWV: 12, BW_4.waterSupplyAbleWV: 6
+   *    DPs_2.drainageAfterWV: 12 - 6
+   *    DPs_2.needWV: (하한선 + (Set - 하한선) / 2) - 최저치 = (3 + (5 - 3) / 2) - 1 =  3 * 3 = 9
+   *    DPs_2.realNeedWV: needWV - drainageAfterWV = 9 - 6 = 3
+   *    BW_3.Able_WV: (20-10) * 0.12 = 1.2
+   *      DPs_2.realNeedWV <= BW_3.Able_WV 이어야 하지만  3 > 1.2
+   *      BP(BW_3)에서 급수를 진행할 수 없으므로 BP에 급수 요청
+   *      다음 지역에 배급수 조건 탐색. DP = DPs_1, WSP = BW_3
+   *  <test> DP: DPs_1, WSP: BW_3, BP: BW_2, 배급수 불가로 인한 상위 호출 테스트
+   *    DPs_1.drainageAbleWV: 20, BW_3.waterSupplyAbleWV: (150 - 20) * 0.12 =  15.6
+   *    DPs_1.drainageAfterWV: 20 - 15.6
+   *    DPs_1.needWV: (하한선 + (Set - 하한선) / 2) - 최저치 = (3 + (5 - 3) / 2) - 1 =  3 * 5 = 15
+   *    DPs_1.realNeedWV: needWV - drainageAfterWV = 15 - 4.4 = 11.6
+   *    BW_2.Able_WV: (20-10) * 0.27 = 2.7
+   *      DPs_1.realNeedWV <= BW_2.Able_WV 이어야 하지만  11.6 > 2.7
+   *      BP(BW_2)에서 급수를 진행할 수 없으므로 BP에 급수 요청
+   *     다음 지역에 배급수 조건 탐색. DP = NEB_2, WSP = BW_2
+   *  <test> DP: NEB_2, WSP: BW_2, 수중태양광 증발지가 아닌 DP는 배수 조건 충족시 염수 이동
+   *    NEB_2.drainageAbleWV: (11 - 1) * 3.3 = 33,
+   *    BW_2.waterSupplyAbleWV: (150 - 20) * 0.27 =  35.1
+   *    NEB_2.drainageAfterWV: 33 - 35.1 = -2.1 염수 Full 이동 가능
+   *     일반증발지 배급수 조건 체크 X >>> [NEB_2_TO_BW_2](R_CON): 달성 목표: BP.WL 최저치까지
+   *  >>> [NEB_2_TO_BW_2][RUNNING]
    */
   it.only('염도 상한선 도달에 따른 자동 염수 이동', async () => {
     const { placeManager } = control.model;
@@ -1064,11 +1220,36 @@ describe('염도 임계치 처리 테스트', function() {
     expect(cmdManager.getCmdStorageList()).to.length(0);
     expect(cmdManager.getCmdStorageList(sConV.TRUE)).to.length(0);
 
-    // *  DPs_2.S = 20
-    setPlaceStorage(DPs_2, null, 20);
     // *  <test> BP(BW_3)의 염수가 부족하기 때문에 BP에 염수를 댈 수 있는 배급수 실행
     // *    [NEB_2_TO_BW_2](R_CON)
 
     BU.CLI('TC_5 >>> 3 단계 완료');
+
+    // * 4. 배급수 명령 진행 1단계 점핑 가능 테스트
+    // *  <test> DP: DPs_2, WSP: BW_4, BP: BW_3, 배급수 불가로 인한 상위 호출 테스트
+    // *  DPs_2.S = 20
+    setPlaceStorage(DPs_2, null, 20);
+
+    /** @type {CmdStorage} */
+    const cs_SEB_1_TO_BW_3 = await eventToPromise(control, cmdStep.RUNNING);
+
+    // *    DPs_2.drainageAbleWV: 12, BW_4.waterSupplyAbleWV: 6
+    // *    DPs_2.drainageAfterWV: 12 - 6
+    // *    DPs_2.needWV: (하한선 + (Set - 하한선) / 2) - 최저치 = (3 + (5 - 3) / 2) - 1 =  3 * 3 = 9
+    // *    DPs_2.realNeedWV: needWV - drainageAfterWV = 9 - 6 = 3
+    // *    BW_3.Able_WV: (20-10) * 0.12 = 1.2
+    // *      DPs_2.realNeedWV <= BW_3.Able_WV 이어야 하지만  3 > 1.2
+    // *      BP(BW_3)에서 급수를 진행할 수 없으므로 BP에 급수 요청
+    // *      다음 지역에 배급수 조건 탐색. DP = DPs_1, WSP = BW_3
+    // *  <test> 배급수 요청. DP: DPs_1, WSP: BW_3, BP: BW_2, BP 만족으로 인한 염수 이동
+    // *    DPs_1.drainageAbleWV: 20, BW_3.waterSupplyAbleWV: (150 - 20) * 0.12 =  15.6
+    // *    DPs_1.drainageAfterWV: 20 - 15.6
+    // *    DPs_1.needWV: (하한선 + (Set - 하한선) / 2) - 최저치 = (3 + (5 - 3) / 2) - 1 =  3 * 5 = 15
+    // *    DPs_1.realNeedWV: needWV - drainageAfterWV = 15 - 4.4 = 11.6
+    // *    BW_2.Able_WV: (110-10) * 0.27 = 27
+    // *      DPs_1.realNeedWV <= BW_2.Able_WV 이어야 하지만  11.6 < 27
+    // *      조건에 만족에 의한 염수 이동 요청 >>> [DPs_2_TO_BW_3](R_CON) 달성목표 DPs_2.WL_TMU
+    // *  >>> [SEB_1_TO_BW_3][RUNNING], [SEB_2_TO_BW_3][RUNNING],[SEB_3_TO_BW_3][RUNNING]
+    // *  >>> [SEB_4_TO_BW_3][RUNNING], [SEB_5_TO_BW_3][RUNNING]
   });
 });
