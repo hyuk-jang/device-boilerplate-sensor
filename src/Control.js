@@ -53,9 +53,6 @@ class Control extends EventEmitter {
 
     this.Model = Model;
 
-    // /** @type {DataLoggerController[]} */
-    // this.preparingDataLoggerControllerList = [];
-
     // Data Logger 상태 계측을 위한 Cron Scheduler 객체
     this.cronScheduler = null;
 
@@ -242,8 +239,6 @@ class Control extends EventEmitter {
   async initCreateOpsDLC() {
     // BU.CLI('initConOpsDLC');
     try {
-      // BU.CLI(this.mainUUID, this.dataLoggerList.length);
-      // BU.CLIN(this.dataLoggerList);
       // 하부 Data Logger 순회
       const resultInitDataLoggerList = await Promise.map(
         this.config.dataLoggerList,
@@ -264,8 +259,6 @@ class Control extends EventEmitter {
           return dataLoggerController.init(this.mainUUID);
         },
       );
-
-      // BU.CLI(`what the ?  ${this.mainUUID}`, resultInitDataLoggerList.length);
 
       // 하부 PCS 객체 리스트 정의
       this.dataLoggerControllerList = resultInitDataLoggerList;
@@ -346,25 +339,25 @@ class Control extends EventEmitter {
   }
 
   /**
-   * 시나리오를 수행하고자 할 경우
-   * @param {{scenarioId: string, wrapCmdType: string}} scenarioInfo 시나리오 ID
-   */
-  executeScenario(scenarioInfo) {
-    return this.scenarioManager.executeScenario(scenarioInfo);
-  }
-
-  /**
    * @desc 수동 모드에서만 사용 가능
    * 외부에서 단일 명령을 내릴경우
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
   executeSingleControl(reqSingleCmdInfo) {
-    const coreFacade = new CoreFacade();
     try {
-      // if (coreFacade.getCurrCmdStrategyType() !== coreFacade.cmdStrategyType.MANUAL) {
-      //   throw new Error('Single control is only possible in manual mode.');
-      // }
       return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 설정 명령 요청 수행
+   * @param {reqSetCmdInfo} reqSetCmdInfo 저장된 명령 ID
+   */
+  executeSetControl(reqSetCmdInfo) {
+    try {
+      return this.commandExecManager.executeSetControl(reqSetCmdInfo);
     } catch (error) {
       throw error;
     }
@@ -377,11 +370,7 @@ class Control extends EventEmitter {
    */
   executeFlowControl(reqFlowCmdInfo) {
     // BU.CLIN(reqFlowCmdInfo);
-    const coreFacade = new CoreFacade();
     try {
-      // if (coreFacade.getCurrCmdStrategyType() === coreFacade.cmdStrategyType.MANUAL) {
-      //   throw new Error('The flow command is not available in manual mode.');
-      // }
       return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
       throw error;
@@ -389,52 +378,11 @@ class Control extends EventEmitter {
   }
 
   /**
-   * 설정 명령 요청 수행
-   * @param {wsExecCmdInfo} reqSetCmdInfo 저장된 명령 ID
+   * 시나리오를 수행하고자 할 경우
+   * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
    */
-  executeSetControl(reqSetCmdInfo) {
-    // BU.CLI(savedCommandInfo);
-    try {
-      // if (coreFacade.getCurrCmdMode() === coreFacade.cmdMode.MANUAL) {
-      //   throw new Error('The flow command is not available in manual mode.');
-      // }
-      return this.commandExecManager.executeSetControl(reqSetCmdInfo);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * @desc 자동 모드에서만 사용 가능
-   * 저장된 명령 요청 수행
-   * @param {wsExecCommandInfo} savedCommandInfo 저장된 명령 ID
-   */
-  executeSavedCommand(savedCommandInfo) {
-    try {
-      // FIXME: 개발 모드. 검증 중. 해제
-      // if (coreFacade.getCurrCmdMode() === coreFacade.cmdMode.MANUAL) {
-      //   throw new Error('Saved control is only possible in automatic mode.');
-      // }
-      return this.commandExecManager.executeSavedCommand(savedCommandInfo);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 자동 명령 요청
-   * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
-   */
-  executeAutomaticControl(controlInfo) {
-    return this.commandExecManager.executeAutomaticControl(controlInfo);
-  }
-
-  /**
-   * 명령 취소 요청
-   * @param {{cmdName: string, trueList: string[], falseList: string[]}} controlInfo
-   */
-  cancelAutomaticControl(controlInfo) {
-    return this.commandExecManager.cancelAutomaticControl(controlInfo);
+  executeScenarioControl(scenarioInfo) {
+    return this.scenarioManager.executeScenarioControl(scenarioInfo);
   }
 
   /**
@@ -543,9 +491,6 @@ class Control extends EventEmitter {
    */
   notifyDeviceMessage(dataLoggerController, dcMessage) {
     this.model.cmdManager.updateCommandMessage(dataLoggerController, dcMessage);
-    // const {COMMANDSET_EXECUTION_START, COMMANDSET_EXECUTION_TERMINATE, COMMANDSET_DELETE} = dataLoggerController.definedCommandSetMessage;
-    // const commandSet = dcMessage.commandSet;
-    // this.model.manageComplexCommand(dataLoggerController, dcMessage);
   }
 
   /**

@@ -38,8 +38,8 @@ class Salinity extends PlaceThreshold {
    */
   handleUpperLimitOver(coreFacade, placeNode) {
     try {
-      BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
-      BU.CLI(placeNode.getPlaceInfo().pd_target_id)
+      // BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
+      // BU.CLI(placeNode.getPlaceInfo().pd_target_id);
       // BU.CLI(placeNode.nodeInfo.data);
 
       // 염도 임계치 달성 시 이동할 장소 그룹
@@ -64,14 +64,14 @@ class Salinity extends PlaceThreshold {
           return prev;
         });
 
-      BU.CLI(drainageWVInfo);
+      // BU.CLI(drainageWVInfo);
 
       // 배수지의 염수를 받을 수 있는 급수지를 탐색
       const waterSupplyInfo = salinityFn.getWaterSupplyAblePlace(
         placeNode,
         drainageWVInfo.drainageAbleWV,
       );
-      BU.CLIN(waterSupplyInfo);
+      // BU.CLIN(waterSupplyInfo);
 
       // 적정 급수지가 없다면 종료
       if (waterSupplyInfo.waterSupplyPlace === null) {
@@ -83,7 +83,7 @@ class Salinity extends PlaceThreshold {
       const needWaterVolume =
         drainageWVInfo.drainageAfterNeedWV - drainageWVInfo.minWV - waterSupplyInfo.drainageAfterWV;
 
-      BU.CLI('needWaterVolume', needWaterVolume);
+      // BU.CLI('needWaterVolume', needWaterVolume);
 
       // 배수지에서 염수를 이동 후 적정 수위로 복원해줄 수 있는 해주 탐색(Base Place)
       const foundDrainagePlace = salinityFn.getDrainageAblePlace(placeNode, needWaterVolume);

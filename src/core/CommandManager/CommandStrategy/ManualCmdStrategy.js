@@ -23,6 +23,7 @@ class ManualCmdStrategy extends CmdStrategy {
     // BU.CLI('updateCommandStep >>> ManualCmdStrategy', cmdStorage.cmdStep);
     // 명령 단계가 완료 또는 종료 일 경우
     if (cmdStorage.cmdStep === cmdStep.COMPLETE || cmdStorage.cmdStep === cmdStep.END) {
+      // BU.CLI('updateCommandStep >>> ManualCmdStrategy', cmdStorage.cmdStep);
       this.cmdManager.removeCommandStorage(cmdStorage);
     }
 
@@ -162,10 +163,24 @@ class ManualCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeScenarioControl(reqCmdInfo) {
-    const { wrapCmdId } = reqCmdInfo;
-    throw new Error(
-      `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
-    );
+    try {
+      const { wrapCmdType } = reqCmdInfo;
+
+      const coreFacade = new CoreFacade();
+
+      switch (wrapCmdType) {
+        case reqWCT.CONTROL:
+          coreFacade.scenarioManager.executeScenario(reqCmdInfo);
+          break;
+        case reqWCT.CANCEL:
+          coreFacade.scenarioManager.cancelScenario(reqCmdInfo);
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      throw error;
+    }
   }
 }
 module.exports = ManualCmdStrategy;

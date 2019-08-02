@@ -7,8 +7,6 @@ let instance;
 
 /** @type {nodeInfo[]} */
 let coreNodeList;
-/** @type {placeInfo[]} */
-let corePlaceList;
 
 const { dcmWsModel, dccFlagModel, dcmConfigModel } = require('../../../default-intelligence');
 
@@ -16,14 +14,6 @@ const CoreAlgorithm = require('./CoreAlgorithm');
 
 const PlaceComponent = require('././PlaceManager/PlaceComponent');
 const PlaceThreshold = require('././PlaceManager/PlaceThreshold');
-
-/**
- *
- * @param {string} nodeId
- */
-function getNodeInfo(nodeId) {
-  return _.find(coreNodeList, { node_id: nodeId });
-}
 
 class CoreFacade {
   constructor() {
@@ -40,6 +30,7 @@ class CoreFacade {
     this.cmdManager;
     this.cmdExecManager;
     this.placeManager;
+    this.scenarioManager;
 
     this.coreAlgorithm = new CoreAlgorithm();
   }
@@ -60,7 +51,6 @@ class CoreFacade {
     this.controller = controller;
 
     coreNodeList = this.controller.nodeList;
-    corePlaceList = this.controller.placeList;
   }
 
   /**
@@ -88,11 +78,18 @@ class CoreFacade {
   }
 
   /**
+   * 시나리오 관리자 정의
+   * @param {ScenarioManager} scenarioManager
+   */
+  setScenarioManager(scenarioManager) {
+    this.scenarioManager = scenarioManager;
+  }
+
+  /**
    * 장소 관리자 정의
    * @param {PlaceManager} placeManager
    */
   setPlaceManager(placeManager) {
-    BU.CLI('@@@@@@@@@@@@ setPlaceManager');
     this.placeManager = placeManager;
   }
 
@@ -126,7 +123,6 @@ class CoreFacade {
    * @param {string=} srcPlaceId 출발 장소 ID
    * @param {string=} destPlaceId 도착 장소 ID
    * @param {string=} wrapCmdType 명령 타입 CONTROL, CANCEL
-   * @return {complexCmdWrapInfo[]}
    */
   getFlowCommandList(srcPlaceId = '', destPlaceId = '', wrapCmdType) {
     const where = {};
@@ -134,25 +130,7 @@ class CoreFacade {
     _.isString(destPlaceId) && destPlaceId.length && _.assign(where, { destPlaceId });
     _.isString(wrapCmdType) && wrapCmdType.length && _.assign(where, { wrapCmdType });
 
-    const result = this.cmdManager.getCmdStorageList(where);
-
-    return result;
-
-    return this.cmdManager.getCmdStorageList({
-      srcPlaceId,
-      destPlaceId,
-      wrapCmdType,
-    });
-
-    return this.cmdManager.getFlowCommandList(srcPlaceId, destPlaceId, wrapCmdType);
-  }
-
-  /**
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {boolean} 임계 명령 완료 여부
-   */
-  isThreCmdClear(complexCmdWrapInfo) {
-    return this.cmdManager.threCmdManager.isThreCmdClear(complexCmdWrapInfo);
+    return this.cmdManager.getCmdStorageList(where);
   }
 
   /**
@@ -249,7 +227,7 @@ class CoreFacade {
    */
   executeSingleControl(reqSingleCmdInfo) {
     try {
-      this.cmdExecManager.executeSingleControl(reqSingleCmdInfo);
+      return this.cmdExecManager.executeSingleControl(reqSingleCmdInfo);
     } catch (error) {
       // BU.error(error);
       BU.error(error.message);
@@ -262,8 +240,9 @@ class CoreFacade {
    * @param {reqSetCmdInfo} reqSetCmdInfo
    */
   executeSetControl(reqSetCmdInfo) {
+    // BU.CLI(reqSetCmdInfo);
     try {
-      this.cmdExecManager.executeSetControl(reqSetCmdInfo);
+      return this.cmdExecManager.executeSetControl(reqSetCmdInfo);
     } catch (error) {
       // BU.error(error);
       BU.error(error.message);
@@ -278,7 +257,7 @@ class CoreFacade {
   executeFlowControl(reqFlowCmdInfo) {
     // BU.CLIN(reqFlowCmdInfo);
     try {
-      this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
+      return this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
       // BU.error(error);
       // BU.error(error.message);

@@ -408,7 +408,7 @@ class CmdStorage extends CmdComponent {
 
   /** @param {ThreCmdStorage} threCmdStorage */
   handleThresholdClear() {
-    BU.CLI('handleThresholdClear', this.wrapCmdId);
+    // BU.CLI('handleThresholdClear', this.wrapCmdId);
     // 임계 명령 삭제
     this.removeThreshold();
 

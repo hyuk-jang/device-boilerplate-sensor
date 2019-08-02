@@ -43,7 +43,7 @@ class NodeUpdatorManager {
     if (_.isEmpty(foundNodeUpdator)) return false;
 
     // 노드 업데이터에 동일 옵저버가 존재하는지 체크
-    const foundIndex = _.findIndex(foundNodeUpdator.nodeObservers, nodeOb =>
+    const foundIndex = _.findIndex(foundNodeUpdator.observers, nodeOb =>
       _.isEqual(nodeOb, observer),
     );
 
@@ -63,7 +63,7 @@ class NodeUpdatorManager {
 
     if (foundNodeUpdator) {
       // 노드 업데이터에 동일 옵저버가 존재하는지 체크
-      const foundIndex = _.findIndex(foundNodeUpdator.nodeObservers, nodeOb =>
+      const foundIndex = _.findIndex(foundNodeUpdator.observers, nodeOb =>
         _.isEqual(nodeOb, observer),
       );
       // 동일 옵저버가 존재하지 않을 경우에 추가

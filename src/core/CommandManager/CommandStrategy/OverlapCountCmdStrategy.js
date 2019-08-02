@@ -194,13 +194,14 @@ class OverlapCountCmdStrategy extends CmdStrategy {
   executeFlowControl(reqCmdInfo) {
     // BU.CLIN(reqCmdInfo);
     try {
+      const coreFacade = new CoreFacade();
       const { wrapCmdType, srcPlaceId, destPlaceId } = reqCmdInfo;
 
       if (wrapCmdType === reqWCT.CANCEL) {
         return this.cancelCommand(reqCmdInfo);
       }
       // 흐름 명령 가능 여부 체크 (급배수지 환경 조건 고려[수위, 염도, 온도 등등등])
-      this.cmdManager.coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId);
+      coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId);
 
       return this.executeDefaultControl(reqCmdInfo);
     } catch (error) {

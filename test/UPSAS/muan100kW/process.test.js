@@ -10,11 +10,7 @@ const config = require('./config');
 const Main = require('../../../src/Main');
 const CoreFacade = require('../../../src/core/CoreFacade');
 
-const ThreCmdComponent = require('../../../src/core/CommandManager/Command/ThresholdCommand/ThreCmdComponent');
-
 const { dcmConfigModel } = CoreFacade;
-
-const Timeout = setTimeout(function() {}, 0).constructor;
 
 const {
   commandStep: cmdStep,
@@ -23,6 +19,8 @@ const {
   reqWrapCmdFormat: reqWCF,
   reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
 } = dcmConfigModel;
+
+const Timeout = setTimeout(function() {}, 0).constructor;
 
 process.env.NODE_ENV = 'development';
 
@@ -35,99 +33,17 @@ const main = new Main();
 const control = main.createControl(config);
 const coreFacade = new CoreFacade();
 
-const ndId = {
-  S: 'salinity',
-  WL: 'waterLevel',
-  BT: 'brineTemperature',
-  MRT: 'moduleRearTemperature',
-};
-
-const pId = {
-  RV_1: 'RV_1',
-  RV_2: 'RV_2',
-  SEA: 'SEA',
-  NEB_1: 'NEB_1',
-  NEB_2: 'NEB_2',
-  NCB: 'NCB',
-  SEB_1: 'SEB_1',
-  SEB_2: 'SEB_2',
-  SEB_3: 'SEB_3',
-  SEB_4: 'SEB_4',
-  SEB_5: 'SEB_5',
-  SEB_6: 'SEB_6',
-  SEB_7: 'SEB_7',
-  SEB_8: 'SEB_8',
-  BW_1: 'BW_1',
-  BW_2: 'BW_2',
-  BW_3: 'BW_3',
-  BW_4: 'BW_4',
-  BW_5: 'BW_5',
-};
-
+const {
+  controlMode,
+  ndId,
+  pId,
+  setNodeData,
+  convertConToCan,
+  getNodeIds,
+  getSimpleCmdElementsInfo,
+  sConV,
+} = require('./guide.util');
 /** SingleControlValue 검색 형식 */
-const sConV = {
-  TRUE: { singleControlType: TRUE },
-  REAL_TRUE: { singleControlType: TRUE, isIgnore: false },
-  IGNORE_TRUE: { singleControlType: TRUE, isIgnore: true },
-  FALSE: { singleControlType: FALSE },
-  REAL_FALSE: { singleControlType: FALSE, isIgnore: false },
-  IGNORE_FALSE: { singleControlType: FALSE, isIgnore: true },
-};
-
-/** 제어 모드 */
-const controlMode = {
-  MANUAL: 'MANUAL',
-  POWER_OPTIMIZATION: 'POWER_OPTIMIZATION',
-  SALTERN_POWER_OPTIMIZATION: 'SALTERN_POWER_OPTIMIZATION',
-  RAIN: 'RAIN',
-};
-
-/**
- *
- * @param {PlaceNode} placeNode
- * @param {*} setValue
- */
-function setNodeData(placeNode, setValue) {
-  _.set(placeNode, 'nodeInfo.data', setValue);
-
-  return _.get(placeNode, 'nodeInfo');
-}
-
-/**
- * cmdStorage 내의 cmdElements nodeId 목록 반환
- * @param {cmdStorage} cmdStorage
- * @param {cmdElementSearch} cmdEleSearchInfo
- */
-function getNodeIds(cmdStorage, cmdEleSearchInfo) {
-  return cmdStorage.getCmdEleList(cmdEleSearchInfo).map(cmdEle => cmdEle.nodeId);
-}
-
-/**
- * 간단한 cmdStorage 내의 cmdElements 정보 반환
- * @param {CmdStorage} cmdStorage
- */
-function getSimpleCmdElementsInfo(cmdStorage) {
-  return _.map(cmdStorage.getCmdEleList(), cmdEle => {
-    return {
-      nodeId: cmdEle.nodeId,
-      isIgnore: cmdEle.isIgnore,
-      singleControlType: cmdEle.singleControlType,
-      cmdEleStep: cmdEle.cmdEleStep,
-    };
-  });
-}
-
-/**
- * 기존 명령 객체 클론.
- * 요청 명령의 Wrap Cmd Type을 CANCEL 로 교체하여 반환
- * @param {reqFlowCmdInfo} reqFlowCmdInfo
- */
-function convertConToCan(reqFlowCmdInfo) {
-  return _.chain(reqFlowCmdInfo)
-    .clone()
-    .set('wrapCmdType', reqWCT.CANCEL)
-    .value();
-}
 
 describe('수위 임계치 처리 테스트', function() {
   this.timeout(10000);
@@ -299,7 +215,7 @@ describe('수위 임계치 처리 테스트', function() {
     const nodeUpdator_NODE_WL = control.nodeUpdatorManager.getNodeUpdator('WL_017');
     // expect(nodeUpdator_NODE_WL.getObserver(threGoal_NODE_WL)).to.eq(threGoal_NODE_WL);
     // PlaceNode, ThreGoal
-    expect(nodeUpdator_NODE_WL.nodeObservers).to.length(2);
+    expect(nodeUpdator_NODE_WL.observers).to.length(2);
 
     // * 5. 해주 5의 수위를 Min(10cm) 설정. [해주 5 > 결정지 ] 진행 중 명령 삭제 및 임계 명령 삭제 확인
     control.notifyDeviceData(null, [setNodeData(pn_WL_BW_5, 10)]);
@@ -311,7 +227,7 @@ describe('수위 임계치 처리 테스트', function() {
     // 임계 저장소 삭제 처리
     expect(cs_BW5_TO_NCB.thresholdStorage).to.undefined;
     // 임계 옵저버는 삭제 처리 됨. PlaceNode
-    expect(nodeUpdator_NODE_WL.nodeObservers).to.length(1);
+    expect(nodeUpdator_NODE_WL.observers).to.length(1);
 
     BU.CLI('TC_1 >>> 5 단계 완료');
   });
@@ -368,13 +284,6 @@ describe('수위 임계치 처리 테스트', function() {
    */
   it('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
     const { cmdManager, placeManager } = control.model;
-    // const { placeManager } = control.model;
-    const {
-      // cmdManager,
-      cmdManager: { getFlowCommand, cmdOverlapManager, threCmdManager },
-    } = control.model;
-
-    // const {getFlowCommand} = cmdManager;
 
     const getFlowCmd = (srcPlaceId, destPlaceId) => {
       return cmdManager.getCmdStorage({
@@ -645,11 +554,7 @@ describe('수위 임계치 처리 테스트', function() {
    *
    */
   it('염수 그룹화 이동', async () => {
-    const { placeManager } = control.model;
-    const {
-      cmdManager,
-      cmdManager: { cmdOverlapManager, threCmdManager },
-    } = control.model;
+    const { cmdManager, placeManager } = control.model;
 
     // * 1. 일반 증발지 2의 급수 순위를 [BW_1,NEB_1]에서 [[BW_1,NEB_1]]로 변경
     // 해주 1
@@ -841,7 +746,7 @@ describe('수위 임계치 처리 테스트', function() {
   // * 해주 및 증발지의 면적에 따른 해수 부피를 산정하여 명령 수행 가능성 여부를 결정한다.
 });
 
-describe('염도 임계치 처리 테스트', function() {
+describe.skip('염도 임계치 처리 테스트', function() {
   this.timeout(10000);
 
   before(async () => {
@@ -991,12 +896,8 @@ describe('염도 임계치 처리 테스트', function() {
    *     일반증발지 배급수 조건 체크 X >>> [NEB_2_TO_BW_2](R_CON): 달성 목표: BP.WL 최저치까지
    *  >>> [NEB_2_TO_BW_2][RUNNING]
    */
-  it.only('염도 상한선 도달에 따른 자동 염수 이동', async () => {
-    const { placeManager } = control.model;
-    const {
-      cmdManager,
-      cmdManager: { cmdOverlapManager, threCmdManager },
-    } = control.model;
+  it('염도 상한선 도달에 따른 자동 염수 이동', async () => {
+    const { cmdManager, placeManager } = control.model;
 
     // 해주 2
     const ps_BW_2 = placeManager.findPlace(pId.BW_2);

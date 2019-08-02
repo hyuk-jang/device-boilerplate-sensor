@@ -11,7 +11,6 @@ class NodeUpdator extends Updator {
   constructor(nodeInfo) {
     super();
     this.nodeInfo = nodeInfo;
-    this.nodeObservers = [];
   }
 
   /**
@@ -19,37 +18,12 @@ class NodeUpdator extends Updator {
    * @param {*} observer
    */
   getObserver(observer) {
-    return _.find(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));
-  }
-
-  /**
-   * @param {Observer} observer 옵저버 추가
-   * @param {boolean=} isHeader 옵저버의 위치를 가장 앞쪽 배치 여부
-   */
-  attachObserver(observer, isHeader) {
-    const foundIndex = _.findIndex(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));
-    // BU.CLI(foundIndex);
-    // BU.CLIN(observer, 1);
-    // 동일 옵저버가 존재하지 않을 경우에 추가
-    if (foundIndex === -1) {
-      isHeader ? this.nodeObservers.unshift(observer) : this.nodeObservers.push(observer);
-    }
-  }
-
-  /** @param {Observer} observer 옵저버 제거 */
-  dettachObserver(observer) {
-    // BU.CLIN(this.nodeObservers);
-    // 대상이 존재하는지 확인
-    const foundIndex = _.findIndex(this.nodeObservers, nodeOb => _.isEqual(nodeOb, observer));
-    // 해당 옵저버 제거
-    if (foundIndex !== -1) {
-      _.pullAt(this.nodeObservers, [foundIndex]);
-    }
+    return _.find(this.observers, nodeOb => _.isEqual(nodeOb, observer));
   }
 
   /** @param {nodeInfo} nodeInfo 옵저버들에게 노드 변경 알림 */
   notifyObserver(nodeInfo) {
-    const cloneObservers = _.clone(this.nodeObservers);
+    const cloneObservers = _.clone(this.observers);
     cloneObservers.forEach(nodeOb => {
       nodeOb.updateNode(nodeInfo);
     });

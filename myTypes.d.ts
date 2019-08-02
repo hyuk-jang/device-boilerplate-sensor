@@ -3,6 +3,7 @@ import Model from './src/Model';
 import CoreFacade from './src/core/CoreFacade';
 import CommandExecManager from './src/CommandExecManager';
 import CommandManager from './src/core/CommandManager/CommandManager';
+import ScenarioManager from './src/core/CommandManager/ScenarioCommand/ScenarioManager';
 import CmdStorage from './src/core/CommandManager/Command/CmdStorage'
 import CmdStrategy from './src/core/CommandManager/CommandStrategy/CmdStrategy';
 import PlaceComponent from './src/core/PlaceManager/PlaceComponent';
@@ -17,6 +18,7 @@ declare global {
   const CoreFacade: CoreFacade;
   const CommandExecManager: CommandExecManager;
   const CommandManager: CommandManager;
+  const ScenarioManager: ScenarioManager;
   const CmdStorage: CmdStorage;
   const CmdStrategy: CmdStrategy;
   const PlaceComponent: PlaceComponent;

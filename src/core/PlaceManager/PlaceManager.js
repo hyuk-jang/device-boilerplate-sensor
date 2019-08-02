@@ -14,10 +14,6 @@ class PlaceManager extends PlaceComponent {
 
     /** @type {PlaceStorage[]} */
     this.placeStorageList = [];
-
-    const coreFacade = new CoreFacade();
-    // Core Facade에 Place Manager와 Place Algorithm 세팅
-    coreFacade.setPlaceManager(this);
   }
 
   /**

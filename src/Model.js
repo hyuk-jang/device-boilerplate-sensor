@@ -4,22 +4,20 @@ const moment = require('moment');
 const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
 
-const ControlDBS = require('./Control');
+const CoreFacade = require('./core/CoreFacade');
 
 const CmdManager = require('./core/CommandManager/CommandManager');
+const ScenarioManager = require('./core/CommandManager/ScenarioCommand/ScenarioManager');
 const PlaceManager = require('./core/PlaceManager/PlaceManager');
 
-const { dcmWsModel, dcmConfigModel } = require('./core/CoreFacade');
+const { dcmConfigModel } = require('./core/CoreFacade');
 
-const { nodePickKey, complexCmdPickKey, nodeDataType } = dcmConfigModel;
-
-// API Server 와 데이터를 주고 받는 타입
-const { transmitToServerCommandType, transmitToClientCommandType } = dcmWsModel;
+const { nodePickKey, nodeDataType } = dcmConfigModel;
 
 class Model {
   /**
    * Creates an instance of Model.
-   * @param {ControlDBS} controller
+   * @param {MainControl} controller
    * @memberof Model
    */
   constructor(controller) {
@@ -40,9 +38,6 @@ class Model {
     this.placeList = placeList;
     this.placeRelationList = placeRelationList;
 
-    /** @type {complexCmdWrapInfo[]} 복합 명령 실행 목록 */
-    this.complexCmdList = [];
-
     this.biModule = new BM(config.dbInfo);
 
     // 정기 조회 Count
@@ -59,17 +54,21 @@ class Model {
 
   /** Model 상세 초기화 */
   init() {
+    const coreFacade = new CoreFacade();
     // Map에 기록된 명령을 해석하여 상세한 명령으로 생성하여 MapInfo 에 정의
     this.initCommand();
-
-    // 모델 초기화가 완료 된후 집합 객체 생성
 
     // 명령 관리자 초기화 진행
     /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
     this.cmdManager = new CmdManager(this);
-    this.cmdManager.init();
+    coreFacade.setCmdManager(this.cmdManager);
+    this.cmdManager.init(this.mapCmdInfo.scenarioCmdList);
+
+    this.scenarioManager = new ScenarioManager(this);
+    coreFacade.setScenarioManager(this.scenarioManager);
 
     this.placeManager = new PlaceManager();
+    coreFacade.setPlaceManager(this.placeManager);
     this.placeManager.init(this);
   }
 
@@ -129,41 +128,6 @@ class Model {
   }
 
   /**
-   * FIXME: TEMP
-   * @desc O.C
-   * 해당 장치에 대한 동일한 제어가 존재하는지 체크
-   * @param {csOverlapControlHandleConfig} existControlInfo 누적 제어 조회 옵션
-   * @return {boolean} 현재 값과 동일하거나 예약 명령이 존재할 경우 True, 아니라면 False
-   */
-  isExistSingleControl(existControlInfo) {
-    // BU.CLI(existControlInfo);
-    const { nodeId, singleControlType, controlSetValue } = existControlInfo;
-
-    // 노드 Id가 동일한 노드 객체 가져옴
-    const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
-
-    // 만약 노드 객체가 없다면 해당 노드에 관해서 명령 생성하지 않음.
-    if (_.isEmpty(nodeInfo)) return true;
-
-    // 설정 제어 값이 존재하고 현재 노드 값과 같다면 추가적으로 제어하지 않음
-    // FIXME: ControlSetValue와 설정 제어 값을 치환할 경우 상이한 문제가 발생할 것으로 보임. 필요시 수정
-    if (!_.isNil(controlSetValue) && _.eq(nodeInfo.data, controlSetValue)) return true;
-
-    // 사용자가 알 수 있는 제어 구문으로 변경
-    const cmdName = this.convertControlValueToString(nodeInfo, singleControlType);
-
-    // node 현재 값과 동일하다면 제어 요청하지 않음
-    if (_.isNil(controlSetValue) && _.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName))) {
-      return true;
-    }
-
-    // 저장소가 존재한다면 OC가 존재하는지 체크
-    return !!this.cmdManager.cmdOverlapManager
-      .getOverlapStatus(nodeId, singleControlType, controlSetValue)
-      .getReservedECU().length;
-  }
-
-  /**
    * 설정 명령을 찾고자 할 경우
    * @param {string} cmdId
    */
@@ -210,30 +174,6 @@ class Model {
   }
 
   /**
-   * @abstract
-   * @param {nodeInfo} nodeInfo
-   * @param {string} singleControlType
-   */
-  convertControlValueToString(nodeInfo, singleControlType) {
-    return this.cmdManager.convertControlValueToString(nodeInfo, singleControlType);
-  }
-
-  /**
-   * API 서버로 축약해서 명령을 보냄.
-   */
-  transmitComplexCommandStatus() {
-    const contractCommandList = _(this.complexCmdList)
-      .map(complexCmdInfo => _.pick(complexCmdInfo, complexCmdPickKey.FOR_SERVER))
-      .value();
-
-    // 업데이트 알림 (통째로 보내버림)
-    this.controller.apiClient.transmitDataToServer({
-      commandType: transmitToServerCommandType.COMMAND,
-      data: contractCommandList,
-    });
-  }
-
-  /**
    * Data logger와 연결되어 있는 컨트롤러를 반환
    * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
    */
@@ -242,7 +182,6 @@ class Model {
     // Node Id 일 경우
     if (_.isString(searchValue)) {
       // Data Logger List에서 찾아봄
-      // BU.CLIN(this.dataLoggerList);
       const dataLoggerInfo = _.find(this.dataLoggerList, {
         dl_id: searchValue,
       });
@@ -262,43 +201,9 @@ class Model {
       }
     }
 
-    // BU.CLIN(this.dataLoggerControllerList);
     return _.find(this.dataLoggerControllerList, router =>
       _.isEqual(router.dataLoggerInfo, searchValue),
     );
-  }
-
-  /**
-   * 복합 명령을 저장
-   * @param {complexCmdWrapInfo} complexCmdWrapInfo
-   * @return {complexCmdWrapInfo}
-   */
-  saveComplexCommand(complexCmdWrapInfo) {
-    // BU.CLIN(complexCmdWrapInfo, 1);
-    try {
-      this.cmdManager.saveComplexCommand(complexCmdWrapInfo);
-
-      // this.transmitComplexCommandStatus();
-
-      return complexCmdWrapInfo;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 저장소 데이터 관리. Data Logger Controller 객체로 부터 Message를 받은 경우 msgCode에 따라서 관리
-   * @example
-   * Device Client로부터 Message 수신
-   * @param {DataLoggerControl} dataLoggerController Data Logger Controller 객체
-   * @param {dcMessage} dcMessage 명령 수행 결과 데이터
-   */
-  manageComplexCommand(dataLoggerController, dcMessage) {
-    try {
-      this.cmdManager.manageComplexCommand(dataLoggerController, dcMessage);
-    } catch (error) {
-      throw error;
-    }
   }
 
   /** 정기 계측 조회 명령 완료 결과 반영 */

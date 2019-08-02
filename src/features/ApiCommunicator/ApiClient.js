@@ -4,7 +4,9 @@ const { BU } = require('base-util-jh');
 
 const DeviceManager = require('../../utils/DeviceManager');
 
-const { BaseModel } = require('../../../../device-protocol-converter-jh');
+const {
+  BaseModel: { defaultModule },
+} = require('../../../../device-protocol-converter-jh');
 
 const {
   dcmWsModel: { transmitToServerCommandType, transmitToClientCommandType },
@@ -16,7 +18,7 @@ class ApiClient extends DeviceManager {
     super();
     this.controller = controller;
     /** 기본 Encoding, Decondig 처리를 할 라이브러리 */
-    this.defaultConverter = BaseModel.defaultModule;
+    this.defaultConverter = defaultModule;
     // socket Client의 인증 여부
     this.hasCertification = false;
   }
@@ -208,7 +210,7 @@ class ApiClient extends DeviceManager {
             this.controller.executeSavedCommand(contents);
             break;
           case transmitToClientCommandType.SCENARIO: // 시나리오
-            this.controller.executeScenario(contents);
+            this.controller.executeScenarioControl(contents);
             break;
           default:
             throw new Error(`commandId: ${commandId} does not exist.`);
