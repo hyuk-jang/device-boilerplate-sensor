@@ -5,24 +5,17 @@ const { BM } = require('base-model-jh');
 const Control = require('../../../Control');
 
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
-const MuanScenario = require('./MuanScenario');
 const PBS = require('../../../features/PowerStatusBoard/PBS');
 const BlockManager = require('../../../features/BlockManager/BlockManager');
 
 const blockConfig = require('./block.config');
 
-// const CriticalSetter = require('../smartSalternCore/CriticalSetter');
-
 // const SmartSalternStorage = require('../smartSalternCore/SmartSalternStorage');
-
-const M100kPlaceAlgorithm = require('./PlaceThreAlgo/M100kPlaceAlgorithm');
-const Algorithm = require('./ControlMode/Algorithm');
-
-// const { nodeDefIdInfo: ndId } = Algorithm;
+const Algorithm = require('./core/Algorithm');
 
 const CoreFacade = require('../../../core/CoreFacade');
 
-const commonFn = require('./ControlMode/commonFn/commonFn');
+const commonFn = require('./core/commonFn/commonFn');
 
 const {
   dcmConfigModel: {
@@ -47,9 +40,6 @@ class MuanControl extends Control {
     // const test = new DefaultApiClient(this);
     /** @type {DefaultApiClient} */
     this.apiClient = new ApiClient(this);
-
-    /** @type {MuanScenario} */
-    this.scenarioManager = new MuanScenario(this);
 
     /** @type {PBS} */
     this.powerStatusBoard = new PBS(this);

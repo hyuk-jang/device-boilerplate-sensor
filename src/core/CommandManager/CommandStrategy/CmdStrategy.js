@@ -150,7 +150,7 @@ class CmdStrategy {
       strTrue = 'Open';
       strFalse = 'Close';
     } else {
-      throw new Error(`ncTargetId: ${nodeInfo.nc_target_id} is not defined.`);
+      throw new Error(`${nodeInfo.node_id} nc_target_id: ${nodeInfo.nc_target_id} is not defined.`);
     }
 
     switch (singleControlType) {

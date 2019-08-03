@@ -88,10 +88,32 @@ class CommandExecManager {
     } = reqSingleCmdInfo;
 
     // 제어하고자 하는 노드 정보를 가져옴
-    const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
 
     try {
       const coreFacade = new CoreFacade();
+
+      // 다중 배열 Node 가 들어올 경우
+      if (_.isArray(nodeId)) {
+        // 사용자가 알 수 있는 제어 구문으로 변경
+
+        /** @type {reqCommandInfo} 명령 실행 설정 객체 */
+        const reqCommandOption = {
+          wrapCmdFormat: reqWrapCmdFormat.SINGLE,
+          wrapCmdType,
+          wrapCmdId: `${nodeId.toString()}_${singleControlType}`,
+          wrapCmdName: `${nodeId.toString()}_${singleControlType}`,
+          reqCmdEleList: [
+            {
+              singleControlType,
+              searchIdList: nodeId,
+            },
+          ],
+          wrapCmdGoalInfo,
+          rank,
+        };
+        return this.executeCommand(reqCommandOption);
+      }
+      const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
 
       // 사용자가 알 수 있는 제어 구문으로 변경
       const cmdName = coreFacade.cmdManager.convertControlValueToString(
@@ -179,6 +201,7 @@ class CommandExecManager {
       const flowCmdDestInfo = this.model.findFlowCommand(reqFlowCmdInfo);
       // 세부 흐름 명령이 존재하지 않을 경우
       if (_.isEmpty(flowCmdDestInfo)) {
+        BU.CLI(`The flow command: ${srcPlaceId}_TO_${destPlaceId} not found`);
         throw new Error(`The flow command: ${srcPlaceId}_TO_${destPlaceId} not found`);
       }
 

@@ -84,14 +84,11 @@ module.exports = {
     // 급수지 ID
     const waterSupplyPlaceId = placeNode.getPlaceId();
 
+    // 실행 중인 염수 이동 명령 목록을 가져옴
     const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
       destPlaceId: waterSupplyPlaceId,
       wrapCmdType: reqWCT.CONTROL,
     });
-
-    // const currFlowCmds = coreFacade.getFlowCommandList(null, waterSupplyPlaceId, reqWCT.CONTROL);
-
-    // BU.CLIN(currFlowCmds);
 
     // 진행 중인 배수 명령이 존재하지 않는다면 false
     if (!cmdStorageList.length) return false;
@@ -123,13 +120,11 @@ module.exports = {
     // 배수지 장소 Id
     const drainagePlaceId = placeNode.getPlaceId();
 
+    // 실행 중인 염수 이동 명령 목록을 가져옴
     const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
       srcPlaceId: drainagePlaceId,
       wrapCmdType: reqWCT.CONTROL,
     });
-
-    // 실행 중인 염수 이동 명령 목록을 가져옴
-    // const currFlowCmds = coreFacade.getFlowCommandList(drainagePlaceId, null, reqWCT.CONTROL);
 
     // 진행 중인 배수 명령이 존재하지 않는다면 false
     if (!cmdStorageList.length) return false;

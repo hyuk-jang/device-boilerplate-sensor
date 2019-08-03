@@ -229,8 +229,8 @@ class CoreFacade {
     try {
       return this.cmdExecManager.executeSingleControl(reqSingleCmdInfo);
     } catch (error) {
-      // BU.error(error);
-      BU.error(error.message);
+      BU.error(error);
+      // BU.error(error.message);
     }
   }
 
@@ -260,7 +260,7 @@ class CoreFacade {
       return this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
       // BU.error(error);
-      // BU.error(error.message);
+      BU.error(error.message);
     }
   }
 }

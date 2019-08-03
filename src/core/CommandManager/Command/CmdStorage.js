@@ -275,6 +275,7 @@ class CmdStorage extends CmdComponent {
    * @param {string} updatedCmdStep 명령 저장소에 적용될 cmdStep
    */
   updateCommandStep(updatedCmdStep) {
+    // BU.debugConsole();
     // BU.CLI(this.wrapCmdId, updatedCmdStep);
     // 이벤트 목록에 부합되는지 확인
     const isExistStep = _.chain(cmdStep)

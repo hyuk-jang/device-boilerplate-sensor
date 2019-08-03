@@ -8,7 +8,6 @@ const PlaceComponent = require('../../../../core/PlaceManager/PlaceComponent');
 const Manual = require('./Manual');
 const SalternOptimization = require('./SalternOptimization');
 const PowerOptimization = require('./PowerOptimization');
-const Scenario = require('./Scenario');
 
 class Algorithm extends AbstAlgorithm {
   constructor() {
@@ -18,7 +17,6 @@ class Algorithm extends AbstAlgorithm {
     this.manualMode = new Manual(this);
     this.salternOptimizationMode = new SalternOptimization(this);
     this.powerOptimizationMode = new PowerOptimization(this);
-    this.scenarioMode = new Scenario(this);
 
     /** @type {Algorithm} */
     this.currControlMode = this.manualMode;

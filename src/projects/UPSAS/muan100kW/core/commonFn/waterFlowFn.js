@@ -240,7 +240,7 @@ module.exports = {
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (waterSupplyPlace !== finalDrainagePlace) {
         const waterSupplyAbleWV = this.getWaterSupplyAbleWV(waterSupplyPlace, thresholdKey);
-        BU.CLI(waterSupplyAbleWV, needWaterVolume);
+        // BU.CLI(waterSupplyAbleWV, needWaterVolume);
 
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
         if (waterSupplyAbleWV >= needWaterVolume) {

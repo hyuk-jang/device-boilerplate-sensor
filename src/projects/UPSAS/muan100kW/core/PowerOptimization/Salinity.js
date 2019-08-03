@@ -7,11 +7,9 @@ const {
   dcmConfigModel,
 } = require('../../../../../core/CoreFacade');
 
-const { goalDataRange, reqWrapCmdType, placeNodeStatus: pNS } = dcmConfigModel;
+const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
 
-const AbstAlgorithm = require('../AbstAlgorithm');
-
-const { nodeDefIdInfo: ndId } = AbstAlgorithm;
+const { nodeDefIdInfo: ndId } = require('../AbstAlgorithm');
 
 const salinityFn = require('../commonFn/salinityFn');
 const waterFlowFn = require('../commonFn/waterFlowFn');
@@ -93,7 +91,7 @@ class Salinity extends PlaceThreshold {
       if (foundDrainagePlace) {
         placeStorageList.forEach(placeStorage => {
           coreFacade.executeFlowControl({
-            wrapCmdType: reqWrapCmdType.CONTROL,
+            wrapCmdType: reqWCT.CONTROL,
             srcPlaceId: placeStorage.getPlaceId(),
             destPlaceId: waterSupplyInfo.waterSupplyPlace.getPlaceId(),
             wrapCmdGoalInfo: {
@@ -101,7 +99,7 @@ class Salinity extends PlaceThreshold {
                 {
                   nodeId: placeStorage.getNodeId(ndId.WATER_LEVEL),
                   goalValue: placeStorage.getMinValue(ndId.WATER_LEVEL),
-                  goalRange: goalDataRange.LOWER,
+                  goalRange: goalDR.LOWER,
                 },
               ],
             },

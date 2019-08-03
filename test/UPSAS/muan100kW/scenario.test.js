@@ -128,7 +128,7 @@ describe('시나리오 동작 테스트', function() {
    *    'rainMode' Set 명령 실행 여부
    *  >>> [SET_RAIN_MODE][COMPLETE]
    */
-  it('우천 모드', async () => {
+  it.skip('우천 모드', async () => {
     const { cmdManager, placeManager, scenarioManager } = control.model;
     // 시나리오 입힘
     scenarioManager.scenarioCmdList = scenarioList;
@@ -268,5 +268,39 @@ describe('시나리오 동작 테스트', function() {
 
     // BU.CLIN(scenarioManager.scenarioStorage, 3);
     BU.CLI('TC_1 >>> 3 단계 완료');
+  });
+
+  it('시연 모드 1', async () => {
+    const { cmdManager, placeManager, scenarioManager } = control.model;
+    // 시나리오 입힘
+    scenarioManager.scenarioCmdList = scenarioList;
+
+    scenarioManager.initScenario({ wrapCmdId: 'normalFlowScenario' });
+
+    const mainScenarioStorage = scenarioManager.scenarioStorage;
+    // * 1. 'closeAllDevice' Set 명령 요청 [Step_1]
+    // *  <test> Set 명령 정상적으로 수행 여부
+    const sc_CLOSE_ALL_DEVICE = mainScenarioStorage.getRunningScenario();
+    // BU.CLIN(sc_CLOSE_ALL_DEVICE);
+    expect(sc_CLOSE_ALL_DEVICE.getWrapCmdId()).to.eq('closeAllDevice');
+
+    // *  <test> MSC 동기 처리 여부 >>> 명령 수행 중 [Step_2]로 넘어가지 않는지 여부
+    expect(mainScenarioStorage.executeIndex).to.eq(0);
+
+    expect(sc_CLOSE_ALL_DEVICE.isScenarioClear()).to.false;
+
+    // *  >>> [CLOSE_ALL_DEVICE][COMPLETE]
+    /** @type {CmdStorage} */
+    const cs_SET_CLOSE_ALL_DEVICE = await eventToPromise(control, cmdStep.COMPLETE);
+    // 명령 종료됨.
+    expect(sc_CLOSE_ALL_DEVICE.isScenarioClear()).to.true;
+
+    expect(cs_SET_CLOSE_ALL_DEVICE.wrapCmdId).to.equal('closeAllDevice');
+    // *  <test> Goal이 없는 명령일 경우 장치 제어 완료 후 명령 Stack에서 제거 여부
+    expect(mainScenarioStorage.executeIndex).to.eq(1);
+
+    BU.CLI('TC_1 >>> 1 단계 완료');
+
+    const ss_STEP_2 = mainScenarioStorage.getRunningScenario();
   });
 });

@@ -7,7 +7,7 @@ const {
   dcmConfigModel,
 } = require('../../../../../core/CoreFacade');
 
-const { goalDataRange, reqWrapCmdType: reqWCT, placeNodeStatus } = dcmConfigModel;
+const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
 
 const commonFn = require('../commonFn/commonFn');
 const waterFlowFn = require('../commonFn/waterFlowFn');
@@ -57,7 +57,7 @@ class WaterLevel extends PlaceThreshold {
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청
-      waterFlowFn.reqWaterFlow(placeNode, thresholdInfo, placeNodeStatus.NORMAL);
+      waterFlowFn.reqWaterFlow(placeNode, thresholdInfo, pNS.NORMAL);
     } catch (error) {
       throw error;
     }
@@ -90,7 +90,7 @@ class WaterLevel extends PlaceThreshold {
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // BU.CLIN(thresholdInfo);
       // 임계 정보에 대한 염수 이동 명령 요청
-      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, placeNodeStatus.NORMAL);
+      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
     } catch (error) {
       // BU.CLIN(error);
       throw error;
@@ -129,7 +129,7 @@ class WaterLevel extends PlaceThreshold {
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청
       // BU.CLI('waterFlowFn.reqWaterFlow');
-      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, placeNodeStatus.NORMAL);
+      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
     } catch (error) {
       // BU.CLIN(error);
       throw error;
@@ -167,7 +167,7 @@ class WaterLevel extends PlaceThreshold {
 
       // BU.CLI(thresholdInfo);
       // 임계 정보에 대한 염수 이동 명령 요청
-      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, placeNodeStatus.NORMAL);
+      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
     } catch (error) {
       throw error;
     }

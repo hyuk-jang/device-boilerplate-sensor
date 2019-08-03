@@ -191,7 +191,7 @@ class CommandManager {
       //   BU.CLI(cmdStorage.wrapCmdUuid, cmdStorage.wrapCmdInfo);
       // });
       // BU.CLIN(this.getCmdStorage({ wrapCmdUuid: wrapCmdUUID }).getCmdEle({ cmdEleUuid: uuid }));
-      BU.error(error)
+      BU.error(error);
       BU.error(`${commandId} ${nodeId} ${msgCode}`, error.message);
       // NOTE: 명령 삭제 후 발생한 이벤트에 대해서는 무시함.
       // throw error;
