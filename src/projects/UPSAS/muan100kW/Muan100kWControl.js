@@ -185,7 +185,12 @@ class MuanControl extends Control {
    * 1. 정기 계측 명령이 완료되었을 경우 inverter 카테고리 데이터 정제 후 DB 저장
    */
   bindingEventHandler() {
-    this.on('completeInquiryAllDeviceStatus', err => {
+    this.on('completeInquiryAllDeviceStatus', () => {
+      const SALTERN = 'saltern';
+      this.blockManager
+        .refineDataContainer(SALTERN)
+        .then(() => this.blockManager.saveDataToDB(SALTERN));
+
       // FIXME: 인버터 사용할 경우 해제
       // this.blockManager
       //   .refineDataContainer('inverter')

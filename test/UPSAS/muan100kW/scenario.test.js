@@ -10,8 +10,6 @@ const { BU } = require('base-util-jh');
 const config = require('./config');
 const Main = require('../../../src/Main');
 
-const ScenarioManager = require('../../../src/core/CommandManager/ScenarioCommand/ScenarioManager');
-
 const CoreFacade = require('../../../src/core/CoreFacade');
 
 const scenarioList = require('./scenarioList');

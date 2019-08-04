@@ -259,6 +259,7 @@ class BlockManager extends AbstBlockManager {
    * @param {dataContainerDBS} dataContainer
    */
   processData(dataContainer) {
+    // BU.CLIN(dataContainer.dataStorageList);
     const { refineDate, dataStorageList, blockConfigInfo, insertDataList } = dataContainer;
 
     const { applyTableInfo } = blockConfigInfo;

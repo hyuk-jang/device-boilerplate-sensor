@@ -231,6 +231,9 @@ class Model {
       // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
+    // 정기 계측 명령 완료 이벤트 발송 (각 프로젝트 마다 Block Update 이벤트 바인딩 수신을 위함)
+    this.controller.emit('completeInquiryAllDeviceStatus');
+
     // BU.CLIN(validNodeList);
     process.env.LOG_DBS_INQUIRY_RESULT === '1' &&
       BU.CLI(this.getAllNodeStatus(nodePickKey.FOR_DATA));
@@ -271,10 +274,11 @@ class Model {
    * @return {nodeInfo[]}
    */
   checkValidateNodeData(
-    nodeList,
+    nodeList = [],
     diffInfo = { diffType: 'minutes', duration: 1 },
     momentDate = moment(),
   ) {
+    BU.CLIN(nodeList);
     // 입력된 노드 리스트를 돌면서 유효성 검증
     return nodeList.filter(nodeInfo => {
       // 날짜 차 계산

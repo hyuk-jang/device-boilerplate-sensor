@@ -11,17 +11,15 @@ const config = require('./config');
 const Main = require('../../../src/Main');
 const CoreFacade = require('../../../src/core/CoreFacade');
 
+const { dcmConfigModel } = CoreFacade;
+
 const {
-  dcmConfigModel: {
-    complexCmdStep,
-    reqWrapCmdType: reqWCT,
-    reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
-  },
-} = CoreFacade;
-
-const ThreCmdComponent = require('../../../src/core/CommandManager/Command/ThresholdCommand/ThreCmdComponent');
-
-const { goalDataRange } = ThreCmdComponent;
+  commandStep: cmdStep,
+  goalDataRange: goalDR,
+  reqWrapCmdType: reqWCT,
+  reqWrapCmdFormat: reqWCF,
+  reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
+} = dcmConfigModel;
 
 process.env.NODE_ENV = 'development';
 
@@ -32,55 +30,6 @@ const main = new Main();
 //   dbInfo: config.dbInfo,
 // });
 const control = main.createControl(config);
-const coreFacade = new CoreFacade();
-
-const ndId = {
-  S: 'salinity',
-  WL: 'waterLevel',
-  BT: 'brineTemperature',
-  MRT: 'moduleRearTemperature',
-};
-
-const pId = {
-  RV_1: 'RV_1',
-  RV_2: 'RV_2',
-  SEA: 'SEA',
-  NEB_1: 'NEB_1',
-  NEB_2: 'NEB_2',
-  NCB: 'NCB',
-  SEB_1: 'SEB_1',
-  SEB_2: 'SEB_2',
-  SEB_3: 'SEB_3',
-  SEB_4: 'SEB_4',
-  SEB_5: 'SEB_5',
-  SEB_6: 'SEB_6',
-  SEB_7: 'SEB_7',
-  SEB_8: 'SEB_8',
-  BW_1: 'BW_1',
-  BW_2: 'BW_2',
-  BW_3: 'BW_3',
-  BW_4: 'BW_4',
-  BW_5: 'BW_5',
-};
-
-/** 제어 모드 */
-const controlMode = {
-  MANUAL: 'MANUAL',
-  POWER_OPTIMIZATION: 'POWER_OPTIMIZATION',
-  SALTERN_POWER_OPTIMIZATION: 'SALTERN_POWER_OPTIMIZATION',
-  RAIN: 'RAIN',
-};
-
-/**
- *
- * @param {PlaceNode} placeNode
- * @param {*} setValue
- */
-function setNodeData(placeNode, setValue) {
-  _.set(placeNode, 'nodeInfo.data', setValue);
-
-  return _.get(placeNode, 'nodeInfo');
-}
 
 describe('수동 테스트', function() {
   this.timeout(5000);
@@ -89,10 +38,9 @@ describe('수동 테스트', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
-    coreFacade.updateControlMode(controlMode.MANUAL);
-
     control.inquiryAllDeviceStatus();
-    await eventToPromise(control, 'completeInquiryAllDeviceStatus');
+
+    await eventToPromise(control, cmdStep.COMPLETE);
   });
 
   beforeEach(async () => {
@@ -101,7 +49,7 @@ describe('수동 테스트', function() {
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWCT.CONTROL,
       });
-      await eventToPromise(control, 'completeCommand');
+      await eventToPromise(control, cmdStep.COMPLETE);
     } catch (error) {
       BU.error(error.message);
     }
