@@ -63,6 +63,7 @@ describe('시나리오 동작 테스트', function() {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
+    BU.CLI('inquiryAllDeviceStatus')
     control.inquiryAllDeviceStatus();
 
     await eventToPromise(control, cmdStep.COMPLETE);
@@ -268,7 +269,7 @@ describe('시나리오 동작 테스트', function() {
     BU.CLI('TC_1 >>> 3 단계 완료');
   });
 
-  it('시연 모드 1', async () => {
+  it.skip('시연 모드 1', async () => {
     const { cmdManager, placeManager, scenarioManager } = control.model;
     // 시나리오 입힘
     scenarioManager.scenarioCmdList = scenarioList;

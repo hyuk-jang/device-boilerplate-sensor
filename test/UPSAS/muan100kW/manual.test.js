@@ -43,17 +43,17 @@ describe('수동 테스트', function() {
     await eventToPromise(control, cmdStep.COMPLETE);
   });
 
-  beforeEach(async () => {
-    try {
-      control.executeSetControl({
-        wrapCmdId: 'closeAllDevice',
-        wrapCmdType: reqWCT.CONTROL,
-      });
-      await eventToPromise(control, cmdStep.COMPLETE);
-    } catch (error) {
-      BU.error(error.message);
-    }
-  });
+  // beforeEach(async () => {
+  //   try {
+  //     control.executeSetControl({
+  //       wrapCmdId: 'closeAllDevice',
+  //       wrapCmdType: reqWCT.CONTROL,
+  //     });
+  //     await eventToPromise(control, cmdStep.COMPLETE);
+  //   } catch (error) {
+  //     BU.error(error.message);
+  //   }
+  // });
 
   it('구동 테스트', () => {});
 });

@@ -138,7 +138,7 @@ class Control extends EventEmitter {
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
 
     // FIXME: 접속반 DPC가 없기 때문에 제거 처리 함.
-    _.remove(this.dataLoggerList, { dld_target_prefix: 'D_CNT' });
+    // _.remove(this.dataLoggerList, { dld_target_prefix: 'D_CNT' });
 
     // BU.CLI(this.dataLoggerList)
     this.nodeList = await biModule.getTable('v_dv_node', where);

@@ -7,7 +7,11 @@ const CoreFacade = require('./core/CoreFacade');
 
 const { dcmConfigModel, dccFlagModel } = CoreFacade;
 
-const { reqWrapCmdType, reqWrapCmdFormat, reqDeviceControlType } = dcmConfigModel;
+const {
+  reqWrapCmdType: reqWCT,
+  reqWrapCmdFormat: reqWCF,
+  reqDeviceControlType: reqDCT,
+} = dcmConfigModel;
 const { definedCommandSetRank } = dccFlagModel;
 
 const ControlDBS = require('./Control');
@@ -39,7 +43,7 @@ class CommandExecManager {
   executeMeasure(reqMeasureCmdInfo) {
     // BU.CLI(reqMeasureCmdInfo);
     const {
-      wrapCmdType = reqWrapCmdType.CONTROL,
+      wrapCmdType = reqWCT.CONTROL,
       wrapCmdId,
       wrapCmdName,
       searchIdList,
@@ -48,14 +52,14 @@ class CommandExecManager {
 
     /** @type {reqCommandInfo} 명령 실행 설정 객체 */
     const reqCommandOption = {
-      wrapCmdFormat: reqWrapCmdFormat.MEASURE,
+      wrapCmdFormat: reqWCF.MEASURE,
       wrapCmdType,
       wrapCmdId,
       wrapCmdName,
       rank,
       reqCmdEleList: [
         {
-          singleControlType: reqDeviceControlType.MEASURE,
+          singleControlType: reqDCT.MEASURE,
           searchIdList,
           rank,
         },
@@ -79,7 +83,7 @@ class CommandExecManager {
     process.env.LOG_DBS_EXEC_SC === '1' && BU.CLIN(reqSingleCmdInfo);
 
     const {
-      wrapCmdType = reqWrapCmdType.CONTROL,
+      wrapCmdType = reqWCT.CONTROL,
       nodeId,
       singleControlType,
       controlSetValue,
@@ -98,7 +102,7 @@ class CommandExecManager {
 
         /** @type {reqCommandInfo} 명령 실행 설정 객체 */
         const reqCommandOption = {
-          wrapCmdFormat: reqWrapCmdFormat.SINGLE,
+          wrapCmdFormat: reqWCF.SINGLE,
           wrapCmdType,
           wrapCmdId: `${nodeId.toString()}_${singleControlType}`,
           wrapCmdName: `${nodeId.toString()}_${singleControlType}`,
@@ -123,7 +127,7 @@ class CommandExecManager {
 
       /** @type {reqCommandInfo} 명령 실행 설정 객체 */
       const reqCommandOption = {
-        wrapCmdFormat: reqWrapCmdFormat.SINGLE,
+        wrapCmdFormat: reqWCF.SINGLE,
         wrapCmdType,
         wrapCmdId: `${nodeId}_${cmdName}${_.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`}`,
         wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
@@ -152,7 +156,7 @@ class CommandExecManager {
     try {
       const {
         wrapCmdId,
-        wrapCmdType = reqWrapCmdType.CONTROL,
+        wrapCmdType = reqWCT.CONTROL,
         rank = definedCommandSetRank.SECOND,
         wrapCmdGoalInfo,
       } = reqSetCmdInfo;
@@ -166,7 +170,7 @@ class CommandExecManager {
 
       /** @type {reqCommandInfo} 명령 실행 설정 객체 */
       const reqCommandOption = {
-        wrapCmdFormat: reqWrapCmdFormat.SET,
+        wrapCmdFormat: reqWCF.SET,
         wrapCmdType,
         wrapCmdId,
         wrapCmdName: setCmdInfo.cmdName,
@@ -190,7 +194,7 @@ class CommandExecManager {
       const {
         srcPlaceId,
         destPlaceId,
-        wrapCmdType = reqWrapCmdType.CONTROL,
+        wrapCmdType = reqWCT.CONTROL,
         wrapCmdGoalInfo,
         rank = definedCommandSetRank.SECOND,
       } = reqFlowCmdInfo;
@@ -207,7 +211,7 @@ class CommandExecManager {
 
       /** @type {reqCommandInfo} 명령 실행 설정 객체 */
       const reqCommandOption = {
-        wrapCmdFormat: reqWrapCmdFormat.FLOW,
+        wrapCmdFormat: reqWCF.FLOW,
         wrapCmdType,
         wrapCmdId: flowCmdDestInfo.cmdId,
         wrapCmdName: flowCmdDestInfo.cmdName,
@@ -233,7 +237,7 @@ class CommandExecManager {
     try {
       const {
         wrapCmdId,
-        wrapCmdType = reqWrapCmdType.CONTROL,
+        wrapCmdType = reqWCT.CONTROL,
         rank = definedCommandSetRank.SECOND,
       } = reqScenarioCmdInfo;
 
@@ -246,7 +250,7 @@ class CommandExecManager {
 
       /** @type {reqCommandInfo} 명령 실행 설정 객체 */
       const reqCommandOption = {
-        wrapCmdFormat: reqWrapCmdFormat.SCENARIO,
+        wrapCmdFormat: reqWCF.SCENARIO,
         wrapCmdType,
         wrapCmdId,
         wrapCmdName: scenarioCmdInfo.scenarioName,
@@ -270,7 +274,7 @@ class CommandExecManager {
     const { trueNodeList, falseNodeList } = flowCmdDestInfo;
     if (trueNodeList.length) {
       reqCmdEleList.push({
-        singleControlType: reqDeviceControlType.TRUE,
+        singleControlType: reqDCT.TRUE,
         nodeId: trueNodeList,
         searchIdList: trueNodeList,
         rank,
@@ -280,37 +284,9 @@ class CommandExecManager {
     // 장치 False 요청
     if (falseNodeList.length) {
       reqCmdEleList.push({
-        singleControlType: reqDeviceControlType.FALSE,
+        singleControlType: reqDCT.FALSE,
         nodeId: falseNodeList,
         searchIdList: falseNodeList,
-        rank,
-      });
-    }
-    return reqCmdEleList;
-  }
-
-  /**
-   * 복원 명령을 세부 제어 목록 반환
-   * @param {flowCmdDestInfo} flowCmdDestInfo
-   * @param {number} rank
-   */
-  makeRestoreEleCmdList(flowCmdDestInfo, rank) {
-    /** @type {reqCmdEleInfo[]} */
-    const reqCmdEleList = [];
-    const { trueNodeList, falseNodeList } = flowCmdDestInfo;
-    if (trueNodeList.length) {
-      reqCmdEleList.push({
-        singleControlType: reqDeviceControlType.FALSE,
-        nodeId: _.reverse(trueNodeList),
-        rank,
-      });
-    }
-
-    // 장치 False 요청
-    if (falseNodeList.length) {
-      reqCmdEleList.push({
-        singleControlType: reqDeviceControlType.TRUE,
-        nodeId: _.reverse(falseNodeList),
         rank,
       });
     }
@@ -325,6 +301,36 @@ class CommandExecManager {
     // BU.CLI(reqComplexCmd);
     try {
       const coreFacade = new CoreFacade();
+
+      const { wrapCmdFormat, reqCmdEleList } = reqCommandInfo;
+
+      // BU.CLIN(reqCmdEleList);
+
+      reqCmdEleList.forEach(reqCmdEleInfo => {
+        const { searchIdList } = reqCmdEleInfo;
+        reqCmdEleInfo.searchIdList = _.reject(searchIdList, searchId => {
+          const dlc = this.model.findDataLoggerController(searchId);
+          let errMsg = '';
+          if (_.isUndefined(dlc)) {
+            errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
+            // BU.CLI(errMsg);
+          } else if (!_.get(dlc, 'hasConnectedDevice')) {
+            errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
+            // BU.CLI(errMsg);
+          }
+
+          return errMsg.length;
+
+          // // 계측 명령 내릴 때 에러가 있을 경우
+          // if(errMsg.length) {
+          //   // 계측 명령이
+          //   return true;
+          // }
+        });
+      });
+
+      // BU.CLIN(reqCmdEleList);
+
       return coreFacade.cmdManager.executeCommand(reqCommandInfo);
     } catch (error) {
       throw error;
@@ -345,6 +351,8 @@ class CommandExecManager {
         wrapCmdName: '정기 장치 상태 계측',
         searchIdList: _.map(this.dataLoggerList, 'dl_id'),
       };
+
+      // BU.CLI(reqMeasureCmdOption);
 
       return this.executeMeasure(reqMeasureCmdOption);
     } catch (error) {

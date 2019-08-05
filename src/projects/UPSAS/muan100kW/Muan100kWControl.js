@@ -149,13 +149,15 @@ class MuanControl extends Control {
 
         // connInfo = {};
       } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
+        // 인버터
         connInfo.type = 'socket';
-        connInfo.port = 9005;
+        connInfo.port = 9001;
         connInfo.subType = '';
         delete connInfo.addConfigInfo;
 
         connInfo = {};
-      } else if (connInfo.type === 'serial' && connInfo.subType === '') {
+      } else if (connInfo.type === 'modbus' && connInfo.subType === 'rtu') {
+        // 접속반
         connInfo.type = 'socket';
         connInfo.port = 9002;
 
@@ -187,18 +189,42 @@ class MuanControl extends Control {
   bindingEventHandler() {
     this.on('completeInquiryAllDeviceStatus', () => {
       const SALTERN = 'saltern';
-      this.blockManager
-        .refineDataContainer(SALTERN)
-        .then(() => this.blockManager.saveDataToDB(SALTERN));
+      const INVERTER = 'inverter';
+      const PV = 'connector';
 
-      // FIXME: 인버터 사용할 경우 해제
+      // 염전 Block Update
+      this.saveBlockDB(SALTERN);
+
+      // 인버터 Block Update
+      this.saveBlockDB(INVERTER);
+
+      // 접속반 Block Update
+      this.saveBlockDB(PV);
+
       // this.blockManager
-      //   .refineDataContainer('inverter')
-      //   .then(() => this.blockManager.saveDataToDB('inverter'))
-      //   .catch(error => {
-      //     BU.CLI(error.name);
-      //   });
+      //   .refineDataContainer(SALTERN)
+      //   .then(() => this.blockManager.saveDataToDB(SALTERN));
+
+      // this.blockManager
+      //   .refineDataContainer(INVERTER)
+      //   .then(() => this.blockManager.saveDataToDB(INVERTER));
+
+      // this.blockManager.refineDataContainer(PV).then(() => this.blockManager.saveDataToDB(PV));
     });
+  }
+
+  /**
+   *
+   * @param {string} category
+   */
+  async saveBlockDB(category) {
+    // BU.CLI('saveBlockDB', category);
+    try {
+      await this.blockManager.refineDataContainer(category);
+      await this.blockManager.saveDataToDB(category);
+    } catch (error) {
+      throw error;
+    }
   }
 }
 module.exports = MuanControl;

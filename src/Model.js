@@ -278,7 +278,7 @@ class Model {
     diffInfo = { diffType: 'minutes', duration: 1 },
     momentDate = moment(),
   ) {
-    BU.CLIN(nodeList);
+    // BU.CLIN(nodeList);
     // 입력된 노드 리스트를 돌면서 유효성 검증
     return nodeList.filter(nodeInfo => {
       // 날짜 차 계산
