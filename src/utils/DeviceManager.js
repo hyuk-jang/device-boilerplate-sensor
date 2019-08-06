@@ -26,6 +26,7 @@ class DeviceManager extends EventEmitter {
    * @param {deviceInfo} deviceInfo
    */
   async connect(deviceInfo = {}) {
+    // BU.CLI('connect', deviceInfo);
     this.deviceInfo = deviceInfo;
     // 모델 선언
     try {

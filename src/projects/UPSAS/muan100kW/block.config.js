@@ -103,37 +103,77 @@ const blockConfigInfo = [
   {
     blockCategory: 'connector',
     baseTableInfo: {
-      tableName: 'pw_pv',
+      tableName: 'pw_connector',
       idKey: 'target_id',
       placeKey: 'place_seq',
       fromToKeyTableList: [
         {
-          fromKey: 'pv_seq',
-          toKey: 'pv_seq',
+          fromKey: 'connector_seq',
+          toKey: 'connector_seq',
         },
       ],
     },
     applyTableInfo: {
-      tableName: 'pw_pv_data',
+      tableName: 'pw_connector_data',
       insertDateColumn: 'writedate',
       matchingList: [
         {
-          fromKey: sensorKeyInfo.pvAmp,
-          toKey: 'amp',
+          fromKey: sensorKeyInfo.ampCh1,
+          toKey: 'a_ch_1',
         },
         {
-          fromKey: sensorKeyInfo.pvVol,
-          toKey: 'vol',
+          fromKey: sensorKeyInfo.volCh1,
+          toKey: 'v_ch_1',
+        },
+        {
+          fromKey: sensorKeyInfo.ampCh2,
+          toKey: 'a_ch_2',
+        },
+        {
+          fromKey: sensorKeyInfo.volCh2,
+          toKey: 'v_ch_2',
+        },
+        {
+          fromKey: sensorKeyInfo.ampCh3,
+          toKey: 'a_ch_3',
+        },
+        {
+          fromKey: sensorKeyInfo.volCh3,
+          toKey: 'v_ch_3',
+        },
+        {
+          fromKey: sensorKeyInfo.ampCh4,
+          toKey: 'a_ch_4',
+        },
+        {
+          fromKey: sensorKeyInfo.volCh4,
+          toKey: 'v_ch_4',
+        },
+        {
+          fromKey: sensorKeyInfo.ampCh5,
+          toKey: 'a_ch_5',
+        },
+        {
+          fromKey: sensorKeyInfo.volCh5,
+          toKey: 'v_ch_5',
+        },
+        {
+          fromKey: sensorKeyInfo.ampCh6,
+          toKey: 'a_ch_6',
+        },
+        {
+          fromKey: sensorKeyInfo.volCh6,
+          toKey: 'v_ch_6',
         },
       ],
     },
     troubleTableInfo: {
-      tableName: 'pw_pv_trouble_data',
+      tableName: 'pw_connector_trouble_data',
       insertDateColumn: 'writedate',
       fromToKeyTableList: [
         {
-          fromKey: 'pv_seq',
-          toKey: 'pv_seq',
+          fromKey: 'connector_seq',
+          toKey: 'connector_seq',
         },
       ],
       changeColumnKeyInfo: {
@@ -144,8 +184,8 @@ const blockConfigInfo = [
         fixDateKey: 'fix_date',
       },
       indexInfo: {
-        primaryKey: 'pv_trouble_data_seq',
-        foreignKey: 'pv_seq',
+        primaryKey: 'connector_trouble_data_seq',
+        foreignKey: 'connector_seq',
       },
     },
   },

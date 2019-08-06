@@ -188,6 +188,7 @@ class MuanControl extends Control {
    */
   bindingEventHandler() {
     this.on('completeInquiryAllDeviceStatus', () => {
+      // BU.CLI('completeInquiryAllDeviceStatus');
       const SALTERN = 'saltern';
       const INVERTER = 'inverter';
       const PV = 'connector';
@@ -200,16 +201,6 @@ class MuanControl extends Control {
 
       // 접속반 Block Update
       this.saveBlockDB(PV);
-
-      // this.blockManager
-      //   .refineDataContainer(SALTERN)
-      //   .then(() => this.blockManager.saveDataToDB(SALTERN));
-
-      // this.blockManager
-      //   .refineDataContainer(INVERTER)
-      //   .then(() => this.blockManager.saveDataToDB(INVERTER));
-
-      // this.blockManager.refineDataContainer(PV).then(() => this.blockManager.saveDataToDB(PV));
     });
   }
 
