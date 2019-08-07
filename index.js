@@ -21,7 +21,7 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       BU.CLI('start Program');
       control.runFeature();
-      // control.inquiryAllDeviceStatus();
+      control.inquiryAllDeviceStatus();
       control.runDeviceInquiryScheduler();
     })
     .catch(err => {
