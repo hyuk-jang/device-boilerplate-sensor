@@ -62,9 +62,9 @@ class Model {
     /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
     this.cmdManager = new CmdManager(this);
     coreFacade.setCmdManager(this.cmdManager);
-    this.cmdManager.init(this.mapCmdInfo.scenarioCmdList);
+    this.cmdManager.init();
 
-    this.scenarioManager = new ScenarioManager(this);
+    this.scenarioManager = new ScenarioManager(this.mapCmdInfo.scenarioCmdList);
     coreFacade.setScenarioManager(this.scenarioManager);
 
     this.placeManager = new PlaceManager();
@@ -246,17 +246,34 @@ class Model {
 
   /**
    * 모든 노드가 가지고 있는 정보 출력
-   * @param {nodePickKey} nodePickKeyList
+   * @param {nodePickKey} nodePickKeyInfo
    * @param {nodeInfo[]=} nodeList
    * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
    */
-  getAllNodeStatus(nodePickKeyList = nodePickKey.FOR_SERVER, nodeList = this.nodeList) {
-    const orderKey = _.includes(nodePickKeyList, 'node_id') ? 'node_id' : _.head(nodePickKeyList);
+  getAllNodeStatus(nodePickKeyInfo = nodePickKey.FOR_SERVER, nodeList = this.nodeList) {
+    // Object 형태로 들어올 경우
+
+    // 데이터 Key를 변환하여 보내주고자 할 경우
+    if (_.isObject(nodePickKeyInfo)) {
+      return _.map(nodeList, nodeInfo => {
+        // BU.CLI(nodeInfo)
+        return _.reduce(
+          nodePickKeyInfo,
+          (result, value, key) => {
+            result[value] = _.get(nodeInfo, key, '');
+            return result;
+          },
+          {},
+        );
+      });
+    }
+
+    const orderKey = _.includes(nodePickKeyInfo, 'node_id') ? 'node_id' : _.head(nodePickKeyInfo);
 
     const statusList = _(nodeList)
       .map(nodeInfo => {
-        if (nodePickKeyList) {
-          return _.pick(nodeInfo, nodePickKeyList);
+        if (nodePickKeyInfo) {
+          return _.pick(nodeInfo, nodePickKeyInfo);
         }
         return nodeInfo;
       })

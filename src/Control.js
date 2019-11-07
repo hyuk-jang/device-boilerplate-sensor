@@ -345,6 +345,7 @@ class Control extends EventEmitter {
    */
   executeSingleControl(reqSingleCmdInfo) {
     try {
+      // BU.CLI(reqSingleCmdInfo);
       return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
     } catch (error) {
       throw error;
@@ -382,7 +383,11 @@ class Control extends EventEmitter {
    * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
    */
   executeScenarioControl(scenarioInfo) {
-    return this.scenarioManager.executeScenarioControl(scenarioInfo);
+    try {
+      return this.commandExecManager.executeScenarioControl(scenarioInfo);
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -451,16 +456,12 @@ class Control extends EventEmitter {
       // 노드 갱신 매니저에게 갱신된 노드 목록을 알림
       this.nodeUpdatorManager.updateNodeList(renewalNodeList);
 
+      // BU.CLIN(dataList);
       const dataList = this.model.getAllNodeStatus(
         CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
-        renewalNodeList,
+        renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
       );
-      // const dataList = this.model.getAllNodeStatus(
-      //   CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
-      //   renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
-      // );
 
-      // BU.CLIN(dataList);
       // API 접속이 이루어져 있고 데이터가 있을 경우에만 전송
       if (this.apiClient.isConnect && dataList.length) {
         this.apiClient.transmitDataToServer({

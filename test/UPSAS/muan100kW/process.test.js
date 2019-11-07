@@ -163,7 +163,7 @@ describe('수위 임계치 처리 테스트', function() {
     // *    명령 요청 >>> [BW_5_TO_NCB](R_CON->C_CON){Expect Success}
     const cs_BW_5_To_NCB = control.executeFlowControl(BW5_TO_NCB);
 
-    /** @type {complexCmdWrapInfo} */
+    /** @type {CmdStorage} */
     const BW_5_To_NCB_WC_CONTROL = await eventToPromise(control, cmdStep.COMPLETE);
 
     // * REAL_TRUE: ['P_013'], IGNORE_TRUE: []

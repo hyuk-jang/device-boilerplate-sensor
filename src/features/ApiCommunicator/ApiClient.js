@@ -9,6 +9,12 @@ const {
 } = require('../../../../device-protocol-converter-jh');
 
 const {
+  dcmConfigModel: {
+    reqWrapCmdFormat: reqWCF,
+    reqWrapCmdType: reqWCT,
+    commandStep: cmdStep,
+    nodePickKey,
+  },
   dcmWsModel: { transmitToServerCommandType, transmitToClientCommandType },
 } = require('../../core/CoreFacade');
 
@@ -41,6 +47,7 @@ class ApiClient extends DeviceManager {
 
       // 형식을 지켜서 보낸 명령만 대응
       if (BU.IsJsonString(strData)) {
+        /** @type {defaultFormatToRequest} */
         const parseData = JSON.parse(strData);
         // Error가 있다면 Client에서 보낸 명령에 대한 Response
         if (_.has(parseData, 'isError')) {
@@ -68,7 +75,7 @@ class ApiClient extends DeviceManager {
             default:
               break;
           }
-        } else {
+        } else if (parseData.commandId === transmitToClientCommandType.CMD) {
           // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
           return this.interpretRequestedCommand(parseData);
         }
@@ -185,11 +192,11 @@ class ApiClient extends DeviceManager {
   /**
    * @desc Server --> DataLogger 명령 수행 요청 처리
    * 수신받은 데이터가 명령 요청인지 체크하고 맞다면 명령을 수행
-   * @param {defaultFormatToRequest} dataInfo
+   * @param {defaultFormatToRequest} responsedDataByServer
    */
-  interpretRequestedCommand(dataInfo) {
-    BU.CLI('interpretRequestedCommand', dataInfo);
-    const { commandId, contents, uuid } = dataInfo;
+  interpretRequestedCommand(responsedDataByServer) {
+    // BU.CLI('interpretRequestedCommand', responsedDataByServer);
+    const { commandId, contents, uuid } = responsedDataByServer;
     /** @type {defaultFormatToResponse} */
     const responseMsg = {
       commandId,
@@ -200,22 +207,75 @@ class ApiClient extends DeviceManager {
     };
 
     try {
-      // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
-      if (_.values(transmitToClientCommandType).includes(_.get(dataInfo, 'commandId'))) {
-        switch (commandId) {
-          case transmitToClientCommandType.SINGLE: // 단일 제어
-            this.controller.executeSingleControl(contents);
-            break;
-          case transmitToClientCommandType.AUTOMATIC: // 명령 제어
-            this.controller.executeSavedCommand(contents);
-            break;
-          case transmitToClientCommandType.SCENARIO: // 시나리오
-            this.controller.executeScenarioControl(contents);
-            break;
-          default:
-            throw new Error(`commandId: ${commandId} does not exist.`);
-        }
+      /** @type {wsControlCmdAPI} 웹 API Server에서 받은 명령 정보 비구조화할당 이름 재정의 */
+      const {
+        WCF: wrapCmdFormat,
+        WCT: wrapCmdType,
+        WCI: wrapCmdId,
+        WCG: wrapCmdGoalInfo,
+        SCT: singleControlType,
+        CSV: controlSetValue,
+        NI: nodeId,
+        rank,
+      } = contents;
+
+      /** @type {reqCommandInfo} DBS에서 사용될 명령 Format 으로 변경 */
+      const reqCmdInfo = {
+        wrapCmdFormat,
+        wrapCmdType,
+        wrapCmdId,
+        wrapCmdGoalInfo,
+        rank,
+        singleControlType,
+        controlSetValue,
+        nodeId,
+      };
+
+      switch (wrapCmdFormat) {
+        case reqWCF.SINGLE:
+          // BU.CLI('reqWCF.SINGLE');
+          this.controller.executeSingleControl(reqCmdInfo);
+          break;
+        case reqWCF.SET:
+          // BU.CLI('reqWCF.SET');
+          this.controller.executeSetControl(reqCmdInfo);
+          break;
+        case reqWCF.FLOW:
+          // BU.CLI('reqWCF.FLOW');
+          this.controller.executeFlowControl(reqCmdInfo);
+          break;
+        case reqWCF.SCENARIO:
+          // BU.CLI('reqWCF.SCENARIO');
+          this.controller.executeScenarioControl(reqCmdInfo);
+          break;
+        default:
+          responseMsg.isError = 1;
+          responseMsg.message = `WCT: ${wrapCmdFormat} is not defined`;
+          break;
       }
+
+      // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
+      // if (_.values(transmitToClientCommandType).includes(_.get(wsControlCmdApiInfo, 'commandId'))) {
+      //   switch (commandId) {
+      //     // TODO: API 구조 개편
+      //     // case transmitToClientCommandType.CMD: // 명령 요청
+      //     //   console.log(dataInfo);
+      //     //   break;
+      //     case transmitToClientCommandType.SINGLE: // 단일 제어
+      //       this.controller.executeSingleControl(contents);
+      //       break;
+      //     case transmitToClientCommandType.AUTOMATIC: // 명령 제어
+      //       this.controller.executeSavedCommand(contents);
+      //       break;
+      //     case transmitToClientCommandType.SCENARIO: // 시나리오
+      //       this.controller.executeScenarioControl(contents);
+      //       break;
+      //     default:
+      //       throw new Error(`commandId: ${commandId} does not exist.`);
+      //   }
+      // }
+
+      // throw new Error(`comma`)
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 

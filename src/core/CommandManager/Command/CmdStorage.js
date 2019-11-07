@@ -392,7 +392,7 @@ class CmdStorage extends CmdComponent {
       }
 
       // 임계 명령이 존재할 경우 명령 단계: RUNNING
-      if (_.isObject(this.wrapCmdGoalInfo) && this.setThreshold(this.wrapCmdGoalInfo)) {
+      if (!_.isEmpty(this.wrapCmdGoalInfo) && this.setThreshold(this.wrapCmdGoalInfo)) {
         // BU.CLI('@@@@@@@@@@@ RUNNING', this.wrapCmdId);
         return this.updateCommandStep(cmdStep.RUNNING);
       }
