@@ -157,16 +157,10 @@ class Control extends EventEmitter {
     // 장소에 속해있는 센서를 알기위한 목록을 가져옴
     this.placeRelationList = await biModule.getTable('v_dv_place_relation', where);
 
-    // FIXME: API 서버로 필수 데이터만을 전송하기 위한 flag 설정을 위한 Map 표기 Node 내역 추출
-    const svgNodeList = _(this.deviceMap.drawInfo.positionInfo.svgNodeList)
-      .map('defList')
-      .flatten()
-      .value();
-
     // 장소 관계 목록을 순회하면서 장소목록에 속해있는 node를 삽입
     this.placeRelationList.forEach(plaRelRow => {
       // 장소 시퀀스와 노드 시퀀스를 불러옴
-      const { place_seq: placeSeq, node_seq: nodeSeq, node_id: nodeId } = plaRelRow;
+      const { place_seq: placeSeq, node_seq: nodeSeq } = plaRelRow;
       // 장소 시퀀스를 가진 객체 검색
       const placeInfo = _.find(this.placeList, { place_seq: placeSeq });
       // 노드 시퀀스를 가진 객체 검색
@@ -174,9 +168,6 @@ class Control extends EventEmitter {
 
       // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
       if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
-        // 해당 svg 노드 목록 중에 id와 매칭되는 Node Id 객체가 존재할 경우 API Client 전송 flag 설정
-        _.find(svgNodeList, { id: nodeId }) && _.set(nodeInfo, 'isSubmitDBW', true);
-
         !_.has(placeInfo, 'nodeList') && _.set(placeInfo, 'nodeList', []);
         placeInfo.nodeList.push(nodeInfo);
       }
@@ -459,7 +450,7 @@ class Control extends EventEmitter {
       // BU.CLIN(dataList);
       const dataList = this.model.getAllNodeStatus(
         CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
-        renewalNodeList.filter(nodeInfo => nodeInfo.isSubmitDBW),
+        renewalNodeList.filter(nodeInfo => nodeInfo.is_submit_api),
       );
 
       // API 접속이 이루어져 있고 데이터가 있을 경우에만 전송

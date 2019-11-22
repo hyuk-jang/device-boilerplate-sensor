@@ -216,6 +216,8 @@ class ApiClient extends DeviceManager {
         SCT: singleControlType,
         CSV: controlSetValue,
         NI: nodeId,
+        SPI,
+        DPI,
         rank,
       } = contents;
 
@@ -229,7 +231,11 @@ class ApiClient extends DeviceManager {
         singleControlType,
         controlSetValue,
         nodeId,
+        srcPlaceId: SPI,
+        destPlaceId: DPI,
       };
+
+      // BU.CLI(reqCmdInfo);
 
       switch (wrapCmdFormat) {
         case reqWCF.SINGLE:
@@ -286,7 +292,7 @@ class ApiClient extends DeviceManager {
       responseMsg.isError = 1;
       responseMsg.message = _.get(error, 'message');
 
-      BU.CLI(responseMsg);
+      // BU.CLI(responseMsg);
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
