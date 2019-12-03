@@ -18,8 +18,10 @@ class Algorithm extends AbstAlgorithm {
     this.salternOptimizationMode = new SalternOptimization(this);
     this.powerOptimizationMode = new PowerOptimization(this);
 
-    /** @type {Algorithm} */
-    this.currControlMode = this.manualMode;
+    // /** @type {Algorithm} */
+    // this.currControlMode = this.manualMode;
+
+    this.updateControlMode(this.manualMode.algorithmId);
   }
 
   /**
@@ -30,6 +32,7 @@ class Algorithm extends AbstAlgorithm {
     // BU.CLIS(this.currControlMode, controlMode);
     if (this.currControlMode !== controlMode) {
       this.currControlMode = controlMode;
+      // 세부 모드 별 알고리즘에 제어 모드 변경 알림 처리
       this.currControlMode.updateControlMode();
       return true;
     }
@@ -60,14 +63,17 @@ class Algorithm extends AbstAlgorithm {
    * 제어 모드를 변경할 경우
    * @param {string} controlMode
    */
-  updateControlMode(controlMode) {
+  updateControlMode(controlMode = AbstAlgorithm.controlModeInfo.MANUAL) {
     // BU.CLI('updateControlMode', controlMode);
+    /** @type {AbstAlgorithm} */
     let nextControlMode;
 
     //  제어 모드를 불러옴
     const {
       controlModeInfo: { MANUAL, SALTERN_POWER_OPTIMIZATION, POWER_OPTIMIZATION, RAIN },
     } = AbstAlgorithm;
+
+    // BU.CLI('controlMode', controlMode);
 
     // 변경하고자 하는 제어모드 검색
     switch (controlMode) {
@@ -92,6 +98,11 @@ class Algorithm extends AbstAlgorithm {
         break;
     }
 
+    // BU.CLIN(nextControlMode);
+
+    this.algorithmId = nextControlMode.algorithmId;
+    this.algorithmName = nextControlMode.algorithmName;
+
     return this.changeControlMode(nextControlMode);
   }
 
@@ -99,7 +110,24 @@ class Algorithm extends AbstAlgorithm {
    * 현재 제어 모드 가져옴
    * @return {string} controlMode 제어 모드
    */
-  getCurrControlMode() {}
+  getCurrControlMode() {
+    //  제어 모드를 불러옴
+    const {
+      controlModeInfo: { MANUAL, SALTERN_POWER_OPTIMIZATION, POWER_OPTIMIZATION },
+    } = AbstAlgorithm;
+
+    let controlMode;
+
+    if (this.currControlMode === this.manualMode) {
+      controlMode = MANUAL;
+    } else if (this.currControlMode === this.salternOptimizationMode) {
+      controlMode = SALTERN_POWER_OPTIMIZATION;
+    } else if (this.currControlMode === this.powerOptimizationMode) {
+      controlMode = POWER_OPTIMIZATION;
+    }
+
+    return controlMode;
+  }
 
   /**
    * 흐름 명령을 수행할 수 있는지 여부 체크

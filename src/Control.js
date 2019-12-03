@@ -80,7 +80,7 @@ class Control extends EventEmitter {
       // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
       this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
       this.controlModeUpdator = new ControlModeUpdator();
-      this.controlModeUpdator.attachObserver(coreFacade);
+      // this.controlModeUpdator.attachObserver(coreFacade);
 
       // init Step: 3 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
       this.initMakeConfigForDLC();
@@ -326,7 +326,14 @@ class Control extends EventEmitter {
    */
   changeControlMode(controlMode) {
     BU.CLI(controlMode);
-    this.controlModeUpdator.updateMode(controlMode);
+    const isChanged = this.controlModeUpdator.updateMode(controlMode);
+    // 제어 모드가 변경이 되었다면 알림
+    if (isChanged) {
+      this.apiClient.transmitDataToServer({
+        commandType: CoreFacade.dcmWsModel.transmitToServerCommandType.MODE,
+        data: this.controlModeUpdator.modeInfo,
+      });
+    }
   }
 
   /**

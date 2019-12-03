@@ -1,4 +1,9 @@
 class CoreAlgorithm {
+  constructor() {
+    this.algorithmId = '';
+    this.algorithmName = '';
+  }
+
   /**
    * 제어 모드가 변경된 경우
    * @param {string} controlMode 제어 모드
@@ -9,7 +14,17 @@ class CoreAlgorithm {
    * 현재 제어 모드 가져옴
    * @return {string} controlMode 제어 모드
    */
-  getCurrControlMode() {}
+  getCurrControlMode() {
+    return this.algorithmId;
+  }
+
+  /**
+   * 현재 제어 모드 가져옴
+   * @return {string} controlMode 제어 모드 명
+   */
+  getCurrControlModeName() {
+    return this.algorithmName;
+  }
 
   /**
    * 흐름 명령을 수행할 수 있는지 여부 체크

@@ -20,7 +20,7 @@ class AbstAlgorithm extends CoreAlgorithm {
     };
   }
 
-  getCurrControlModeName() {}
+  // getCurrControlModeName() {}
 
   setManualMode() {}
 

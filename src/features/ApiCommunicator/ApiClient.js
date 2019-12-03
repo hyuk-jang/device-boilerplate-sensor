@@ -47,38 +47,42 @@ class ApiClient extends DeviceManager {
 
       // 형식을 지켜서 보낸 명령만 대응
       if (BU.IsJsonString(strData)) {
-        /** @type {defaultFormatToRequest} */
-        const parseData = JSON.parse(strData);
-        // Error가 있다면 Client에서 보낸 명령에 대한 Response
-        if (_.has(parseData, 'isError')) {
-          /** @type {defaultFormatToResponse} */
-          const responsedDataByServer = parseData;
+        return false;
+      }
 
-          switch (responsedDataByServer.commandId) {
-            // 보낸 명령이 CERTIFICATION 타입이라면 체크
-            case transmitToServerCommandType.CERTIFICATION:
-              BU.CLI('@@@ Authentication is completed from the Socket Server.');
-              this.hasCertification = responsedDataByServer.isError === 0;
-              // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
-              this.hasCertification && this.transmitStorageDataToServer();
-              // 인증이 완료되면 현황판 크론 구동
-              this.hasCertification &&
-                this.controller.powerStatusBoard.runCronRequestPowerStatusBoard();
-              break;
-            // 수신 받은 현황판 데이터 전송
-            case transmitToServerCommandType.POWER_BOARD:
-              this.controller.powerStatusBoard.onDataFromApiClient(
-                responsedDataByServer.message,
-                responsedDataByServer.contents,
-              );
-              break;
-            default:
-              break;
-          }
-        } else if (parseData.commandId === transmitToClientCommandType.CMD) {
-          // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
-          return this.interpretRequestedCommand(parseData);
+      // const parseData = JSON.parse(strData);
+      /** @type {defaultFormatToResponse} */
+      const { commandId, contents, isError, message } = JSON.parse(strData);
+      // Error가 있다면 Client에서 보낸 명령에 대한 Response
+      if (!_.isEmpty(isError)) {
+        // if (_.has(parseData, 'isError')) {
+        // /** @type {defaultFormatToResponse} */
+        // const responsedDataByServer = parseData;
+
+        switch (commandId) {
+          // 보낸 명령이 CERTIFICATION 타입이라면 체크
+          case transmitToServerCommandType.CERTIFICATION:
+            BU.CLI('@@@ Authentication is completed from the Socket Server.');
+            this.hasCertification = isError === 0;
+            // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
+            this.hasCertification && this.transmitStorageDataToServer();
+            // 인증이 완료되면 현황판 크론 구동
+            this.hasCertification &&
+              this.controller.powerStatusBoard.runCronRequestPowerStatusBoard();
+            break;
+          // 수신 받은 현황판 데이터 전송
+          case transmitToServerCommandType.POWER_BOARD:
+            this.controller.powerStatusBoard.onDataFromApiClient(message, contents);
+            break;
+          default:
+            break;
         }
+      } else if (commandId === transmitToServerCommandType.COMMAND) {
+        // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
+        return this.interpretRequestedCommand(JSON.parse(strData));
+      } else if (commandId === transmitToServerCommandType.MODE) {
+        // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
+        return this.interpretRequestChores(JSON.parse(strData));
       }
     } catch (error) {
       BU.logFile(error);
@@ -178,6 +182,12 @@ class ApiClient extends DeviceManager {
   transmitStorageDataToServer() {
     // BU.CLI('transmitStorageDataToServer');
     // this.controller.notifyDeviceData(null, this.controller.nodeList);
+    // 제어 모드
+    this.transmitDataToServer({
+      commandType: transmitToServerCommandType.MODE,
+      data: this.controller.controlModeUpdator.modeInfo,
+    });
+
     this.transmitDataToServer({
       commandType: transmitToServerCommandType.NODE,
       data: this.controller.model.getAllNodeStatus(),
@@ -187,6 +197,51 @@ class ApiClient extends DeviceManager {
       commandType: transmitToServerCommandType.COMMAND,
       data: this.controller.model.contractCmdList,
     });
+  }
+
+  /**
+   * 잡일을 처리함
+   * @param {defaultFormatToRequest} responsedDataByServer
+   */
+  interpretRequestChores(responsedDataByServer) {
+    const { MODE } = transmitToServerCommandType;
+    const { commandId, contents, uuid } = responsedDataByServer;
+    /** @type {defaultFormatToResponse} */
+    const responseMsg = {
+      commandId,
+      uuid,
+      isError: 0,
+      message: '',
+      contents: {},
+    };
+
+    try {
+      // 모드 관련 내용을 보고자 할 때
+      if (commandId === MODE) {
+        const isChanged = this.controller.changeControlMode(contents);
+        if (isChanged) {
+          responseMsg.message = '정상적으로 제어 모드를 변경하였습니다.';
+        } else {
+          throw new Error('변경하고자 하는 제어모드 상태를 확인해주시기 바랍니다.');
+        }
+      }
+
+      // 기본 전송 프레임으로 감쌈.
+      const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
+
+      // DCC에 전송 명령
+      return this.write(encodingMsg);
+    } catch (error) {
+      responseMsg.isError = 1;
+      responseMsg.message = _.get(error, 'message');
+
+      // BU.CLI(responseMsg);
+      // 기본 전송 프레임으로 감쌈.
+      const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
+
+      // DCC에 전송 명령
+      return this.write(encodingMsg);
+    }
   }
 
   /**
@@ -285,7 +340,7 @@ class ApiClient extends DeviceManager {
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
-      // DCC에 전송 명령
+      // DBW에 전송 명령
       return this.write(encodingMsg);
     } catch (error) {
       // BU.CLI(error);
@@ -296,7 +351,7 @@ class ApiClient extends DeviceManager {
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
-      // DCC에 전송 명령
+      // DBW에 전송 명령
       return this.write(encodingMsg);
     }
   }

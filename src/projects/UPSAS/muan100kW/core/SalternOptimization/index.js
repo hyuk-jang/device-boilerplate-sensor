@@ -17,6 +17,9 @@ class ConcreteAlgorithm extends AbstAlgorithm {
   constructor(controlAlgorithm) {
     super();
 
+    this.algorithmId = AbstAlgorithm.controlModeInfo.SALTERN_POWER_OPTIMIZATION;
+    this.algorithmName = '소금 생산 최적화';
+
     this.controlAlgorithm = controlAlgorithm;
 
     this.thresholdWL = new WaterLevel();

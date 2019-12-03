@@ -66,6 +66,7 @@ class CmdStorage extends CmdComponent {
    */
   setCommand(wrapCmdInfo) {
     try {
+      // BU.CLIN(_.omit(wrapCmdInfo, 'containerCmdList'));
       // 명령 객체 정보 저장
       this.wrapCmdInfo = wrapCmdInfo;
       const { containerCmdList } = wrapCmdInfo;
@@ -262,7 +263,7 @@ class CmdStorage extends CmdComponent {
 
   /** 명령 이벤트 발생 전파  */
   notifyObserver() {
-    // BU.CLI('notifyObserver', this.cmdStep);
+    // BU.CLI('notifyObserver', `${this.cmdStep} ${this.wrapCmdId}`);
     this.observers.forEach(observer => {
       if (_.get(observer, 'updateCommandStep')) {
         observer.updateCommandStep(this);
@@ -284,7 +285,7 @@ class CmdStorage extends CmdComponent {
       .value();
 
     // 정해진 Event 값이 아니면 종료
-    // BU.CLI(isExistEvent);
+    // BU.CLI(isExistStep);
     if (!isExistStep) return false;
 
     // 현재 이벤트와 다른 상태일 경우 전파
@@ -377,6 +378,7 @@ class CmdStorage extends CmdComponent {
    *  세부 명령이 완료했을 경우
    */
   handleCommandClear(cmdElement) {
+    // BU.CLI(this.cmdStep);
     // BU.CLI(cmdElement.nodeId, this.cmdStep);
 
     // 모든 세부 명령이 완료되었을 경우

@@ -95,7 +95,7 @@ class CoreFacade {
 
   /** @param {string} controlMode 제어 모드 변경 알림 */
   updateControlMode(controlMode) {
-    this.coreAlgorithm.updateControlMode(controlMode);
+    return this.coreAlgorithm.updateControlMode(controlMode);
   }
 
   /** @param {string} nodeId */
@@ -103,9 +103,13 @@ class CoreFacade {
     return _.find(coreNodeList, { node_id: nodeId });
   }
 
-  /** 현재 제어 모드 */
-  getCurrControlMode() {
-    return this.coreAlgorithm.getCurrControlMode();
+  /** 현재 명령 알고리즘(제어 모드) */
+  get currAlgorithmInfo() {
+    return {
+      id: this.coreAlgorithm.algorithmId,
+      name: this.coreAlgorithm.algorithmName,
+    };
+    // return this.coreAlgorithm.getCurrControlMode();
   }
 
   /** 명령 모드 종류 */
