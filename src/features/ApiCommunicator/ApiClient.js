@@ -15,7 +15,7 @@ const {
     commandStep: cmdStep,
     nodePickKey,
   },
-  dcmWsModel: { transmitToServerCommandType, transmitToClientCommandType },
+  dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
 } = require('../../core/CoreFacade');
 
 class ApiClient extends DeviceManager {
@@ -45,23 +45,26 @@ class ApiClient extends DeviceManager {
       const decodingData = this.defaultConverter.decodingMsg(bufData);
       const strData = decodingData.toString();
 
+      // BU.CLI(strData);
+
       // 형식을 지켜서 보낸 명령만 대응
-      if (BU.IsJsonString(strData)) {
+      if (!BU.IsJsonString(strData)) {
         return false;
       }
+      // BU.CLI(BU.IsJsonString(strData));
 
       // const parseData = JSON.parse(strData);
       /** @type {defaultFormatToResponse} */
       const { commandId, contents, isError, message } = JSON.parse(strData);
       // Error가 있다면 Client에서 보낸 명령에 대한 Response
-      if (!_.isEmpty(isError)) {
+      if (_.isNumber(isError)) {
         // if (_.has(parseData, 'isError')) {
         // /** @type {defaultFormatToResponse} */
         // const responsedDataByServer = parseData;
 
         switch (commandId) {
           // 보낸 명령이 CERTIFICATION 타입이라면 체크
-          case transmitToServerCommandType.CERTIFICATION:
+          case transmitToServerCT.CERTIFICATION:
             BU.CLI('@@@ Authentication is completed from the Socket Server.');
             this.hasCertification = isError === 0;
             // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
@@ -71,20 +74,21 @@ class ApiClient extends DeviceManager {
               this.controller.powerStatusBoard.runCronRequestPowerStatusBoard();
             break;
           // 수신 받은 현황판 데이터 전송
-          case transmitToServerCommandType.POWER_BOARD:
+          case transmitToServerCT.POWER_BOARD:
             this.controller.powerStatusBoard.onDataFromApiClient(message, contents);
             break;
           default:
             break;
         }
-      } else if (commandId === transmitToServerCommandType.COMMAND) {
+      } else if (commandId === transmitToServerCT.COMMAND) {
         // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
         return this.interpretRequestedCommand(JSON.parse(strData));
-      } else if (commandId === transmitToServerCommandType.MODE) {
+      } else if (commandId === transmitToServerCT.MODE) {
         // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
         return this.interpretRequestChores(JSON.parse(strData));
       }
     } catch (error) {
+      BU.CLI(error);
       BU.logFile(error);
       throw error;
     }
@@ -104,7 +108,7 @@ class ApiClient extends DeviceManager {
     // BU.CLI('startOperation');
     // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
     this.transmitDataToServer({
-      commandType: transmitToServerCommandType.CERTIFICATION,
+      commandType: transmitToServerCT.CERTIFICATION,
       data: this.controller.mainUUID,
     });
   }
@@ -117,7 +121,7 @@ class ApiClient extends DeviceManager {
   transmitDataToServer(transDataToServerInfo = {}) {
     // BU.debugConsole();
     const { commandType, data } = transDataToServerInfo;
-    // BU.CLIN(data);
+    // BU.CLI(commandType, data);
     try {
       // BU.CLI('transDataToServerInfo');
       // 소켓 연결이 되지 않으면 명령 전송 불가
@@ -125,7 +129,7 @@ class ApiClient extends DeviceManager {
         throw new Error('The socket is not connected yet.');
       }
       // 인증이 되지 않았는데 별도의 데이터를 보낼 수는 없음
-      if (commandType !== transmitToServerCommandType.CERTIFICATION && !this.hasCertification) {
+      if (commandType !== transmitToServerCT.CERTIFICATION && !this.hasCertification) {
         // BU.CLI('Authentication must be performed first');
         // return false;
         throw new Error('Authentication must be performed first');
@@ -165,9 +169,11 @@ class ApiClient extends DeviceManager {
     const { CONNECT, DISCONNECT } = this.definedControlEvent;
 
     switch (eventName) {
+      // 연결 수립이 되면 최초 1번에 한해서 초기 구동 명령을 요청
       case CONNECT:
         this.startOperation();
         break;
+      // Socket 연결이 해제되면 인증 여부를 false로 되돌림.
       case DISCONNECT:
         this.hasCertification = false;
         break;
@@ -180,22 +186,25 @@ class ApiClient extends DeviceManager {
    * 서버로 현재 진행중인 데이터(노드, 명령)를 보내줌
    */
   transmitStorageDataToServer() {
-    // BU.CLI('transmitStorageDataToServer');
+    // BU.log('transmitStorageDataToServer');
     // this.controller.notifyDeviceData(null, this.controller.nodeList);
-    // 제어 모드
+    // 제어 현황
     this.transmitDataToServer({
-      commandType: transmitToServerCommandType.MODE,
+      commandType: transmitToServerCT.MODE,
       data: this.controller.controlModeUpdator.modeInfo,
     });
-
+    // 노드 현황(Sumit API 요소만 전송)
     this.transmitDataToServer({
-      commandType: transmitToServerCommandType.NODE,
-      data: this.controller.model.getAllNodeStatus(),
+      commandType: transmitToServerCT.NODE,
+      data: this.controller.model.getAllNodeStatus(
+        nodePickKey.FOR_SERVER,
+        _.filter(this.controller.nodeList, 'is_submit_api'),
+      ),
     });
-
+    // 명령 현황
     this.transmitDataToServer({
-      commandType: transmitToServerCommandType.COMMAND,
-      data: this.controller.model.contractCmdList,
+      commandType: transmitToServerCT.COMMAND,
+      data: this.controller.model.getAllCmdStatus(),
     });
   }
 
@@ -204,7 +213,7 @@ class ApiClient extends DeviceManager {
    * @param {defaultFormatToRequest} responsedDataByServer
    */
   interpretRequestChores(responsedDataByServer) {
-    const { MODE } = transmitToServerCommandType;
+    const { MODE } = transmitToServerCT;
     const { commandId, contents, uuid } = responsedDataByServer;
     /** @type {defaultFormatToResponse} */
     const responseMsg = {

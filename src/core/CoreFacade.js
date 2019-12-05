@@ -146,7 +146,11 @@ class CoreFacade {
     // BU.CLI(this.cmdManager.getControMode());
 
     // BU.CLI('changeCmdStrategy', cmdMode);
-    return this.cmdManager.changeCmdStrategy(cmdMode);
+    // 명령 전략 변경.
+    const isChanged = this.cmdManager.changeCmdStrategy(cmdMode);
+    //  FIXME: 명령 전략이 변경되었다면 API Server에 알림
+    if (isChanged) {
+    }
   }
 
   /**

@@ -321,7 +321,7 @@ class Control extends EventEmitter {
   }
 
   /**
-   * 제어 모드를 변경할 경우
+   * 제어 모드를 변경할 경우(Api Server에서 요청)
    * @param {string} controlMode
    */
   changeControlMode(controlMode) {

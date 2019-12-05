@@ -12,7 +12,7 @@ const PlaceManager = require('./core/PlaceManager/PlaceManager');
 
 const { dcmConfigModel } = require('./core/CoreFacade');
 
-const { nodePickKey, nodeDataType } = dcmConfigModel;
+const { commandPickKey: cmdPickKey, nodePickKey, nodeDataType } = dcmConfigModel;
 
 class Model {
   /**
@@ -281,6 +281,18 @@ class Model {
       .value();
     // BU.CLI(statusList);
     return statusList;
+  }
+
+  /**
+   * 모든 노드가 가지고 있는 정보 출력
+   * @param {commandPickKey} cmdPickInfo
+   * @param {CmdStorage[]=} cmdStorages
+   * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
+   */
+  getAllCmdStatus(cmdPickInfo = cmdPickKey.FOR_SERVER, cmdStorages = this.cmdManager.commandList) {
+    return _(cmdStorages)
+      .map(commandStorage => _.pick(commandStorage, cmdPickInfo))
+      .value();
   }
 
   /**

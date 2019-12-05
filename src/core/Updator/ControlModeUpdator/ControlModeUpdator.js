@@ -30,7 +30,7 @@ class ControlModeUpdator extends Updator {
     });
   }
 
-  /** @param {string} controlMode 제어 모드 변경 */
+  /** @param {string} controlMode 제어 모드(Core Algorithm) 변경 */
   updateMode(controlMode) {
     // 동일 모드
     if (this.getControlMode() === controlMode) {
