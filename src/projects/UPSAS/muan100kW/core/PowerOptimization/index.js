@@ -17,6 +17,15 @@ class ConcreteAlgorithm extends AbstAlgorithm {
   constructor(controlAlgorithm) {
     super();
 
+    /** @type {wsAlgorithmInfo} */
+    this.operationSystemInfo = {
+      algorithmInfo: {
+        id: AbstAlgorithm.controlModeInfo.POWER_OPTIMIZATION,
+        name: '발전 최적화',
+      },
+      cmdStrategy: new CoreFacade().cmdStrategyType.OVERLAP_COUNT,
+    };
+
     this.algorithmId = AbstAlgorithm.controlModeInfo.POWER_OPTIMIZATION;
     this.algorithmName = '발전 최적화';
 

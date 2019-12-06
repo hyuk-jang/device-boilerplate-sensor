@@ -11,6 +11,17 @@ class AbstAlgorithm extends CoreAlgorithm {
     };
   }
 
+  /** @return {wsAlgorithmInfo} */
+  get operationSystemInfo() {
+    return {
+      algorithmInfo: {
+        id: 'DEFAULT',
+        name: '기본',
+      },
+      cmdStrategy: '',
+    };
+  }
+
   /** handleUpdateNode Node Definition Id 정보 */
   static get nodeDefIdInfo() {
     return {

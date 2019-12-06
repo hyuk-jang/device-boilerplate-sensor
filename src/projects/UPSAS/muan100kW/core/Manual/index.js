@@ -20,6 +20,15 @@ class ConcreteAlgorithm extends AbstAlgorithm {
     this.algorithmId = AbstAlgorithm.controlModeInfo.MANUAL;
     this.algorithmName = '기본';
 
+    /** @type {wsAlgorithmInfo} */
+    this.operationSystemInfo = {
+      algorithmInfo: {
+        id: AbstAlgorithm.controlModeInfo.MANUAL,
+        name: '기본',
+      },
+      cmdStrategy: new CoreFacade().cmdStrategyType.MANUAL,
+    };
+
     this.controlAlgorithm = controlAlgorithm;
 
     this.thresholdWL = new WaterLevel();
