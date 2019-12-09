@@ -11,7 +11,13 @@ const BlockManager = require('../../../features/BlockManager/BlockManager');
 const blockConfig = require('./block.config');
 
 // const SmartSalternStorage = require('../smartSalternCore/SmartSalternStorage');
-const Algorithm = require('./core/Algorithm');
+// const Algorithm = require('../../../core/AlgorithmManager/AlgorithmStorage');
+
+const Algorithm = require('./core/DecoAlgorithm');
+
+const Manual = require('./core/Manual');
+const PowerOptimization = require('./core/PowerOptimization');
+const SalternOptimization = require('./core/SalternOptimization');
 
 const CoreFacade = require('../../../core/CoreFacade');
 
@@ -89,7 +95,15 @@ class MuanControl extends Control {
 
     const coreFacade = new CoreFacade();
     // coreFacade.setCoreAlgorithm(new M100kPlaceAlgorithm());
-    coreFacade.setCoreAlgorithm(new Algorithm());
+    const algorithm = new Algorithm();
+    algorithm.addOperationMode(new Manual());
+    algorithm.addOperationMode(new PowerOptimization());
+    algorithm.addOperationMode(new SalternOptimization());
+
+    coreFacade.setCoreAlgorithm(algorithm);
+
+    // 초기 구동 모드는 Manual로 설정
+    algorithm.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
 
     // 명령 종료가 떨어지면 장소 이벤트 갱신 처리
     this.on(cmdStep.END, commandStorage => {

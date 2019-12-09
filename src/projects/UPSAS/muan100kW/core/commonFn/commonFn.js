@@ -2,11 +2,7 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const AbstAlgorithm = require('../AbstAlgorithm');
-
 const CoreFacade = require('../../../../../core/CoreFacade');
-
-const { nodeDefIdInfo: ndId } = AbstAlgorithm;
 
 const {
   dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, placeNodeStatus, goalDataRange },
@@ -22,6 +18,23 @@ const cancelFlowCmdTypeInfo = {
 };
 
 module.exports = {
+  get algorithmIdInfo() {
+    return {
+      DEFAULT: 'DEFAULT',
+      POWER_OPTIMIZATION: 'POWER_OPTIMIZATION',
+      SALTERN_OPTIMIZATION: 'SALTERN_OPTIMIZATION',
+      RAIN: 'RAIN',
+    };
+  },
+
+  get nodeDefIdInfo() {
+    return {
+      WATER_LEVEL: 'waterLevel',
+      SALINITY: 'salinity',
+      MODULE_REAR_TEMPERATURE: 'moduleRearTemperature',
+    };
+  },
+
   /**
    * 실행 중인 흐름 명령 취소
    * @param {CmdStorage[]} cmdStorageList
@@ -240,9 +253,9 @@ module.exports = {
   emitReloadPlaceStorage(placeId) {
     // BU.CLI('emitReloadPlaceStorage', placeId);
     coreFacade.reloadPlaceStorage(placeId, [
-      ndId.SALINITY,
-      ndId.MODULE_REAR_TEMPERATURE,
-      ndId.WATER_LEVEL,
+      this.nodeDefIdInfo.SALINITY,
+      this.nodeDefIdInfo.MODULE_REAR_TEMPERATURE,
+      this.nodeDefIdInfo.WATER_LEVEL,
     ]);
   },
 };

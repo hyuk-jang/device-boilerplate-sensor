@@ -4,11 +4,9 @@ const { BU } = require('base-util-jh');
 
 const commonFn = require('./commonFn');
 
-const AbstAlgorithm = require('../AbstAlgorithm');
-
 const CoreFacade = require('../../../../../core/CoreFacade');
 
-const { nodeDefIdInfo: ndId } = AbstAlgorithm;
+const { nodeDefIdInfo: ndId } = require('./commonFn');
 
 const {
   dcmConfigModel: { reqWrapCmdType: reqWCT, placeNodeStatus: pNS, goalDataRange },

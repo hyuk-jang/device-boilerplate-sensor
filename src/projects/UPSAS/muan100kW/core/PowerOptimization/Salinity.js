@@ -9,8 +9,7 @@ const {
 
 const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
 
-const { nodeDefIdInfo: ndId } = require('../AbstAlgorithm');
-
+const commonFn = require('../commonFn/commonFn');
 const salinityFn = require('../commonFn/salinityFn');
 const waterFlowFn = require('../commonFn/waterFlowFn');
 
@@ -97,8 +96,8 @@ class Salinity extends PlaceThreshold {
             wrapCmdGoalInfo: {
               goalDataList: [
                 {
-                  nodeId: placeStorage.getNodeId(ndId.WATER_LEVEL),
-                  goalValue: placeStorage.getMinValue(ndId.WATER_LEVEL),
+                  nodeId: placeStorage.getNodeId(commonFn.nodeDefIdInfo.WATER_LEVEL),
+                  goalValue: placeStorage.getMinValue(commonFn.nodeDefIdInfo.WATER_LEVEL),
                   goalRange: goalDR.LOWER,
                 },
               ],

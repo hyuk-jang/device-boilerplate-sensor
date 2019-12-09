@@ -10,10 +10,11 @@ let coreNodeList;
 
 const { dcmWsModel, dccFlagModel, dcmConfigModel } = require('../../../default-intelligence');
 
-const CoreAlgorithm = require('./CoreAlgorithm');
+const AlgorithmComponent = require('./AlgorithmManager/AlgorithmComponent');
 
 const PlaceComponent = require('././PlaceManager/PlaceComponent');
-const PlaceThreshold = require('././PlaceManager/PlaceThreshold');
+// const PlaceThreshold = require('././PlaceManager/PlaceThreshold');
+const PlaceThreshold = require('././AlgorithmManager/PlaceThreshold');
 
 class CoreFacade {
   constructor() {
@@ -32,12 +33,12 @@ class CoreFacade {
     this.placeManager;
     this.scenarioManager;
 
-    this.coreAlgorithm = new CoreAlgorithm();
+    this.coreAlgorithm = new AlgorithmComponent();
   }
 
   static get constructorInfo() {
     return {
-      CoreAlgorithm,
+      AlgorithmComponent,
       PlaceComponent,
       PlaceThreshold,
     };
@@ -93,9 +94,9 @@ class CoreFacade {
     this.placeManager = placeManager;
   }
 
-  /** @param {string} controlMode 제어 모드 변경 알림 */
-  updateControlMode(controlMode) {
-    return this.coreAlgorithm.updateControlMode(controlMode);
+  /** @param {string} algorithmId 제어 모드 변경 알림 */
+  changeOperationMode(algorithmId) {
+    return this.coreAlgorithm.changeOperationMode(algorithmId);
   }
 
   /** @param {string} nodeId */
@@ -104,12 +105,8 @@ class CoreFacade {
   }
 
   /** 현재 명령 알고리즘(제어 모드) */
-  get currAlgorithmInfo() {
-    return {
-      id: this.coreAlgorithm.algorithmId,
-      name: this.coreAlgorithm.algorithmName,
-    };
-    // return this.coreAlgorithm.getCurrControlMode();
+  getOperationInfo() {
+    return this.coreAlgorithm.getOperationConfig();
   }
 
   /** 명령 모드 종류 */
@@ -149,8 +146,8 @@ class CoreFacade {
     // 명령 전략 변경.
     const isChanged = this.cmdManager.changeCmdStrategy(cmdMode);
     //  FIXME: 명령 전략이 변경되었다면 API Server에 알림
-    if (isChanged) {
-    }
+    // if (isChanged) {
+    // }
   }
 
   /**

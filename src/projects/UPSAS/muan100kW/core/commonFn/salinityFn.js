@@ -2,11 +2,9 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const AbstAlgorithm = require('../AbstAlgorithm');
+const { nodeDefIdInfo: ndId } = require('./commonFn');
 
 const CoreFacade = require('../../../../../core/CoreFacade');
-
-const { nodeDefIdInfo: ndId } = AbstAlgorithm;
 
 const {
   dcmConfigModel: { placeNodeStatus: pNS },

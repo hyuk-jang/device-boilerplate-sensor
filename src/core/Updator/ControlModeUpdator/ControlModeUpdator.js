@@ -10,10 +10,7 @@ class ControlModeUpdator extends Updator {
   get modeInfo() {
     const coreFacade = new CoreFacade();
 
-    return {
-      controlModeInfo: coreFacade.currAlgorithmInfo,
-      cmdStrategy: coreFacade.getCurrCmdStrategyType(),
-    };
+    return coreFacade.getOperationInfo();
   }
 
   /** 제어모드 반환 */
@@ -39,7 +36,7 @@ class ControlModeUpdator extends Updator {
 
     const coreFacade = new CoreFacade();
     // 제어 모드 변경 여부
-    const isChangeControlMode = coreFacade.updateControlMode(controlMode);
+    const isChangeControlMode = coreFacade.changeOperationMode(controlMode);
 
     // 제어 모드가 변경이 되었다면 알림 처리
     if (isChangeControlMode) {

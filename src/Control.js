@@ -322,11 +322,16 @@ class Control extends EventEmitter {
 
   /**
    * 제어 모드를 변경할 경우(Api Server에서 요청)
-   * @param {string} controlMode
+   * Core Algorithm 변경
+   * @param {string} algorithmId Algorithm Id
    */
-  changeControlMode(controlMode) {
-    BU.CLI(controlMode);
-    const isChanged = this.controlModeUpdator.updateMode(controlMode);
+  changeOperationMode(algorithmId) {
+    const coreFacade = new CoreFacade();
+
+    BU.CLI(algorithmId);
+    const isChanged = coreFacade.changeOperationMode(algorithmId);
+
+    // const isChanged = this.controlModeUpdator.updateMode(algorithmId);
     // 제어 모드가 변경이 되었다면 알림
     if (isChanged) {
       this.apiClient.transmitDataToServer({

@@ -1,8 +1,11 @@
+const _ = require('lodash');
+
 const { BU } = require('base-util-jh');
 
 const AbstAlgorithm = require('./AbstAlgorithm');
 
 const { nodeDefIdInfo: ndId } = AbstAlgorithm;
+const CoreFacade = require('../../../../core/CoreFacade');
 const PlaceComponent = require('../../../../core/PlaceManager/PlaceComponent');
 
 const Manual = require('./Manual');
@@ -13,6 +16,11 @@ class Algorithm extends AbstAlgorithm {
   constructor() {
     super();
 
+    /** @type {AbstAlgorithm[]} */
+    this.operationModeList = [];
+    /** @type {AbstAlgorithm} */
+    this.operationMode = {};
+
     // 제어 모드 별 알고리즘 객체
     this.manualMode = new Manual(this);
     this.salternOptimizationMode = new SalternOptimization(this);
@@ -21,19 +29,120 @@ class Algorithm extends AbstAlgorithm {
     // /** @type {Algorithm} */
     // this.currControlMode = this.manualMode;
 
-    this.updateControlMode(this.manualMode.algorithmId);
+    this.changeOperationMode(this.manualMode.algorithmId);
+  }
+
+  /**
+   * 구동 모드 객체를 추가함
+   * @param {AbstAlgorithm} algorithmMode
+   */
+  addOperationMode(algorithmMode) {
+    // 이미 존재한다면 false 반환
+    if (_.findIndex(this.operationModeList, algorithmMode) !== -1) return false;
+
+    // 삽입 후 true 반환
+    return this.operationModeList.push(algorithmMode) && true;
+  }
+
+  /**
+   * 구동 모드를 알고리즘 Id로 찾아와서 반환
+   * @param {string} algorithmId
+   * @return {AlgorithmComponent}
+   */
+  getOperationMode(algorithmId) {
+    return _.find(this.operationModeList, operationMode => {
+      return operationMode.algorithmId === algorithmId;
+    });
+  }
+
+  /**
+   * 구동 모드를 변경할 경우(Api Server에서 요청)
+   * @param {string} algorithmId 제어 모드
+   */
+  changeOperationMode(algorithmId = AbstAlgorithm.controlModeInfo.MANUAL) {
+    try {
+      // 구동 모드 객체를 가져옴
+      const operationMode = this.getOperationMode(algorithmId);
+
+      // 구동 모드가 존재하지 않을 경우
+      if (_.isEmpty(operationMode)) {
+        throw new Error(`algorithmId: (${operationMode}) is not exist.`);
+      }
+      // 구동 모드가 동일 할 경우
+      if (operationMode === this.operationMode) {
+        throw new Error(`algorithmId: (${operationMode}) is the same operation mode.`);
+      }
+
+      // 구동 모드 변경
+      this.operationMode = operationMode;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 구동 모드를 변경할 경우
+   * @param {string} algorithmId
+   */
+  changeOperationMode2(algorithmId = AbstAlgorithm.controlModeInfo.MANUAL) {
+    // BU.CLI('updateControlMode', controlMode);
+
+    // _.find(this.operationModeList, { o });
+
+    /** @type {AbstAlgorithm} */
+    let nextOperAlgorithm;
+
+    // 제어 모드를 불러옴
+    const {
+      controlModeInfo: { MANUAL, SALTERN_OPTIMIZATION, POWER_OPTIMIZATION, RAIN },
+    } = AbstAlgorithm;
+
+    // BU.CLI('controlMode', controlMode);
+
+    // 변경하고자 하는 제어모드 검색
+    switch (algorithmId) {
+      // 수동 모드
+      case MANUAL:
+        nextOperAlgorithm = this.manualMode;
+        break;
+      // 소금 생산 최적화 모드
+      case SALTERN_OPTIMIZATION:
+        nextOperAlgorithm = this.salternOptimizationMode;
+        break;
+      // 발전 최적화 모드
+      case POWER_OPTIMIZATION:
+        nextOperAlgorithm = this.powerOptimizationMode;
+        break;
+      // 우천 모드
+      case RAIN:
+        nextOperAlgorithm = this.scenarioMode;
+        break;
+      default:
+        nextOperAlgorithm = this.operationAlgorithm;
+        break;
+    }
+
+    // BU.CLIN(nextControlMode);
+
+    // 구동 알고리즘 모드 정보를 설정
+    this.operationModeInfo = nextOperAlgorithm.operationModeInfo;
+
+    // this.algorithmId = nextOperAlgorithm.algorithmId;
+    // this.algorithmName = nextOperAlgorithm.algorithmName;
+
+    return this.updateOperationMode(nextOperAlgorithm);
   }
 
   /**
    * 현재 제어 모드와 틀리다면 변경 후 제어모드 변경 알림
-   * @param {Algorithm} controlMode
+   * @param {Algorithm} operationAlgorithm
    */
-  changeControlMode(controlMode) {
+  updateOperationMode(operationAlgorithm) {
     // BU.CLIS(this.currControlMode, controlMode);
-    if (this.currControlMode !== controlMode) {
-      this.currControlMode = controlMode;
+    if (this.operationAlgorithm !== operationAlgorithm) {
+      this.operationAlgorithm = operationAlgorithm;
       // 세부 모드 별 알고리즘에 제어 모드 변경 알림 처리
-      this.currControlMode.updateControlMode();
+      this.operationAlgorithm.updateOperationMode();
       return true;
     }
     return false;
@@ -41,93 +150,46 @@ class Algorithm extends AbstAlgorithm {
 
   /** 수동 제어 모드로 변경 */
   setManualMode() {
-    return this.changeControlMode(this.manualMode);
+    return this.updateOperationMode(this.manualMode);
   }
 
   /** 소금 생산 최적화 제어 모드로 변경 */
   setSalternOptimizationMode() {
-    return this.changeControlMode(this.salternOptimizationMode);
+    return this.updateOperationMode(this.salternOptimizationMode);
   }
 
   /** 발전 최적화 제어 모드로 변경 */
   setPowerOptimizationMode() {
-    return this.changeControlMode(this.powerOptimizationMode);
+    return this.updateOperationMode(this.powerOptimizationMode);
   }
 
   /** 우천 제어 모드로 변경 */
   setRainMode() {
-    return this.changeControlMode(this.scenarioMode);
+    return this.updateOperationMode(this.scenarioMode);
   }
 
-  /**
-   * 제어 모드를 변경할 경우
-   * @param {string} controlMode
-   */
-  updateControlMode(controlMode = AbstAlgorithm.controlModeInfo.MANUAL) {
-    // BU.CLI('updateControlMode', controlMode);
-    /** @type {AbstAlgorithm} */
-    let nextControlMode;
+  // /**
+  //  * 현재 제어 모드 가져옴
+  //  * @return {string} controlMode 제어 모드
+  //  */
+  // get algorithmId() {
+  //   //  제어 모드를 불러옴
+  //   const {
+  //     controlModeInfo: { MANUAL, SALTERN_OPTIMIZATION, POWER_OPTIMIZATION },
+  //   } = AbstAlgorithm;
 
-    //  제어 모드를 불러옴
-    const {
-      controlModeInfo: { MANUAL, SALTERN_POWER_OPTIMIZATION, POWER_OPTIMIZATION, RAIN },
-    } = AbstAlgorithm;
+  //   let controlMode;
 
-    // BU.CLI('controlMode', controlMode);
+  //   if (this.currControlMode === this.manualMode) {
+  //     controlMode = MANUAL;
+  //   } else if (this.currControlMode === this.salternOptimizationMode) {
+  //     controlMode = SALTERN_OPTIMIZATION;
+  //   } else if (this.currControlMode === this.powerOptimizationMode) {
+  //     controlMode = POWER_OPTIMIZATION;
+  //   }
 
-    // 변경하고자 하는 제어모드 검색
-    switch (controlMode) {
-      // 수동 모드
-      case MANUAL:
-        nextControlMode = this.manualMode;
-        break;
-      // 소금 생산 최적화 모드
-      case SALTERN_POWER_OPTIMIZATION:
-        nextControlMode = this.salternOptimizationMode;
-        break;
-      // 발전 최적화 모드
-      case POWER_OPTIMIZATION:
-        nextControlMode = this.powerOptimizationMode;
-        break;
-      // 우천 모드
-      case RAIN:
-        nextControlMode = this.scenarioMode;
-        break;
-      default:
-        nextControlMode = this.currControlMode;
-        break;
-    }
-
-    // BU.CLIN(nextControlMode);
-
-    this.algorithmId = nextControlMode.algorithmId;
-    this.algorithmName = nextControlMode.algorithmName;
-
-    return this.changeControlMode(nextControlMode);
-  }
-
-  /**
-   * 현재 제어 모드 가져옴
-   * @return {string} controlMode 제어 모드
-   */
-  getCurrControlMode() {
-    //  제어 모드를 불러옴
-    const {
-      controlModeInfo: { MANUAL, SALTERN_POWER_OPTIMIZATION, POWER_OPTIMIZATION },
-    } = AbstAlgorithm;
-
-    let controlMode;
-
-    if (this.currControlMode === this.manualMode) {
-      controlMode = MANUAL;
-    } else if (this.currControlMode === this.salternOptimizationMode) {
-      controlMode = SALTERN_POWER_OPTIMIZATION;
-    } else if (this.currControlMode === this.powerOptimizationMode) {
-      controlMode = POWER_OPTIMIZATION;
-    }
-
-    return controlMode;
-  }
+  //   return controlMode;
+  // }
 
   /**
    * 흐름 명령을 수행할 수 있는지 여부 체크
@@ -177,7 +239,7 @@ class Algorithm extends AbstAlgorithm {
    */
   handleUpdateNode(coreFacade, placeNode) {
     try {
-      this.currControlMode.handleUpdateNode(coreFacade, placeNode);
+      this.operationAlgorithm.handleUpdateNode(coreFacade, placeNode);
     } catch (error) {
       throw error;
     }

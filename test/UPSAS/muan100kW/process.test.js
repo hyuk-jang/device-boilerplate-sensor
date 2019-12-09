@@ -61,7 +61,7 @@ describe('수위 임계치 처리 테스트', function() {
     control.runFeature();
 
     const cmdStorage = control.inquiryAllDeviceStatus();
-    // BU.CLIN(cmdStorage)
+    // BU.CLIN(cmdStorage);
 
     await eventToPromise(control, cmdStep.COMPLETE);
 
@@ -77,11 +77,13 @@ describe('수위 임계치 처리 테스트', function() {
 
   beforeEach(async () => {
     try {
-      coreFacade.updateControlMode(controlMode.MANUAL);
+      coreFacade.changeOperationMode(controlMode.DEFAULT);
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWCT.CONTROL,
       });
+
+      // BU.CLI(coreFacade.coreAlgorithm.algorithmId);
 
       await eventToPromise(control, cmdStep.COMPLETE);
     } catch (error) {
@@ -90,7 +92,8 @@ describe('수위 임계치 처리 테스트', function() {
 
     // 이전 명령이 남아있을 수 있으므로 강제 초기화
     coreFacade.cmdManager.commandList = [];
-    coreFacade.updateControlMode(controlMode.POWER_OPTIMIZATION);
+    coreFacade.changeOperationMode(controlMode.POWER_OPTIMIZATION);
+    // BU.CLI(coreFacade.coreAlgorithm.algorithmId);
   });
 
   /**
@@ -759,7 +762,7 @@ describe.skip('염도 임계치 처리 테스트', function() {
 
   beforeEach(async () => {
     try {
-      coreFacade.updateControlMode(controlMode.MANUAL);
+      coreFacade.changeOperationMode(controlMode.MANUAL);
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWCT.CONTROL,
@@ -772,7 +775,7 @@ describe.skip('염도 임계치 처리 테스트', function() {
 
     // 이전 명령이 남아있을 수 있으므로 강제 초기화
     coreFacade.cmdManager.commandList = [];
-    coreFacade.updateControlMode(controlMode.POWER_OPTIMIZATION);
+    coreFacade.changeOperationMode(controlMode.POWER_OPTIMIZATION);
   });
 
   /**

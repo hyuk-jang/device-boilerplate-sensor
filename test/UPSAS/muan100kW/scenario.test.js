@@ -57,13 +57,13 @@ const coreFacade = new CoreFacade();
 const DPC_DELAY_MS = 1000;
 
 describe('시나리오 동작 테스트', function() {
-  this.timeout(20000);
+  this.timeout(10000);
 
   before(async () => {
     await control.init(dbInfo, config.uuid);
     control.runFeature();
 
-    BU.CLI('inquiryAllDeviceStatus')
+    BU.CLI('inquiryAllDeviceStatus');
     control.inquiryAllDeviceStatus();
 
     await eventToPromise(control, cmdStep.COMPLETE);
@@ -127,7 +127,8 @@ describe('시나리오 동작 테스트', function() {
    *    'rainMode' Set 명령 실행 여부
    *  >>> [SET_RAIN_MODE][COMPLETE]
    */
-  it.skip('우천 모드', async () => {
+  it('우천 모드', async () => {
+    BU.CLI(control.controlModeUpdator.modeInfo);
     const { cmdManager, placeManager, scenarioManager } = control.model;
     // 시나리오 입힘
     scenarioManager.scenarioCmdList = scenarioList;
@@ -164,19 +165,19 @@ describe('시나리오 동작 테스트', function() {
     const ss_STEP_2 = mainScenarioStorage.getRunningScenario();
     const sc_STEP_2_LIST = ss_STEP_2.getRunningScenario();
     expect(sc_STEP_2_LIST).to.length(5);
-
+    BU.CLI('???');
     // 아직 실행 전
     expect(_.filter(sc_STEP_2_LIST, sc => sc.isScenarioClear())).to.length(0);
 
     // *  >>> (5) [NEB_1_TO_SEA][COMPLETE]
     await eventToPromise(control, cmdStep.COMPLETE);
-
+    BU.CLI('???');
     // *  <test> Goal 없는 Flow 명령 완료 시 삭제 여부
     expect(_.filter(sc_STEP_2_LIST, sc => sc.isScenarioClear())).to.length(1);
 
     // 주어진 지연 시간 이후로 완료되었다고 가정
     await Promise.delay(DPC_DELAY_MS);
-
+    BU.CLI('???');
     // *  >>> [NCB_TO_BW_5][RUNNING], [SEB_TWO_TO_BW_3][RUNNING], [SEB_ONE_TO_BW_2][RUNNING], [NEB_2_TO_BW_1][RUNNING]
     expect(cmdManager.getCmdStorageList()).to.length(4);
 
@@ -189,7 +190,7 @@ describe('시나리오 동작 테스트', function() {
     expect(cmdManager.getCmdStorage({ wrapCmdId: 'NCB_TO_BW_5' })).is.not.undefined;
     // >>> (1) [NCB_TO_BW_5][END],[
     await eventToPromise(control, cmdStep.END);
-
+    BU.CLI('???');
     // *  <test> FLOW 명령. Single 설정 목표 달성으로 인한 ESC 명령 Stack 제거 및 Next ESC 명령 요청
     expect(cmdManager.getCmdStorage({ wrapCmdId: 'NCB_TO_BW_5' })).is.undefined;
 
@@ -225,19 +226,23 @@ describe('시나리오 동작 테스트', function() {
 
     // *  [SEB_TWO_TO_SEA][COMPLETE]
     await eventToPromise(control, cmdStep.COMPLETE);
-
+    BU.CLI('???');
     // 수중 증발지 2그룹 이동 완료되었으므로 3개 완료
     expect(_.filter(sc_STEP_2_LIST, sc => sc.isScenarioClear())).to.length(3);
 
     // *  BW_2.WL = 150. 급수지 수위 최대치에 의한 명령 취소
     const pn_BW_2 = placeManager.findPlace(pId.BW_2).getPlaceNode(ndId.WL);
+    BU.CLIN(pn_BW_2.getNodeValue());
     notifyDirectNodePlace([pn_BW_2, 150]);
+    BU.CLIN(pn_BW_2.getNodeValue());
     // *  <test> Flow 명령. 급수지 수위 최대치에 의한 명령 취소 여부
     // *  >>> (3) [SEB_ONE_TO_BW_2][END],
+    BU.CLI('???');
     await eventToPromise(control, cmdStep.END);
+    BU.CLI('???');
     // [SEB_ONE_TO_SEA][COMPLETE]
     await eventToPromise(control, cmdStep.COMPLETE);
-
+    BU.CLI('???');
     // 수중 증발지 1그룹 이동 완료되었으므로 4개 완료
     expect(_.filter(sc_STEP_2_LIST, sc => sc.isScenarioClear())).to.length(4);
 
@@ -249,7 +254,7 @@ describe('시나리오 동작 테스트', function() {
 
     // *  >>> (4) [NEB_2_TO_BW_1][END],
     await eventToPromise(control, cmdStep.END);
-
+    BU.CLI('???');
     // [NEB_2_TO_SEA][COMPLETE]
     await eventToPromise(control, cmdStep.COMPLETE);
 

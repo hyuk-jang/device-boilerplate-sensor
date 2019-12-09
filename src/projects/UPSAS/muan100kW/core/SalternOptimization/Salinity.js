@@ -9,8 +9,7 @@ const {
 
 const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
 
-const { nodeDefIdInfo: ndId } = require('../AbstAlgorithm');
-
+const commonFn = require('../commonFn/commonFn');
 const salinityFn = require('../commonFn/salinityFn');
 const waterFlowFn = require('../commonFn/waterFlowFn');
 

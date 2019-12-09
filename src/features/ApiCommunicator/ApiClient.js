@@ -227,11 +227,11 @@ class ApiClient extends DeviceManager {
     try {
       // 모드 관련 내용을 보고자 할 때
       if (commandId === MODE) {
-        const isChanged = this.controller.changeControlMode(contents);
+        const isChanged = this.controller.changeOperationMode(contents);
         if (isChanged) {
-          responseMsg.message = '정상적으로 제어 모드를 변경하였습니다.';
+          responseMsg.message = '정상적으로 구동 모드를 변경하였습니다.';
         } else {
-          throw new Error('변경하고자 하는 제어모드 상태를 확인해주시기 바랍니다.');
+          throw new Error('변경하고자 하는 구동 모드 상태를 확인해주시기 바랍니다.');
         }
       }
 

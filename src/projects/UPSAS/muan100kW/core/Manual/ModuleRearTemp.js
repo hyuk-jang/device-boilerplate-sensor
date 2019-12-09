@@ -9,10 +9,7 @@ const {
 
 const { goalDataRange, reqWrapCmdType, placeNodeStatus: pNS } = dcmConfigModel;
 
-const AbstAlgorithm = require('../AbstAlgorithm');
-
-const { nodeDefIdInfo: ndId } = AbstAlgorithm;
-
+const commonFn = require('../commonFn/commonFn');
 const waterFlowFn = require('../commonFn/waterFlowFn');
 
 class ModuleRearTemp extends PlaceThreshold {

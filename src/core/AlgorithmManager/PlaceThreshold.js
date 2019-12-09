@@ -1,18 +1,12 @@
-const _ = require('lodash');
+class PlaceThreshold {
+  /**
+   * 장소 임계치 처리 기준이 되는 Node Definition Id
+   * @param {string} nodeDefId Node Definition Id
+   */
+  constructor(nodeDefId = '') {
+    this.nodeDefId = nodeDefId;
+  }
 
-const { BU } = require('base-util-jh');
-
-const {
-  constructorInfo: { PlaceThreshold },
-  dcmConfigModel,
-} = require('../../../../../core/CoreFacade');
-
-const { goalDataRange, reqWrapCmdType, placeNodeStatus: pNS } = dcmConfigModel;
-
-const commonFn = require('../commonFn/commonFn');
-const waterFlowFn = require('../commonFn/waterFlowFn');
-
-class Salinity extends PlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
    * @param {CoreFacade} coreFacade Core Facade
@@ -62,4 +56,5 @@ class Salinity extends PlaceThreshold {
    */
   handleMinUnder(coreFacade, placeNode) {}
 }
-module.exports = Salinity;
+
+module.exports = PlaceThreshold;
