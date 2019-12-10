@@ -101,6 +101,7 @@ class CoreFacade {
 
   /** 현재 명령 알고리즘(제어 모드) */
   getOperationConfig() {
+    // BU.CLIN(this.coreAlgorithm);
     return this.coreAlgorithm.getOperationConfig();
   }
 

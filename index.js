@@ -20,7 +20,9 @@ if (require !== undefined && require.main === module) {
     .init(dbInfo, config.uuid)
     .then(() => {
       BU.CLI('start Program');
-      control.runFeature();
+      return control.runFeature();
+    })
+    .then(() => {
       control.inquiryAllDeviceStatus();
       control.runDeviceInquiryScheduler();
     })

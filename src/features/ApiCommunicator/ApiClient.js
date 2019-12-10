@@ -11,12 +11,7 @@ const {
 const CoreFacade = require('../../core/CoreFacade');
 
 const {
-  dcmConfigModel: {
-    reqWrapCmdFormat: reqWCF,
-    reqWrapCmdType: reqWCT,
-    commandStep: cmdStep,
-    nodePickKey,
-  },
+  dcmConfigModel: { reqWrapCmdFormat: reqWCF, nodePickKey },
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
 } = CoreFacade;
 
@@ -71,13 +66,15 @@ class ApiClient extends DeviceManager {
             this.hasCertification = isError === 0;
             // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
             this.hasCertification && this.transmitStorageDataToServer();
-            // 인증이 완료되면 현황판 크론 구동
+            // 인증이 완료되고 현황판이 존재할 경우 현황판 크론 구동
             this.hasCertification &&
+              _.get(this, 'controller.powerStatusBoard') &&
               this.controller.powerStatusBoard.runCronRequestPowerStatusBoard();
             break;
           // 수신 받은 현황판 데이터 전송
           case transmitToServerCT.POWER_BOARD:
-            this.controller.powerStatusBoard.onDataFromApiClient(message, contents);
+            _.get(this, 'controller.powerStatusBoard') &&
+              this.controller.powerStatusBoard.onDataFromApiClient(message, contents);
             break;
           default:
             break;
@@ -198,6 +195,7 @@ class ApiClient extends DeviceManager {
       operationConfig: coreFacade.getOperationConfig(),
       operationConfigList: coreFacade.coreAlgorithm.getOperationConfigList(),
     };
+    // BU.CLI(modeInfo);
     // 구동 모드 현황
     this.transmitDataToServer({
       commandType: transmitToServerCT.MODE,

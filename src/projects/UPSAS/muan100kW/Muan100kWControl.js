@@ -1,25 +1,23 @@
 const _ = require('lodash');
 const { BU, CU } = require('base-util-jh');
-const { BM } = require('base-model-jh');
 
 const Control = require('../../../Control');
 
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
-const PBS = require('../../../features/PowerStatusBoard/PBS');
 const BlockManager = require('../../../features/BlockManager/BlockManager');
+
+const CoreFacade = require('../../../core/CoreFacade');
 
 const blockConfig = require('./block.config');
 
-// const SmartSalternStorage = require('../smartSalternCore/SmartSalternStorage');
-// const Algorithm = require('../../../core/AlgorithmManager/AlgorithmStorage');
-
 const ConcreteAlgorithmStorage = require('./core/ConcreteAlgorithmStorage');
 
+// 기본 모드
 const Basic = require('./core/Basic');
+// 발전 최적화 모드
 const PowerOptimization = require('./core/PowerOptimization');
+// 소금 생산 최적화 모드
 const SalternOptimization = require('./core/SalternOptimization');
-
-const CoreFacade = require('../../../core/CoreFacade');
 
 const commonFn = require('./core/algorithm/commonFn');
 
@@ -34,11 +32,6 @@ const {
 } = CoreFacade;
 
 class MuanControl extends Control {
-  // /** @param {integratedDataLoggerConfig} config */
-  // constructor(config) {
-  //   super(config);
-  // }
-
   bindingFeature() {
     // return super.bindingFeature();
     // BU.CLI('bindingFeature');
@@ -47,20 +40,8 @@ class MuanControl extends Control {
     /** @type {DefaultApiClient} */
     this.apiClient = new ApiClient(this);
 
-    /** @type {PBS} */
-    this.powerStatusBoard = new PBS(this);
-
     /** @type {BlockManager} */
     this.blockManager = new BlockManager(this);
-
-    // const criticalSetter = new CriticalSetter(this);
-
-    // criticalSetter.init();
-
-    // BU.CLIN(this.placeList);
-
-    // this.smartSalternStorage = new SmartSalternStorage(this);
-    // this.smartSalternStorage.init();
 
     this.bindingEventHandler();
   }
@@ -73,7 +54,7 @@ class MuanControl extends Control {
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     // BU.CLI(featureConfig);
 
-    const { apiConfig, powerStatusBoardConfig } = featureConfig;
+    const { apiConfig } = featureConfig;
     this.apiClient.connect({
       controlInfo: {
         hasReconnect: true,
@@ -81,28 +62,19 @@ class MuanControl extends Control {
       connect_info: apiConfig,
     });
 
-    // 현황판 접속
-    this.powerStatusBoard.connect({
-      controlInfo: {
-        hasReconnect: true,
-      },
-      connect_info: powerStatusBoardConfig,
-    });
-
     await this.blockManager.init(this.config.dbInfo, blockConfig);
 
-    // BU.CLIN(M100kPlaceAlgorithm);
-
     const coreFacade = new CoreFacade();
-    // coreFacade.setCoreAlgorithm(new M100kPlaceAlgorithm());
+    // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅
     const algorithmStorage = new ConcreteAlgorithmStorage();
+    // 각 운용 모드별 알고리즘 모드 객체 추가
     algorithmStorage.addOperationMode(new Basic());
     algorithmStorage.addOperationMode(new PowerOptimization());
     algorithmStorage.addOperationMode(new SalternOptimization());
-
+    // coreFacade에 알고리즘 저장소 등록
     coreFacade.setCoreAlgorithm(algorithmStorage);
 
-    // 초기 구동 모드는 Manual로 설정
+    // 초기 구동 모드 Basic 변경
     algorithmStorage.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
 
     // 명령 종료가 떨어지면 장소 이벤트 갱신 처리
