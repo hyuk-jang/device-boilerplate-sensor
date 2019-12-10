@@ -62,10 +62,11 @@ class AlgorithmMode extends AlgorithmComponent {
    */
   handleUpdateNode(coreFacade, placeNode) {
     try {
+      // BU.CLIN(this.threPlaceList)
       const threAlgorithm = _.find(this.threPlaceList, { nodeDefId: placeNode.getNodeDefId() });
 
-      // BU.CLI('알고리즘 없음');
       if (_.isEmpty(threAlgorithm)) {
+        // BU.CLI(`알고리즘 없음 ${this.threPlaceList.length}`, placeNode.getNodeDefId());
         return false;
       }
 

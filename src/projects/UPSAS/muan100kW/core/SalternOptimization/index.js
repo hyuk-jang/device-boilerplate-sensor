@@ -8,20 +8,21 @@ const AlgorithmMode = require('../../../../../core/AlgorithmManager/AlgorithmMod
 
 const CoreFacade = require('../../../../../core/CoreFacade');
 
-const commonFn = require('../commonFn/commonFn');
+const commonFn = require('../algorithm/commonFn');
 
 class ConcreteAlgorithmMode extends AlgorithmMode {
-  /** @param {AbstAlgorithm} controlAlgorithm */
-  constructor(controlAlgorithm) {
+  constructor() {
     super();
 
     this.operationModeInfo.algorithmId = commonFn.algorithmIdInfo.SALTERN_OPTIMIZATION;
     this.operationModeInfo.algorithmName = '소금생산 최적화';
     this.operationModeInfo.cmdStrategy = new CoreFacade().cmdStrategyType.OVERLAP_COUNT;
 
-    this.threPlaceList.push(new WaterLevel());
-    this.threPlaceList.push(new Salinity());
-    this.threPlaceList.push(new ModuleRearTemp());
+    const { WATER_LEVEL, SALINITY, MODULE_REAR_TEMPERATURE } = commonFn.nodeDefIdInfo;
+
+    this.threPlaceList.push(new WaterLevel(WATER_LEVEL));
+    this.threPlaceList.push(new Salinity(SALINITY));
+    this.threPlaceList.push(new ModuleRearTemp(MODULE_REAR_TEMPERATURE));
   }
 }
 module.exports = ConcreteAlgorithmMode;

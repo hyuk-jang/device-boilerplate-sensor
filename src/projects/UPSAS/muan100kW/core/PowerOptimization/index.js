@@ -8,7 +8,7 @@ const AlgorithmMode = require('../../../../../core/AlgorithmManager/AlgorithmMod
 
 const CoreFacade = require('../../../../../core/CoreFacade');
 
-const commonFn = require('../commonFn/commonFn');
+const commonFn = require('../algorithm/commonFn');
 
 class ConcreteAlgorithmMode extends AlgorithmMode {
   constructor() {

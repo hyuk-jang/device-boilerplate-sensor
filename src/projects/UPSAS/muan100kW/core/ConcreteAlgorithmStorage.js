@@ -4,15 +4,9 @@ const { BU } = require('base-util-jh');
 
 const AlgorithmStorage = require('../../../../core/AlgorithmManager/AlgorithmStorage');
 
-// const { nodeDefIdInfo: ndId } = AlgorithmComponent;
+const { nodeDefIdInfo: ndId } = require('./algorithm/commonFn');
 
-const ndId = {
-  WATER_LEVEL: 'waterLevel',
-  SALINITY: 'salinity',
-  MODULE_REAR_TEMPERATURE: 'moduleRearTemperature',
-};
-
-class Algorithm extends AlgorithmStorage {
+class ConcreteAlgorithmStorage extends AlgorithmStorage {
   /**
    * 흐름 명령을 수행할 수 있는지 여부 체크
    * @param {PlaceManager} placeManager
@@ -54,4 +48,4 @@ class Algorithm extends AlgorithmStorage {
   }
 }
 
-module.exports = Algorithm;
+module.exports = ConcreteAlgorithmStorage;

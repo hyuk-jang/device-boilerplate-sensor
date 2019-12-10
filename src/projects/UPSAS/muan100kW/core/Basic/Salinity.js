@@ -7,12 +7,12 @@ const {
   dcmConfigModel,
 } = require('../../../../../core/CoreFacade');
 
-const { goalDataRange, reqWrapCmdType: reqWCT, placeNodeStatus } = dcmConfigModel;
+const { goalDataRange, reqWrapCmdType, placeNodeStatus: pNS } = dcmConfigModel;
 
-const commonFn = require('../commonFn/commonFn');
-const waterFlowFn = require('../commonFn/waterFlowFn');
+const commonFn = require('../algorithm/commonFn');
+const waterFlowFn = require('../algorithm/waterFlowFn');
 
-class WaterLevel extends PlaceThreshold {
+class Salinity extends PlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
    * @param {CoreFacade} coreFacade Core Facade
@@ -32,23 +32,7 @@ class WaterLevel extends PlaceThreshold {
    * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleMaxOver(coreFacade, placeNode) {
-    try {
-      // BU.CLI('handleMaxOver', placeNode.getPlaceId());
-      // 급수지 장소 Id
-      const destPlaceId = placeNode.getPlaceId();
-
-      // 현재 장소의 배수 명령 취소
-      const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
-        destPlaceId,
-        wrapCmdType: reqWCT.CONTROL,
-      });
-      // BU.CLIN(cmdList);
-      commonFn.cancelWaterSupply(cmdStorageList);
-    } catch (error) {
-      throw error;
-    }
-  }
+  handleMaxOver(coreFacade, placeNode) {}
 
   /**
    * Node 임계치가 상한선을 넘을 경우
@@ -78,4 +62,4 @@ class WaterLevel extends PlaceThreshold {
    */
   handleMinUnder(coreFacade, placeNode) {}
 }
-module.exports = WaterLevel;
+module.exports = Salinity;

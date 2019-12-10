@@ -9,9 +9,9 @@ const {
 
 const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
 
-const commonFn = require('../commonFn/commonFn');
-const salinityFn = require('../commonFn/salinityFn');
-const waterFlowFn = require('../commonFn/waterFlowFn');
+const commonFn = require('../algorithm/commonFn');
+const salinityFn = require('../algorithm/salinityFn');
+const waterFlowFn = require('../algorithm/waterFlowFn');
 
 class Salinity extends PlaceThreshold {
   /**

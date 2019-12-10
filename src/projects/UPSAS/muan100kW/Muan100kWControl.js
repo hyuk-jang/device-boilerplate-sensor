@@ -13,15 +13,15 @@ const blockConfig = require('./block.config');
 // const SmartSalternStorage = require('../smartSalternCore/SmartSalternStorage');
 // const Algorithm = require('../../../core/AlgorithmManager/AlgorithmStorage');
 
-const Algorithm = require('./core/DecoAlgorithm');
+const ConcreteAlgorithmStorage = require('./core/ConcreteAlgorithmStorage');
 
-const Manual = require('./core/Manual');
+const Basic = require('./core/Basic');
 const PowerOptimization = require('./core/PowerOptimization');
 const SalternOptimization = require('./core/SalternOptimization');
 
 const CoreFacade = require('../../../core/CoreFacade');
 
-const commonFn = require('./core/commonFn/commonFn');
+const commonFn = require('./core/algorithm/commonFn');
 
 const {
   dcmConfigModel: {
@@ -95,15 +95,15 @@ class MuanControl extends Control {
 
     const coreFacade = new CoreFacade();
     // coreFacade.setCoreAlgorithm(new M100kPlaceAlgorithm());
-    const algorithm = new Algorithm();
-    algorithm.addOperationMode(new Manual());
-    algorithm.addOperationMode(new PowerOptimization());
-    algorithm.addOperationMode(new SalternOptimization());
+    const algorithmStorage = new ConcreteAlgorithmStorage();
+    algorithmStorage.addOperationMode(new Basic());
+    algorithmStorage.addOperationMode(new PowerOptimization());
+    algorithmStorage.addOperationMode(new SalternOptimization());
 
-    coreFacade.setCoreAlgorithm(algorithm);
+    coreFacade.setCoreAlgorithm(algorithmStorage);
 
     // 초기 구동 모드는 Manual로 설정
-    algorithm.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
+    algorithmStorage.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
 
     // 명령 종료가 떨어지면 장소 이벤트 갱신 처리
     this.on(cmdStep.END, commandStorage => {
