@@ -11,11 +11,12 @@ const {
   dcmConfigModel: { placeNodeStatus: nodeStatus },
 } = CoreFacade;
 
+/** @description 3 Depth. 구동 모드를 운영하는 객체 */
 class AlgorithmMode extends AlgorithmComponent {
   constructor() {
     super();
 
-    /** @type {wsModeInfo} */
+    /** @type {operationConfig} */
     this.operationModeInfo = {
       algorithmId: '',
       algorithmName: '',
@@ -26,7 +27,7 @@ class AlgorithmMode extends AlgorithmComponent {
     this.threPlaceList = [];
   }
 
-  /** @return {wsModeInfo} 구동 모드 알고리즘 설정 정보 */
+  /** @return {operationConfig} 구동 모드 알고리즘 설정 정보 */
   getOperationConfig() {
     return this.operationModeInfo;
   }

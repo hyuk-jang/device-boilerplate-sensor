@@ -58,9 +58,26 @@ class CommandManager {
     this.cmdStrategy = new ManualCmdStrategy(this);
   }
 
-  /** 제어모드 반환 */
-  getControMode() {
-    return this.controller.controlModeUpdator.getControlMode();
+  /** 구동모드 반환 */
+  getOperationMode() {
+    return this.controller.operationModeUpdator.getOperationMode();
+  }
+
+  /**
+   * @param {AlgorithmMode} currAlgorithmMode 바뀐 알고리즘 모드
+   * @param {AlgorithmMode} prevAlgorithmMode 이전 알고리즘 모드
+   *
+   */
+  updateOperationMode(currAlgorithmMode, prevAlgorithmMode) {
+    /** @type {wsModeInfo} */
+    const modeInfo = {
+      operationConfig: currAlgorithmMode.operationModeInfo,
+    };
+
+    this.controller.apiClient.transmitDataToServer({
+      commandType: transmitToServerCommandType.MODE,
+      data: modeInfo,
+    });
   }
 
   /** 명령 전략이 수동인지 자동인지 여부 */

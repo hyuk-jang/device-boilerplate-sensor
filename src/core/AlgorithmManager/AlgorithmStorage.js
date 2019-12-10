@@ -4,23 +4,37 @@ const { BU } = require('base-util-jh');
 
 const AlgorithmComponent = require('./AlgorithmComponent');
 
-const { nodeDefIdInfo: ndId } = AlgorithmComponent;
 const CoreFacade = require('../CoreFacade');
-const PlaceComponent = require('../PlaceManager/PlaceComponent');
 
+/** 2 Depth */
 class AlgorithmStorage extends AlgorithmComponent {
   constructor() {
     super();
 
-    /** @type {AlgorithmComponent[]} */
+    /** @type {AlgorithmComponent[]} 알고리즘 모드 객체 목록 */
     this.children = [];
-    /** @type {AlgorithmComponent} */
+    /** @type {AlgorithmComponent} 실행 중인 알고리즘 모드 객체 */
     this.operationMode = {};
   }
 
-  /** @return {wsModeInfo} 구동 모드 알고리즘 설정 정보 */
-  getOperationConfig() {
-    return this.operationMode.operationModeInfo;
+  /**
+   * @param {string} algorithmId
+   * @return {operationConfig} 구동 모드 알고리즘 설정 정보
+   */
+  getOperationConfig(algorithmId) {
+    try {
+      if (_.isNil(algorithmId) || algorithmId.length === 0) {
+        return this.operationMode.getOperationConfig();
+      }
+      return this.getOperationMode(algorithmId).getOperationConfig();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /** @return {operationConfig[]} 구동 모드 알고리즘 설정 정보 목록 */
+  getOperationConfigList() {
+    return _.map(this.children, 'operationModeInfo');
   }
 
   /**
@@ -52,13 +66,12 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @param {string} algorithmId 제어 모드
    */
   changeOperationMode(algorithmId) {
-    BU.CLI('changeOperationMode', algorithmId);
+    // BU.CLI('changeOperationMode', algorithmId);
     try {
       // 구동 모드 객체를 가져옴
       const operationMode = this.getOperationMode(algorithmId);
 
-      BU.CLIN(operationMode, 1);
-
+      // BU.CLIN(operationMode, 1);
       // 구동 모드가 존재하지 않을 경우
       if (_.isEmpty(operationMode)) {
         throw new Error(`algorithmId: (${algorithmId}) is not exist.`);
@@ -81,30 +94,6 @@ class AlgorithmStorage extends AlgorithmComponent {
       throw error;
     }
   }
-
-  /**
-   * 현재 제어 모드와 틀리다면 변경 후 제어모드 변경 알림
-   * @param {AlgorithmStorage} operationMode
-   */
-  updateOperationMode(operationMode) {
-    // BU.CLIS(this.currControlMode, controlMode);
-    if (this.operationMode !== operationMode) {
-      this.operationMode = operationMode;
-      // 세부 모드 별 알고리즘에 제어 모드 변경 알림 처리
-      this.operationMode.updateOperationMode();
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * 흐름 명령을 수행할 수 있는지 여부 체크
-   * @param {PlaceManager} placeManager
-   * @param {string} srcPlaceId
-   * @param {string} destPlaceId
-   * @param {csCmdGoalInfo=} goalInfo
-   */
-  isPossibleFlowCommand(placeManager, srcPlaceId, destPlaceId, goalInfo) {}
 
   /**
    * 노드 데이터 갱신

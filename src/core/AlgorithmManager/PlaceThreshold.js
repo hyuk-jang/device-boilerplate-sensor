@@ -1,3 +1,9 @@
+/**
+ * @interface 프로젝트 별로 알고리즘 모드 별로 재정의 필요
+ * @description 4 Depth.
+ * 해당 구동 모드 중 Node Definition Id에 해당할 경우 실행
+ * 해당 구동 모드 중 재정의한 장소 별 임계치를 달성하였을 경우 메소드 실행
+ */
 class PlaceThreshold {
   /**
    * 장소 임계치 처리 기준이 되는 Node Definition Id

@@ -1,13 +1,5 @@
+/** 1 Depth */
 class AlgorithmComponent {
-  // constructor() {
-  //   /** @type {wsModeInfo} */
-  //   this.operationModeInfo = {
-  //     algorithmId: 'default',
-  //     algorithmName: '기본',
-  //     cmdStrategy: '',
-  //   };
-  // }
-
   /**
    * 구동 모드 객체를 추가함
    * @param {AlgorithmComponent} algorithmMode
@@ -21,8 +13,11 @@ class AlgorithmComponent {
    */
   getOperationMode(algorithmId) {}
 
-  /** @return {wsModeInfo} 구동 모드 알고리즘 설정 정보 */
+  /** @return {operationConfig} 구동 모드 알고리즘 설정 정보 */
   getOperationConfig() {}
+
+  /** @return {operationConfig[]} 구동 모드 알고리즘 설정 정보 목록 */
+  getOperationConfigList() {}
 
   /**
    * 구동 모드를 변경할 경우(Api Server에서 요청)
@@ -36,7 +31,6 @@ class AlgorithmComponent {
    */
   get algorithmId() {
     return '';
-    // return this.operationModeInfo.algorithmId;
   }
 
   /**
@@ -45,7 +39,6 @@ class AlgorithmComponent {
    */
   get algorithmName() {
     return '';
-    // return this.operationModeInfo.algorithmName;
   }
 
   /**
@@ -54,24 +47,16 @@ class AlgorithmComponent {
    */
   get cmdStrategy() {
     return '';
-    // return this.operationModeInfo.cmdStrategy;
-  }
-
-  /**
-   * 현재 제어 모드 가져옴
-   * @return {string} controlMode 제어 모드 명
-   */
-  getCurrControlModeName() {
-    return this.algorithmName;
   }
 
   /**
    * 흐름 명령을 수행할 수 있는지 여부 체크
+   * @param {PlaceManager} placeManager
    * @param {string} srcPlaceId
    * @param {string} destPlaceId
    * @param {csCmdGoalInfo=} goalInfo
    */
-  isPossibleFlowCommand(srcPlaceId, destPlaceId, goalInfo) {}
+  isPossibleFlowCommand(placeManager, srcPlaceId, destPlaceId, goalInfo) {}
 
   /**
    * 노드 데이터 갱신

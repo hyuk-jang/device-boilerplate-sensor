@@ -1,7 +1,7 @@
 class Observer {
   updateNode() {}
 
-  updateControlMode() {}
+  updateOperationMode() {}
 
   updateCommandStep() {}
 }

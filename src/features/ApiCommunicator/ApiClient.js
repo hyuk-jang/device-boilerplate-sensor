@@ -8,6 +8,8 @@ const {
   BaseModel: { defaultModule },
 } = require('../../../../device-protocol-converter-jh');
 
+const CoreFacade = require('../../core/CoreFacade');
+
 const {
   dcmConfigModel: {
     reqWrapCmdFormat: reqWCF,
@@ -16,7 +18,7 @@ const {
     nodePickKey,
   },
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
-} = require('../../core/CoreFacade');
+} = CoreFacade;
 
 class ApiClient extends DeviceManager {
   /** @param {MainControl} controller */
@@ -188,10 +190,18 @@ class ApiClient extends DeviceManager {
   transmitStorageDataToServer() {
     // BU.log('transmitStorageDataToServer');
     // this.controller.notifyDeviceData(null, this.controller.nodeList);
-    // 제어 현황
+
+    const coreFacade = new CoreFacade();
+
+    /** @type {wsModeInfo} */
+    const modeInfo = {
+      operationConfig: coreFacade.getOperationConfig(),
+      operationConfigList: coreFacade.coreAlgorithm.getOperationConfigList(),
+    };
+    // 구동 모드 현황
     this.transmitDataToServer({
       commandType: transmitToServerCT.MODE,
-      data: this.controller.controlModeUpdator.modeInfo,
+      data: modeInfo,
     });
     // 노드 현황(Sumit API 요소만 전송)
     this.transmitDataToServer({

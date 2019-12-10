@@ -99,14 +99,14 @@ class CoreFacade {
     return this.coreAlgorithm.changeOperationMode(algorithmId);
   }
 
+  /** 현재 명령 알고리즘(제어 모드) */
+  getOperationConfig() {
+    return this.coreAlgorithm.getOperationConfig();
+  }
+
   /** @param {string} nodeId */
   getNodeInfo(nodeId) {
     return _.find(coreNodeList, { node_id: nodeId });
-  }
-
-  /** 현재 명령 알고리즘(제어 모드) */
-  getOperationInfo() {
-    return this.coreAlgorithm.getOperationConfig();
   }
 
   /** 명령 모드 종류 */

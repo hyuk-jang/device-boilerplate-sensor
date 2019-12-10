@@ -8,6 +8,7 @@ const PlaceComponent = require('./PlaceComponent');
 const placeStorageList = [];
 
 /**
+ * @description 2 Depth
  * 장소 당 하나의 객체 생성.
  */
 class PlaceStorage extends PlaceComponent {

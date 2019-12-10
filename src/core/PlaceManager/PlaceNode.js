@@ -6,6 +6,11 @@ const PlaceComponent = require('./PlaceComponent');
 
 const CoreFacade = require('../CoreFacade');
 
+const {
+  dcmConfigModel: { placeNodeStatus: pNS },
+} = CoreFacade;
+
+/** @description 3 Depth */
 class PlaceNode extends PlaceComponent {
   /**
    * 장소에 속해 있는 노드정보 객체
@@ -45,7 +50,7 @@ class PlaceNode extends PlaceComponent {
     this.placeStorage;
 
     // 현재 노드 상태는 UNKNOWN으로 정의
-    this.placeNodeStatus = PlaceComponent.nodeStatusInfo.UNKNOWN;
+    this.placeNodeStatus = pNS.UNKNOWN;
 
     const coreFacade = new CoreFacade();
     coreFacade.attachNodeObserver(nodeInfo, this);
@@ -202,7 +207,7 @@ class PlaceNode extends PlaceComponent {
     //   nextNodeStatus = this.updateStrValue(data);
     // }
     else {
-      nextNodeStatus = PlaceComponent.nodeStatusInfo.UNKNOWN;
+      nextNodeStatus = pNS.UNKNOWN;
     }
 
     this.placeNodeStatus = nextNodeStatus;
@@ -251,19 +256,19 @@ class PlaceNode extends PlaceComponent {
     let nextPlaceNodeStatus = this.placeNodeStatus;
     // BU.CLI(deviceData, this.goalRange);
     if (_.isNumber(this.getMaxValue()) && data >= this.getMaxValue()) {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.MAX_OVER;
+      nextPlaceNodeStatus = pNS.MAX_OVER;
       // this.handleMaxOver();
     } else if (_.isNumber(this.getUpperLimitValue()) && data >= this.getUpperLimitValue()) {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.UPPER_LIMIT_OVER;
+      nextPlaceNodeStatus = pNS.UPPER_LIMIT_OVER;
       // this.handleUpperLimitOver();
     } else if (_.isNumber(this.getMinValue()) && data <= this.getMinValue()) {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.MIN_UNDER;
+      nextPlaceNodeStatus = pNS.MIN_UNDER;
       // this.handleMinUnder();
     } else if (_.isNumber(this.getLowerLimitValue()) && data <= this.getLowerLimitValue()) {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.LOWER_LIMIT_UNDER;
+      nextPlaceNodeStatus = pNS.LOWER_LIMIT_UNDER;
       // this.handleLowerLimitUnder();
     } else {
-      nextPlaceNodeStatus = PlaceComponent.nodeStatusInfo.NORMAL;
+      nextPlaceNodeStatus = pNS.NORMAL;
       // this.handleNormal();
     }
 

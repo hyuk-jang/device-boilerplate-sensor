@@ -16,7 +16,7 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
-const ControlModeUpdator = require('./core/Updator/ControlModeUpdator/ControlModeUpdator');
+const OperationModeUpdator = require('./core/Updator/OperationModeUpdator/OperationModeUpdator');
 const NodeUpdatorManager = require('./core/Updator/NodeUpdator/NodeUpdatorManager');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
@@ -79,7 +79,7 @@ class Control extends EventEmitter {
 
       // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
       this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
-      this.controlModeUpdator = new ControlModeUpdator();
+      this.operationModeUpdator = new OperationModeUpdator();
       // this.controlModeUpdator.attachObserver(coreFacade);
 
       // init Step: 3 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
@@ -328,15 +328,17 @@ class Control extends EventEmitter {
   changeOperationMode(algorithmId) {
     const coreFacade = new CoreFacade();
 
-    BU.CLI(algorithmId);
+    // BU.CLI(algorithmId);
     const isChanged = coreFacade.changeOperationMode(algorithmId);
 
     // const isChanged = this.controlModeUpdator.updateMode(algorithmId);
     // 제어 모드가 변경이 되었다면 알림
     if (isChanged) {
+      // this.operationModeUpdator.updateMode
+
       this.apiClient.transmitDataToServer({
         commandType: CoreFacade.dcmWsModel.transmitToServerCommandType.MODE,
-        data: this.controlModeUpdator.modeInfo,
+        data: this.operationModeUpdator.getOperationConfig(),
       });
     }
   }

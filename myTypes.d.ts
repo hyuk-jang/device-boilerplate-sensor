@@ -10,6 +10,7 @@ import PlaceComponent from './src/core/PlaceManager/PlaceComponent';
 import PlaceStorage from './src/core/PlaceManager/PlaceStorage';
 import PlaceNode from './src/core/PlaceManager/PlaceNode';
 import PlaceManager from './src/core/PlaceManager/PlaceManager';
+import AlgorithmMode from './src/core/AlgorithmManager/AlgorithmMode'
 import DataLoggerControl from './DataLoggerController/src/Control';
 
 declare global {
@@ -25,5 +26,6 @@ declare global {
   const PlaceStorage: PlaceStorage;
   const PlaceNode: PlaceNode;
   const PlaceManager: PlaceManager;
+  const AlgorithmMode: AlgorithmMode;
   const DataLoggerControl: DataLoggerControl;
 }

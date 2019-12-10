@@ -34,7 +34,7 @@ class WaterLevel extends PlaceThreshold {
    */
   handleMaxOver(coreFacade, placeNode) {
     try {
-      BU.CLI('handleMaxOver', placeNode.getPlaceId());
+      // BU.CLI('handleMaxOver', placeNode.getPlaceId());
       // 급수지 장소 Id
       const destPlaceId = placeNode.getPlaceId();
 

@@ -760,7 +760,7 @@ describe('OverlapCount Strategy', function() {
     expect(nodeUpdator_NODE_WL.getObserver(threGoal_NODE_WL)).to.eq(threGoal_NODE_WL);
     // BU.CLIN(nodeUpdator_NODE_WL.nodeObservers);
     // PlaceNode 객체, 임계 목표 객체
-    expect(nodeUpdator_NODE_WL.nodeObservers).to.length(2);
+    expect(nodeUpdator_NODE_WL.observers).to.length(2);
 
     // *    WL_001 = 10
     NODE_WL.data = 10;
