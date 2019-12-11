@@ -6,6 +6,8 @@ const AlgorithmComponent = require('./AlgorithmComponent');
 
 const CoreFacade = require('../CoreFacade');
 
+const OperationModeUpdator = require('../Updator/OperationModeUpdator/OperationModeUpdator');
+
 /** 2 Depth */
 class AlgorithmStorage extends AlgorithmComponent {
   constructor() {
@@ -35,6 +37,30 @@ class AlgorithmStorage extends AlgorithmComponent {
   /** @return {operationConfig[]} 구동 모드 알고리즘 설정 정보 목록 */
   getOperationConfigList() {
     return _.map(this.children, 'operationModeInfo');
+  }
+
+  /**
+   * 현재 구동 모드 알고리즘 ID 가져옴
+   * @return {string} Algorithm Id
+   */
+  get algorithmId() {
+    return this.operationMode.algorithmId;
+  }
+
+  /**
+   * 현재 구동 모드 알고리즘 Name 가져옴
+   * @return {string} Algorithm Name
+   */
+  get algorithmName() {
+    return this.operationMode.algorithmName;
+  }
+
+  /**
+   * 현재 명령 전략 가져옴
+   * @return {string} cmdStrategy
+   */
+  get cmdStrategy() {
+    return this.operationMode.cmdStrategy;
   }
 
   /**
@@ -78,8 +104,7 @@ class AlgorithmStorage extends AlgorithmComponent {
       }
       // 구동 모드가 동일 할 경우
       if (operationMode === this.operationMode) {
-        return false;
-        // throw new Error(`algorithmId: (${algorithmId}) is the same operation mode.`);
+        throw new Error(`algorithmId: (${algorithmId}) is the same operation mode.`);
       }
 
       // 구동 모드 변경
@@ -89,6 +114,9 @@ class AlgorithmStorage extends AlgorithmComponent {
       const coreFacade = new CoreFacade();
       coreFacade.changeCmdStrategy(this.operationMode.cmdStrategy);
 
+      // 구동 모드 변경 알림
+      const operationModeUpdator = new OperationModeUpdator();
+      operationModeUpdator.notifyObserver(operationMode);
       return true;
     } catch (error) {
       throw error;

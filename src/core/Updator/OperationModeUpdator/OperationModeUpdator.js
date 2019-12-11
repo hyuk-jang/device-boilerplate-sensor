@@ -4,10 +4,16 @@ const CoreFacade = require('../../CoreFacade');
 
 const Updator = require('../Updator');
 
-// let conMode = '';
+let instance = null;
 class OperationModeUpdator extends Updator {
   constructor() {
     super();
+
+    if (instance !== null) {
+      return instance;
+    }
+
+    instance = this;
 
     /** @type {AlgorithmMode} */
     this.prevOperationMode = {};
@@ -34,7 +40,7 @@ class OperationModeUpdator extends Updator {
   notifyObserver(algorithmMode) {
     // 동일 모드라면 교체 불가
     if (this.prevOperationMode === algorithmMode) {
-      return false;
+      throw new Error(`algorithmId: (${algorithmMode.algorithmId}) is the same operation mode.`);
     }
 
     const prevMode = this.prevOperationMode;

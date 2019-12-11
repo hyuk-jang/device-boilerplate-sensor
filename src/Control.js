@@ -16,7 +16,6 @@ const DataLoggerController = require('../DataLoggerController');
 const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
-const OperationModeUpdator = require('./core/Updator/OperationModeUpdator/OperationModeUpdator');
 const NodeUpdatorManager = require('./core/Updator/NodeUpdator/NodeUpdatorManager');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
@@ -79,8 +78,6 @@ class Control extends EventEmitter {
 
       // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
       this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
-      this.operationModeUpdator = new OperationModeUpdator();
-      // this.controlModeUpdator.attachObserver(coreFacade);
 
       // init Step: 3 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
       this.initMakeConfigForDLC();
@@ -136,9 +133,6 @@ class Control extends EventEmitter {
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
-
-    // FIXME: 접속반 DPC가 없기 때문에 제거 처리 함.
-    // _.remove(this.dataLoggerList, { dld_target_prefix: 'D_CNT' });
 
     // BU.CLI(this.dataLoggerList)
     this.nodeList = await biModule.getTable('v_dv_node', where);
@@ -326,20 +320,12 @@ class Control extends EventEmitter {
    * @param {string} algorithmId Algorithm Id
    */
   changeOperationMode(algorithmId) {
-    const coreFacade = new CoreFacade();
+    try {
+      const coreFacade = new CoreFacade();
 
-    // BU.CLI(algorithmId);
-    const isChanged = coreFacade.changeOperationMode(algorithmId);
-
-    // const isChanged = this.controlModeUpdator.updateMode(algorithmId);
-    // 제어 모드가 변경이 되었다면 알림
-    if (isChanged) {
-      // this.operationModeUpdator.updateMode
-
-      this.apiClient.transmitDataToServer({
-        commandType: CoreFacade.dcmWsModel.transmitToServerCommandType.MODE,
-        data: this.operationModeUpdator.getOperationConfig(),
-      });
+      return coreFacade.changeOperationMode(algorithmId);
+    } catch (error) {
+      throw error;
     }
   }
 

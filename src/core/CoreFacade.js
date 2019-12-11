@@ -96,7 +96,12 @@ class CoreFacade {
 
   /** @param {string} algorithmId 제어 모드 변경 알림 */
   changeOperationMode(algorithmId) {
-    return this.coreAlgorithm.changeOperationMode(algorithmId);
+    try {
+      // 구동 모드 변경
+      return this.coreAlgorithm.changeOperationMode(algorithmId);
+    } catch (error) {
+      throw error;
+    }
   }
 
   /** 현재 명령 알고리즘(제어 모드) */

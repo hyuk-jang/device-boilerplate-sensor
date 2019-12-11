@@ -54,14 +54,6 @@ class MuanControl extends Control {
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     // BU.CLI(featureConfig);
 
-    const { apiConfig } = featureConfig;
-    this.apiClient.connect({
-      controlInfo: {
-        hasReconnect: true,
-      },
-      connect_info: apiConfig,
-    });
-
     await this.blockManager.init(this.config.dbInfo, blockConfig);
 
     const coreFacade = new CoreFacade();
@@ -76,6 +68,15 @@ class MuanControl extends Control {
 
     // 초기 구동 모드 Basic 변경
     algorithmStorage.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
+
+    // 정상적으로 구동이 된 후에 API Server에 접속함. 초기 API Client transmitStorageDataToServer 실행 때문.
+    const { apiConfig } = featureConfig;
+    this.apiClient.connect({
+      controlInfo: {
+        hasReconnect: true,
+      },
+      connect_info: apiConfig,
+    });
 
     // 명령 종료가 떨어지면 장소 이벤트 갱신 처리
     this.on(cmdStep.END, commandStorage => {

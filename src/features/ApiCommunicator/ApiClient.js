@@ -62,7 +62,7 @@ class ApiClient extends DeviceManager {
         switch (commandId) {
           // 보낸 명령이 CERTIFICATION 타입이라면 체크
           case transmitToServerCT.CERTIFICATION:
-            BU.CLI('@@@ Authentication is completed from the Socket Server.');
+            BU.log('@@@ Authentication is completed from the Socket Server.');
             this.hasCertification = isError === 0;
             // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
             this.hasCertification && this.transmitStorageDataToServer();
@@ -142,7 +142,10 @@ class ApiClient extends DeviceManager {
         contents: data,
       };
 
-      // BU.CLI(transmitDataToServer);
+      // if (commandType === transmitToServerCT.MODE) {
+      //   BU.debugConsole();
+      //   BU.CLI(transmitDataToServer);
+      // }
 
       const encodingData = this.defaultConverter.encodingMsg(transmitDataToServer);
 
@@ -190,9 +193,11 @@ class ApiClient extends DeviceManager {
 
     const coreFacade = new CoreFacade();
 
+    // BU.CLIN(coreFacade.coreAlgorithm);
+
     /** @type {wsModeInfo} */
     const modeInfo = {
-      operationConfig: coreFacade.getOperationConfig(),
+      algorithmId: coreFacade.coreAlgorithm.algorithmId,
       operationConfigList: coreFacade.coreAlgorithm.getOperationConfigList(),
     };
     // BU.CLI(modeInfo);
@@ -249,6 +254,7 @@ class ApiClient extends DeviceManager {
       // DCC에 전송 명령
       return this.write(encodingMsg);
     } catch (error) {
+      // BU.CLI(error);
       responseMsg.isError = 1;
       responseMsg.message = _.get(error, 'message');
 

@@ -10,6 +10,7 @@ const CmdStorage = require('./Command/CmdStorage');
 const CmdElement = require('./Command/CmdElement');
 
 const CommandUpdator = require('../Updator/CommandUpdator/CommandUpdator');
+const OperationModeUpdator = require('../Updator/OperationModeUpdator/OperationModeUpdator');
 
 const {
   dcmConfigModel,
@@ -56,6 +57,10 @@ class CommandManager {
   init() {
     // 기본 제공되는 명령 전략 세터를 등록한다.
     this.cmdStrategy = new ManualCmdStrategy(this);
+
+    // 구동 모드 옵저버 등록
+    const operationModeUpdator = new OperationModeUpdator();
+    operationModeUpdator.attachObserver(this);
   }
 
   /** 구동모드 반환 */
@@ -69,10 +74,15 @@ class CommandManager {
    *
    */
   updateOperationMode(currAlgorithmMode, prevAlgorithmMode) {
+    const coreFacade = new CoreFacade();
+
+    // BU.CLIN(currAlgorithmMode);
     /** @type {wsModeInfo} */
     const modeInfo = {
-      operationConfig: currAlgorithmMode.operationModeInfo,
+      algorithmId: currAlgorithmMode.algorithmId,
+      operationConfigList: coreFacade.coreAlgorithm.getOperationConfigList(),
     };
+    // BU.CLI('updateOperationMode', modeInfo);
 
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCommandType.MODE,
@@ -119,6 +129,8 @@ class CommandManager {
         break;
     }
 
+    // 명령 전략이 바뀌었다면 기존 추적중인 명령은 모두 삭제
+    isChanged && (this.commandList = []);
     // BU.CLI(isChanged);
 
     return isChanged;
