@@ -38,7 +38,8 @@ class ApiClient extends DeviceManager {
    */
   onData(bufData) {
     try {
-      // BU.CLI(bufData);
+      // BU.debugConsole();
+      // BU.CLI(bufData.toString());
       const decodingData = this.defaultConverter.decodingMsg(bufData);
       const strData = decodingData.toString();
 
@@ -46,59 +47,76 @@ class ApiClient extends DeviceManager {
 
       // 형식을 지켜서 보낸 명령만 대응
       if (!BU.IsJsonString(strData)) {
+        BU.errorLog('onDataError', strData);
         return false;
       }
       // BU.CLI(BU.IsJsonString(strData));
 
       // const parseData = JSON.parse(strData);
-      /** @type {defaultFormatToResponse} */
-      const { commandId, contents, isError, message } = JSON.parse(strData);
-      // Error가 있다면 Client에서 보낸 명령에 대한 Response
-      if (_.isNumber(isError)) {
-        // if (_.has(parseData, 'isError')) {
-        // /** @type {defaultFormatToResponse} */
-        // const responsedDataByServer = parseData;
+      /** @type {defaultFormatToResponse|defaultFormatToRequest} */
+      const apiData = JSON.parse(strData);
 
-        switch (commandId) {
-          // 보낸 명령이 CERTIFICATION 타입이라면 체크
-          case transmitToServerCT.CERTIFICATION:
-            BU.log('@@@ Authentication is completed from the Socket Server.');
-            this.hasCertification = isError === 0;
-            // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
-            this.hasCertification && this.transmitStorageDataToServer();
-            // 인증이 완료되고 현황판이 존재할 경우 현황판 크론 구동
-            this.hasCertification &&
-              _.get(this, 'controller.powerStatusBoard') &&
-              this.controller.powerStatusBoard.runCronRequestPowerStatusBoard();
-            break;
-          // 수신 받은 현황판 데이터 전송
-          case transmitToServerCT.POWER_BOARD:
-            _.get(this, 'controller.powerStatusBoard') &&
-              this.controller.powerStatusBoard.onDataFromApiClient(message, contents);
-            break;
-          default:
-            break;
-        }
-      } else if (commandId === transmitToServerCT.COMMAND) {
-        // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
-        return this.interpretRequestedCommand(JSON.parse(strData));
-      } else if (commandId === transmitToServerCT.MODE) {
-        // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
-        return this.interpretRequestChores(JSON.parse(strData));
+      if (_.isNumber(apiData.isError)) {
+        return this.onResponseData(apiData);
       }
+      return this.onRequestData(apiData);
     } catch (error) {
-      BU.CLI(error);
+      // BU.CLI(error);
       BU.logFile(error);
       throw error;
     }
   }
 
-  // /**
-  //  * 메시지 전송
-  //  * @param {*} msg 전송 데이터
-  //  * @return {Promise.<boolean>} Promise 반환 객체
-  //  */
-  // write(msg) {}
+  /**
+   *
+   * @param {defaultFormatToResponse} responseData
+   */
+  onResponseData(responseData) {
+    const { commandId, contents, isError, message } = responseData;
+
+    switch (commandId) {
+      // 보낸 명령이 CERTIFICATION 타입이라면 체크
+      case transmitToServerCT.CERTIFICATION:
+        BU.log('@@@ Authentication is completed from the Socket Server.');
+        this.hasCertification = isError === 0;
+        // 인증이 완료되었다면 현재 노드 데이터를 서버로 보냄
+        this.hasCertification && this.transmitStorageDataToServer();
+        // 인증이 완료되고 현황판이 존재할 경우 현황판 크론 구동
+        this.hasCertification &&
+          _.get(this, 'controller.powerStatusBoard') &&
+          this.controller.powerStatusBoard.runCronRequestPowerStatusBoard();
+        break;
+      // 수신 받은 현황판 데이터 전송
+      case transmitToServerCT.POWER_BOARD:
+        _.get(this, 'controller.powerStatusBoard') &&
+          this.controller.powerStatusBoard.onDataFromApiClient(message, contents);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   *
+   * @param {defaultFormatToRequest} requestData
+   */
+  onRequestData(requestData) {
+    const { commandId } = requestData;
+    switch (commandId) {
+      // 보낸 명령이 CERTIFICATION 타입이라면 체크
+      case transmitToServerCT.COMMAND:
+        // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
+        this.interpretRequestedCommand(requestData);
+        break;
+      // 수신 받은 현황판 데이터 전송
+      case transmitToServerCT.MODE:
+        // 요청 받은 명령에 대해서는 NEXT를 수행하지 않고 분석기에게 권한을 넘김
+        this.interpretRequestChores(requestData);
+        break;
+      default:
+        break;
+    }
+  }
 
   /**
    * 초기 구동 개시

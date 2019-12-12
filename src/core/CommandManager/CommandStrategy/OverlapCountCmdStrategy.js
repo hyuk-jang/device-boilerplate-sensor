@@ -25,17 +25,19 @@ class OverlapCountCmdStrategy extends CmdStrategy {
     //   'updateCommandStep >>> OverlapCountCmdStrategy',
     //   `${cmdStorage.wrapCmdId} ${cmdStorage.cmdStep}`,
     // );
-    // 명령 종료 일 경우
+    // 명령 Step 최종 단계인 END 일 경우만
     if (cmdStorage.cmdStep === cmdStep.END) {
-      // 명령 취소 처리가 되었을 경우 삭제
+      // WCT은 둘 중에 하나(CONTROL or CANCEL)
+
+      // 달성 목표(Goal)를 이루었기 때문에 관련된 해당 명령을 복원하는 작업 진행 요청
+      if (cmdStorage.wrapCmdType === reqWCT.CONTROL) {
+        // 명령 복원이 진행되면 각 명령 Step이 진행됨에 따라 updateCommandStep이 호출되므로 return 처리
+        return this.cancelCommand(cmdStorage);
+      }
+      // 위에서 명령 복원을 완료하였을 경우 실제적으로 명령 저장소에서 삭제
       if (cmdStorage.wrapCmdType === reqWCT.CANCEL) {
         this.cmdManager.removeCommandStorage(cmdStorage);
-        return this.cmdManager.notifyUpdateCommandStep(cmdStorage);
       }
-
-      // 명령 완료가 되었다면 명령 취소 요청
-      // BU.CLI('업데이트 없이 CANCEL');
-      return this.cancelCommand(cmdStorage);
     }
 
     return this.cmdManager.notifyUpdateCommandStep(cmdStorage);
