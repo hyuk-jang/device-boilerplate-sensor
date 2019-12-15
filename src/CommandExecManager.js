@@ -241,8 +241,8 @@ class CommandExecManager {
         rank = definedCommandSetRank.SECOND,
       } = reqScenarioCmdInfo;
 
-      // 설정 명령 조회
       const scenarioCmdInfo = this.model.findScenarioCommand(wrapCmdId);
+      // BU.CLIN(scenarioCmdInfo);
       // 세부 흐름 명령이 존재하지 않을 경우
       if (_.isEmpty(scenarioCmdInfo)) {
         throw new Error(`scenario command: ${wrapCmdId} not found`);
@@ -251,13 +251,11 @@ class CommandExecManager {
       /** @type {reqCommandInfo} 명령 실행 설정 객체 */
       const reqCommandOption = {
         wrapCmdFormat: reqWCF.SCENARIO,
-        wrapCmdType,
         wrapCmdId,
-        wrapCmdName: scenarioCmdInfo.scenarioName,
         rank,
       };
 
-      return this.executeCommand(reqCommandOption);
+      return this.model.scenarioManager.initScenario(reqCommandOption);
     } catch (error) {
       throw error;
     }
@@ -298,7 +296,7 @@ class CommandExecManager {
    * @param {reqCommandInfo} reqCommandInfo
    */
   executeCommand(reqCommandInfo) {
-    // BU.CLI(reqComplexCmd);
+    // BU.CLI(reqCommandInfo);
     try {
       const coreFacade = new CoreFacade();
 
@@ -358,58 +356,7 @@ class CommandExecManager {
     } catch (error) {
       throw error;
     }
-
-    // BU.CLI(_.map(this.dataLoggerList, 'dl_id'));
-    // BU.CLI(reqComplexCmd);
-
-    try {
-      const { realContainerCmdList } = this.executeCommand(reqMeasureCmdOption);
-
-      if (
-        !_(realContainerCmdList)
-          .map('eleCmdList')
-          .flatten()
-          .value().length
-      ) {
-        // BU.log(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
-        BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
-        return false;
-      }
-      return true;
-    } catch (error) {
-      // return false;
-      throw error;
-    }
-
-    // 명령 요청
-
-    // BU.CLI(hasTransferInquiryStatus);
-
-    // 장치와의 접속이 이루어지지 않을 경우 명령 전송하지 않음
-    // if (!hasTransferInquiryStatus) {
-    //   BU.log(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
-    //   // BU.CLI(`${this.makeCommentMainUUID()} Empty Order inquiryAllDeviceStatus`);
-    //   return false;
-    // }
-
-    // Data Logger 현재 상태 조회
-    // this.dataLoggerControllerList.forEach(router => {
-    //   /** @type {reqExecCmdInfo} */
-    //   let ruquestOrder = {};
-    //   ruquestOrder.nodeId = 'DEFAULT';
-    //   ruquestOrder.wrapCmdType = 'ADD';
-    //   ruquestOrder.wrapCmdId = 'regularDiscovery';
-
-    //   router.orderOperationDefault(ruquestOrder);
-    // });
   }
-
-  /** 인증이 되었음을 알림 */
-  // nofityAuthentication() {
-  //   BU.CLI('nofityAuthentication');
-  //   // 현황판 데이터 요청
-  //   this.emit('nofityAuthentication');
-  // }
 
   /** MainUUID 가 존재할 경우 해당 지점을 알리기 위한 텍스트 생성 */
   makeCommentMainUUID() {
