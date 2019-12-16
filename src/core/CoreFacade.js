@@ -153,8 +153,9 @@ class CoreFacade {
     // BU.CLIN(this.cmdManager, 1);
     const isChanged = this.cmdManager.changeCmdStrategy(cmdMode);
     //  FIXME: 명령 전략이 변경되었다면 API Server에 알림
-    // if (isChanged) {
-    // }
+    if (isChanged) {
+      this.cmdManager.operationModeUpdator.notifyObserver(cmdMode)
+    }
   }
 
   /**

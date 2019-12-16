@@ -6,8 +6,6 @@ const AlgorithmComponent = require('./AlgorithmComponent');
 
 const CoreFacade = require('../CoreFacade');
 
-const OperationModeUpdator = require('../Updator/OperationModeUpdator/OperationModeUpdator');
-
 /** 2 Depth */
 class AlgorithmStorage extends AlgorithmComponent {
   constructor() {
@@ -113,10 +111,6 @@ class AlgorithmStorage extends AlgorithmComponent {
       // 명령 전략 교체 요청
       const coreFacade = new CoreFacade();
       coreFacade.changeCmdStrategy(this.operationMode.cmdStrategy);
-
-      // 구동 모드 변경 알림
-      const operationModeUpdator = new OperationModeUpdator();
-      operationModeUpdator.notifyObserver(operationMode);
       return true;
     } catch (error) {
       throw error;

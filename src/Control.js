@@ -101,12 +101,12 @@ class Control extends EventEmitter {
    * @param {string} mainUUID
    */
   async initSetProperty(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
-    // BU.CLI('initSetProperty', dbInfo);
+    BU.CLI('initSetProperty', dbInfo);
     this.mainUUID = mainUUID;
     this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);
     // BU.CLI(dbInfo);
-    // BU.CLI(mainUUID);
+    BU.CLI(mainUUID);
 
     const mainWhere = _.isNil(mainUUID) ? null : { uuid: mainUUID };
 
@@ -128,6 +128,7 @@ class Control extends EventEmitter {
       main_seq: this.mainSeq,
     };
 
+    mainInfo.map === null && _.set(mainInfo, 'map', {});
     /** @type {mDeviceMap} */
     this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {};
 
@@ -298,9 +299,7 @@ class Control extends EventEmitter {
   setPassiveClient(mainUUID, passiveClient) {
     if (this.mainUUID !== mainUUID) {
       throw new Error(
-        `The ${
-          this.mainUUID
-        } of this site is different from the ${mainUUID} of the site you received.`,
+        `The ${this.mainUUID} of this site is different from the ${mainUUID} of the site you received.`,
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
@@ -386,6 +385,7 @@ class Control extends EventEmitter {
    */
   inquiryAllDeviceStatus() {
     try {
+      // BU.debugConsole(10);
       return this.commandExecManager.inquiryAllDeviceStatus();
     } catch (error) {
       throw error;
@@ -407,6 +407,7 @@ class Control extends EventEmitter {
       this.cronScheduler = new cron.CronJob(
         this.config.inquirySchedulerInfo.intervalCronFormat,
         () => {
+          // BU.CLI('fuck', this.mainUUID);
           this.inquirySchedulerRunMoment = moment();
           this.inquiryAllDeviceStatus();
         },

@@ -7,7 +7,11 @@ const Control = require('../../../Control');
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
 const BlockManager = require('../../../features/BlockManager/BlockManager');
 
+const CoreFacade = require('../../../core/CoreFacade');
+
 const blockConfig = require('./block.config');
+
+const AlgorithmStorage = require('../../../core/AlgorithmManager/AlgorithmStorage');
 
 class MuanControl extends Control {
   // /** @param {integratedDataLoggerConfig} config */
@@ -36,6 +40,18 @@ class MuanControl extends Control {
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     // BU.CLI(featureConfig);
+
+    const coreFacade = new CoreFacade();
+    // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅
+    const algorithmStorage = new AlgorithmStorage();
+    // coreFacade에 알고리즘 저장소 등록
+    coreFacade.setCoreAlgorithm(algorithmStorage);
+    coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.MANUAL);
+    // 초기 구동 모드 Basic 변경
+    // algorithmStorage.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
+
+    await this.blockManager.init(this.config.dbInfo, blockConfig);
+
     // FIXME: DBW에 접속 처리하지 않음. Map 위치 정보 및 DBW API Server 구동 시 해제 (2019-02-13)
     // const { apiConfig } = featureConfig;
     // this.apiClient.connect({
@@ -44,8 +60,6 @@ class MuanControl extends Control {
     //   },
     //   connect_info: apiConfig,
     // });
-
-    await this.blockManager.init(this.config.dbInfo, blockConfig);
   }
 
   /**

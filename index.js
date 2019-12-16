@@ -23,7 +23,7 @@ if (require !== undefined && require.main === module) {
       return control.runFeature();
     })
     .then(() => {
-      control.inquiryAllDeviceStatus();
+      // control.inquiryAllDeviceStatus();
       control.runDeviceInquiryScheduler();
     })
     .catch(err => {

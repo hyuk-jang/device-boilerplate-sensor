@@ -128,7 +128,6 @@ describe('시나리오 동작 테스트', function() {
    *  >>> [SET_RAIN_MODE][COMPLETE]
    */
   it('우천 모드', async () => {
-    BU.CLI(control.operationModeUpdator.getOperationConfig());
     const { cmdManager, placeManager, scenarioManager } = control.model;
     // 시나리오 입힘
     scenarioManager.scenarioCmdList = scenarioList;

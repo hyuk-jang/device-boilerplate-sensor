@@ -4,16 +4,9 @@ const CoreFacade = require('../../CoreFacade');
 
 const Updator = require('../Updator');
 
-let instance = null;
 class OperationModeUpdator extends Updator {
   constructor() {
     super();
-
-    if (instance !== null) {
-      return instance;
-    }
-
-    instance = this;
 
     /** @type {AlgorithmMode} */
     this.prevOperationMode = {};

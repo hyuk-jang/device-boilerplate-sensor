@@ -339,7 +339,7 @@ class CommandExecManager {
    * 정기적인 Router Status 탐색
    */
   inquiryAllDeviceStatus() {
-    // BU.CLI('inquiryAllDeviceStatus');
+    BU.CLI('inquiryAllDeviceStatus', this.controller.mainUUID);
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
     try {

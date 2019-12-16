@@ -25,6 +25,7 @@ class Model {
 
     const {
       config,
+      deviceMap = {},
       dataLoggerControllerList,
       dataLoggerList,
       nodeList,
@@ -78,8 +79,9 @@ class Model {
    * 2. 단순 명령 ID 코드 생성(srcPlaceId_TO_destPlaceId)
    */
   initCommand() {
+    // BU.CLI(this.deviceMap)
     const {
-      controlInfo: { flowCmdList, setCmdList, scenarioCmdList },
+      controlInfo: { flowCmdList = [], setCmdList = [], scenarioCmdList = [] } = {},
     } = this.deviceMap;
 
     // 단순 명령을 쉽게 인식하기 위한 한글 명령을 입력
@@ -195,6 +197,7 @@ class Model {
         });
         // string 인데 못 찾았다면 존재하지 않음. 예외 발생
         if (_.isEmpty(nodeInfo)) {
+          BU.CLIN(this.controller.mainUUID);
           throw new Error(`Node ID: ${searchValue} is not exist`);
         }
         searchValue = nodeInfo.getDataLogger();

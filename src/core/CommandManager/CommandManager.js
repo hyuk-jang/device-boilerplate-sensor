@@ -59,13 +59,13 @@ class CommandManager {
     this.cmdStrategy = new ManualCmdStrategy(this);
 
     // 구동 모드 옵저버 등록
-    const operationModeUpdator = new OperationModeUpdator();
-    operationModeUpdator.attachObserver(this);
+    this.operationModeUpdator = new OperationModeUpdator();
+    this.operationModeUpdator.attachObserver(this);
   }
 
   /** 구동모드 반환 */
   getOperationMode() {
-    return this.controller.operationModeUpdator.getOperationMode();
+    return this.operationModeUpdator.getOperationMode();
   }
 
   /**
@@ -148,11 +148,15 @@ class CommandManager {
 
       // 계측 명령 일 경우에는 전략에 상관없이 요청
       if (wrapCmdFormat === reqWCF.MEASURE) {
+        // BU.debugConsole(5);
+        BU.CLI(`executeCommand-${this.controller.mainUUID}`, wrapCmdId);
         // 동일 명령이 존재하는지 체크
         const foundCommand = _.find(this.commandList, { wrapCmdId });
 
         if (foundCommand) {
-          throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
+          BU.CLIN(this.commandList);
+          return BU.errorLog('executeCommand', `wrapCmdId: ${wrapCmdId} is exist`);
+          // throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
         }
         // 실제 수행할 장치를 정제
         const commandWrapInfo = this.refineReqCommand(reqCommandInfo);
@@ -303,6 +307,7 @@ class CommandManager {
    */
   refineReqCommand(reqCmdInfo, isThrow = false) {
     // 이상있는 장치는 제거 후 재 저장
+    BU.CLI(this.controller.mainUUID, reqCmdInfo);
 
     try {
       /** @type {commandContainerInfo[]} */
