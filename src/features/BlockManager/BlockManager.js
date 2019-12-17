@@ -4,11 +4,11 @@ const Promise = require('bluebird');
 
 const { BU } = require('base-util-jh');
 
-const AbstBlockManager = require('./AbstBlockManager');
-
 const {
   dcmConfigModel: { nodeDataType },
-} = require('../../core/CoreFacade');
+} = require('../../../../default-intelligence');
+
+const AbstBlockManager = require('./AbstBlockManager');
 
 require('./block.jsdoc');
 

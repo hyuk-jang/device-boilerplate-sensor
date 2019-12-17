@@ -2,13 +2,11 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const PlaceComponent = require('./PlaceComponent');
-
-const CoreFacade = require('../CoreFacade');
-
 const {
   dcmConfigModel: { placeNodeStatus: pNS },
-} = CoreFacade;
+} = require('../../../../default-intelligence');
+
+const PlaceComponent = require('./PlaceComponent');
 
 /** @description 3 Depth */
 class PlaceNode extends PlaceComponent {
@@ -16,9 +14,12 @@ class PlaceNode extends PlaceComponent {
    * 장소에 속해 있는 노드정보 객체
    * @param {nodeInfo} nodeInfo
    * @param {mThresholdConfigInfo=} thresholdConfigInfo 설정된 임계 정보가 있다면 기록
+   * @param {CoreFacade} coreFacade
    */
-  constructor(nodeInfo, thresholdConfigInfo = {}) {
+  constructor(nodeInfo, thresholdConfigInfo = {}, coreFacade) {
     super();
+
+    this.coreFacade = coreFacade;
 
     this.nodeInfo = nodeInfo;
 
@@ -52,8 +53,7 @@ class PlaceNode extends PlaceComponent {
     // 현재 노드 상태는 UNKNOWN으로 정의
     this.placeNodeStatus = pNS.UNKNOWN;
 
-    const coreFacade = new CoreFacade();
-    coreFacade.attachNodeObserver(nodeInfo, this);
+    this.coreFacade.attachNodeObserver(nodeInfo, this);
   }
 
   /**

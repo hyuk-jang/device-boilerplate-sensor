@@ -1,5 +1,8 @@
 /** 1 Depth */
 class AlgorithmComponent {
+  /** 초기화 */
+  init() {}
+
   /**
    * 구동 모드 객체를 추가함
    * @param {AlgorithmComponent} algorithmMode

@@ -1,12 +1,16 @@
 const { BU } = require('base-util-jh');
 
-const CoreFacade = require('../../CoreFacade');
-
 const Updator = require('../Updator');
 
 class OperationModeUpdator extends Updator {
-  constructor() {
+  /**
+   *
+   * @param {CoreFacade} coreFacade
+   */
+  constructor(coreFacde) {
     super();
+
+    this.coreFacade = coreFacde;
 
     /** @type {AlgorithmMode} */
     this.prevOperationMode = {};
@@ -14,9 +18,7 @@ class OperationModeUpdator extends Updator {
 
   /** 제어 모드(알고리즘) 및 명령 전략 반환 */
   getOperationConfig() {
-    const coreFacade = new CoreFacade();
-
-    return coreFacade.getOperationConfig();
+    return this.coreFacade.getOperationConfig();
   }
 
   /**
@@ -24,9 +26,7 @@ class OperationModeUpdator extends Updator {
    * @return {AlgorithmMode}
    */
   getOperationMode() {
-    const coreFacade = new CoreFacade();
-
-    return coreFacade.coreAlgorithm.operationMode;
+    return this.coreFacade.coreAlgorithm.operationMode;
   }
 
   /** @param {AlgorithmMode} algorithmMode 옵저버들에게 제어 모드 변경 알림 */

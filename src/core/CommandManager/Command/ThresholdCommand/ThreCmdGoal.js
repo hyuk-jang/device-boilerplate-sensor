@@ -1,14 +1,10 @@
 const _ = require('lodash');
 
-const { BU } = require('base-util-jh');
-
-const CmdComponent = require('../CmdComponent');
-
-const CoreFacade = require('../../../CoreFacade');
-
 const {
   dcmConfigModel: { goalDataRange: goalDR },
-} = CoreFacade;
+} = require('../../../../../../default-intelligence');
+
+const CmdComponent = require('../CmdComponent');
 
 /**
  * 명령 달성 목표가 생성될 때 마다 객체를 생성.
@@ -20,10 +16,12 @@ class ThreCmdGoal extends CmdComponent {
   /**
    *
    * @param {csCmdGoalInfo} csCmdGoalInfo
+   * @param {CoreFacade} coreFacade
    */
-  constructor(csCmdGoalInfo) {
+  constructor(csCmdGoalInfo, coreFacade) {
     super();
     const { nodeId, goalValue, goalRange, isCompleteClear = false } = csCmdGoalInfo;
+    this.coreFacade = coreFacade;
     // 임계치 모니터링 Node 객체 Id
     this.nodeId = nodeId;
     // 달성 목표 데이터
@@ -33,8 +31,6 @@ class ThreCmdGoal extends CmdComponent {
     // 이 달성 목표만 성공하면 모든 조건 클리어 여부
     this.isCompleteClear = isCompleteClear;
 
-    const coreFacade = new CoreFacade();
-
     this.nodeInfo = coreFacade.getNodeInfo(nodeId);
   }
 
@@ -43,11 +39,9 @@ class ThreCmdGoal extends CmdComponent {
    */
   static isReachGoal(goalInfo) {
     // BU.log('@@', goalInfo);
-    const coreFacade = new CoreFacade();
-
     const { nodeId, goalValue, goalRange } = goalInfo;
 
-    const { data } = coreFacade.getNodeInfo(nodeId);
+    const { data } = this.coreFacade.getNodeInfo(nodeId);
 
     let isReachGoal = false;
 

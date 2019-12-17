@@ -4,21 +4,20 @@ const uuidv4 = require('uuid/v4');
 
 const { BU } = require('base-util-jh');
 
-const CmdComponent = require('./CmdComponent');
-
-const CoreFacade = require('../../CoreFacade');
-
 const {
   dcmConfigModel: { commandStep: cmdStep },
   dccFlagModel: { definedCommandSetMessage: dlcMessage },
-} = CoreFacade;
+} = require('../../../../../default-intelligence');
+
+const CmdComponent = require('./CmdComponent');
 
 class CmdElement extends CmdComponent {
   /**
    *
    * @param {commandContainerInfo} cmdEleInfo
+   * @param {CoreFacade} coreFacade
    */
-  constructor(cmdEleInfo) {
+  constructor(cmdEleInfo, coreFacade) {
     super();
     this.cmdEleUuid = uuidv4();
     this.cmdEleInfo = cmdEleInfo;
@@ -37,7 +36,6 @@ class CmdElement extends CmdComponent {
 
     this.cmdEleStep = cmdStep.WAIT;
 
-    const coreFacade = new CoreFacade();
     // 데이터 로거 컨트롤러 DLC
     this.dataLoggerController = coreFacade.controller.model.findDataLoggerController(
       cmdEleInfo.nodeId,

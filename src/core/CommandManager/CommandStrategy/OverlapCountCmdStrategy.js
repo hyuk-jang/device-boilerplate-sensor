@@ -2,18 +2,11 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const CmdStrategy = require('./CmdStrategy');
-
-const CoreFacade = require('../../CoreFacade');
-
 const {
-  dcmConfigModel: {
-    reqDeviceControlType,
-    reqWrapCmdType: reqWCT,
-    reqWrapCmdFormat: reqWCF,
-    commandStep: cmdStep,
-  },
-} = CoreFacade;
+  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, reqDeviceControlType: reqDCT },
+} = require('../../../../../default-intelligence');
+
+const CmdStrategy = require('./CmdStrategy');
 
 class OverlapCountCmdStrategy extends CmdStrategy {
   /**
@@ -69,7 +62,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
     /** @type {commandContainerInfo[]} Restore Command 생성 */
     const restoreContainerList = _.chain(containerCmdList)
       // 실제 True 하는 장치 필터링
-      .filter({ singleControlType: reqDeviceControlType.TRUE })
+      .filter({ singleControlType: reqDCT.TRUE })
       // True 처리하는 개체가 유일한 개체 목록 추출
       .filter(containerInfo => {
         const { nodeId, singleControlType } = containerInfo;
@@ -88,7 +81,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
         /** @type {commandContainerInfo} */
         const newContainerInfo = {
           nodeId,
-          singleControlType: reqDeviceControlType.FALSE,
+          singleControlType: reqDCT.FALSE,
         };
         return newContainerInfo;
       })
@@ -109,7 +102,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
   isConflict(commandWrapInfo) {
     try {
       const { wrapCmdId, containerCmdList } = commandWrapInfo;
-      const { TRUE, FALSE } = reqDeviceControlType;
+      const { TRUE, FALSE } = reqDCT;
       // 제어할려고 하는 Node와 제어 상태를 바꿀려는 명령이 존재하는지 체크
       _.forEach(containerCmdList, cmdContainerInfo => {
         const { nodeId, singleControlType } = cmdContainerInfo;
@@ -196,14 +189,13 @@ class OverlapCountCmdStrategy extends CmdStrategy {
   executeFlowControl(reqCmdInfo) {
     // BU.CLIN(reqCmdInfo);
     try {
-      const coreFacade = new CoreFacade();
       const { wrapCmdType, srcPlaceId, destPlaceId } = reqCmdInfo;
 
       if (wrapCmdType === reqWCT.CANCEL) {
         return this.cancelCommand(reqCmdInfo);
       }
       // 흐름 명령 가능 여부 체크 (급배수지 환경 조건 고려[수위, 염도, 온도 등등등])
-      coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId);
+      this.coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId);
 
       return this.executeDefaultControl(reqCmdInfo);
     } catch (error) {

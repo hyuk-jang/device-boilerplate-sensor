@@ -1,18 +1,11 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
-const CmdStrategy = require('./CmdStrategy');
-
-const CoreFacade = require('../../CoreFacade');
-
 const {
-  dcmConfigModel: {
-    reqDeviceControlType,
-    reqWrapCmdType: reqWCT,
-    reqWrapCmdFormat: reqWCF,
-    commandStep: cmdStep,
-  },
-} = CoreFacade;
+  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, reqDeviceControlType: reqDCT },
+} = require('../../../../../default-intelligence');
+
+const CmdStrategy = require('./CmdStrategy');
 
 class ManualCmdStrategy extends CmdStrategy {
   /**
@@ -78,14 +71,14 @@ class ManualCmdStrategy extends CmdStrategy {
     /** @type {commandContainerInfo[]} Restore Command 생성 */
     const restoreContainerList = _.chain(cmdWrapInfo.containerCmdList)
       // 실제 True 하는 장치 필터링
-      .filter({ singleControlType: reqDeviceControlType.TRUE })
+      .filter({ singleControlType: reqDCT.TRUE })
       // 복원 명령으로 변형
       .map(containerInfo => {
         const { nodeId } = containerInfo;
         /** @type {commandContainerInfo} */
         const newContainerInfo = {
           nodeId,
-          singleControlType: reqDeviceControlType.FALSE,
+          singleControlType: reqDCT.FALSE,
           isIgnore: false,
         };
         return newContainerInfo;
@@ -187,14 +180,12 @@ class ManualCmdStrategy extends CmdStrategy {
     try {
       const { wrapCmdType } = reqCmdInfo;
 
-      const coreFacade = new CoreFacade();
-
       switch (wrapCmdType) {
         case reqWCT.CONTROL:
-          coreFacade.scenarioManager.executeScenario(reqCmdInfo);
+          this.coreFacade.scenarioManager.executeScenario(reqCmdInfo);
           break;
         case reqWCT.CANCEL:
-          coreFacade.scenarioManager.cancelScenario(reqCmdInfo);
+          this.coreFacade.scenarioManager.cancelScenario(reqCmdInfo);
           break;
         default:
           break;

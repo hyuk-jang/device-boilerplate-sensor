@@ -2,24 +2,23 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const DeviceManager = require('../../utils/DeviceManager');
+const {
+  dcmConfigModel: { reqWrapCmdFormat: reqWCF, nodePickKey },
+  dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
+} = require('../../../../default-intelligence');
 
 const {
   BaseModel: { defaultModule },
 } = require('../../../../device-protocol-converter-jh');
 
-const CoreFacade = require('../../core/CoreFacade');
-
-const {
-  dcmConfigModel: { reqWrapCmdFormat: reqWCF, nodePickKey },
-  dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
-} = CoreFacade;
+const DeviceManager = require('../../utils/DeviceManager');
 
 class ApiClient extends DeviceManager {
   /** @param {MainControl} controller */
   constructor(controller) {
     super();
     this.controller = controller;
+    this.coreFacade = controller.coreFacade;
     /** 기본 Encoding, Decondig 처리를 할 라이브러리 */
     this.defaultConverter = defaultModule;
     // socket Client의 인증 여부
@@ -209,14 +208,12 @@ class ApiClient extends DeviceManager {
     // BU.log('transmitStorageDataToServer');
     // this.controller.notifyDeviceData(null, this.controller.nodeList);
 
-    const coreFacade = new CoreFacade();
-
     // BU.CLIN(coreFacade.coreAlgorithm);
 
     /** @type {wsModeInfo} */
     const modeInfo = {
-      algorithmId: coreFacade.coreAlgorithm.algorithmId,
-      operationConfigList: coreFacade.coreAlgorithm.getOperationConfigList(),
+      algorithmId: this.coreFacade.coreAlgorithm.algorithmId,
+      operationConfigList: this.coreFacade.coreAlgorithm.getOperationConfigList(),
     };
     // BU.CLI(modeInfo);
     // 구동 모드 현황

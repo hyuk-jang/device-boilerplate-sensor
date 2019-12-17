@@ -5,26 +5,14 @@ const { BU } = require('base-util-jh');
 const ScenarioComponent = require('./ScenarioComponent');
 const ScenarioStorage = require('./ScenarioStorage');
 
-const CoreFacade = require('../../CoreFacade');
-
-const {
-  dcmConfigModel: {
-    reqWrapCmdFormat: reqWCF,
-    reqWrapCmdType: reqWCT,
-    placeNodeStatus: pNS,
-    goalDataRange: goalDR,
-    commandStep: cmdStep,
-  },
-} = CoreFacade;
-
-// const PlaceNode = require('./PlaceNode');
-
 class ScenarioManager {
   /**
    *
    * @param {mScenarioInfo[]} scenarioCmdList
+   * @param {CoreFacade} coreFacade
    */
-  constructor(scenarioCmdList) {
+  constructor(scenarioCmdList, coreFacade) {
+    this.coreFacade = coreFacade;
     this.scenarioCmdList = scenarioCmdList;
 
     this.isCompleteScenario = true;
@@ -69,7 +57,7 @@ class ScenarioManager {
     const { scenarioId, scenarioName, scenarioList } = scenarioCmdInfo;
 
     // 최초 시나리오 저장소 생성
-    const scenarioStorage = new ScenarioStorage(scenarioCmdInfo);
+    const scenarioStorage = new ScenarioStorage(scenarioCmdInfo, this.coreFacade);
     // 이벤트를 최종으로 수신할 Successor 등록
     scenarioStorage.setSuccessor(this);
 

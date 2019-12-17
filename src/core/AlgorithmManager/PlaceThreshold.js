@@ -7,10 +7,12 @@
 class PlaceThreshold {
   /**
    * 장소 임계치 처리 기준이 되는 Node Definition Id
+   * @param {CoreFacade} coreFacade
    * @param {string} nodeDefId Node Definition Id
    */
-  constructor(nodeDefId = '') {
+  constructor(coreFacade, nodeDefId = '') {
     this.nodeDefId = nodeDefId;
+    this.coreFacade = coreFacade;
   }
 
   /**

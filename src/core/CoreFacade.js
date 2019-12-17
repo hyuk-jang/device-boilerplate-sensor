@@ -2,9 +2,6 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-// singleton 패턴 적용을 위한 인스턴스 변수
-let instance;
-
 /** @type {nodeInfo[]} */
 let coreNodeList;
 
@@ -17,16 +14,12 @@ const PlaceComponent = require('././PlaceManager/PlaceComponent');
 const PlaceThreshold = require('././AlgorithmManager/PlaceThreshold');
 
 class CoreFacade {
-  constructor() {
-    // 이미 선언한 적이 있다면 반환
-    if (instance) {
-      return instance;
-    }
-
-    // 현재 this를 instance에 지정
-    instance = this;
-
-    this.controller;
+  /**
+   *
+   * @param {MainControl} controller
+   */
+  constructor(controller) {
+    this.controller = controller;
     this.model;
     this.cmdManager;
     this.cmdExecManager;
@@ -42,16 +35,6 @@ class CoreFacade {
       PlaceComponent,
       PlaceThreshold,
     };
-  }
-
-  /**
-   * 명령 관리자 정의
-   * @param {MainControl} controller
-   */
-  setControl(controller) {
-    this.controller = controller;
-
-    coreNodeList = this.controller.nodeList;
   }
 
   /**
@@ -154,7 +137,7 @@ class CoreFacade {
     const isChanged = this.cmdManager.changeCmdStrategy(cmdMode);
     //  FIXME: 명령 전략이 변경되었다면 API Server에 알림
     if (isChanged) {
-      this.cmdManager.operationModeUpdator.notifyObserver(cmdMode)
+      this.cmdManager.operationModeUpdator.notifyObserver(cmdMode);
     }
   }
 

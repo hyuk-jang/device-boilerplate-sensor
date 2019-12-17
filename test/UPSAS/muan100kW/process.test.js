@@ -31,7 +31,7 @@ const main = new Main();
 //   dbInfo: config.dbInfo,
 // });
 const control = main.createControl(config);
-const coreFacade = new CoreFacade();
+const coreFacade = new CoreFacade(control);
 
 const {
   controlMode,
@@ -120,7 +120,7 @@ describe('수위 임계치 처리 테스트', function() {
    *      배수지 수위 최저치 >>> [BW_5_TO_NCB](R_CAN)
    *  <test> 장소 임계치에 의한 명령 삭제 시 임계 명령 삭제 확인
    */
-  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { cmdManager, placeManager } = control.model;
 
     // 저수지

@@ -1,12 +1,7 @@
 const _ = require('lodash');
 
-const { BU } = require('base-util-jh');
-
 const CmdComponent = require('../CmdComponent');
-const ThreCmdComponent = require('./ThreCmdComponent');
 const ThreCmdGoal = require('./ThreCmdGoal');
-
-const CoreFacade = require('../../../CoreFacade');
 
 /**
  * 명령 달성 목표가 생성될 때 마다 객체를 생성.
@@ -16,10 +11,11 @@ const CoreFacade = require('../../../CoreFacade');
  */
 class ThreCmdStorage extends CmdComponent {
   /**
-   *
+   * @param {CoreFacade} coreFacade
    */
-  constructor() {
+  constructor(coreFacade) {
     super();
+    this.coreFacade = coreFacade;
 
     /** @type {ThreCmdGoal[]} */
     this.threCmdGoals = [];
@@ -46,9 +42,6 @@ class ThreCmdStorage extends CmdComponent {
       this.startLimiter(limitTimeSec);
     }
 
-    const coreFacade = new CoreFacade();
-    // 새로운 임계치 저장소 생성
-
     // 세부 달성 목록 목표만큼 객체 생성 후 옵저버 등록
     goalDataList.forEach(goalInfo => {
       const threCmdGoal = new ThreCmdGoal(goalInfo);
@@ -57,7 +50,7 @@ class ThreCmdStorage extends CmdComponent {
       // 저장소를 Successor로 등록
       threCmdGoal.setSuccessor(this);
       // 노드 갱신 매니저에게 임계치 목표 객체를 옵저버로 등록
-      coreFacade.attachNodeObserver(goalInfo.nodeId, threCmdGoal, true);
+      this.coreFacade.attachNodeObserver(goalInfo.nodeId, threCmdGoal, true);
     });
   }
 
@@ -66,13 +59,11 @@ class ThreCmdStorage extends CmdComponent {
    */
   resetThreshold() {
     // 해당 임계치 없다면 false 반환
-    const coreFacade = new CoreFacade();
-
     this.threCmdLimitTimer && clearTimeout(this.threCmdLimitTimer);
 
     // Update Node 정보를 받는 옵저버 해제
     this.threCmdGoalList.forEach(threCmdGoal => {
-      coreFacade.dettachNodeObserver(threCmdGoal.nodeId, threCmdGoal);
+      this.coreFacade.dettachNodeObserver(threCmdGoal.nodeId, threCmdGoal);
     });
   }
 

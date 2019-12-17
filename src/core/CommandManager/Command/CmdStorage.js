@@ -4,17 +4,9 @@ const uuidv4 = require('uuid/v4');
 
 const { BU } = require('base-util-jh');
 
-const CoreFacade = require('../../CoreFacade');
-
 const {
-  dcmConfigModel: {
-    reqWrapCmdFormat: reqWCF,
-    reqWrapCmdType: reqWCT,
-    placeNodeStatus: pNS,
-    goalDataRange: goalDR,
-    commandStep: cmdStep,
-  },
-} = CoreFacade;
+  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT },
+} = require('../../../../../default-intelligence');
 
 const CmdComponent = require('./CmdComponent');
 const CmdElement = require('./CmdElement');
@@ -24,10 +16,11 @@ const ThreCmdGoal = require('./ThresholdCommand/ThreCmdGoal');
 
 class CmdStorage extends CmdComponent {
   /**
-   *
+   * @param {CoreFacade} coreFacade
    */
-  constructor() {
+  constructor(coreFacade) {
     super();
+    this.coreFacade = coreFacade;
 
     this.cmdStorageUuid = uuidv4();
 
@@ -179,7 +172,7 @@ class CmdStorage extends CmdComponent {
     this.cmdElements = [];
 
     commandContainerList.forEach(containerInfo => {
-      const cmdElement = new CmdElement(containerInfo);
+      const cmdElement = new CmdElement(containerInfo, this.coreFacade);
       cmdElement.setSuccessor(this);
 
       this.cmdElements.push(cmdElement);
@@ -235,7 +228,7 @@ class CmdStorage extends CmdComponent {
     }
 
     // 새로운 임계치 저장소 생성
-    const threCmdStorage = new ThreCmdStorage(wrapCmdGoalInfo);
+    const threCmdStorage = new ThreCmdStorage(wrapCmdGoalInfo, this.coreFacade);
     // 매니저를 Successor로 등록
     threCmdStorage.setSuccessor(this);
 

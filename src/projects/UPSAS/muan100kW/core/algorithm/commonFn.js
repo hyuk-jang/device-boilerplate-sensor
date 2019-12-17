@@ -2,11 +2,11 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const CoreFacade = require('../../../../../core/CoreFacade');
-
 const {
-  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, placeNodeStatus, goalDataRange },
-} = CoreFacade;
+  dcmConfigModel: { reqWrapCmdType: reqWCT, placeNodeStatus: pNS },
+} = require('../../../../../../../default-intelligence');
+
+const CoreFacade = require('../../../../../core/CoreFacade');
 
 const coreFacade = new CoreFacade();
 
@@ -18,6 +18,11 @@ const cancelFlowCmdTypeInfo = {
 };
 
 module.exports = {
+  // /** @param {CoreFacade} coreFacade */
+  // constructor(coreFacade) {
+  //   this.coreFacade = coreFacade;
+  // }
+
   get algorithmIdInfo() {
     return {
       DEFAULT: 'DEFAULT',
@@ -188,23 +193,23 @@ module.exports = {
     /** @type {mThresholdInfo} */
     let thresholdInfo = {};
     switch (placeNode.getNodeStatus()) {
-      case placeNodeStatus.MAX_OVER:
+      case pNS.MAX_OVER:
         thresholdInfo = placeNode.maxValue;
         break;
-      case placeNodeStatus.UPPER_LIMIT_OVER:
+      case pNS.UPPER_LIMIT_OVER:
         thresholdInfo = placeNode.upperLimitValue;
         break;
-      case placeNodeStatus.NORMAL:
+      case pNS.NORMAL:
         thresholdInfo = placeNode.setValue;
         break;
-      case placeNodeStatus.LOWER_LIMIT_UNDER:
+      case pNS.LOWER_LIMIT_UNDER:
         thresholdInfo = placeNode.lowerLimitValue;
         break;
-      case placeNodeStatus.MIN_UNDER:
+      case pNS.MIN_UNDER:
         thresholdInfo = placeNode.minValue;
         break;
-      case placeNodeStatus.UNKNOWN:
-      case placeNodeStatus.ERROR:
+      case pNS.UNKNOWN:
+      case pNS.ERROR:
         thresholdInfo = {};
         break;
       default:
@@ -223,19 +228,19 @@ module.exports = {
   getPlaceThresholdValue(placeStorage, nodeDefId, placeNodeThreshold) {
     let thresholdValue;
     switch (placeNodeThreshold) {
-      case placeNodeStatus.MAX_OVER:
+      case pNS.MAX_OVER:
         thresholdValue = placeStorage.getMaxValue(nodeDefId);
         break;
-      case placeNodeStatus.UPPER_LIMIT_OVER:
+      case pNS.UPPER_LIMIT_OVER:
         thresholdValue = placeStorage.getUpperLimitValue(nodeDefId);
         break;
-      case placeNodeStatus.MIN_UNDER:
+      case pNS.MIN_UNDER:
         thresholdValue = placeStorage.getMinValue(nodeDefId);
         break;
-      case placeNodeStatus.LOWER_LIMIT_UNDER:
+      case pNS.LOWER_LIMIT_UNDER:
         thresholdValue = placeStorage.getLowerLimitValue(nodeDefId);
         break;
-      case placeNodeStatus.NORMAL:
+      case pNS.NORMAL:
         thresholdValue = placeStorage.getSetValue(nodeDefId);
         break;
       default:

@@ -7,6 +7,11 @@ const Promise = require('bluebird');
 const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
 
+const {
+  dcmConfigModel: { nodePickKey },
+  dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
+} = require('../../default-intelligence');
+
 const mainConfig = require('./config');
 
 const CoreFacade = require('./core/CoreFacade');
@@ -17,11 +22,10 @@ const Model = require('./Model');
 const CommandExecManager = require('./CommandExecManager');
 
 const NodeUpdatorManager = require('./core/Updator/NodeUpdator/NodeUpdatorManager');
+const AlgorithmStorage = require('./core/AlgorithmManager/AlgorithmStorage');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
 const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');
-/** 정해진 시나리오대로 진행하기 위한 Class */
-const AbstScenario = require('./features/Scenario/AbstScenario');
 /** 현황판 표현을 위한 Class, apiClient와의 통신을 통해 갱신 */
 const AbstPBS = require('./features/PowerStatusBoard/AbstPBS');
 /** 현황판 표현을 위한 Class, apiClient와의 통신을 통해 갱신 */
@@ -33,6 +37,8 @@ class Control extends EventEmitter {
     super();
     this.config = config;
     // BU.CLI(this.config);
+    // Core Facade 등록
+    this.coreFacade = new CoreFacade();
 
     /** @type {placeInfo[]} */
     this.placeList = [];
@@ -71,10 +77,6 @@ class Control extends EventEmitter {
     try {
       // init Step: 1 DB 정보를 기초로 nodeList, dataLoggerList, placeList 구성
       await this.initSetProperty(dbInfo, mainUUID);
-
-      const coreFacade = new CoreFacade();
-      coreFacade.setControl(this);
-      // BU.CLIN(coreFacade);
 
       // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
       this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
@@ -255,8 +257,7 @@ class Control extends EventEmitter {
       this.model.init();
 
       // 모델 등록
-      const coreFacade = new CoreFacade();
-      coreFacade.setModel(this.model);
+      this.coreFacade.setModel(this.model);
 
       this.commandExecManager = new CommandExecManager(this);
 
@@ -276,10 +277,10 @@ class Control extends EventEmitter {
     this.apiClient = new AbstApiClient(this);
     // 현황판
     this.powerStatusBoard = new AbstPBS(this);
-    // 시나리오 관리자
-    this.scenarioManager = new AbstScenario(this);
     // 블록 매니저
     this.blockManager = new AbstBlockManager(this);
+    // coreFacade에 알고리즘 저장소 등록
+    this.coreFacade.setCoreAlgorithm(new AlgorithmStorage(this));
   }
 
   /**
@@ -299,7 +300,9 @@ class Control extends EventEmitter {
   setPassiveClient(mainUUID, passiveClient) {
     if (this.mainUUID !== mainUUID) {
       throw new Error(
-        `The ${this.mainUUID} of this site is different from the ${mainUUID} of the site you received.`,
+        `The ${
+          this.mainUUID
+        } of this site is different from the ${mainUUID} of the site you received.`,
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
@@ -320,9 +323,7 @@ class Control extends EventEmitter {
    */
   changeOperationMode(algorithmId) {
     try {
-      const coreFacade = new CoreFacade();
-
-      return coreFacade.changeOperationMode(algorithmId);
+      return this.coreFacade.changeOperationMode(algorithmId);
     } catch (error) {
       throw error;
     }
@@ -437,10 +438,7 @@ class Control extends EventEmitter {
   notifyDeviceData(dataLoggerController, renewalNodeList) {
     // BU.CLI(
     //   '@@@@@@@@@@@ notifyDeviceData',
-    //   this.model.getAllNodeStatus(
-    //     CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
-    //     renewalNodeList,
-    //   ),
+    //   this.model.getAllNodeStatus(nodePickKey.FOR_SERVER, renewalNodeList),
     // );
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
@@ -450,14 +448,14 @@ class Control extends EventEmitter {
 
       // BU.CLIN(dataList);
       const dataList = this.model.getAllNodeStatus(
-        CoreFacade.dcmConfigModel.nodePickKey.FOR_SERVER,
+        nodePickKey.FOR_SERVER,
         renewalNodeList.filter(nodeInfo => nodeInfo.is_submit_api),
       );
 
       // API 접속이 이루어져 있고 데이터가 있을 경우에만 전송
       if (this.apiClient.isConnect && dataList.length) {
         this.apiClient.transmitDataToServer({
-          commandType: CoreFacade.dcmWsModel.transmitToServerCommandType.NODE,
+          commandType: transmitToServerCT.NODE,
           data: dataList,
         });
       }

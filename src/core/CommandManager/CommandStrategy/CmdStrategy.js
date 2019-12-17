@@ -2,16 +2,9 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const CoreFacade = require('../../CoreFacade');
-
 const {
-  dcmConfigModel: {
-    reqDeviceControlType,
-    reqWrapCmdType: reqWCT,
-    reqWrapCmdFormat: reqWCF,
-    commandStep: cmdStep,
-  },
-} = CoreFacade;
+  dcmConfigModel: { reqWrapCmdFormat: reqWCF, reqDeviceControlType: reqDCT },
+} = require('../../../../../default-intelligence');
 
 /**
  * 프로젝트 별로 모드가 여러개일 경우 updateControMode를 재구현 하여 Cmd Manager의 cmdStrategist 재정의
@@ -20,6 +13,8 @@ class CmdStrategy {
   /** @param {CommandManager} cmdManager */
   constructor(cmdManager) {
     this.cmdManager = cmdManager;
+
+    this.coreFacade = this.cmdManager.coreFacade;
   }
 
   /** 제어 모드가 변경되었을 경우 선행 작업이 이루어져야 할 내용이 있다면 작성 */
@@ -154,16 +149,16 @@ class CmdStrategy {
     }
 
     switch (singleControlType) {
-      case reqDeviceControlType.FALSE:
+      case reqDCT.FALSE:
         strControlValue = strFalse;
         break;
-      case reqDeviceControlType.TRUE:
+      case reqDCT.TRUE:
         strControlValue = strTrue;
         break;
-      case reqDeviceControlType.MEASURE:
+      case reqDCT.MEASURE:
         strControlValue = 'Measure';
         break;
-      case reqDeviceControlType.SET:
+      case reqDCT.SET:
         strControlValue = 'Set';
         break;
       default:

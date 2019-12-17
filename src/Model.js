@@ -4,15 +4,13 @@ const moment = require('moment');
 const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
 
-const CoreFacade = require('./core/CoreFacade');
+const {
+  dcmConfigModel: { commandPickKey: cmdPickKey, nodeDataType, nodePickKey },
+} = require('../../default-intelligence');
 
 const CmdManager = require('./core/CommandManager/CommandManager');
 const ScenarioManager = require('./core/CommandManager/ScenarioCommand/ScenarioManager');
 const PlaceManager = require('./core/PlaceManager/PlaceManager');
-
-const { dcmConfigModel } = require('./core/CoreFacade');
-
-const { commandPickKey: cmdPickKey, nodePickKey, nodeDataType } = dcmConfigModel;
 
 class Model {
   /**
@@ -25,6 +23,7 @@ class Model {
 
     const {
       config,
+      coreFacade,
       deviceMap = {},
       dataLoggerControllerList,
       dataLoggerList,
@@ -33,6 +32,7 @@ class Model {
       placeRelationList,
     } = controller;
 
+    this.coreFacade = coreFacade;
     this.dataLoggerControllerList = dataLoggerControllerList;
     this.dataLoggerList = dataLoggerList;
     this.nodeList = nodeList;
@@ -55,21 +55,20 @@ class Model {
 
   /** Model 상세 초기화 */
   init() {
-    const coreFacade = new CoreFacade();
     // Map에 기록된 명령을 해석하여 상세한 명령으로 생성하여 MapInfo 에 정의
     this.initCommand();
 
     // 명령 관리자 초기화 진행
     /** @type {CmdManager} Control 에서 제어모드가 변경되면 현 객체 교체 정의 */
     this.cmdManager = new CmdManager(this);
-    coreFacade.setCmdManager(this.cmdManager);
+    this.coreFacade.setCmdManager(this.cmdManager);
     this.cmdManager.init();
 
-    this.scenarioManager = new ScenarioManager(this.mapCmdInfo.scenarioCmdList);
-    coreFacade.setScenarioManager(this.scenarioManager);
+    this.scenarioManager = new ScenarioManager(this.mapCmdInfo.scenarioCmdList, this.coreFacade);
+    this.coreFacade.setScenarioManager(this.scenarioManager);
 
-    this.placeManager = new PlaceManager();
-    coreFacade.setPlaceManager(this.placeManager);
+    this.placeManager = new PlaceManager(this.coreFacade);
+    this.coreFacade.setPlaceManager(this.placeManager);
     this.placeManager.init(this);
   }
 

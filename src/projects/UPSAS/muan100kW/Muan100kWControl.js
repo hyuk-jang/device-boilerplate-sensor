@@ -1,12 +1,14 @@
 const _ = require('lodash');
 const { BU, CU } = require('base-util-jh');
 
+const {
+  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF },
+} = require('../../../../../default-intelligence');
+
 const Control = require('../../../Control');
 
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
 const BlockManager = require('../../../features/BlockManager/BlockManager');
-
-const CoreFacade = require('../../../core/CoreFacade');
 
 const blockConfig = require('./block.config');
 
@@ -21,19 +23,14 @@ const SalternOptimization = require('./core/SalternOptimization');
 
 const commonFn = require('./core/algorithm/commonFn');
 
-const {
-  dcmConfigModel: {
-    reqWrapCmdFormat: reqWCF,
-    reqWrapCmdType: reqWCT,
-    placeNodeStatus: pNS,
-    goalDataRange: goalDR,
-    commandStep: cmdStep,
-  },
-} = CoreFacade;
-
 class MuanControl extends Control {
+  /**
+   * @override
+   * DBS 순수 기능 외에 추가 될 기능
+   */
   bindingFeature() {
-    // return super.bindingFeature();
+    // 기본 Binding Feature 사용
+    super.bindingFeature();
     // BU.CLI('bindingFeature');
     // super.bindingFeature();
     // const test = new DefaultApiClient(this);
@@ -42,6 +39,16 @@ class MuanControl extends Control {
 
     /** @type {BlockManager} */
     this.blockManager = new BlockManager(this);
+
+    // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅
+    const algorithmStorage = new ConcreteAlgorithmStorage();
+    // 각 운용 모드별 알고리즘 모드 객체 추가
+    algorithmStorage.addOperationMode(new Basic(this.coreFacade));
+    algorithmStorage.addOperationMode(new PowerOptimization(this.coreFacade));
+    algorithmStorage.addOperationMode(new SalternOptimization(this.coreFacade));
+    algorithmStorage.children.forEach(child => child.init());
+    // coreFacade에 알고리즘 저장소 등록
+    this.coreFacade.setCoreAlgorithm(algorithmStorage);
 
     this.bindingEventHandler();
   }
@@ -56,18 +63,8 @@ class MuanControl extends Control {
 
     await this.blockManager.init(this.config.dbInfo, blockConfig);
 
-    const coreFacade = new CoreFacade();
-    // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅
-    const algorithmStorage = new ConcreteAlgorithmStorage();
-    // 각 운용 모드별 알고리즘 모드 객체 추가
-    algorithmStorage.addOperationMode(new Basic());
-    algorithmStorage.addOperationMode(new PowerOptimization());
-    algorithmStorage.addOperationMode(new SalternOptimization());
-    // coreFacade에 알고리즘 저장소 등록
-    coreFacade.setCoreAlgorithm(algorithmStorage);
-
     // 초기 구동 모드 Basic 변경
-    algorithmStorage.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
+    this.coreFacade.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
 
     // 정상적으로 구동이 된 후에 API Server에 접속함. 초기 API Client transmitStorageDataToServer 실행 때문.
     const { apiConfig } = featureConfig;

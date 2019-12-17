@@ -1,10 +1,22 @@
 const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
+const {
+  dcmConfigModel: {
+    cmdStrategyType,
+    commandStep: cmdStep,
+    commandPickKey,
+    reqWrapCmdType: reqWCT,
+    reqWrapCmdFormat: reqWCF,
+    reqDeviceControlType: reqDCT,
+    nodePickKey,
+  },
+  dccFlagModel: { definedCommandSetRank },
+  dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
+} = require('../../../../default-intelligence');
+
 const ManualCmdStrategy = require('./CommandStrategy/ManualCmdStrategy');
 const OverlapCountCmdStrategy = require('./CommandStrategy/OverlapCountCmdStrategy');
-
-const CoreFacade = require('../CoreFacade');
 
 const CmdStorage = require('./Command/CmdStorage');
 const CmdElement = require('./Command/CmdElement');
@@ -12,28 +24,16 @@ const CmdElement = require('./Command/CmdElement');
 const CommandUpdator = require('../Updator/CommandUpdator/CommandUpdator');
 const OperationModeUpdator = require('../Updator/OperationModeUpdator/OperationModeUpdator');
 
-const {
-  dcmConfigModel,
-  dcmWsModel: { transmitToServerCommandType },
-} = CoreFacade;
-
-const {
-  commandStep: cmdStep,
-  commandPickKey,
-  goalDataRange: goalDR,
-  reqWrapCmdType: reqWCT,
-  reqWrapCmdFormat: reqWCF,
-} = dcmConfigModel;
-
 class CommandManager {
   /** @param {Model} model */
   constructor(model) {
-    const { controller, mapCmdInfo, nodeList } = model;
+    const { coreFacade, controller, mapCmdInfo, nodeList } = model;
 
     this.commandUpdator = new CommandUpdator();
 
-    this.model = model;
+    this.coreFacade = coreFacade;
     this.controller = controller;
+    this.model = model;
 
     this.nodeList = nodeList;
 
@@ -47,11 +47,7 @@ class CommandManager {
     this.cmdStrategy;
 
     // 명령 전략 모드 종류
-    this.cmdStrategyType = {
-      MANUAL: 'MANUAL',
-      OVERLAP_COUNT: 'OVERLAP_COUNT',
-      SCENARIO: 'SCENARIO',
-    };
+    this.cmdStrategyType = cmdStrategyType;
   }
 
   init() {
@@ -59,7 +55,7 @@ class CommandManager {
     this.cmdStrategy = new ManualCmdStrategy(this);
 
     // 구동 모드 옵저버 등록
-    this.operationModeUpdator = new OperationModeUpdator();
+    this.operationModeUpdator = new OperationModeUpdator(this.coreFacade);
     this.operationModeUpdator.attachObserver(this);
   }
 
@@ -74,18 +70,16 @@ class CommandManager {
    *
    */
   updateOperationMode(currAlgorithmMode, prevAlgorithmMode) {
-    const coreFacade = new CoreFacade();
-
     // BU.CLIN(currAlgorithmMode);
     /** @type {wsModeInfo} */
     const modeInfo = {
       algorithmId: currAlgorithmMode.algorithmId,
-      operationConfigList: coreFacade.coreAlgorithm.getOperationConfigList(),
+      operationConfigList: this.coreFacade.coreAlgorithm.getOperationConfigList(),
     };
     // BU.CLI('updateOperationMode', modeInfo);
 
     this.controller.apiClient.transmitDataToServer({
-      commandType: transmitToServerCommandType.MODE,
+      commandType: transmitToServerCT.MODE,
       data: modeInfo,
     });
   }
@@ -183,7 +177,7 @@ class CommandManager {
     try {
       // BU.CLIN(cmdWrapInfo.containerCmdList)
       // 명령 저장소 생성
-      const cmdStorage = new CmdStorage();
+      const cmdStorage = new CmdStorage(this.controller.coreFacade);
       // 옵저버 추가
       // BU.CLIN(observer, 1);
       cmdStorage.attachObserver(observer || this);
@@ -269,7 +263,7 @@ class CommandManager {
     // );
 
     this.controller.apiClient.transmitDataToServer({
-      commandType: transmitToServerCommandType.COMMAND,
+      commandType: transmitToServerCT.COMMAND,
       // data: [_.pick(cmdStorage, commandPickKey.FOR_SERVER)],
       // data: _.map(this.commandList, cmdStorage => _.pick(cmdStorage, commandPickKey.FOR_SERVER)),
       data: _(this.commandList)
@@ -283,7 +277,7 @@ class CommandManager {
     this.controller.emit(cmdStorage.cmdStep, cmdStorage);
 
     // this.controller.apiClient.transmitDataToServer({
-    //   commandType: transmitToServerCommandType.COMMAND,
+    //   commandType: transmitToServerCT.COMMAND,
     //   data: _(cmdStorage).pick(commandPickKey.FOR_SERVER),
     // });
   }
@@ -390,11 +384,10 @@ class CommandManager {
    */
   isEqualCurrNodeData(containerInfo) {
     // BU.CLI(containerInfo);
-    const coreFacade = new CoreFacade();
 
     const { nodeId, singleControlType, controlSetValue } = containerInfo;
     // BU.CLI(singleControlType, nodeId);
-    const nodeInfo = coreFacade.getNodeInfo(nodeId);
+    const nodeInfo = this.coreFacade.getNodeInfo(nodeId);
 
     const cmdName = this.convertControlValueToString(nodeInfo, singleControlType);
     // 설정 제어 값이 존재

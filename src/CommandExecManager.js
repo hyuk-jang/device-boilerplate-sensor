@@ -1,39 +1,33 @@
 const _ = require('lodash');
-const uuidv4 = require('uuid/v4');
 
 const { BU } = require('base-util-jh');
 
-const CoreFacade = require('./core/CoreFacade');
-
-const { dcmConfigModel, dccFlagModel } = CoreFacade;
-
 const {
-  reqWrapCmdType: reqWCT,
-  reqWrapCmdFormat: reqWCF,
-  reqDeviceControlType: reqDCT,
-} = dcmConfigModel;
-const { definedCommandSetRank } = dccFlagModel;
-
-const ControlDBS = require('./Control');
+  dcmConfigModel: {
+    reqWrapCmdType: reqWCT,
+    reqWrapCmdFormat: reqWCF,
+    reqDeviceControlType: reqDCT,
+  },
+  dccFlagModel: { definedCommandSetRank },
+} = require('../../default-intelligence');
 
 class CommandExecManager {
   /**
    * Creates an instance of Model.
-   * @param {ControlDBS} controller
+   * @param {MainControl} controller
    */
   constructor(controller) {
     this.controller = controller;
 
-    const { model, nodeList, dataLoggerList, mainUUID } = controller;
+    const { coreFacade, model, nodeList, dataLoggerList, mainUUID } = controller;
+    // Command Execute Manager 를 Core Facde에 정의
+    coreFacade.setCmdExecManager(this);
 
+    this.coreFacade = coreFacade;
     this.model = model;
     this.nodeList = nodeList;
     this.dataLoggerList = dataLoggerList;
     this.mainUUID = mainUUID;
-
-    // Command Execute Manager 를 Core Facde에 정의
-    const coreFacade = new CoreFacade();
-    coreFacade.setCmdExecManager(this);
   }
 
   /**
@@ -94,8 +88,6 @@ class CommandExecManager {
     // 제어하고자 하는 노드 정보를 가져옴
 
     try {
-      const coreFacade = new CoreFacade();
-
       // 다중 배열 Node 가 들어올 경우
       if (_.isArray(nodeId)) {
         // 사용자가 알 수 있는 제어 구문으로 변경
@@ -120,7 +112,7 @@ class CommandExecManager {
       const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
 
       // 사용자가 알 수 있는 제어 구문으로 변경
-      const cmdName = coreFacade.cmdManager.convertControlValueToString(
+      const cmdName = this.coreFacade.cmdManager.convertControlValueToString(
         nodeInfo,
         singleControlType,
       );
@@ -298,8 +290,6 @@ class CommandExecManager {
   executeCommand(reqCommandInfo) {
     // BU.CLI(reqCommandInfo);
     try {
-      const coreFacade = new CoreFacade();
-
       const { wrapCmdFormat, reqCmdEleList } = reqCommandInfo;
 
       // BU.CLIN(reqCmdEleList);
@@ -329,7 +319,7 @@ class CommandExecManager {
 
       // BU.CLIN(reqCmdEleList);
 
-      return coreFacade.cmdManager.executeCommand(reqCommandInfo);
+      return this.coreFacade.cmdManager.executeCommand(reqCommandInfo);
     } catch (error) {
       throw error;
     }

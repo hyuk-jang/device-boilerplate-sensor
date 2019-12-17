@@ -5,7 +5,6 @@ const { BM } = require('base-model-jh');
 const Control = require('../../../Control');
 
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
-const MuanScenario = require('./MuanScenario');
 const PBS = require('../../../features/PowerStatusBoard/PBS');
 const BlockManager = require('../../../features/BlockManager/BlockManager');
 
@@ -24,9 +23,6 @@ class MuanControl extends Control {
     // const test = new DefaultApiClient(this);
     /** @type {DefaultApiClient} */
     this.apiClient = new ApiClient(this);
-
-    /** @type {MuanScenario} */
-    this.scenarioManager = new MuanScenario(this);
 
     /** @type {PBS} */
     this.powerStatusBoard = new PBS(this);

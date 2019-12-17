@@ -24,9 +24,13 @@ class ScenarioStorage extends ScenarioComponent {
   /**
    *
    * @param {mScenarioInfo} scenarioInfo
+   * @param {CoreFacade} coreFacade
    */
-  constructor(scenarioInfo = {}) {
+  constructor(scenarioInfo = {}, coreFacade) {
     super();
+
+    this.coreFacade = coreFacade;
+
     const { scenarioId, scenarioName } = scenarioInfo;
 
     this.scenarioId = scenarioId;
@@ -56,11 +60,11 @@ class ScenarioStorage extends ScenarioComponent {
     // 시나리오 명령 객체를 Tree 구조로 생성 후 반환
     _.forEach(scenarioList, scenario => {
       if (!_.isArray(scenario)) {
-        const scenarioCommand = new ScenarioCommand(scenario);
+        const scenarioCommand = new ScenarioCommand(scenario, this.coreFacade);
         scenarioCommand.setSuccessor(this);
         this.addScenario(scenarioCommand);
       } else {
-        const scenarioStorage = new ScenarioStorage();
+        const scenarioStorage = new ScenarioStorage({}, this.coreFacade);
 
         scenarioStorage.setSuccessor(this);
         scenarioStorage.initScenario(scenario, !isSync);

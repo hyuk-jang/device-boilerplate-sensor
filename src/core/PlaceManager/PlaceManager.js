@@ -2,15 +2,19 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const CoreFacade = require('../CoreFacade');
-
 const PlaceComponent = require('./PlaceComponent');
 const PlaceStorage = require('./PlaceStorage');
 const PlaceNode = require('./PlaceNode');
 
 class PlaceManager extends PlaceComponent {
-  constructor() {
+  /**
+   *
+   * @param {CoreFacade} coreFacade
+   */
+  constructor(coreFacade) {
     super();
+
+    this.coreFacade = coreFacade;
 
     /** @type {PlaceStorage[]} */
     this.placeStorageList = [];
@@ -58,7 +62,7 @@ class PlaceManager extends PlaceComponent {
       }
 
       // 장소 노드 생성 및 추가 및 저장소 바인딩
-      const placeNode = new PlaceNode(nodeInfo, thresholdConfigInfo);
+      const placeNode = new PlaceNode(nodeInfo, thresholdConfigInfo, this.coreFacade);
       placeNode.setParentPlace(placeStorage);
 
       placeStorage.addPlaceNode(placeNode);
@@ -97,8 +101,7 @@ class PlaceManager extends PlaceComponent {
    * @param {PlaceComponent} placeNode
    */
   handleUpdateNode(placeNode) {
-    const coreFacade = new CoreFacade();
-    coreFacade.handleUpdateNode(placeNode);
+    this.coreFacade.handleUpdateNode(placeNode);
   }
 }
 module.exports = PlaceManager;

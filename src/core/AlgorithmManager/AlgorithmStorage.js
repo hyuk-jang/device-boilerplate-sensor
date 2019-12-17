@@ -1,15 +1,14 @@
 const _ = require('lodash');
 
-const { BU } = require('base-util-jh');
-
 const AlgorithmComponent = require('./AlgorithmComponent');
-
-const CoreFacade = require('../CoreFacade');
 
 /** 2 Depth */
 class AlgorithmStorage extends AlgorithmComponent {
-  constructor() {
+  /** @param {MainControl} controller */
+  constructor(controller) {
     super();
+    this.controller = controller;
+    this.coreFacade = controller.coreFacade;
 
     /** @type {AlgorithmComponent[]} 알고리즘 모드 객체 목록 */
     this.children = [];
@@ -109,8 +108,7 @@ class AlgorithmStorage extends AlgorithmComponent {
       this.operationMode = operationMode;
 
       // 명령 전략 교체 요청
-      const coreFacade = new CoreFacade();
-      coreFacade.changeCmdStrategy(this.operationMode.cmdStrategy);
+      this.coreFacade.changeCmdStrategy(this.operationMode.cmdStrategy);
       return true;
     } catch (error) {
       throw error;

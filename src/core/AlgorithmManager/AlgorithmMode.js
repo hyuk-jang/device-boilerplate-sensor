@@ -5,16 +5,16 @@ const { BU } = require('base-util-jh');
 const AlgorithmComponent = require('./AlgorithmComponent');
 const PlaceThreshold = require('./PlaceThreshold');
 
-const CoreFacade = require('../CoreFacade');
-
 const {
   dcmConfigModel: { placeNodeStatus: nodeStatus },
-} = CoreFacade;
+} = require('../../../../default-intelligence');
 
 /** @description 3 Depth. 구동 모드를 운영하는 객체 */
 class AlgorithmMode extends AlgorithmComponent {
-  constructor() {
+  /** @param {CoreFacade} coreFacade */
+  constructor(coreFacade) {
     super();
+    this.coreFacade = coreFacade;
 
     /** @type {operationConfig} */
     this.operationModeInfo = {

@@ -2,25 +2,22 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
+const {
+  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF },
+} = require('../../../../../default-intelligence');
+
 const ScenarioComponent = require('./ScenarioComponent');
 
-const CoreFacade = require('../../CoreFacade');
-
-const {
-  dcmConfigModel: {
-    reqWrapCmdFormat: reqWCF,
-    reqWrapCmdType: reqWCT,
-    placeNodeStatus: pNS,
-    goalDataRange: goalDR,
-    commandStep: cmdStep,
-  },
-} = CoreFacade;
-
 class ScenarioCommand extends ScenarioComponent {
-  /** @param {mScenariCmdInfo} scenarioCmdInfo */
-  constructor(scenarioCmdInfo) {
+  /**
+   *
+   * @param {mScenariCmdInfo} scenarioCmdInfo
+   * @param {CoreFacade} coreFacade
+   */
+  constructor(scenarioCmdInfo, coreFacade) {
     super();
 
+    this.coreFacade = coreFacade;
     this.scenarioCmdInfo = scenarioCmdInfo;
 
     /** @type {ScenarioComponent} */
@@ -55,8 +52,6 @@ class ScenarioCommand extends ScenarioComponent {
   executeScenario() {
     // BU.CLI('executeScenario', this.scenarioCmdInfo);
     try {
-      const coreFacade = new CoreFacade();
-
       const {
         wrapCmdFormat,
         wrapCmdType,
@@ -73,7 +68,7 @@ class ScenarioCommand extends ScenarioComponent {
       // 명령 형식에 따라 제어 요청
       switch (wrapCmdFormat) {
         case reqWCF.SINGLE:
-          this.cmdStorage = coreFacade.executeSingleControl({
+          this.cmdStorage = this.coreFacade.executeSingleControl({
             wrapCmdType,
             singleControlType,
             controlSetValue: singleControlSetValue,
@@ -83,7 +78,7 @@ class ScenarioCommand extends ScenarioComponent {
           });
           break;
         case reqWCF.SET:
-          this.cmdStorage = coreFacade.executeSetControl({
+          this.cmdStorage = this.coreFacade.executeSetControl({
             wrapCmdType,
             wrapCmdId: setCmdId,
             wrapCmdGoalInfo,
@@ -91,7 +86,7 @@ class ScenarioCommand extends ScenarioComponent {
           });
           break;
         case reqWCF.FLOW:
-          this.cmdStorage = coreFacade.executeFlowControl({
+          this.cmdStorage = this.coreFacade.executeFlowControl({
             wrapCmdType,
             srcPlaceId: flowSrcPlaceId,
             destPlaceId: flowDestPlaceId,

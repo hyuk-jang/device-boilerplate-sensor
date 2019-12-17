@@ -1,26 +1,21 @@
 const _ = require('lodash');
-const { BU, CU } = require('base-util-jh');
-const { BM } = require('base-model-jh');
+const { BU } = require('base-util-jh');
 
 const Control = require('../../../Control');
 
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
 const BlockManager = require('../../../features/BlockManager/BlockManager');
 
-const CoreFacade = require('../../../core/CoreFacade');
-
 const blockConfig = require('./block.config');
 
-const AlgorithmStorage = require('../../../core/AlgorithmManager/AlgorithmStorage');
-
-class MuanControl extends Control {
-  // /** @param {integratedDataLoggerConfig} config */
-  // constructor(config) {
-  //   super(config);
-  // }
-
+class S2W extends Control {
+  /**
+   * @override
+   * DBS 순수 기능 외에 추가 될 기능
+   */
   bindingFeature() {
-    // return super.bindingFeature();
+    // 기본 Binding Feature 사용
+    super.bindingFeature();
     // BU.CLI('bindingFeature');
     // super.bindingFeature();
     // const test = new DefaultApiClient(this);
@@ -41,14 +36,8 @@ class MuanControl extends Control {
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     // BU.CLI(featureConfig);
 
-    const coreFacade = new CoreFacade();
-    // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅
-    const algorithmStorage = new AlgorithmStorage();
-    // coreFacade에 알고리즘 저장소 등록
-    coreFacade.setCoreAlgorithm(algorithmStorage);
-    coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.MANUAL);
-    // 초기 구동 모드 Basic 변경
-    // algorithmStorage.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
+    // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅// 초기 구동 모드 Basic 변경
+    this.coreFacade.changeCmdStrategy(this.coreFacade.cmdStrategyType.MANUAL);
 
     await this.blockManager.init(this.config.dbInfo, blockConfig);
 
@@ -185,4 +174,4 @@ class MuanControl extends Control {
     });
   }
 }
-module.exports = MuanControl;
+module.exports = S2W;
