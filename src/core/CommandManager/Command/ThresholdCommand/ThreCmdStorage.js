@@ -44,7 +44,7 @@ class ThreCmdStorage extends CmdComponent {
 
     // 세부 달성 목록 목표만큼 객체 생성 후 옵저버 등록
     goalDataList.forEach(goalInfo => {
-      const threCmdGoal = new ThreCmdGoal(goalInfo);
+      const threCmdGoal = new ThreCmdGoal(this.coreFacade, goalInfo);
       // 세부 달성 목표 추가
       this.addThreCmdGoal(threCmdGoal);
       // 저장소를 Successor로 등록

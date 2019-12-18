@@ -12,11 +12,11 @@ const PlaceComponent = require('./PlaceComponent');
 class PlaceNode extends PlaceComponent {
   /**
    * 장소에 속해 있는 노드정보 객체
+   * @param {CoreFacade} coreFacade
    * @param {nodeInfo} nodeInfo
    * @param {mThresholdConfigInfo=} thresholdConfigInfo 설정된 임계 정보가 있다면 기록
-   * @param {CoreFacade} coreFacade
    */
-  constructor(nodeInfo, thresholdConfigInfo = {}, coreFacade) {
+  constructor(coreFacade, nodeInfo, thresholdConfigInfo = {}) {
     super();
 
     this.coreFacade = coreFacade;

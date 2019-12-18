@@ -15,10 +15,10 @@ const CmdComponent = require('../CmdComponent');
 class ThreCmdGoal extends CmdComponent {
   /**
    *
-   * @param {csCmdGoalInfo} csCmdGoalInfo
    * @param {CoreFacade} coreFacade
+   * @param {csCmdGoalInfo} csCmdGoalInfo
    */
-  constructor(csCmdGoalInfo, coreFacade) {
+  constructor(coreFacade, csCmdGoalInfo) {
     super();
     const { nodeId, goalValue, goalRange, isCompleteClear = false } = csCmdGoalInfo;
     this.coreFacade = coreFacade;
@@ -35,13 +35,14 @@ class ThreCmdGoal extends CmdComponent {
   }
 
   /**
+   * @param {CoreFacade} coreFacade
    * @param {csCmdGoalInfo} goalInfo 목표치 정보
    */
-  static isReachGoal(goalInfo) {
+  static isReachGoal(coreFacade, goalInfo) {
     // BU.log('@@', goalInfo);
     const { nodeId, goalValue, goalRange } = goalInfo;
 
-    const { data } = this.coreFacade.getNodeInfo(nodeId);
+    const { data } = coreFacade.getNodeInfo(nodeId);
 
     let isReachGoal = false;
 

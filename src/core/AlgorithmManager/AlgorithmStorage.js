@@ -6,12 +6,10 @@ const AlgorithmComponent = require('./AlgorithmComponent');
 
 /** 2 Depth */
 class AlgorithmStorage extends AlgorithmComponent {
-  /** @param {MainControl} controller */
-  constructor(controller) {
+  /** @param {CoreFacade} coreFacade */
+  constructor(coreFacade) {
     super();
-    this.controller = controller;
-    this.coreFacade = controller.coreFacade;
-
+    this.coreFacade = coreFacade;
     /** @type {AlgorithmComponent[]} 알고리즘 모드 객체 목록 */
     this.algorithmModeList = [];
     /** @type {AlgorithmComponent} 실행 중인 알고리즘 모드 객체 */

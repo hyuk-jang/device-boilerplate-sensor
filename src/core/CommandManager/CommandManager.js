@@ -177,7 +177,7 @@ class CommandManager {
     try {
       // BU.CLIN(cmdWrapInfo.containerCmdList)
       // 명령 저장소 생성
-      const cmdStorage = new CmdStorage(this.controller.coreFacade);
+      const cmdStorage = new CmdStorage(this.coreFacade);
       // 옵저버 추가
       // BU.CLIN(observer, 1);
       cmdStorage.attachObserver(observer || this);

@@ -17,7 +17,6 @@ const PowerOptimization = require('./core/PowerOptimization');
 // 소금 생산 최적화 모드
 const SalternOptimization = require('./core/SalternOptimization');
 
-const CmdExecuter = require('./core/algorithm/CmdExecuter');
 const commonFn = require('./core/algorithm/commonFn');
 
 const { cmdStep, reqWCF } = commonFn;
@@ -40,7 +39,7 @@ class MuanControl extends Control {
     this.blockManager = new BlockManager(this);
 
     // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅
-    const algorithmStorage = new ConcreteAlgorithmStorage(this);
+    const algorithmStorage = new ConcreteAlgorithmStorage(this.coreFacade);
     // 각 운용 모드별 알고리즘 모드 객체 추가
     algorithmStorage.addOperationMode(new Basic(this.coreFacade));
     algorithmStorage.addOperationMode(new PowerOptimization(this.coreFacade));
@@ -48,9 +47,6 @@ class MuanControl extends Control {
     algorithmStorage.algorithmModeList.forEach(child => child.init());
     // coreFacade에 알고리즘 저장소 등록
     this.coreFacade.setCoreAlgorithm(algorithmStorage);
-
-    // 명령 실행 요청자 등록
-    this.cmdExecuter = new CmdExecuter(this.coreFacade);
 
     this.bindingEventHandler();
   }
@@ -87,8 +83,8 @@ class MuanControl extends Control {
       switch (wrapCmdFormat) {
         case reqWCF.FLOW:
           // BU.CLI('지역 갱신을 시작하지', wrapCmdId);
-          this.cmdExecuter.emitReloadPlaceStorage(srcPlaceId);
-          this.cmdExecuter.emitReloadPlaceStorage(destPlaceId);
+          commonFn.emitReloadPlaceStorage(this.coreFacade, srcPlaceId);
+          commonFn.emitReloadPlaceStorage(this.coreFacade, destPlaceId);
           break;
         default:
           break;

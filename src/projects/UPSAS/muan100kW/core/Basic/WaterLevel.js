@@ -2,17 +2,15 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const {
-  constructorInfo: { PlaceThreshold },
-  dcmConfigModel,
-} = require('../../../../../core/CoreFacade');
-
-const { goalDataRange, reqWrapCmdType: reqWCT, placeNodeStatus } = dcmConfigModel;
-
 const commonFn = require('../algorithm/commonFn');
+
+const { cmdStep, ndId, gDR, pNS, reqWCF, reqWCT } = commonFn;
+
 const waterFlowFn = require('../algorithm/waterFlowFn');
 
-class WaterLevel extends PlaceThreshold {
+const ConcretePlaceThreshold = require('../ConcretePlaceThreshold');
+
+class WaterLevel extends ConcretePlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
    * @param {CoreFacade} coreFacade Core Facade

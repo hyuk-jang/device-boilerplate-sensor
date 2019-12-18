@@ -207,7 +207,7 @@ class CmdStorage extends CmdComponent {
 
         // 달성 목표 도달 여부
 
-        const isReachGoal = ThreCmdGoal.isReachGoal(goalInfo);
+        const isReachGoal = ThreCmdGoal.isReachGoal(this.coreFacade, goalInfo);
         // 달성 목표가 목표에 도달하였을 경우
         if (isReachGoal) {
           // 달성 목표 개체가 중요 개체일 경우
@@ -228,7 +228,7 @@ class CmdStorage extends CmdComponent {
     }
 
     // 새로운 임계치 저장소 생성
-    const threCmdStorage = new ThreCmdStorage(wrapCmdGoalInfo, this.coreFacade);
+    const threCmdStorage = new ThreCmdStorage(this.coreFacade);
     // 매니저를 Successor로 등록
     threCmdStorage.setSuccessor(this);
 

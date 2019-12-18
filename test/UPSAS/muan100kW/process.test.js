@@ -122,7 +122,7 @@ describe('수위 임계치 처리 테스트', function() {
    *      배수지 수위 최저치 >>> [BW_5_TO_NCB](R_CAN)
    *  <test> 장소 임계치에 의한 명령 삭제 시 임계 명령 삭제 확인
    */
-  it.only('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
+  it('급배수지 수위 최저, 최대치에 의한 명령 처리', async () => {
     const { cmdManager, placeManager } = control.model;
 
     // 저수지
@@ -185,7 +185,6 @@ describe('수위 임계치 처리 테스트', function() {
     notifyDirectNodePlace([pn_WL_NCB, 15]);
     // *  <test> 급수지의 수위 최대치에 의한 명령 취소
     // *    급수지 수위 최대치 >>> [BW_5_TO_NCB](R_CAN)
-
     // 복원 단계 대기
     // await eventToPromise(control, cmdStep.RESTORE);
     // // 아직 복원 명령 전이므로 * REAL_TRUE: [], IGNORE_TRUE: []
@@ -197,7 +196,6 @@ describe('수위 임계치 처리 테스트', function() {
     await eventToPromise(control, cmdStep.END);
     // 수위 갱신을 한번 더 했을 경우 이미 취소 명령을 실행 중이므로 아무런 일도 일어나지 않음.
     notifyDirectNodePlace([pn_WL_NCB, 15]);
-
     expect(cmdManager.commandList).to.length(0);
 
     // *    결정지의 수위를 Set값(5cm) 설정.
@@ -295,7 +293,7 @@ describe('수위 임계치 처리 테스트', function() {
    *      수위 하한선 >>> [NEB_1_TO_NEB_2](R_CON) :: 달성 목표: 급수지(일반 증발지 2) 수위 12cm 이상
    *  >>> [NEB_1_TO_NEB_2][RUNNING]
    */
-  it('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
+  it.only('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
     const { cmdManager, placeManager } = control.model;
 
     const getFlowCmd = (srcPlaceId, destPlaceId) => {
@@ -419,11 +417,12 @@ describe('수위 임계치 처리 테스트', function() {
     // 일반 증발지 1 >>> 일반 증발지 2 의 염수 이동 임계치 목표 달성 완료
 
     expect(coreFacade.getCurrCmdStrategyType()).to.eq(coreFacade.cmdStrategyType.OVERLAP_COUNT);
-
+    BU.log('@@@@@');
     //  *    급수지 목표 달성 >>> [NEB_1_TO_NEB_2](R_CAN)
     // *  >>> [NEB_1_TO_NEB_2][END]
+    BU.CLIN(_.map(cmdManager.commandList, 'cmdStep'));
     await eventToPromise(control, cmdStep.END);
-
+    BU.log('@@@@@');
     // *  <test> 수위 상한선에 의한 자동 배수 (설정 수위 복원)  :: 달성 목표: 배수지(일반 증발지 2) 수위 12cm 이하
     // *    일반 증발지 2 수위 상한선 >>> [NEB_2_TO_BW_1](R_CON)
     /** @type {CmdStorage} */

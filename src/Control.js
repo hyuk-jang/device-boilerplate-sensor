@@ -281,7 +281,7 @@ class Control extends EventEmitter {
     // 블록 매니저
     this.blockManager = new AbstBlockManager(this);
     // coreFacade에 알고리즘 저장소 등록
-    this.coreFacade.setCoreAlgorithm(new AlgorithmStorage(this));
+    this.coreFacade.setCoreAlgorithm(new AlgorithmStorage(this.coreFacade));
   }
 
   /**

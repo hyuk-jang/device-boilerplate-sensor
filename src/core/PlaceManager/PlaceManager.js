@@ -62,7 +62,7 @@ class PlaceManager extends PlaceComponent {
       }
 
       // 장소 노드 생성 및 추가 및 저장소 바인딩
-      const placeNode = new PlaceNode(nodeInfo, thresholdConfigInfo, this.coreFacade);
+      const placeNode = new PlaceNode(this.coreFacade, nodeInfo, thresholdConfigInfo);
       placeNode.setParentPlace(placeStorage);
 
       placeStorage.addPlaceNode(placeNode);

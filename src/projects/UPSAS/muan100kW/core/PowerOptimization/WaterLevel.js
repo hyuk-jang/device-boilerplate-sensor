@@ -2,17 +2,13 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const {
-  constructorInfo: { PlaceThreshold },
-  dcmConfigModel,
-} = require('../../../../../core/CoreFacade');
-
-const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
-
 const commonFn = require('../algorithm/commonFn');
-const waterFlowFn = require('../algorithm/waterFlowFn');
 
-class WaterLevel extends PlaceThreshold {
+const { cmdStep, ndId, gDR, pNS, reqWCF, reqWCT } = commonFn;
+
+const ConcretePlaceThreshold = require('../ConcretePlaceThreshold');
+
+class WaterLevel extends ConcretePlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
    * @param {CoreFacade} coreFacade Core Facade
@@ -44,7 +40,7 @@ class WaterLevel extends PlaceThreshold {
         wrapCmdType: reqWCT.CONTROL,
       });
       // BU.CLIN(cmdList);
-      commonFn.cancelWaterSupply(cmdStorageList);
+      this.cancelWaterSupply(cmdStorageList);
 
       // 남아있는 명령 저장소
       const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
@@ -57,7 +53,10 @@ class WaterLevel extends PlaceThreshold {
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청
-      waterFlowFn.reqWaterFlow(placeNode, thresholdInfo, pNS.NORMAL);
+
+      // BU.CLIN(this);
+
+      this.reqWaterFlow(placeNode, thresholdInfo, pNS.NORMAL);
     } catch (error) {
       throw error;
     }
@@ -75,7 +74,7 @@ class WaterLevel extends PlaceThreshold {
       const destPlaceId = placeNode.getPlaceId();
 
       // 진행중인 급수 명령 취소 및 남아있는 급수 명령 존재 여부 반환
-      commonFn.cancelWaterSupplyWithAlgorithm(placeNode, true);
+      this.cancelWaterSupplyWithAlgorithm(placeNode, true);
 
       // 남아있는 명령 저장소
       const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
@@ -90,7 +89,7 @@ class WaterLevel extends PlaceThreshold {
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // BU.CLIN(thresholdInfo);
       // 임계 정보에 대한 염수 이동 명령 요청
-      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
+      this.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
     } catch (error) {
       // BU.CLIN(error);
       throw error;
@@ -116,7 +115,7 @@ class WaterLevel extends PlaceThreshold {
       // 배수지 장소 Id
       const srcPlaceId = placeNode.getPlaceId();
 
-      commonFn.cancelDrainageWithAlgorithm(placeNode, true);
+      this.cancelDrainageWithAlgorithm(placeNode, true);
 
       const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
         srcPlaceId,
@@ -128,8 +127,8 @@ class WaterLevel extends PlaceThreshold {
       // 수위 노드에 걸려있는 임계 정보를 가져옴
       const thresholdInfo = commonFn.getThresholdInfo(placeNode);
       // 임계 정보에 대한 염수 이동 명령 요청
-      // BU.CLI('waterFlowFn.reqWaterFlow');
-      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
+      // BU.CLI('this.reqWaterFlow');
+      this.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
     } catch (error) {
       // BU.CLIN(error);
       throw error;
@@ -153,7 +152,7 @@ class WaterLevel extends PlaceThreshold {
       });
 
       // 현재 장소의 배수 명령 취소
-      commonFn.cancelDrainage(cmdStorageList);
+      this.cancelDrainage(cmdStorageList);
 
       const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
         srcPlaceId,
@@ -167,7 +166,7 @@ class WaterLevel extends PlaceThreshold {
 
       // BU.CLI(thresholdInfo);
       // 임계 정보에 대한 염수 이동 명령 요청
-      waterFlowFn.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
+      this.reqWaterFlow(placeNode.getParentPlace(), thresholdInfo, pNS.NORMAL);
     } catch (error) {
       throw error;
     }

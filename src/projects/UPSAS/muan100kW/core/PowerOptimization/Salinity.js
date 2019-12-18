@@ -2,18 +2,16 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const {
-  constructorInfo: { PlaceThreshold },
-  dcmConfigModel,
-} = require('../../../../../core/CoreFacade');
-
-const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
-
 const commonFn = require('../algorithm/commonFn');
+
+const { cmdStep, ndId, gDR, pNS, reqWCF, reqWCT } = commonFn;
+
 const salinityFn = require('../algorithm/salinityFn');
 const waterFlowFn = require('../algorithm/waterFlowFn');
 
-class Salinity extends PlaceThreshold {
+const ConcretePlaceThreshold = require('../ConcretePlaceThreshold');
+
+class Salinity extends ConcretePlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
    * @param {CoreFacade} coreFacade Core Facade
@@ -96,9 +94,9 @@ class Salinity extends PlaceThreshold {
             wrapCmdGoalInfo: {
               goalDataList: [
                 {
-                  nodeId: placeStorage.getNodeId(commonFn.nodeDefIdInfo.WATER_LEVEL),
-                  goalValue: placeStorage.getMinValue(commonFn.nodeDefIdInfo.WATER_LEVEL),
-                  goalRange: goalDR.LOWER,
+                  nodeId: placeStorage.getNodeId(ndId.WATER_LEVEL),
+                  goalValue: placeStorage.getMinValue(ndId.WATER_LEVEL),
+                  goalRange: gDR.LOWER,
                 },
               ],
             },

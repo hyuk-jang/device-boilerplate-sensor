@@ -2,14 +2,9 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const {
-  constructorInfo: { PlaceThreshold },
-  dcmConfigModel,
-} = require('../../../../../core/CoreFacade');
+const ConcretePlaceThreshold = require('../ConcretePlaceThreshold');
 
-const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
-
-class Salinity extends PlaceThreshold {
+class Salinity extends ConcretePlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
    * @param {CoreFacade} coreFacade Core Facade

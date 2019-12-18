@@ -3,6 +3,7 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const {
+  constructorInfo,
   dcmConfigModel: {
     commandStep: cmdStep,
     goalDataRange: gDR,
@@ -10,9 +11,11 @@ const {
     reqWrapCmdFormat: reqWCF,
     reqWrapCmdType: reqWCT,
   },
-} = require('../../../../../../../default-intelligence');
+} = require('../../../../../core/CoreFacade');
 
 module.exports = {
+  constructorInfo,
+
   /** Command Step */
   get cmdStep() {
     return cmdStep;
@@ -142,5 +145,19 @@ module.exports = {
     }
 
     return thresholdValue;
+  },
+
+  /**
+   * Place Node에 갱신 이벤트를 보내고자 할 경우
+   * @param {CoreFacade} coreFacade
+   * @param {string} placeId Node Definition ID, 없을 경우 전체 갱신
+   */
+  emitReloadPlaceStorage(coreFacade, placeId) {
+    // BU.CLI('emitReloadPlaceStorage', placeId);
+    coreFacade.reloadPlaceStorage(placeId, [
+      this.ndId.SALINITY,
+      this.ndId.MODULE_REAR_TEMPERATURE,
+      this.ndId.WATER_LEVEL,
+    ]);
   },
 };
