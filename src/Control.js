@@ -38,7 +38,7 @@ class Control extends EventEmitter {
     this.config = config;
     // BU.CLI(this.config);
     // Core Facade 등록
-    this.coreFacade = new CoreFacade();
+    this.coreFacade = new CoreFacade(this);
 
     /** @type {placeInfo[]} */
     this.placeList = [];
@@ -80,6 +80,7 @@ class Control extends EventEmitter {
 
       // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
       this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
+      // BU.CLIN(this.nodeUpdatorManager, 1);
 
       // init Step: 3 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
       this.initMakeConfigForDLC();
@@ -103,12 +104,12 @@ class Control extends EventEmitter {
    * @param {string} mainUUID
    */
   async initSetProperty(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
-    BU.CLI('initSetProperty', dbInfo);
+    // BU.CLI('initSetProperty', dbInfo);
     this.mainUUID = mainUUID;
     this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);
     // BU.CLI(dbInfo);
-    BU.CLI(mainUUID);
+    // BU.CLI(mainUUID);
 
     const mainWhere = _.isNil(mainUUID) ? null : { uuid: mainUUID };
 
@@ -272,7 +273,7 @@ class Control extends EventEmitter {
    * DBS 순수 기능 외에 추가 될 기능
    */
   bindingFeature() {
-    BU.CLI('bindingFeature');
+    // BU.CLI('bindingFeature');
     // API Socket Server
     this.apiClient = new AbstApiClient(this);
     // 현황판
@@ -461,6 +462,7 @@ class Control extends EventEmitter {
       }
     } catch (error) {
       // 예외는 기록만 함
+      // BU.error(error);
       BU.error(error.message);
       throw error;
     }

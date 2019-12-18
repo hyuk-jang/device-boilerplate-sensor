@@ -41,12 +41,12 @@ class MuanControl extends Control {
     this.blockManager = new BlockManager(this);
 
     // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅
-    const algorithmStorage = new ConcreteAlgorithmStorage();
+    const algorithmStorage = new ConcreteAlgorithmStorage(this);
     // 각 운용 모드별 알고리즘 모드 객체 추가
     algorithmStorage.addOperationMode(new Basic(this.coreFacade));
     algorithmStorage.addOperationMode(new PowerOptimization(this.coreFacade));
     algorithmStorage.addOperationMode(new SalternOptimization(this.coreFacade));
-    algorithmStorage.children.forEach(child => child.init());
+    algorithmStorage.algorithmModeList.forEach(child => child.init());
     // coreFacade에 알고리즘 저장소 등록
     this.coreFacade.setCoreAlgorithm(algorithmStorage);
 

@@ -63,7 +63,7 @@ class AlgorithmMode extends AlgorithmComponent {
    */
   handleUpdateNode(coreFacade, placeNode) {
     try {
-      // BU.CLIN(this.threPlaceList)
+      // BU.CLIN('handleUpdateNode');
       const threAlgorithm = _.find(this.threPlaceList, { nodeDefId: placeNode.getNodeDefId() });
 
       if (_.isEmpty(threAlgorithm)) {

@@ -148,9 +148,9 @@ class CommandManager {
         const foundCommand = _.find(this.commandList, { wrapCmdId });
 
         if (foundCommand) {
-          BU.CLIN(this.commandList);
-          return BU.errorLog('executeCommand', `wrapCmdId: ${wrapCmdId} is exist`);
-          // throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
+          // BU.CLIN(this.commandList);
+          // return BU.errorLog('executeCommand', `wrapCmdId: ${wrapCmdId} is exist`);
+          throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
         }
         // 실제 수행할 장치를 정제
         const commandWrapInfo = this.refineReqCommand(reqCommandInfo);
@@ -301,7 +301,7 @@ class CommandManager {
    */
   refineReqCommand(reqCmdInfo, isThrow = false) {
     // 이상있는 장치는 제거 후 재 저장
-    BU.CLI(this.controller.mainUUID, reqCmdInfo);
+    // BU.CLI(this.controller.mainUUID, reqCmdInfo);
 
     try {
       /** @type {commandContainerInfo[]} */

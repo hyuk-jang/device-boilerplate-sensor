@@ -1,5 +1,7 @@
 const _ = require('lodash');
 
+const { BU } = require('base-util-jh');
+
 const AlgorithmComponent = require('./AlgorithmComponent');
 
 /** 2 Depth */
@@ -11,9 +13,9 @@ class AlgorithmStorage extends AlgorithmComponent {
     this.coreFacade = controller.coreFacade;
 
     /** @type {AlgorithmComponent[]} 알고리즘 모드 객체 목록 */
-    this.children = [];
+    this.algorithmModeList = [];
     /** @type {AlgorithmComponent} 실행 중인 알고리즘 모드 객체 */
-    this.operationMode = {};
+    this.algorithmMode = {};
   }
 
   /**
@@ -23,7 +25,7 @@ class AlgorithmStorage extends AlgorithmComponent {
   getOperationConfig(algorithmId) {
     try {
       if (_.isNil(algorithmId) || algorithmId.length === 0) {
-        return this.operationMode.getOperationConfig();
+        return this.algorithmMode.getOperationConfig();
       }
       return this.getOperationMode(algorithmId).getOperationConfig();
     } catch (error) {
@@ -33,7 +35,7 @@ class AlgorithmStorage extends AlgorithmComponent {
 
   /** @return {operationConfig[]} 구동 모드 알고리즘 설정 정보 목록 */
   getOperationConfigList() {
-    return _.map(this.children, 'operationModeInfo');
+    return _.map(this.algorithmModeList, 'operationModeInfo');
   }
 
   /**
@@ -41,7 +43,7 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @return {string} Algorithm Id
    */
   get algorithmId() {
-    return this.operationMode.algorithmId;
+    return this.algorithmMode.algorithmId;
   }
 
   /**
@@ -49,7 +51,7 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @return {string} Algorithm Name
    */
   get algorithmName() {
-    return this.operationMode.algorithmName;
+    return this.algorithmMode.algorithmName;
   }
 
   /**
@@ -57,7 +59,7 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @return {string} cmdStrategy
    */
   get cmdStrategy() {
-    return this.operationMode.cmdStrategy;
+    return this.algorithmMode.cmdStrategy;
   }
 
   /**
@@ -65,11 +67,9 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @param {AlgorithmComponent} algorithmMode
    */
   addOperationMode(algorithmMode) {
-    // 이미 존재한다면 false 반환
-    if (_.findIndex(this.children, algorithmMode) !== -1) return false;
-
+    // BU.CLI(algorithmMode.algorithmId);
     // 삽입 후 true 반환
-    return this.children.push(algorithmMode) && true;
+    return this.algorithmModeList.push(algorithmMode) && true;
   }
 
   /**
@@ -79,7 +79,7 @@ class AlgorithmStorage extends AlgorithmComponent {
    */
   getOperationMode(algorithmId) {
     // BU.CLI(this.children.length);
-    return _.find(this.children, operationMode => {
+    return _.find(this.algorithmModeList, operationMode => {
       return operationMode.algorithmId === algorithmId;
     });
   }
@@ -100,15 +100,15 @@ class AlgorithmStorage extends AlgorithmComponent {
         throw new Error(`algorithmId: (${algorithmId}) is not exist.`);
       }
       // 구동 모드가 동일 할 경우
-      if (operationMode === this.operationMode) {
+      if (operationMode === this.algorithmMode) {
         throw new Error(`algorithmId: (${algorithmId}) is the same operation mode.`);
       }
 
       // 구동 모드 변경
-      this.operationMode = operationMode;
+      this.algorithmMode = operationMode;
 
       // 명령 전략 교체 요청
-      this.coreFacade.changeCmdStrategy(this.operationMode.cmdStrategy);
+      this.coreFacade.changeCmdStrategy(this.algorithmMode.cmdStrategy);
       return true;
     } catch (error) {
       throw error;
@@ -123,7 +123,8 @@ class AlgorithmStorage extends AlgorithmComponent {
    */
   handleUpdateNode(coreFacade, placeNode) {
     try {
-      this.operationMode.handleUpdateNode(coreFacade, placeNode);
+      // BU.CLIN(placeNode);
+      this.algorithmMode.handleUpdateNode(coreFacade, placeNode);
     } catch (error) {
       throw error;
     }

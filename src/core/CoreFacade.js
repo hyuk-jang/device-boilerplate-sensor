@@ -2,9 +2,6 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-/** @type {nodeInfo[]} */
-let coreNodeList;
-
 const { dcmWsModel, dccFlagModel, dcmConfigModel } = require('../../../default-intelligence');
 
 const AlgorithmComponent = require('./AlgorithmManager/AlgorithmComponent');
@@ -58,6 +55,7 @@ class CoreFacade {
    * @param {CommandExecManager} cmdExecManager
    */
   setCmdExecManager(cmdExecManager) {
+    // BU.CLIN(cmdExecManager, 1);
     this.cmdExecManager = cmdExecManager;
   }
 
@@ -95,7 +93,7 @@ class CoreFacade {
 
   /** @param {string} nodeId */
   getNodeInfo(nodeId) {
-    return _.find(coreNodeList, { node_id: nodeId });
+    return _.find(this.controller.nodeList, { node_id: nodeId });
   }
 
   /** 명령 모드 종류 */
@@ -253,6 +251,7 @@ class CoreFacade {
   executeFlowControl(reqFlowCmdInfo) {
     // BU.CLIN(reqFlowCmdInfo);
     try {
+      // BU.CLIN(this.cmdExecManager, 1);
       return this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
       // BU.error(error);

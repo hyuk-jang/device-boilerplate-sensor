@@ -31,7 +31,7 @@ const main = new Main();
 //   dbInfo: config.dbInfo,
 // });
 const control = main.createControl(config);
-const coreFacade = new CoreFacade(control);
+const { coreFacade } = control;
 
 const {
   controlMode,
@@ -58,7 +58,7 @@ describe('수위 임계치 처리 테스트', function() {
 
   before(async () => {
     await control.init(dbInfo, config.uuid);
-    control.runFeature();
+    await control.runFeature();
 
     const cmdStorage = control.inquiryAllDeviceStatus();
     // BU.CLIN(cmdStorage);
@@ -77,7 +77,9 @@ describe('수위 임계치 처리 테스트', function() {
 
   beforeEach(async () => {
     try {
-      coreFacade.changeOperationMode(controlMode.DEFAULT);
+      coreFacade.coreAlgorithm.algorithmId !== controlMode.DEFAULT &&
+        coreFacade.changeOperationMode(controlMode.DEFAULT);
+
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWCT.CONTROL,
