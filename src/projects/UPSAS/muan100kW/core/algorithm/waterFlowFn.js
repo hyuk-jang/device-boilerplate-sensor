@@ -4,22 +4,8 @@ const { BU } = require('base-util-jh');
 
 const commonFn = require('./commonFn');
 
-const CoreFacade = require('../../../../../core/CoreFacade');
-
-const { nodeDefIdInfo: ndId } = require('./commonFn');
-
-const {
-  dcmConfigModel: { reqWrapCmdType: reqWCT, placeNodeStatus: pNS, goalDataRange },
-} = CoreFacade;
-
-const coreFacade = new CoreFacade();
-
-// 취소 명령 종류
-const cancelFlowCmdTypeInfo = {
-  BOTH: 'BOTH',
-  DRAINAGE: 'DRAINAGE',
-  WATER_SUPPLY: 'WATER_SUPPLY',
-};
+// const { ndId, pNS } = commonFn;
+const { cmdStep, ndId, gDR, pNS, reqWCF, reqWCT } = commonFn;
 
 module.exports = {
   /**
@@ -111,87 +97,6 @@ module.exports = {
         }
       }
     }
-  },
-
-  /**
-   * 염수 이동 명령 생성
-   * @param {PlaceStorage} drainagePlace 배수지 장소
-   * @param {PlaceStorage} waterSupplyPlace 급수지 장소
-   * @param {boolean=} isDrainageInvoker 현재 메소드를 요청한 주체가 배수지 장소인지 여부. 기본 값 true
-   * @param {string=} thresholdKey
-   * @example
-   * isDrainageInvoker >>> true = 배수지에서 배수가 필요하여 명령을 요청할 경우
-   * isDrainageInvoker >>> false = 급수지에서 급수가 필요하여 명령을 요청할 경우
-   */
-  executeWaterFlow(drainagePlace, waterSupplyPlace, isDrainageInvoker = true, thresholdKey = '') {
-    /** @type {reqFlowCmdInfo} */
-    const waterFlowCommand = {
-      srcPlaceId: drainagePlace.getPlaceId(),
-      destPlaceId: waterSupplyPlace.getPlaceId(),
-      wrapCmdGoalInfo: {
-        goalDataList: [],
-      },
-    };
-
-    /** @type {csCmdGoalInfo[]} */
-    const goalDataList = [];
-    // 메소드를 요청한 주체가 배수지 일 경우
-    if (isDrainageInvoker) {
-      // 배수 임계치 키가 있을 경우
-      if (thresholdKey.length) {
-        const drainageGoal = commonFn.getPlaceThresholdValue(
-          drainagePlace,
-          ndId.WATER_LEVEL,
-          thresholdKey,
-        );
-        // 목표치가 존재하고 숫자일 경우에 Goal 추가
-        if (_.isNumber(drainageGoal)) {
-          goalDataList.push({
-            nodeId: drainagePlace.getNodeId(ndId.WATER_LEVEL),
-            goalValue: drainageGoal,
-            goalRange: goalDataRange.LOWER,
-            isCompleteClear: true,
-          });
-        }
-      }
-
-      // 급수지의 설정 수위가 있는지 확인
-      const waterSupplyGoal = commonFn.getPlaceThresholdValue(
-        waterSupplyPlace,
-        ndId.WATER_LEVEL,
-        pNS.NORMAL,
-      );
-      // 급수지의 목표 설정 수위가 존재할 경우 Goal추가
-      if (_.isNumber(waterSupplyGoal)) {
-        goalDataList.push({
-          nodeId: waterSupplyPlace.getNodeId(ndId.WATER_LEVEL),
-          goalValue: waterSupplyGoal,
-          goalRange: goalDataRange.UPPER,
-          isCompleteClear: true,
-        });
-      }
-    }
-    // 메소드를 요청한 주체가 급수지이고 급수 임계치 키가 있을 경우
-    else if (thresholdKey.length) {
-      const waterSupplyGoal = commonFn.getPlaceThresholdValue(
-        waterSupplyPlace,
-        ndId.WATER_LEVEL,
-        thresholdKey,
-      );
-
-      // 목표치가 존재하고 숫자일 경우에 Goal 추가
-      if (_.isNumber(waterSupplyGoal)) {
-        goalDataList.push({
-          nodeId: waterSupplyPlace.getNodeId(ndId.WATER_LEVEL),
-          goalValue: waterSupplyGoal,
-          goalRange: goalDataRange.UPPER,
-          isCompleteClear: true,
-        });
-      }
-    }
-    // 목표치 설정한 내용을 덮어씌움
-    waterFlowCommand.wrapCmdGoalInfo.goalDataList = goalDataList;
-    coreFacade.executeFlowControl(waterFlowCommand);
   },
 
   /**

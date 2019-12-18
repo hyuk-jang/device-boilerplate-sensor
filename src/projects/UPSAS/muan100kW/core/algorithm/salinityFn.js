@@ -2,13 +2,7 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const { nodeDefIdInfo: ndId } = require('./commonFn');
-
-const CoreFacade = require('../../../../../core/CoreFacade');
-
-const {
-  dcmConfigModel: { placeNodeStatus: pNS },
-} = CoreFacade;
+const { ndId, pNS } = require('./commonFn');
 
 const waterFlowFn = require('./waterFlowFn');
 

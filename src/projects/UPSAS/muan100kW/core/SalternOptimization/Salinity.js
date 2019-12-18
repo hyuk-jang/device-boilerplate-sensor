@@ -9,10 +9,6 @@ const {
 
 const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
 
-const commonFn = require('../algorithm/commonFn');
-const salinityFn = require('../algorithm/salinityFn');
-const waterFlowFn = require('../algorithm/waterFlowFn');
-
 class Salinity extends PlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우

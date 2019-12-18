@@ -9,9 +9,6 @@ const {
 
 const { goalDataRange: goalDR, reqWrapCmdType: reqWCT, placeNodeStatus: pNS } = dcmConfigModel;
 
-const commonFn = require('../algorithm/commonFn');
-const waterFlowFn = require('../algorithm/waterFlowFn');
-
 class ModuleRearTemp extends PlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우

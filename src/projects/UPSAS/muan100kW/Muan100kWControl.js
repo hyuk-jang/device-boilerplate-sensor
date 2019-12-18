@@ -1,10 +1,6 @@
 const _ = require('lodash');
 const { BU, CU } = require('base-util-jh');
 
-const {
-  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF },
-} = require('../../../../../default-intelligence');
-
 const Control = require('../../../Control');
 
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
@@ -21,7 +17,10 @@ const PowerOptimization = require('./core/PowerOptimization');
 // 소금 생산 최적화 모드
 const SalternOptimization = require('./core/SalternOptimization');
 
+const CmdExecuter = require('./core/algorithm/CmdExecuter');
 const commonFn = require('./core/algorithm/commonFn');
+
+const { cmdStep, reqWCF } = commonFn;
 
 class MuanControl extends Control {
   /**
@@ -49,6 +48,9 @@ class MuanControl extends Control {
     algorithmStorage.algorithmModeList.forEach(child => child.init());
     // coreFacade에 알고리즘 저장소 등록
     this.coreFacade.setCoreAlgorithm(algorithmStorage);
+
+    // 명령 실행 요청자 등록
+    this.cmdExecuter = new CmdExecuter(this.coreFacade);
 
     this.bindingEventHandler();
   }
@@ -85,8 +87,8 @@ class MuanControl extends Control {
       switch (wrapCmdFormat) {
         case reqWCF.FLOW:
           // BU.CLI('지역 갱신을 시작하지', wrapCmdId);
-          commonFn.emitReloadPlaceStorage(srcPlaceId);
-          commonFn.emitReloadPlaceStorage(destPlaceId);
+          this.cmdExecuter.emitReloadPlaceStorage(srcPlaceId);
+          this.cmdExecuter.emitReloadPlaceStorage(destPlaceId);
           break;
         default:
           break;
