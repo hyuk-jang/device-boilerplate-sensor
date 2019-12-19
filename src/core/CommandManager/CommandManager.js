@@ -143,7 +143,7 @@ class CommandManager {
       // 계측 명령 일 경우에는 전략에 상관없이 요청
       if (wrapCmdFormat === reqWCF.MEASURE) {
         // BU.debugConsole(5);
-        BU.CLI(`executeCommand-${this.controller.mainUUID}`, wrapCmdId);
+        // BU.CLI(`executeCommand-${this.controller.mainUUID}`, wrapCmdId);
         // 동일 명령이 존재하는지 체크
         const foundCommand = _.find(this.commandList, { wrapCmdId });
 

@@ -287,7 +287,7 @@ class Control extends EventEmitter {
     const algorithmMode = new AlgorithmMode(this.coreFacade);
     algorithmStorage.addOperationMode(algorithmMode);
     // 초기 구동 모드 Default 변경
-    this.coreFacade.changeOperationMode();
+    algorithmStorage.changeOperationMode();
     // coreFacade에 알고리즘 저장소 등록
     this.coreFacade.setCoreAlgorithm(algorithmStorage);
   }
@@ -309,9 +309,7 @@ class Control extends EventEmitter {
   setPassiveClient(mainUUID, passiveClient) {
     if (this.mainUUID !== mainUUID) {
       throw new Error(
-        `The ${
-          this.mainUUID
-        } of this site is different from the ${mainUUID} of the site you received.`,
+        `The ${this.mainUUID} of this site is different from the ${mainUUID} of the site you received.`,
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
