@@ -63,9 +63,8 @@ class AlgorithmComponent {
 
   /**
    * 노드 데이터 갱신
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
    */
-  handleUpdateNode(coreFacade, placeNode) {}
+  handleUpdateNode(placeNode) {}
 }
 module.exports = AlgorithmComponent;

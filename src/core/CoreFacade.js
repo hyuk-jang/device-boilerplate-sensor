@@ -188,7 +188,7 @@ class CoreFacade {
    */
   handleUpdateNode(placeNode, isIgnoreError = false) {
     try {
-      this.coreAlgorithm.handleUpdateNode(this, placeNode);
+      this.coreAlgorithm.handleUpdateNode(placeNode);
     } catch (error) {
       // BU.error(error);
       // if (isIgnoreError) return false;

@@ -119,10 +119,11 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @param {placeManager} placeManager Place Manager
    * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
    */
-  handleUpdateNode(coreFacade, placeNode) {
+  handleUpdateNode(placeNode) {
     try {
       // BU.CLIN(placeNode);
-      this.algorithmMode.handleUpdateNode(coreFacade, placeNode);
+      // BU.log('handleUpdateNode');
+      this.algorithmMode.handleUpdateNode(placeNode);
     } catch (error) {
       throw error;
     }

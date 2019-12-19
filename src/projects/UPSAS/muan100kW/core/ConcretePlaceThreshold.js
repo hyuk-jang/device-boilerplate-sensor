@@ -2,6 +2,7 @@ const _ = require('lodash');
 const PlaceThreshold = require('../../../../core/AlgorithmManager/PlaceThreshold');
 
 const commonFn = require('./algorithm/commonFn');
+const waterFlowFn = require('./algorithm/waterFlowFn');
 
 const { ndId, gDR, pNS, reqWCT } = commonFn;
 

@@ -13,36 +13,33 @@ const ConcretePlaceThreshold = require('../ConcretePlaceThreshold');
 class WaterLevel extends ConcretePlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleUnknown(coreFacade, placeNode) {}
+  handleUnknown(placeNode) {}
 
   /**
    * 장치 상태가 에러일 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleError(coreFacade, placeNode) {}
+  handleError(placeNode) {}
 
   /**
    * Node 임계치가 최대치를 넘을 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleMaxOver(coreFacade, placeNode) {
+  handleMaxOver(placeNode) {
     try {
       // BU.CLI('handleMaxOver', placeNode.getPlaceId());
       // 급수지 장소 Id
       const destPlaceId = placeNode.getPlaceId();
 
       // 현재 장소의 배수 명령 취소
-      const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      const cmdStorageList = this.coreFacade.cmdManager.getCmdStorageList({
         destPlaceId,
         wrapCmdType: reqWCT.CONTROL,
       });
       // BU.CLIN(cmdList);
-      commonFn.cancelWaterSupply(cmdStorageList);
+      this.cancelWaterSupply(cmdStorageList);
     } catch (error) {
       throw error;
     }
@@ -50,30 +47,26 @@ class WaterLevel extends ConcretePlaceThreshold {
 
   /**
    * Node 임계치가 상한선을 넘을 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleUpperLimitOver(coreFacade, placeNode) {}
+  handleUpperLimitOver(placeNode) {}
 
   /**
    * Node 임계치가 정상 일 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleNormal(coreFacade, placeNode) {}
+  handleNormal(placeNode) {}
 
   /**
    * Node 임계치가 하한선에 못 미칠 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleLowerLimitUnder(coreFacade, placeNode) {}
+  handleLowerLimitUnder(placeNode) {}
 
   /**
    * Node 임계치가 최저치에 못 미칠 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleMinUnder(coreFacade, placeNode) {}
+  handleMinUnder(placeNode) {}
 }
 module.exports = WaterLevel;

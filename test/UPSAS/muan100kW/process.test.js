@@ -60,8 +60,7 @@ describe('수위 임계치 처리 테스트', function() {
     await control.init(dbInfo, config.uuid);
     await control.runFeature();
 
-    const cmdStorage = control.inquiryAllDeviceStatus();
-    // BU.CLIN(cmdStorage);
+    control.inquiryAllDeviceStatus();
 
     await eventToPromise(control, cmdStep.COMPLETE);
 
@@ -293,7 +292,7 @@ describe('수위 임계치 처리 테스트', function() {
    *      수위 하한선 >>> [NEB_1_TO_NEB_2](R_CON) :: 달성 목표: 급수지(일반 증발지 2) 수위 12cm 이상
    *  >>> [NEB_1_TO_NEB_2][RUNNING]
    */
-  it.only('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
+  it('수위 임계치에 의한 우선 순위 염수 이동 명령 자동 생성 및 취소', async () => {
     const { cmdManager, placeManager } = control.model;
 
     const getFlowCmd = (srcPlaceId, destPlaceId) => {

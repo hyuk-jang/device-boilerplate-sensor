@@ -17,6 +17,18 @@ const scenarioList = require('./scenarioList');
 const { dcmConfigModel } = CoreFacade;
 
 const {
+  commandStep: cmdStep,
+  goalDataRange: goalDR,
+  reqWrapCmdType: reqWCT,
+  reqWrapCmdFormat: reqWCF,
+  reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
+} = dcmConfigModel;
+
+process.env.NODE_ENV = 'development';
+
+const { dbInfo } = config;
+
+const {
   controlMode,
   ndId,
   pId,
@@ -29,30 +41,17 @@ const {
   updatePlace,
 } = require('./guide.util');
 
-const {
-  commandStep: cmdStep,
-  goalDataRange: goalDR,
-  reqWrapCmdType: reqWCT,
-  reqWrapCmdFormat: reqWCF,
-  reqDeviceControlType: { TRUE, FALSE, SET, MEASURE },
-} = dcmConfigModel;
-
-process.env.NODE_ENV = 'development';
-
-const { dbInfo } = config;
-
 const main = new Main();
 // const control = main.createControl({
 //   dbInfo: config.dbInfo,
 // });
 const control = main.createControl(config);
+const { coreFacade } = control;
 
 const notifyDelayNode = updateNode(control);
 const notifyDirectNode = updateNode(control, false);
 const notifyDelayNodePlace = updatePlace(control);
 const notifyDirectNodePlace = updatePlace(control, false);
-
-const coreFacade = new CoreFacade();
 
 const DPC_DELAY_MS = 1000;
 
@@ -61,7 +60,7 @@ describe('시나리오 동작 테스트', function() {
 
   before(async () => {
     await control.init(dbInfo, config.uuid);
-    control.runFeature();
+    await control.runFeature();
 
     BU.CLI('inquiryAllDeviceStatus');
     control.inquiryAllDeviceStatus();
@@ -70,15 +69,18 @@ describe('시나리오 동작 테스트', function() {
   });
 
   beforeEach(async () => {
-    // try {
-    //   control.executeSetControl({
-    //     wrapCmdId: 'closeAllDevice',
-    //     wrapCmdType: reqWCT.CONTROL,
-    //   });
-    //   await eventToPromise(control, cmdStep.COMPLETE);
-    // } catch (error) {
-    //   BU.error(error.message);
-    // }
+    try {
+      coreFacade.coreAlgorithm.algorithmId !== controlMode.DEFAULT &&
+        coreFacade.changeOperationMode(controlMode.DEFAULT);
+
+      control.executeSetControl({
+        wrapCmdId: 'closeAllDevice',
+        wrapCmdType: reqWCT.CONTROL,
+      });
+      await eventToPromise(control, cmdStep.COMPLETE);
+    } catch (error) {
+      BU.error(error.message);
+    }
   });
 
   /**

@@ -58,10 +58,9 @@ class AlgorithmMode extends AlgorithmComponent {
 
   /**
    * 노드 데이터 갱신
-   * @param {CoreFacade} coreFacade Place Manager
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleUpdateNode(coreFacade, placeNode) {
+  handleUpdateNode(placeNode) {
     try {
       // BU.CLIN('handleUpdateNode');
       const threAlgorithm = _.find(this.threPlaceList, { nodeDefId: placeNode.getNodeDefId() });
@@ -100,7 +99,7 @@ class AlgorithmMode extends AlgorithmComponent {
           break;
       }
       // 임계치에 맞는 메소드 호출. (this 인자를 잃으므로 지정 처리)
-      selectedAlgorithmMethod.call(threAlgorithm, coreFacade, placeNode);
+      selectedAlgorithmMethod.call(threAlgorithm, placeNode);
     } catch (error) {
       throw error;
     }

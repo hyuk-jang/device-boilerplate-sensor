@@ -11,31 +11,28 @@ const ConcretePlaceThreshold = require('../ConcretePlaceThreshold');
 class WaterLevel extends ConcretePlaceThreshold {
   /**
    * 장치 상태가 식별 불가 일 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleUnknown(coreFacade, placeNode) {}
+  handleUnknown(placeNode) {}
 
   /**
    * 장치 상태가 에러일 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleError(coreFacade, placeNode) {}
+  handleError(placeNode) {}
 
   /**
    * Node 임계치가 최대치를 넘을 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleMaxOver(coreFacade, placeNode) {
+  handleMaxOver(placeNode) {
     try {
       // BU.CLI('handleMaxOver', placeNode.getPlaceId());
       // 급수지 장소 Id
       const destPlaceId = placeNode.getPlaceId();
 
       // 현재 장소의 배수 명령 취소
-      const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      const cmdStorageList = this.coreFacade.cmdManager.getCmdStorageList({
         destPlaceId,
         wrapCmdType: reqWCT.CONTROL,
       });
@@ -43,7 +40,7 @@ class WaterLevel extends ConcretePlaceThreshold {
       this.cancelWaterSupply(cmdStorageList);
 
       // 남아있는 명령 저장소
-      const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      const existCmdStorageList = this.coreFacade.cmdManager.getCmdStorageList({
         destPlaceId,
       });
 
@@ -64,10 +61,9 @@ class WaterLevel extends ConcretePlaceThreshold {
 
   /**
    * Node 임계치가 상한선을 넘을 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleUpperLimitOver(coreFacade, placeNode) {
+  handleUpperLimitOver(placeNode) {
     BU.CLI('handleUpperLimitOver', placeNode.getPlaceId());
     try {
       // 급수지 장소 Id
@@ -77,7 +73,7 @@ class WaterLevel extends ConcretePlaceThreshold {
       this.cancelWaterSupplyWithAlgorithm(placeNode, true);
 
       // 남아있는 명령 저장소
-      const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      const existCmdStorageList = this.coreFacade.cmdManager.getCmdStorageList({
         destPlaceId,
       });
 
@@ -98,17 +94,15 @@ class WaterLevel extends ConcretePlaceThreshold {
 
   /**
    * Node 임계치가 정상 일 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleNormal(coreFacade, placeNode) {}
+  handleNormal(placeNode) {}
 
   /**
    * Node 임계치가 하한선에 못 미칠 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleLowerLimitUnder(coreFacade, placeNode) {
+  handleLowerLimitUnder(placeNode) {
     BU.CLI('handleLowerLimitUnder', placeNode.getPlaceId());
     try {
       // 진행중인 배수 명령 취소 및 남아있는 배수 명령 존재 여부 반환
@@ -117,7 +111,7 @@ class WaterLevel extends ConcretePlaceThreshold {
 
       this.cancelDrainageWithAlgorithm(placeNode, true);
 
-      const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      const existCmdStorageList = this.coreFacade.cmdManager.getCmdStorageList({
         srcPlaceId,
       });
 
@@ -137,16 +131,15 @@ class WaterLevel extends ConcretePlaceThreshold {
 
   /**
    * Node 임계치가 최저치에 못 미칠 경우
-   * @param {CoreFacade} coreFacade Core Facade
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
-  handleMinUnder(coreFacade, placeNode) {
+  handleMinUnder(placeNode) {
     try {
       // BU.CLI('handleMinUnder', placeNode.getPlaceId());
       // 배수지 장소 Id
       const srcPlaceId = placeNode.getPlaceId();
 
-      const cmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      const cmdStorageList = this.coreFacade.cmdManager.getCmdStorageList({
         srcPlaceId,
         wrapCmdType: reqWCT.CONTROL,
       });
@@ -154,7 +147,7 @@ class WaterLevel extends ConcretePlaceThreshold {
       // 현재 장소의 배수 명령 취소
       this.cancelDrainage(cmdStorageList);
 
-      const existCmdStorageList = coreFacade.cmdManager.getCmdStorageList({
+      const existCmdStorageList = this.coreFacade.cmdManager.getCmdStorageList({
         srcPlaceId,
       });
 

@@ -12,13 +12,14 @@ const CoreFacade = require('../../../src/core/CoreFacade');
 
 const ThreCmdComponent = require('../../../src/core/CommandManager/Command/ThresholdCommand/ThreCmdComponent');
 
+const Timeout = setTimeout(function() {}, 0).constructor;
+
 const { goalDataRange } = ThreCmdComponent;
 
 const { dcmConfigModel } = CoreFacade;
 
-const Timeout = setTimeout(function() {}, 0).constructor;
-
 const {
+  cmdStrategyType,
   commandStep: cmdStep,
   reqWrapCmdType: reqWCT,
   reqWrapCmdFormat: reqWCF,
@@ -34,8 +35,7 @@ const main = new Main();
 //   dbInfo: config.dbInfo,
 // });
 const control = main.createControl(config);
-const coreFacade = new CoreFacade();
-// const control = new MuanControl(config);
+const { coreFacade } = control;
 
 const defaultTimeout = 10;
 
@@ -108,7 +108,7 @@ describe('Manual Strategy', function() {
   this.timeout(5000 * defaultTimeout);
   before(async () => {
     await control.init(dbInfo, config.uuid);
-    control.runFeature();
+    await control.runFeature();
   });
 
   beforeEach(async () => {
@@ -331,7 +331,7 @@ describe('OverlapCount Strategy', function() {
 
   before(async () => {
     await control.init(dbInfo, config.uuid);
-    control.runFeature();
+    await control.runFeature();
 
     control.inquiryAllDeviceStatus();
 
@@ -340,7 +340,9 @@ describe('OverlapCount Strategy', function() {
 
   beforeEach(async () => {
     try {
-      coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.MANUAL);
+      coreFacade.coreAlgorithm.cmdStrategy !== cmdStrategyType.MANUAL &&
+        coreFacade.changeCmdStrategy(cmdStrategyType.MANUAL);
+
       control.executeSetControl({
         wrapCmdId: 'closeAllDevice',
         wrapCmdType: reqWCT.CONTROL,
@@ -351,7 +353,7 @@ describe('OverlapCount Strategy', function() {
       BU.error(error);
     }
 
-    coreFacade.changeCmdStrategy(coreFacade.cmdStrategyType.OVERLAP_COUNT);
+    coreFacade.changeCmdStrategy(cmdStrategyType.OVERLAP_COUNT);
   });
 
   /**
