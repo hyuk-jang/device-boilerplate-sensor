@@ -86,7 +86,7 @@ class AlgorithmStorage extends AlgorithmComponent {
    * 구동 모드를 변경할 경우(Api Server에서 요청)
    * @param {string} algorithmId 제어 모드
    */
-  changeOperationMode(algorithmId) {
+  changeOperationMode(algorithmId = 'DEFAULT') {
     // BU.CLI('changeOperationMode', algorithmId);
     try {
       // 구동 모드 객체를 가져옴

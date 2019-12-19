@@ -6,7 +6,7 @@ const AlgorithmComponent = require('./AlgorithmComponent');
 const PlaceThreshold = require('./PlaceThreshold');
 
 const {
-  dcmConfigModel: { placeNodeStatus: nodeStatus },
+  dcmConfigModel: { cmdStrategyType, placeNodeStatus: nodeStatus },
 } = require('../../../../default-intelligence');
 
 /** @description 3 Depth. 구동 모드를 운영하는 객체 */
@@ -18,9 +18,9 @@ class AlgorithmMode extends AlgorithmComponent {
 
     /** @type {operationConfig} */
     this.operationModeInfo = {
-      algorithmId: '',
-      algorithmName: '',
-      cmdStrategy: '',
+      algorithmId: 'DEFAULT',
+      algorithmName: '기본',
+      cmdStrategy: cmdStrategyType.MANUAL,
     };
 
     /** @type {PlaceThreshold[]} */

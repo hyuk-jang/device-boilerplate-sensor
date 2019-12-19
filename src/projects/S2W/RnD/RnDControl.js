@@ -36,9 +36,6 @@ class S2W extends Control {
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     // BU.CLI(featureConfig);
 
-    // 100 kW 실증 부지에 관한 알고리즘 저장소 세팅// 초기 구동 모드 Basic 변경
-    this.coreFacade.changeCmdStrategy(this.coreFacade.cmdStrategyType.MANUAL);
-
     await this.blockManager.init(this.config.dbInfo, blockConfig);
 
     // FIXME: DBW에 접속 처리하지 않음. Map 위치 정보 및 DBW API Server 구동 시 해제 (2019-02-13)

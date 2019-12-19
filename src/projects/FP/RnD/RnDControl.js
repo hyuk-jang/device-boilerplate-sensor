@@ -8,7 +8,7 @@ const BlockManager = require('../../../features/BlockManager/BlockManager');
 
 const blockConfig = require('./block.config');
 
-class MuanControl extends Control {
+class FPControl extends Control {
   /**
    * @override
    * DBS 순수 기능 외에 추가 될 기능
@@ -36,9 +36,6 @@ class MuanControl extends Control {
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     // BU.CLI(featureConfig);
-
-    // 초기 구동 모드 Basic 변경
-    this.coreFacade.changeCmdStrategy(this.coreFacade.cmdStrategyType.MANUAL);
 
     await this.blockManager.init(this.config.dbInfo, blockConfig);
 
@@ -201,4 +198,4 @@ class MuanControl extends Control {
     });
   }
 }
-module.exports = MuanControl;
+module.exports = FPControl;

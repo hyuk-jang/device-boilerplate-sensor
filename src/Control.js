@@ -23,6 +23,7 @@ const CommandExecManager = require('./CommandExecManager');
 
 const NodeUpdatorManager = require('./core/Updator/NodeUpdator/NodeUpdatorManager');
 const AlgorithmStorage = require('./core/AlgorithmManager/AlgorithmStorage');
+const AlgorithmMode = require('./core/AlgorithmManager/AlgorithmMode');
 
 /** Main Socket Server와 통신을 수행하기 위한 Class */
 const AbstApiClient = require('./features/ApiCommunicator/AbstApiClient');
@@ -280,8 +281,15 @@ class Control extends EventEmitter {
     this.powerStatusBoard = new AbstPBS(this);
     // 블록 매니저
     this.blockManager = new AbstBlockManager(this);
+
+    const algorithmStorage = new AlgorithmStorage(this.coreFacade);
+    // 기본 운용모드 등록(임계치 발생 시 아무런 행동하지 않음)
+    const algorithmMode = new AlgorithmMode(this.coreFacade);
+    algorithmStorage.addOperationMode(algorithmMode);
+    // 초기 구동 모드 Default 변경
+    this.coreFacade.changeOperationMode();
     // coreFacade에 알고리즘 저장소 등록
-    this.coreFacade.setCoreAlgorithm(new AlgorithmStorage(this.coreFacade));
+    this.coreFacade.setCoreAlgorithm(algorithmStorage);
   }
 
   /**
