@@ -105,8 +105,9 @@ class AlgorithmStorage extends AlgorithmComponent {
       // 구동 모드 변경
       this.algorithmMode = operationMode;
 
-      // 명령 전략 교체 요청
-      this.coreFacade.changeCmdStrategy(this.algorithmMode.cmdStrategy);
+      // 명령 알고리즘 모드 교체
+      this.coreFacade.cmdManager.updateOperationMode(operationMode);
+
       return true;
     } catch (error) {
       throw error;

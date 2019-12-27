@@ -157,9 +157,9 @@ class FPControl extends Control {
         delete connInfo.addConfigInfo;
 
         switch (this.mainUUID) {
-          case '002':
-            connInfo = {};
-            break;
+          // case '002':
+          //   connInfo = {};
+          //   break;
           // case '003':
           // connInfo = {};
           // break;

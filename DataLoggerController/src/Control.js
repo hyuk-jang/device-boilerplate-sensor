@@ -530,7 +530,7 @@ class DataLoggerController extends DccFacade {
     process.env.LOG_DLC_ON_DATA === '1' && super.onDcData(dcData);
 
     try {
-      const { DONE, ERROR, WAIT } = this.definedCommanderResponse;
+      const { DONE, ERROR, WAIT, RETRY } = this.definedCommanderResponse;
       const { eventCode, data } = this.converter.parsingUpdateData(dcData);
 
       // BU.CLI(eventCode, data);
@@ -544,10 +544,17 @@ class DataLoggerController extends DccFacade {
         !_.isEmpty(haveData) && BU.CLI(this.id, haveData);
         // BU.CLI(haveData);
       }
+
+      // 확실히 오류 데이터가 들어왔다고 판단했을 경우 재전송 요청
+      if (eventCode === RETRY) {
+        return this.requestTakeAction(RETRY);
+      }
+
       // Retry 시도 시 다중 명령 요청 및 수신이 이루어 지므로 Retry 하지 않음.
       if (eventCode === ERROR) {
         return this.requestTakeAction(WAIT);
       }
+
       // 데이터가 정상적이라면
       if (eventCode === DONE) {
         // DLC 에러 카운트 초기화

@@ -75,6 +75,16 @@ class CoreFacade {
     this.placeManager = placeManager;
   }
 
+  /**
+   * 명령 전략을 변경하고자 할 경우
+   * @param {string} cmdMode 자동 명령 모드 여부
+   */
+  changeCmdStrategy(cmdMode) {
+    // 명령 전략 변경.
+    // BU.CLIN(this.cmdManager, 1);
+    this.cmdManager.changeCmdStrategy(cmdMode);
+  }
+
   /** @param {string} algorithmId 제어 모드 변경 알림 */
   changeOperationMode(algorithmId) {
     try {
@@ -119,24 +129,6 @@ class CoreFacade {
     _.isString(wrapCmdType) && wrapCmdType.length && _.assign(where, { wrapCmdType });
 
     return this.cmdManager.getCmdStorageList(where);
-  }
-
-  /**
-   * 명령모드를 변경하고자 할 경우
-   * @param {string} cmdMode 자동 명령 모드 여부
-   */
-  changeCmdStrategy(cmdMode) {
-    // BU.debugConsole();
-    // BU.CLI(this.cmdManager.getControMode());
-
-    // BU.CLI('changeCmdStrategy', cmdMode);
-    // 명령 전략 변경.
-    // BU.CLIN(this.cmdManager, 1);
-    const isChanged = this.cmdManager.changeCmdStrategy(cmdMode);
-    //  FIXME: 명령 전략이 변경되었다면 API Server에 알림
-    if (isChanged) {
-      this.cmdManager.operationModeUpdator.notifyObserver(cmdMode);
-    }
   }
 
   /**

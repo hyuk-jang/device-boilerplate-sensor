@@ -53,14 +53,17 @@ const blockConfigInfo = [
         {
           fromKey: inverterKeyInfo.gridRAmp,
           toKey: 'grid_r_a',
+          toFixed: 2,
         },
         {
           fromKey: inverterKeyInfo.gridSAmp,
           toKey: 'grid_s_a',
+          toFixed: 2,
         },
         {
           fromKey: inverterKeyInfo.gridTAmp,
           toKey: 'grid_t_a',
+          toFixed: 2,
         },
         {
           fromKey: inverterKeyInfo.gridLf,
@@ -83,6 +86,7 @@ const blockConfigInfo = [
         {
           fromKey: inverterKeyInfo.powerCpKwh,
           toKey: 'power_cp_kwh',
+          toFixed: 3,
         },
       ],
     },

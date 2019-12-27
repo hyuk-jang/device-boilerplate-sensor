@@ -71,9 +71,14 @@ class CommandManager {
    */
   updateOperationMode(currAlgorithmMode, prevAlgorithmMode) {
     // BU.CLIN(currAlgorithmMode);
+    const { algorithmId, cmdStrategy } = currAlgorithmMode;
+
+    // 명령 전략 교체 요청
+    this.changeCmdStrategy(cmdStrategy);
+
     /** @type {wsModeInfo} */
     const modeInfo = {
-      algorithmId: currAlgorithmMode.algorithmId,
+      algorithmId,
       operationConfigList: this.coreFacade.coreAlgorithm.getOperationConfigList(),
     };
     // BU.CLI('updateOperationMode', modeInfo);
