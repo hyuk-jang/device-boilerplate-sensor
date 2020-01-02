@@ -256,7 +256,7 @@ class Model {
     // Object 형태로 들어올 경우
 
     // 데이터 Key를 변환하여 보내주고자 할 경우
-    if (_.isObject(nodePickKeyInfo)) {
+    if (!_.isArray(nodePickKeyInfo) && _.isObject(nodePickKeyInfo)) {
       return _.map(nodeList, nodeInfo => {
         // BU.CLI(nodeInfo)
         return _.reduce(

@@ -116,25 +116,25 @@ class Control extends EventEmitter {
 
     // DB에서 UUID 가 동일한 main 정보를 가져옴
     /** @type {MAIN} */
-    const mainInfo = await biModule.getTableRow('main', mainWhere);
+    const mainRow = await biModule.getTableRow('main', mainWhere);
 
     // UUID가 동일한 정보가 없다면 종료
-    if (_.isEmpty(mainInfo)) {
+    if (_.isEmpty(mainRow)) {
       throw new Error(`uuid: ${mainUUID}는 존재하지 않습니다.`);
     }
 
     // 만약 MainUUID를 지정하지 않을 경우 해당 Row의 uuid를 가져와 세팅함
-    _.isNil(this.mainUUID) && _.set(this, 'mainUUID', _.get(mainInfo, 'uuid'));
+    _.isNil(this.mainUUID) && _.set(this, 'mainUUID', _.get(mainRow, 'uuid'));
 
     // 가져온 Main 정보에서 main_seq를 구함
-    this.mainSeq = _.get(mainInfo, 'main_seq', '');
+    this.mainSeq = _.get(mainRow, 'main_seq', '');
     const where = {
       main_seq: this.mainSeq,
     };
 
-    mainInfo.map === null && _.set(mainInfo, 'map', {});
+    mainRow.map === null && _.set(mainRow, 'map', {});
     /** @type {mDeviceMap} */
-    this.deviceMap = BU.IsJsonString(mainInfo.map) ? JSON.parse(mainInfo.map) : {};
+    this.deviceMap = BU.IsJsonString(mainRow.map) ? JSON.parse(mainRow.map) : {};
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
@@ -227,7 +227,7 @@ class Control extends EventEmitter {
    * 4. 생성 객체를 routerLists 에 삽입
    */
   async initCreateOpsDLC() {
-    // BU.CLI('initConOpsDLC');
+    BU.CLI('initConOpsDLC');
     try {
       // 하부 Data Logger 순회
       const resultInitDataLoggerList = await Promise.map(
@@ -309,7 +309,9 @@ class Control extends EventEmitter {
   setPassiveClient(mainUUID, passiveClient) {
     if (this.mainUUID !== mainUUID) {
       throw new Error(
-        `The ${this.mainUUID} of this site is different from the ${mainUUID} of the site you received.`,
+        `The ${
+          this.mainUUID
+        } of this site is different from the ${mainUUID} of the site you received.`,
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
@@ -453,7 +455,7 @@ class Control extends EventEmitter {
       // 노드 갱신 매니저에게 갱신된 노드 목록을 알림
       this.nodeUpdatorManager.updateNodeList(renewalNodeList);
 
-      // BU.CLIN(dataList);
+      // BU.CLIN(renewalNodeList);
       const dataList = this.model.getAllNodeStatus(
         nodePickKey.FOR_SERVER,
         renewalNodeList.filter(nodeInfo => nodeInfo.is_submit_api),
