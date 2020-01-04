@@ -1,8 +1,8 @@
 require('dotenv').config();
-// const {integratedDataLoggerConfig} = require('../../default-intelligence').dcmConfigModel;
+
 const ENV = process.env;
 
-const { controllerParserType } = require('../../../../default-intelligence').dccFlagModel;
+const { controllerParserType } = require('../../../src/module').di.dccFlagModel;
 
 /** @type {integratedDataLoggerConfig} */
 const config = {

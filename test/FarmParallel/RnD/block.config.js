@@ -2,7 +2,7 @@ require('../../../src/features/BlockManager/block.jsdoc');
 
 const {
   BaseModel: { Inverter, FarmParallel },
-} = require('../../../../device-protocol-converter-jh');
+} = require('../../../src/module').dpc;
 
 const inverterKeyInfo = Inverter.BASE_KEY;
 const farmKeyInfo = FarmParallel.BASE_KEY;

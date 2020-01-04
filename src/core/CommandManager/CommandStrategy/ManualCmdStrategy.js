@@ -3,7 +3,7 @@ const { BU } = require('base-util-jh');
 
 const {
   dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, reqDeviceControlType: reqDCT },
-} = require('../../../../../default-intelligence');
+} = require('../../../module').di;
 
 const CmdStrategy = require('./CmdStrategy');
 

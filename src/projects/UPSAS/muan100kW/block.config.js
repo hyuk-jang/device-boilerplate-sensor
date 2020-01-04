@@ -1,9 +1,6 @@
 const {
   BaseModel: { Inverter, UPSAS, Sensor },
-} = require('../../../../../device-protocol-converter-jh');
-
-// const Converter = require('device-protocol-converter-jh');
-// const Converter = require('../../../../../device-protocol-converter-jh');
+} = require('../../../module').dpc;
 
 const inverterKeyInfo = Inverter.BASE_KEY;
 const sensorKeyInfo = Sensor.BASE_KEY;

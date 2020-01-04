@@ -4,7 +4,7 @@ const { BU } = require('base-util-jh');
 
 const {
   dcmConfigModel: { placeNodeStatus: pNS },
-} = require('../../../../default-intelligence');
+} = require('../../module').di;
 
 const PlaceComponent = require('./PlaceComponent');
 

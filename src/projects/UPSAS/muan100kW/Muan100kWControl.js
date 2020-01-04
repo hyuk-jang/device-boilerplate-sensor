@@ -123,7 +123,7 @@ class MuanControl extends Control {
       if (connInfo.type === 'zigbee') {
         connInfo.type = 'socket';
         connInfo.subType = 'parser';
-        connInfo.port = 9000;
+        connInfo.port = 9001;
         connInfo.addConfigInfo = {
           parser: 'delimiterParser',
           option: '}}',

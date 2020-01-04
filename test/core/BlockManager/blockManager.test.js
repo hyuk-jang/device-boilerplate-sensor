@@ -60,5 +60,3 @@ describe('Step 1', () => {
 
   it('bindingPlaceList', async () => {});
 });
-
-// const Converter = require('device-protocol-converter-jh');

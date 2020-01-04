@@ -2,14 +2,16 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
+const { di, dpc } = require('../../module');
+
 const {
   dcmConfigModel: { reqWrapCmdFormat: reqWCF, nodePickKey },
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
-} = require('../../../../default-intelligence');
+} = di;
 
 const {
   BaseModel: { defaultModule },
-} = require('../../../../device-protocol-converter-jh');
+} = dpc;
 
 const DeviceManager = require('../../utils/DeviceManager');
 

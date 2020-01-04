@@ -6,7 +6,7 @@ const { BU } = require('base-util-jh');
 
 const {
   dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT },
-} = require('../../../../../default-intelligence');
+} = require('../../../module').di;
 
 const CmdComponent = require('./CmdComponent');
 const CmdElement = require('./CmdElement');

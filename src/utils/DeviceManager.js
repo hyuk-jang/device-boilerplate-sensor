@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 
 const { BU } = require('base-util-jh');
 
-const DccFacade = require('../../../device-client-controller-jh');
+const { DccFacade } = require('../module');
 
 class DeviceManager extends EventEmitter {
   /**

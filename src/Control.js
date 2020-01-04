@@ -10,7 +10,7 @@ const { BM } = require('base-model-jh');
 const {
   dcmConfigModel: { nodePickKey },
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
-} = require('../../default-intelligence');
+} = require('./module').di;
 
 const mainConfig = require('./config');
 

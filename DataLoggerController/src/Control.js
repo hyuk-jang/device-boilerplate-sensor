@@ -4,15 +4,16 @@ const eventToPromise = require('event-to-promise');
 const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
 // const AbstDeviceClient = require('device-client-controller-jh');
-const DccFacade = require('../../../device-client-controller-jh');
 
 const Model = require('./Model');
-// const { AbstConverter, BaseModel } = require('device-protocol-converter-jh');
-const { MainConverter } = require('../../../device-protocol-converter-jh');
+
+const { DccFacade, di, dpc } = require('../../src/module');
+
+const { MainConverter } = dpc;
 
 const {
-  dcmConfigModel: { reqWrapCmdFormat, reqWrapCmdType, reqDeviceControlType },
-} = require('../../../default-intelligence');
+  dcmConfigModel: { reqWrapCmdFormat, reqDeviceControlType },
+} = di;
 
 class DataLoggerController extends DccFacade {
   /** @param {dataLoggerConfig} config */

@@ -1,7 +1,6 @@
-// const Converter = require('device-protocol-converter-jh');
 const {
   BaseModel: { Inverter, FarmParallel },
-} = require('../../../../../device-protocol-converter-jh');
+} = require('../../../module').dpc;
 
 const inverterKeyInfo = Inverter.BASE_KEY;
 const farmKeyInfo = FarmParallel.BASE_KEY;

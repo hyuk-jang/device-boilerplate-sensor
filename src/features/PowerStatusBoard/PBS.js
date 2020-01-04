@@ -1,7 +1,7 @@
 const { BU } = require('base-util-jh');
 
 const AbstPBS = require('./AbstPBS');
-const { dcmWsModel } = require('../../../../default-intelligence');
+const { dcmWsModel } = require('../../module').di;
 
 /**
  * 수중태양광 용 현황판을 보여주기 위함

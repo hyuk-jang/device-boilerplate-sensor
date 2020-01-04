@@ -9,7 +9,7 @@ const {
     reqDeviceControlType: reqDCT,
   },
   dccFlagModel: { definedCommandSetRank },
-} = require('../../default-intelligence');
+} = require('./module').di;
 
 class CommandExecManager {
   /**

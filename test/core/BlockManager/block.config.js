@@ -1,8 +1,8 @@
-require('../../../src/features/BlockManager/block.jsdoc');
+const {
+  BaseModel: { Inverter },
+} = require('../../../src/module').dpc;
 
-const Converter = require('../../../../device-protocol-converter-jh');
-
-const keyInfo = Converter.BaseModel.Inverter.BASE_KEY;
+const keyInfo = Inverter.BASE_KEY;
 
 /** @type {blockConfig[]} */
 const blockConfigInfo = [

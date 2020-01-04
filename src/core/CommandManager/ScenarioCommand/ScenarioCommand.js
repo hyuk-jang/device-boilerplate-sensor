@@ -4,7 +4,7 @@ const { BU } = require('base-util-jh');
 
 const {
   dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF },
-} = require('../../../../../default-intelligence');
+} = require('../../../module').di;
 
 const ScenarioComponent = require('./ScenarioComponent');
 

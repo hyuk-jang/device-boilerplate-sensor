@@ -12,11 +12,11 @@ const { BU } = require('base-util-jh');
 const Promise = require('bluebird');
 
 const {
-  reqWrapCmdType,
-  contractCmdStep,
-  nodePickKey,
-} = require('../../../default-intelligence').dcmConfigModel;
-const { transmitToServerCommandType } = require('../../../default-intelligence').dcmWsModel;
+  di: {
+    dcmConfigModel: { reqWrapCmdType, contractCmdStep, nodePickKey },
+    dcmWsModel: { transmitToServerCommandType },
+  },
+} = require('../../src/module');
 
 const Main = require('../../src/Main');
 const Control = require('../../src/Control');

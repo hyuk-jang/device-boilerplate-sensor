@@ -7,7 +7,7 @@ const { BU } = require('base-util-jh');
 const {
   dcmConfigModel: { commandStep: cmdStep },
   dccFlagModel: { definedCommandSetMessage: dlcMessage },
-} = require('../../../../../default-intelligence');
+} = require('../../../module').di;
 
 const CmdComponent = require('./CmdComponent');
 

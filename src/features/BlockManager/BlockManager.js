@@ -6,7 +6,7 @@ const { BU } = require('base-util-jh');
 
 const {
   dcmConfigModel: { nodeDataType },
-} = require('../../../../default-intelligence');
+} = require('../../module').di;
 
 const AbstBlockManager = require('./AbstBlockManager');
 

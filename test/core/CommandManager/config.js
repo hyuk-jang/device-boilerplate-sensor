@@ -1,6 +1,6 @@
 const {
   dcmConfigModel: { reqWrapCmdType, reqDeviceControlType: reqDCT },
-} = require('../../../../default-intelligence');
+} = require('../../../src/module').di;
 
 /** @type {commandWrapInfo[]} */
 const wrapCmdList = [

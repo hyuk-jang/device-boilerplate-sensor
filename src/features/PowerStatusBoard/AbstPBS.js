@@ -2,7 +2,7 @@ const { BU } = require('base-util-jh');
 
 const DeviceManager = require('../../utils/DeviceManager');
 
-const { BaseModel } = require('../../../../device-protocol-converter-jh');
+const { BaseModel } = require('../../module').dpc;
 
 /**
  * 현황판을 보여주기 위함

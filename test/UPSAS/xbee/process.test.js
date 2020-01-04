@@ -839,8 +839,6 @@ describe('OverlapCount Strategy', function() {
   });
 });
 
-// const Converter = require('device-protocol-converter-jh');
-
 process.on('uncaughtException', err => {
   // BU.debugConsole();
   console.error(err.stack);

@@ -7,7 +7,7 @@ const PlaceThreshold = require('./PlaceThreshold');
 
 const {
   dcmConfigModel: { cmdStrategyType, placeNodeStatus: nodeStatus },
-} = require('../../../../default-intelligence');
+} = require('../../module').di;
 
 /** @description 3 Depth. 구동 모드를 운영하는 객체 */
 class AlgorithmMode extends AlgorithmComponent {

@@ -6,7 +6,7 @@ const { BM } = require('base-model-jh');
 
 const {
   dcmConfigModel: { commandPickKey: cmdPickKey, nodeDataType, nodePickKey },
-} = require('../../default-intelligence');
+} = require('./module').di;
 
 const CmdManager = require('./core/CommandManager/CommandManager');
 const ScenarioManager = require('./core/CommandManager/ScenarioCommand/ScenarioManager');

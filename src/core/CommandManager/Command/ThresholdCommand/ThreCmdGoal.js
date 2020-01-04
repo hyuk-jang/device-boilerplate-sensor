@@ -2,7 +2,7 @@ const _ = require('lodash');
 
 const {
   dcmConfigModel: { goalDataRange: goalDR },
-} = require('../../../../../../default-intelligence');
+} = require('../../../../module').di;
 
 const CmdComponent = require('../CmdComponent');
 

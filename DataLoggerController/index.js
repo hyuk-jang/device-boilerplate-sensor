@@ -38,26 +38,6 @@ if (require !== undefined && require.main === module) {
     .catch(err => {
       BU.CLI(err);
     });
-  // control.model.hasAverageStorage = true;
-  // control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
-
-  // BU.CLI(config)
-
-  // cloneConfig.dataLoggerInfo.protocol_info.deviceId = '0013a20040f7ab81';
-  // cloneConfig.dataLoggerInfo.dl_id = 'Direct';
-  // const {UPSAS} = require('../../../module/device-protocol-converter-jh').BaseModel;
-
-  // const baseModel = new UPSAS(config.deviceInfo.protocol_info);
-
-  // // setTimeout, setInterval
-  // setTimeout(() => {
-  //   // Node 조회
-  //   control.orderOperation({
-  //     nodeId: 'V_001',
-  //     singleControlType: 2,
-  //     wrapCmdId: 'TEST',
-  //   });
-  // }, 1000);
 
   process.on('uncaughtException', err => {
     // BU.debugConsole();

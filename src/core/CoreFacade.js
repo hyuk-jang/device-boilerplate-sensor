@@ -2,7 +2,7 @@ const _ = require('lodash');
 
 const { BU } = require('base-util-jh');
 
-const { dcmWsModel, dccFlagModel, dcmConfigModel } = require('../../../default-intelligence');
+const { dcmWsModel, dccFlagModel, dcmConfigModel } = require('../module').di;
 
 const AlgorithmComponent = require('./AlgorithmManager/AlgorithmComponent');
 

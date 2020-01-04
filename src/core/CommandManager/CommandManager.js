@@ -13,7 +13,7 @@ const {
   },
   dccFlagModel: { definedCommandSetRank },
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
-} = require('../../../../default-intelligence');
+} = require('../../module').di;
 
 const ManualCmdStrategy = require('./CommandStrategy/ManualCmdStrategy');
 const OverlapCountCmdStrategy = require('./CommandStrategy/OverlapCountCmdStrategy');

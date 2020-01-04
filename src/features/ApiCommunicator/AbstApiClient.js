@@ -2,7 +2,7 @@ const { BU } = require('base-util-jh');
 
 const DeviceManager = require('../../utils/DeviceManager');
 
-const { BaseModel } = require('../../../../device-protocol-converter-jh');
+const { BaseModel } = require('../../module').dpc;
 
 class AbstApiClient extends DeviceManager {
   /** @param {MainControl} controller */
