@@ -227,7 +227,7 @@ class Control extends EventEmitter {
    * 4. 생성 객체를 routerLists 에 삽입
    */
   async initCreateOpsDLC() {
-    BU.CLI('initConOpsDLC');
+    // BU.CLI('initConOpsDLC');
     try {
       // 하부 Data Logger 순회
       const resultInitDataLoggerList = await Promise.map(

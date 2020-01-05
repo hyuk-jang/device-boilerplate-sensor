@@ -1,3 +1,4 @@
+const dotenv = require('dotenv');
 const Main = require('./src/Main');
 
 module.exports = Main;
@@ -5,10 +6,24 @@ module.exports = Main;
 // if __main process
 if (require !== undefined && require.main === module) {
   console.log('__main__');
-  process.env.NODE_ENV = 'development';
   const { BU } = require('base-util-jh');
   const config = require('./src/config');
   const { dbInfo } = config;
+
+  let path;
+  switch (process.env.NODE_ENV) {
+    case 'development':
+      path = `${process.cwd()}/.env`;
+      break;
+    case 'production':
+      path = `${process.cwd()}/.env`;
+      break;
+    default:
+      path = `${process.cwd()}/.env`;
+      break;
+  }
+
+  dotenv.config({ path });
 
   const main = new Main();
   // const control = main.createControl({

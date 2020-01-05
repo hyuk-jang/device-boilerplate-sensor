@@ -10,9 +10,7 @@
     "app": "./index.js"
   },
   "pkg": {
-    "assets": [
-      "../device-protocol-converter-jh/**/*"
-    ]
+    "assets": []
   },
   "scripts": {
     "test": "mocha test/UPSAS/muan100kW/manual.test.js -w",
@@ -31,7 +29,6 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "docdash": "^1.1.1",
-    "dotenv": "^8.0.0",
     "eslint": "^5.16.0",
     "eslint-config-airbnb": "^17.1.0",
     "eslint-config-prettier": "^4.3.0",
@@ -48,6 +45,7 @@
     "base-util-jh": "^1.2.4",
     "bluebird": "^3.5.5",
     "cron": "^1.7.1",
+    "dotenv": "^8.0.0",
     "event-to-promise": "^0.8.0",
     "lodash": "^4.17.11",
     "moment": "^2.24.0",

@@ -3,7 +3,6 @@ const eventToPromise = require('event-to-promise');
 
 const { BU } = require('base-util-jh');
 const { BM } = require('base-model-jh');
-// const AbstDeviceClient = require('device-client-controller-jh');
 
 const Model = require('./Model');
 
