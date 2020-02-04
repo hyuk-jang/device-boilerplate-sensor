@@ -5,7 +5,7 @@ const { BU } = require('base-util-jh');
 const { di, dpc } = require('../../module');
 
 const {
-  dcmConfigModel: { reqWrapCmdFormat: reqWCF, nodePickKey },
+  dcmConfigModel: { reqWrapCmdFormat: reqWCF, nodePickKey, commandPickKey },
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
 } = di;
 
@@ -332,28 +332,38 @@ class ApiClient extends DeviceManager {
 
       // BU.CLI(reqCmdInfo);
 
+      let cmdStorage;
+
       switch (wrapCmdFormat) {
         case reqWCF.SINGLE:
           // BU.CLI('reqWCF.SINGLE');
-          this.controller.executeSingleControl(reqCmdInfo);
+          cmdStorage = this.controller.executeSingleControl(reqCmdInfo);
           break;
         case reqWCF.SET:
           // BU.CLI('reqWCF.SET');
-          this.controller.executeSetControl(reqCmdInfo);
+          cmdStorage = this.controller.executeSetControl(reqCmdInfo);
           break;
         case reqWCF.FLOW:
           // BU.CLI('reqWCF.FLOW');
-          this.controller.executeFlowControl(reqCmdInfo);
+          cmdStorage = this.controller.executeFlowControl(reqCmdInfo);
           break;
         case reqWCF.SCENARIO:
           // BU.CLI('reqWCF.SCENARIO');
-          this.controller.executeScenarioControl(reqCmdInfo);
+          cmdStorage = this.controller.executeScenarioControl(reqCmdInfo);
           break;
         default:
           responseMsg.isError = 1;
           responseMsg.message = `WCT: ${wrapCmdFormat} is not defined`;
           break;
       }
+
+      if (_.isEmpty(cmdStorage)) {
+        throw new Error(`WCT: ${wrapCmdFormat} is not defined`);
+      }
+
+      // const cmdStorageWrapInfo = cmdStorage.getExecuteCmdInfo();
+
+      responseMsg.contents = _.pick(cmdStorage, commandPickKey.FOR_SERVER);
 
       // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
       // if (_.values(transmitToClientCommandType).includes(_.get(wsControlCmdApiInfo, 'commandId'))) {

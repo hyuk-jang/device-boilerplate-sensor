@@ -215,15 +215,15 @@ class CommandManager {
     try {
       // BU.CLIN(commandSet);
 
-      this.getCmdStorage({ wrapCmdUuid: wrapCmdUUID })
+      this.getCmdStorage({ wrapCmdUUID })
         .getCmdEle({ cmdEleUuid: uuid })
         .updateCommand(msgCode);
     } catch (error) {
       // BU.CLIS(wrapCmdUUID, uuid, commandId, nodeId);
       // _.map(this.commandList, cmdStorage => {
-      //   BU.CLI(cmdStorage.wrapCmdUuid, cmdStorage.wrapCmdInfo);
+      //   BU.CLI(cmdStorage.wrapCmdUUID, cmdStorage.wrapCmdInfo);
       // });
-      // BU.CLIN(this.getCmdStorage({ wrapCmdUuid: wrapCmdUUID }).getCmdEle({ cmdEleUuid: uuid }));
+      // BU.CLIN(this.getCmdStorage({ wrapCmdUUID: wrapCmdUUID }).getCmdEle({ cmdEleUuid: uuid }));
       // BU.error(error);
       BU.error(`${commandId} ${nodeId} ${msgCode}`, error.message);
       // NOTE: 명령 삭제 후 발생한 이벤트에 대해서는 무시함.

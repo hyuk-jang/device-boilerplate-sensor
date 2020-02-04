@@ -113,13 +113,13 @@ class CmdElement extends CmdComponent {
    */
   getExecuteCmdInfo() {
     const { nodeId, controlSetValue, singleControlType } = this.cmdEleInfo;
-    const { wrapCmdType, wrapCmdUuid, wrapCmdId, wrapCmdName, rank } = this.cmdStorage;
+    const { wrapCmdType, wrapCmdUUID, wrapCmdId, wrapCmdName, rank } = this.cmdStorage;
 
     return {
       wrapCmdId,
       wrapCmdType,
       wrapCmdName,
-      wrapCmdUUID: wrapCmdUuid,
+      wrapCmdUUID,
       rank,
       nodeId,
       singleControlType,
@@ -137,8 +137,8 @@ class CmdElement extends CmdComponent {
   }
 
   /** @return {string} 명령 저장소 유일 UUID */
-  get wrapCmdUuid() {
-    return this.cmdStorage.wrapCmdUuid;
+  get wrapCmdUUID() {
+    return this.cmdStorage.wrapCmdUUID;
   }
 
   /** @return {string} 명령 형식, MEASURE, SINGLE, SET, FLOW, SCENARIO */

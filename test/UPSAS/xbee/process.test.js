@@ -254,7 +254,7 @@ describe('Manual Strategy', function() {
     let cs_can_ON_PUMP = control.executeSingleControl(convertConToCan(ON_PUMP));
 
     // 진행 중인 명령 저장소에 취소 요청을 한 것이므로 같은 UUID를 가짐
-    expect(cs_ON_PUMP.wrapCmdUuid).to.eq(cs_can_ON_PUMP.wrapCmdUuid);
+    expect(cs_ON_PUMP.wrapCmdUUID).to.eq(cs_can_ON_PUMP.wrapCmdUUID);
 
     // 명령 취소 상태로 변경됨
     expect(cs_ON_PUMP.wrapCmdType).to.eq(reqWCT.CANCEL);
@@ -274,7 +274,7 @@ describe('Manual Strategy', function() {
     await eventToPromise(control, cmdStep.COMPLETE);
     cs_can_ON_PUMP = control.executeSingleControl(convertConToCan(ON_PUMP));
     // 존재하지 않는 명령 저장소에 취소 요청을 한 것이므로 다른 UUID를 가짐
-    expect(cs_ON_PUMP.wrapCmdUuid).to.not.eq(cs_can_ON_PUMP.wrapCmdUuid);
+    expect(cs_ON_PUMP.wrapCmdUUID).to.not.eq(cs_can_ON_PUMP.wrapCmdUUID);
     expect(cmdManager.getCmdStorageList()).to.length(1);
     await eventToPromise(control, cmdStep.COMPLETE);
     expect(cmdManager.getCmdStorageList()).to.length(0);
@@ -399,7 +399,7 @@ describe('OverlapCount Strategy', function() {
       'wrapCmdId: RV_TO_SEB_1_A is exist.',
     );
     const ceList_RV_TO_SEB_1_A = cmdManager.getCmdStorage({
-      wrapCmdUuid: cs_RV_TO_SEB_1_A.cmdStorageUuid,
+      wrapCmdUUID: cs_RV_TO_SEB_1_A.cmdStorageUuid,
     });
 
     // BU.CLIN(cs_RV_TO_SEB_1_A.getCmdEleList({ singleControlType: TRUE }), 1);
@@ -477,13 +477,13 @@ describe('OverlapCount Strategy', function() {
 
     // 명령 취소 상태로 변경됨
     expect(
-      cmdManager.getCmdStorage({ wrapCmdUuid: cs_RV_TO_SEB_1_A.cmdStorageUuid }).wrapCmdType,
+      cmdManager.getCmdStorage({ wrapCmdUUID: cs_RV_TO_SEB_1_A.cmdStorageUuid }).wrapCmdType,
     ).to.eq(reqWCT.CANCEL);
 
     const end_can_RV_TO_SEB_1_A = await eventToPromise(control, cmdStep.END);
     expect(end_can_RV_TO_SEB_1_A).to.deep.eq(cs_can_RV_TO_SEB_1_A);
     // 명령 cmdStep END 발생 시 cmdManager.commandList 스택에서 제거됨
-    expect(cmdManager.getCmdStorage({ wrapCmdUuid: cs_RV_TO_SEB_1_A.cmdStorageUuid })).to.be
+    expect(cmdManager.getCmdStorage({ wrapCmdUUID: cs_RV_TO_SEB_1_A.cmdStorageUuid })).to.be
       .undefined;
     BU.CLI('TC_5 >>> 5 단계 완료');
 

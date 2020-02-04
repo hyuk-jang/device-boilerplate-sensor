@@ -8,7 +8,7 @@ class CmdComponent extends Updator {
   setSuccessor(cmdComponent) {}
 
   /** @return {string} 명령 형식, SINGLE, SET, FLOW, SCENARIO */
-  get wrapCmdUuid() {
+  get wrapCmdUUID() {
     return undefined;
   }
 

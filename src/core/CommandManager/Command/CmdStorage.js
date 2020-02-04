@@ -289,7 +289,7 @@ class CmdStorage extends CmdComponent {
   }
 
   /** @return {string} 명령 저장소 유일 UUID */
-  get wrapCmdUuid() {
+  get wrapCmdUUID() {
     return this.cmdStorageUuid;
   }
 
