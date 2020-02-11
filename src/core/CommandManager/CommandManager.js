@@ -129,7 +129,14 @@ class CommandManager {
     }
 
     // 명령 전략이 바뀌었다면 기존 추적중인 명령은 모두 삭제
-    isChanged && (this.commandList = []);
+    if (isChanged) {
+      this.commandList = [];
+      this.controller.apiClient.transmitDataToServer({
+        commandType: transmitToServerCT.COMMAND,
+        data: [],
+      });
+    }
+
     // BU.CLI(isChanged);
 
     return isChanged;

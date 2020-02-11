@@ -137,7 +137,7 @@ class MuanControl extends Control {
         connInfo.subType = '';
         delete connInfo.addConfigInfo;
 
-        connInfo = {};
+        // connInfo = {};
       } else if (connInfo.type === 'modbus' && connInfo.subType === 'rtu') {
         // 접속반
         connInfo.type = 'socket';
