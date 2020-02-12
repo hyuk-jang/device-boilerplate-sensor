@@ -133,7 +133,7 @@ class MuanControl extends Control {
       } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
         // 인버터
         connInfo.type = 'socket';
-        connInfo.port = 9001;
+        connInfo.port = 9002;
         connInfo.subType = '';
         delete connInfo.addConfigInfo;
 
@@ -141,9 +141,14 @@ class MuanControl extends Control {
       } else if (connInfo.type === 'modbus' && connInfo.subType === 'rtu') {
         // 접속반
         connInfo.type = 'socket';
-        connInfo.port = 9002;
-
-        connInfo = {};
+        // connInfo.subType = 'parser';
+        connInfo.port = 9003;
+        // connInfo.addConfigInfo = {
+        //   parser: 'delimiterParser',
+        //   option: '}',
+        // };
+        delete connInfo.addConfigInfo;
+        // connInfo = {};
       }
 
       // FIXME: TEST 로 사용됨  -------------
