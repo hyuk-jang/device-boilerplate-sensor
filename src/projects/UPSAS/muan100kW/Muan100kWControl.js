@@ -121,6 +121,7 @@ class MuanControl extends Control {
 
       // FIXME: TEST 로 사용됨  -------------
       if (connInfo.type === 'zigbee') {
+        connInfo.host = '59.25.196.194';
         connInfo.type = 'socket';
         connInfo.subType = 'parser';
         connInfo.port = 9001;
@@ -132,6 +133,7 @@ class MuanControl extends Control {
         // connInfo = {};
       } else if (connInfo.type === 'serial' && connInfo.subType === 'parser') {
         // 인버터
+        connInfo.host = '59.25.196.194';
         connInfo.type = 'socket';
         connInfo.port = 9002;
         connInfo.subType = '';
@@ -140,6 +142,7 @@ class MuanControl extends Control {
         // connInfo = {};
       } else if (connInfo.type === 'modbus' && connInfo.subType === 'rtu') {
         // 접속반
+        connInfo.host = '59.25.196.194';
         connInfo.type = 'socket';
         // connInfo.subType = 'parser';
         connInfo.port = 9003;
