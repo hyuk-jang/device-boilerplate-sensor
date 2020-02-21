@@ -121,7 +121,7 @@ class ManualCmdStrategy extends CmdStrategy {
 
       // 이미 존재하는 명령이라면 예외 처리
       if (existCmdStorage) {
-        throw new Error(`wrapCmdId: ${wrapCmdId} is exist.`);
+        throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
       }
 
       // 실제 수행할 장치를 정제

@@ -240,6 +240,11 @@ class Model {
     process.env.LOG_DBS_INQUIRY_RESULT === '1' &&
       BU.CLI(this.getAllNodeStatus(nodePickKey.FOR_DATA));
 
+    process.env.LOG_DBS_INQUIRY_RESULT_SUBMIT_DATA === '1' &&
+      BU.CLI(
+        this.getAllNodeStatus(nodePickKey.FOR_DATA, _.filter(this.nodeList, { is_submit_api: 1 })),
+      );
+
     await this.insertNodeDataToDB(validNodeList, {
       hasSensor: process.env.DBS_SAVE_SENSOR !== '0',
       hasDevice: process.env.DBS_SAVE_DEVICE !== '0',

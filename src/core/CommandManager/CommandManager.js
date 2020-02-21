@@ -150,7 +150,7 @@ class CommandManager {
    */
   executeCommand(reqCommandInfo, observer) {
     try {
-      const { wrapCmdFormat, wrapCmdType, wrapCmdId, reqCmdEleList } = reqCommandInfo;
+      const { wrapCmdFormat, wrapCmdId } = reqCommandInfo;
 
       // 계측 명령 일 경우에는 전략에 상관없이 요청
       if (wrapCmdFormat === reqWCF.MEASURE) {
@@ -160,9 +160,8 @@ class CommandManager {
         const foundCommand = _.find(this.commandList, { wrapCmdId });
 
         if (foundCommand) {
-          // BU.CLIN(this.commandList);
-          // return BU.errorLog('executeCommand', `wrapCmdId: ${wrapCmdId} is exist`);
-          throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
+          throw new Error(`${foundCommand.wrapCmdName} 명령은 존재합니다.`);
+          // throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
         }
         // 실제 수행할 장치를 정제
         const commandWrapInfo = this.refineReqCommand(reqCommandInfo);

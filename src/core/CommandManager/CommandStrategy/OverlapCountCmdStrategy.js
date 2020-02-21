@@ -101,7 +101,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    */
   isConflict(commandWrapInfo) {
     try {
-      const { wrapCmdId, containerCmdList } = commandWrapInfo;
+      const { wrapCmdId, wrapCmdName, containerCmdList } = commandWrapInfo;
       const { TRUE, FALSE } = reqDCT;
       // 제어할려고 하는 Node와 제어 상태를 바꿀려는 명령이 존재하는지 체크
       _.forEach(containerCmdList, cmdContainerInfo => {
@@ -111,7 +111,10 @@ class OverlapCountCmdStrategy extends CmdStrategy {
           singleControlType: singleControlType === TRUE ? FALSE : TRUE,
         });
         if (cmdEle) {
-          throw new Error(`${wrapCmdId} and ${cmdEle.wrapCmdId} conflicted with ${nodeId}.`);
+          throw new Error(
+            `${wrapCmdName} 명령은 ${cmdEle.wrapCmdName} 명령의 ${nodeId} 상태와 충돌합니다.`,
+          );
+          // throw new Error(`${wrapCmdId} and ${cmdEle.wrapCmdId} conflicted with ${nodeId}.`);
         }
       });
     } catch (error) {
@@ -139,7 +142,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
 
       // 이미 존재하는 명령이라면 예외 처리
       if (existCmdStorage) {
-        throw new Error(`wrapCmdId: ${wrapCmdId} is exist.`);
+        throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
       }
 
       // 실제 수행할 장치를 정제

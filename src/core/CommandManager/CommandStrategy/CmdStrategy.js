@@ -69,7 +69,7 @@ class CmdStrategy {
     });
 
     if (cmdStorage) {
-      throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
+      throw new Error(`${cmdStorage.wrapCmdName} 명령(${cmdStorage.wrapCmdId})은 존재합니다.`);
     }
 
     // 실제 수행할 장치를 정제
