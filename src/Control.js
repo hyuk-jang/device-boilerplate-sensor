@@ -200,6 +200,11 @@ class Control extends EventEmitter {
       if (protoInfo.deviceId && protoInfo.deviceId.type === 'Buffer') {
         protoInfo.deviceId = Buffer.from(protoInfo.deviceId.data).toString();
       }
+      // Connect 옵션이 Parser이고 option이 Buffer String 일 경우 Buffer로 변환하여 저장
+      const { subType, addConfigInfo } = connInfo;
+      if (subType === 'parser' && _.get(addConfigInfo, 'option.type') === 'Buffer') {
+        connInfo.addConfigInfo.option = Buffer.from(addConfigInfo.option.data);
+      }
 
       // 변환한 설정정보 입력
       _.set(dataLoggerInfo, 'connect_info', connInfo);
@@ -309,9 +314,7 @@ class Control extends EventEmitter {
   setPassiveClient(mainUUID, passiveClient) {
     if (this.mainUUID !== mainUUID) {
       throw new Error(
-        `The ${
-          this.mainUUID
-        } of this site is different from the ${mainUUID} of the site you received.`,
+        `The ${this.mainUUID} of this site is different from the ${mainUUID} of the site you received.`,
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
