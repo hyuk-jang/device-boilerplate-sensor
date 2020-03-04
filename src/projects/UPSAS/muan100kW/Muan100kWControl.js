@@ -119,6 +119,12 @@ class MuanControl extends Control {
         protoInfo.deviceId = Buffer.from(protoInfo.deviceId.data).toString();
       }
 
+      // Connect 옵션이 Parser이고 option이 Buffer String 일 경우 Buffer로 변환하여 저장
+      const { subType, addConfigInfo } = connInfo;
+      if (subType === 'parser' && _.get(addConfigInfo, 'option.type') === 'Buffer') {
+        connInfo.addConfigInfo.option = Buffer.from(addConfigInfo.option.data);
+      }
+
       // FIXME: TEST 로 사용됨  -------------
       if (connInfo.type === 'zigbee') {
         // connInfo.host = '59.25.196.194';
