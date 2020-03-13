@@ -5,7 +5,6 @@ const FPRndControl = require('./projects/FP/RnD/RnDControl');
 const S2WRndControl = require('./projects/S2W/RnD/RnDControl');
 
 const Model = require('./Model');
-const MuanModel = require('./projects/UPSAS/muan/MuanModel');
 const FPRndModel = require('./projects/FP/RnD/RnDModel');
 const S2WRndModel = require('./projects/S2W/RnD/RnDModel');
 
@@ -28,11 +27,9 @@ class Main {
         switch (projectSubId) {
           case 'muan':
             MainControl = MuanControl;
-            MainModel = MuanModel;
             break;
           case 'muan100kW':
             MainControl = Muan100kWControl;
-            // MainModel = MuanModel;
             break;
           default:
             break;
