@@ -28,34 +28,42 @@ const blockConfigInfo = [
         {
           fromKey: inverterKeyInfo.pvAmp,
           toKey: 'pv_a',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.pvVol,
           toKey: 'pv_v',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.pvKw,
           toKey: 'pv_kw',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.gridRsVol,
           toKey: 'grid_rs_v',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.gridRAmp,
           toKey: 'grid_r_a',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.gridLf,
           toKey: 'line_f',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.powerGridKw,
           toKey: 'power_kw',
+          toFixed: 3,
         },
         {
           fromKey: inverterKeyInfo.powerCpKwh,
           toKey: 'power_cp_kwh',
+          toFixed: 3,
         },
       ],
     },
