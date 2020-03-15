@@ -417,24 +417,28 @@ class BlockManager extends AbstBlockManager {
    * @param {Object} troubleWhere
    */
   getTroubleList(troubleTableInfo, troubleWhere = {}) {
-    // DB 접속 정보가 없다면 에러
-    if (_.isEmpty(this.biModule)) {
-      throw new Error('DB information does not exist.');
-    }
+    try {
+      // DB 접속 정보가 없다면 에러
+      if (_.isEmpty(this.biModule)) {
+        throw new Error('DB information does not exist.');
+      }
 
-    const { tableName, changeColumnKeyInfo, indexInfo } = troubleTableInfo;
-    const { codeKey, fixDateKey } = changeColumnKeyInfo;
-    const { foreignKey, primaryKey } = indexInfo;
+      const { tableName, changeColumnKeyInfo, indexInfo } = troubleTableInfo;
+      const { codeKey, fixDateKey } = changeColumnKeyInfo;
+      const { foreignKey, primaryKey } = indexInfo;
 
-    // 에러를 선택해서 가져온다면 추가로 쿼리 생성
-    let subSql = '';
-    if (!_.isEmpty(troubleWhere)) {
-      _.forEach(troubleWhere, (value, key) => {
-        subSql = subSql.concat(` AND originTbl.${key} IN (${value})`);
-      });
-    }
+      // 에러를 선택해서 가져온다면 추가로 쿼리 생성
+      let subSql = '';
+      if (!_.isEmpty(troubleWhere)) {
+        _.forEach(troubleWhere, (value, key) => {
+          if (_.isEmpty(value)) {
+            throw new Error(`key: ${key} values is empty.`);
+          }
+          subSql = subSql.concat(` AND originTbl.${key} IN (${value})`);
+        });
+      }
 
-    const sql = `
+      const sql = `
       SELECT originTbl.*
       FROM ${tableName} originTbl
       LEFT JOIN ${tableName} joinTbl
@@ -445,7 +449,10 @@ class BlockManager extends AbstBlockManager {
       ORDER BY originTbl.${primaryKey} ASC
     `;
 
-    return this.biModule.db.single(sql, null, false);
+      return this.biModule.db.single(sql, null, true);
+    } catch (error) {
+      return [];
+    }
   }
 }
 module.exports = BlockManager;
