@@ -449,7 +449,7 @@ class BlockManager extends AbstBlockManager {
       ORDER BY originTbl.${primaryKey} ASC
     `;
 
-      return this.biModule.db.single(sql, null, true);
+      return this.biModule.db.single(sql, null, false);
     } catch (error) {
       return [];
     }

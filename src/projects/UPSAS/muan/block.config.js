@@ -184,7 +184,7 @@ const blockConfigInfo = [
       tableName: 'v_dv_place',
       idKey: 'place_real_id',
       placeKey: 'place_seq',
-      placeClassKeyList: ['salternBlock', 'brineWarehouse', 'reservoir', 'sea'],
+      placeClassKeyList: ['inverter', 'salternBlock', 'brineWarehouse', 'reservoir', 'sea'],
       fromToKeyTableList: [
         {
           fromKey: 'place_seq',
