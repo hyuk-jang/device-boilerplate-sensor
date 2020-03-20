@@ -276,10 +276,12 @@ class DataLoggerController extends DccFacade {
         wrapCmdType,
         uuid,
         singleControlType,
+        controlSetValue,
         nodeId = '',
         rank = this.definedCommandSetRank.THIRD,
       } = executeCmdInfo;
       // BU.CLI(this.siteUUID);
+
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
       }
@@ -299,6 +301,8 @@ class DataLoggerController extends DccFacade {
       const cmdList = this.converter.generationCommand({
         key: nodeInfo.nd_target_id,
         value: singleControlType,
+        setValue: controlSetValue,
+        nodeInfo,
       });
 
       const commandName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${singleControlType}`;
