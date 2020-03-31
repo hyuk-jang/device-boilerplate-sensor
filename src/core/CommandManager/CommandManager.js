@@ -171,7 +171,7 @@ class CommandManager {
       }
       // 계측 명령이 아닐 경우 명령 전략에 따라 진행
       process.env.LOG_DBS_CMD_START === '1' &&
-        BU.log(`(${wrapCmdFormat})(${wrapCmdType}) ${wrapCmdName}[${wrapCmdId}] `);
+        BU.CLI(`(${wrapCmdFormat})(${wrapCmdType}) ${wrapCmdName} [${wrapCmdId}] `);
 
       return this.cmdStrategy.executeCommand(reqCommandInfo);
     } catch (error) {
@@ -270,11 +270,12 @@ class CommandManager {
     // FIXME: 임시. 메시지 전체 보냄
     // BU.CLI(_.pick(cmdStorage, commandPickKey.FOR_SERVER));
 
-    // BU.CLI(
-    //   _(this.commandList)
-    //     .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
-    //     .value(),
-    // );
+    process.env.REMAIN === '1' &&
+      BU.CLI(
+        _(this.commandList)
+          .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
+          .value(),
+      );
 
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCT.COMMAND,
