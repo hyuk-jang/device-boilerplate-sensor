@@ -74,7 +74,6 @@ class CommandExecManager {
    */
   executeSingleControl(reqSingleCmdInfo) {
     // BU.CLI('executeSingleControl', reqSingleCmdInfo);
-    process.env.LOG_DBS_EXEC_SC === '1' && BU.CLIN(reqSingleCmdInfo);
 
     const {
       wrapCmdType = reqWCT.CONTROL,

@@ -84,7 +84,7 @@ class ThreCmdStorage extends CmdComponent {
       // 제한 시간 초과로 달성 목표를 이루었다고 판단
       // BU.CLIN(this.cmdStorage);
       this.cmdStorage.handleThresholdClear();
-    }, limitTimeSec * 1000);
+    }, limitTimeSec * 10);
   }
 
   /** @param {ThreCmdGoal} threCmdGoal */
