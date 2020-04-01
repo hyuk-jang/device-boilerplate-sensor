@@ -368,6 +368,17 @@ module.exports = [
         wrapCmdFormat: reqWCF.SET,
         wrapCmdType: reqWCT.CONTROL,
         setCmdId: 'closeAllDevice',
+        imgDisplayList: [
+          {
+            cmdStep: cmdStep.PROCEED,
+            imgId: 'TEST_closeAllDevice',
+          },
+          {
+            cmdStep: cmdStep.COMPLETE,
+            imgId: 'TEST_closeAllDevice',
+            isAppear: 0,
+          },
+        ],
       },
       // // 저수지 1 > 저수지 1 염수 이동
       // [
@@ -392,27 +403,27 @@ module.exports = [
       // 저수지 1 > 일반 증발지 1, 2 염수 이동 및 염도 이동
       [
         [
-          // // 저수지 1 > 일반 증발지 1, 2 염수 이동
-          // {
-          //   wrapCmdFormat: reqWCF.SINGLE,
-          //   wrapCmdType: reqWCT.CONTROL,
-          //   wrapCmdGoalInfo: {
-          //     limitTimeSec: 5,
-          //   },
-          //   singleNodeId: ['P_001', 'WD_002', 'WD_003'],
-          //   singleControlType: reqDCT.TRUE,
-          //   imgDisplayList: [
-          //     {
-          //       cmdStep: cmdStep.WAIT,
-          //       imgId: 'TEST_1',
-          //     },
-          //     {
-          //       cmdStep: cmdStep.END,
-          //       imgId: 'TEST_1',
-          //       isAppear: 0,
-          //     },
-          //   ],
-          // },
+          // 저수지 1 > 일반 증발지 1, 2 염수 이동
+          {
+            wrapCmdFormat: reqWCF.SINGLE,
+            wrapCmdType: reqWCT.CONTROL,
+            wrapCmdGoalInfo: {
+              limitTimeSec: 5,
+            },
+            singleNodeId: ['P_001', 'WD_002', 'WD_003'],
+            singleControlType: reqDCT.TRUE,
+            imgDisplayList: [
+              {
+                cmdStep: cmdStep.PROCEED,
+                imgId: 'TEST_1',
+              },
+              {
+                cmdStep: cmdStep.END,
+                imgId: 'TEST_1',
+                isAppear: 0,
+              },
+            ],
+          },
           // // 염도가 적정 수준에 오르기를 기다림
           // {
           //   wrapCmdFormat: reqWCF.SINGLE,
@@ -432,6 +443,12 @@ module.exports = [
             },
             flowSrcPlaceId: 'NEB_2',
             flowDestPlaceId: 'BW_2',
+            imgDisplayList: [
+              {
+                cmdStep: cmdStep.PROCEED,
+                imgId: 'TEST_NEB_2_TO_BW_2',
+              },
+            ],
           },
           // {
           //   wrapCmdFormat: reqWCF.FLOW,

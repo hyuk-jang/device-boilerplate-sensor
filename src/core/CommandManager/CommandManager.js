@@ -200,8 +200,8 @@ class CommandManager {
       // 명령 목록에 추가
       this.commandList.push(cmdStorage);
 
-      // 실제 장치로 명령 요청
-      cmdStorage.executeCommandFromDLC();
+      // 실제 장치로 명령 요청하기 전에 cmdStorage를 먼저 반환하기 위함.
+      setImmediate(() => cmdStorage.executeCommandFromDLC());
 
       return cmdStorage;
     } catch (error) {
