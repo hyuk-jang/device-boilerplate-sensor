@@ -131,6 +131,9 @@ class ScenarioCommand extends ScenarioComponent {
    */
   updateCommandStep(cmdStorage) {
     const { wrapCmdStep } = cmdStorage;
+    // BU.debugConsole(10);
+    // BU.CLI(wrapCmdStep, this.scenarioCmdInfo);
+    BU.log(wrapCmdStep);
 
     switch (wrapCmdStep) {
       // 명령 추적을 하지 않기 때문에 COMPLETE와 END를 종료 단계로 봄

@@ -270,7 +270,7 @@ class CommandManager {
     // FIXME: 임시. 메시지 전체 보냄
     // BU.CLI(_.pick(cmdStorage, commandPickKey.FOR_SERVER));
 
-    process.env.REMAIN === '1' &&
+    process.env.LOG_DBS_CMD_REMAIN === '1' &&
       BU.CLI(
         _(this.commandList)
           .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))

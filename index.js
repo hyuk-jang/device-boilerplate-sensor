@@ -8,6 +8,7 @@ if (require !== undefined && require.main === module) {
   console.log('__main__');
   const { BU } = require('base-util-jh');
   const config = require('./src/config');
+  const scenarioList = require('./test/UPSAS/muan100kW/scenarioList');
   const { dbInfo } = config;
 
   let path;
@@ -38,8 +39,12 @@ if (require !== undefined && require.main === module) {
       return control.runFeature();
     })
     .then(() => {
-      control.inquiryAllDeviceStatus();
-      control.runDeviceInquiryScheduler();
+      // FIXME: 시나리오 테스트
+      control.model.scenarioManager.scenarioCmdList = scenarioList;
+      control.executeScenarioControl({ wrapCmdId: 'vipFlowScenario' });
+
+      // control.inquiryAllDeviceStatus();
+      // control.runDeviceInquiryScheduler();
     })
     .catch(err => {
       BU.CLI(err);

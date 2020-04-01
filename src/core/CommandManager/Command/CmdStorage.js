@@ -131,19 +131,21 @@ class CmdStorage extends CmdComponent {
     // 비동기 처리 과정 때문에 명령 단계 공지를 받지 못하는 경우가 있기 때문에 chaining 을 지연시킴
 
     if (this.restoreCmdList.length) {
-      // BU.CLIN(restoreCmdList);
-      // 자식 명령 객체 초기화
-      this.cmdElements = [];
-      // BU.CLI('복원 명령 발송');
-      // BU.CLIN(this.restoreCmdList);
-      // 요청해야 할 복원 세부 명령 등록
-      this.setCommandElements(this.restoreCmdList);
+      setImmediate(() => {
+        // BU.CLIN(restoreCmdList);
+        // 자식 명령 객체 초기화
+        this.cmdElements = [];
+        // BU.CLI('복원 명령 발송');
+        // BU.CLIN(this.restoreCmdList);
+        // 요청해야 할 복원 세부 명령 등록
+        this.setCommandElements(this.restoreCmdList);
 
-      // 명령 단계: RESTORE 교체
-      this.updateCommandStep(cmdStep.RESTORE);
+        // 명령 단계: RESTORE 교체
+        this.updateCommandStep(cmdStep.RESTORE);
 
-      // 복원 명령 요청
-      return this.executeCommandFromDLC();
+        // 복원 명령 요청
+        return this.executeCommandFromDLC();
+      });
     }
     // 복원 명령이 없담녀 최종적인 명령 단계: END 교체
     return this.updateCommandStep(cmdStep.END);
@@ -284,6 +286,7 @@ class CmdStorage extends CmdComponent {
     // 현재 이벤트와 다른 상태일 경우 전파
     if (this.cmdStep !== updatedCmdStep) {
       this.cmdStep = updatedCmdStep;
+      BU.error(updatedCmdStep);
       return this.notifyObserver();
     }
   }

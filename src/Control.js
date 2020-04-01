@@ -390,9 +390,9 @@ class Control extends EventEmitter {
    * 시나리오를 수행하고자 할 경우
    * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
    */
-  executeScenarioControl(scenarioInfo) {
+  executeScenarioControl(reqScenarioCmdInfo) {
     try {
-      return this.commandExecManager.executeScenarioControl(scenarioInfo);
+      return this.commandExecManager.executeScenarioControl(reqScenarioCmdInfo);
     } catch (error) {
       throw error;
     }

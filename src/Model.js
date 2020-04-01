@@ -141,7 +141,8 @@ class Model {
    * @param {string} scenarioId
    */
   findScenarioCommand(scenarioId) {
-    return _.find(this.mapCmdInfo.scenarioCmdList, { scenarioId });
+    // BU.CLIN(this.scenarioManager.scenarioCmdList, 1);
+    return _.find(this.scenarioManager.scenarioCmdList, { scenarioId });
   }
 
   /**
