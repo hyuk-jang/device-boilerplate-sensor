@@ -41,6 +41,9 @@ class CommandManager {
     /** @type {CmdStorage[]} */
     this.commandList = [];
 
+    /** @type {wsSvgImgInfo[]} */
+    this.svgImgList = [];
+
     this.mapCmdInfo = mapCmdInfo;
 
     // 명령 전략가 등록
@@ -206,6 +209,23 @@ class CommandManager {
       return cmdStorage;
     } catch (error) {
       throw error;
+    }
+  }
+
+  /**
+   * SVG 화면에 나타낼 Img의 변동이 생겼을 경우 진행중인 이미지 관리를 함
+   * @param {mScenarioImgDisplayInfo} svgImgInfo
+   */
+  updateSvgImg(svgImgInfo) {
+    const { imgId, isAppear = 1 } = svgImgInfo;
+
+    if (isAppear === 1) {
+      this.svgImgList.findIndex(svgImg => svgImg.imgId === imgId) > -1 &&
+        this.svgImgList.push({
+          imgId,
+        });
+    } else {
+      _.remove(this.svgImgList, { imgId });
     }
   }
 

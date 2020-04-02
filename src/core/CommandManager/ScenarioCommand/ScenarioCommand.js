@@ -4,6 +4,7 @@ const { BU } = require('base-util-jh');
 
 const {
   dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF },
+  dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
 } = require('../../../module').di;
 
 const ScenarioComponent = require('./ScenarioComponent');
@@ -146,9 +147,12 @@ class ScenarioCommand extends ScenarioComponent {
     const imgDisplayInfo = _.find(this.imgDisplayList, { cmdStep: wrapCmdStep });
     // 이미지 변경 객체가 있을 경우 API Server로 전송
     if (_.isObject(imgDisplayInfo)) {
-      // TODO: API Server로 전송
-      BU.CLI(imgDisplayInfo);
-      // this.coreFacade.
+      delete imgDisplayInfo.cmdStep;
+      // API Server로 전송
+      this.coreFacade.controller.apiClient.transmitDataToServer({
+        commandType: transmitToServerCT.SVG_IMG,
+        data: [imgDisplayInfo],
+      });
     }
 
     switch (wrapCmdStep) {
