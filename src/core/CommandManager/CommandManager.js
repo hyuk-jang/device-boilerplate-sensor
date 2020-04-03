@@ -218,15 +218,24 @@ class CommandManager {
    */
   updateSvgImg(svgImgInfo) {
     const { imgId, isAppear = 1 } = svgImgInfo;
+    // BU.CLI(imgId, isAppear);
 
+    // 새로이 생성하는 이미지이고 중복이 없을 경우 삽입
     if (isAppear === 1) {
-      this.svgImgList.findIndex(svgImg => svgImg.imgId === imgId) > -1 &&
+      this.svgImgList.findIndex(svgImg => svgImg.imgId === imgId) < 0 &&
         this.svgImgList.push({
           imgId,
         });
     } else {
       _.remove(this.svgImgList, { imgId });
     }
+    // BU.CLI(this.svgImgList);
+
+    // BU.CLI(this.model.getAllSvgImg());
+    this.controller.apiClient.transmitDataToServer({
+      commandType: transmitToServerCT.SVG_IMG,
+      data: this.model.getAllSvgImg(),
+    });
   }
 
   /**
@@ -301,9 +310,10 @@ class CommandManager {
       commandType: transmitToServerCT.COMMAND,
       // data: [_.pick(cmdStorage, commandPickKey.FOR_SERVER)],
       // data: _.map(this.commandList, cmdStorage => _.pick(cmdStorage, commandPickKey.FOR_SERVER)),
-      data: _(this.commandList)
-        .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
-        .value(),
+      data: this.model.getAllCmdStatus(commandPickKey.FOR_SERVER),
+      // data: _(this.commandList)
+      //   .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
+      //   .value(),
     });
 
     // 명령 업데이트를 구독하고 있는 대상에게 공지

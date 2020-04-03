@@ -304,6 +304,15 @@ class Model {
   }
 
   /**
+   * 모든 노드가 가지고 있는 정보 출력
+   * @param {Object} pickInfo
+   * @param {wsSvgImgInfo[]=} svgImgList
+   */
+  getAllSvgImg(pickInfo, svgImgList = this.cmdManager.svgImgList) {
+    return svgImgList;
+  }
+
+  /**
    * 노드 리스트 중 입력된 날짜를 기준으로 유효성을 가진 데이터만 반환
    * @param {nodeInfo[]} nodeList
    * @param {timeIntervalToValidateInfo} diffInfo

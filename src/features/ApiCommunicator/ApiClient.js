@@ -236,6 +236,12 @@ class ApiClient extends DeviceManager {
       commandType: transmitToServerCT.COMMAND,
       data: this.controller.model.getAllCmdStatus(),
     });
+
+    // SVG Img 현황
+    this.transmitDataToServer({
+      commandType: transmitToServerCT.SVG_IMG,
+      data: this.controller.model.getAllSvgImg(),
+    });
   }
 
   /**
