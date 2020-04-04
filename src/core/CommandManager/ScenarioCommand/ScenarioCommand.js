@@ -147,8 +147,6 @@ class ScenarioCommand extends ScenarioComponent {
     const imgDisplayInfo = _.find(this.imgDisplayList, { cmdStep: wrapCmdStep });
     // 이미지 변경 객체가 있을 경우 API Server로 전송
     if (_.isObject(imgDisplayInfo)) {
-      BU.CLI(imgDisplayInfo);
-      // delete imgDisplayInfo.cmdStep;
       // API Server로 전송
       this.coreFacade.cmdManager.updateSvgImg(imgDisplayInfo);
     }

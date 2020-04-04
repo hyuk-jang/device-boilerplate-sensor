@@ -339,6 +339,7 @@ class ApiClient extends DeviceManager {
       // BU.CLI(reqCmdInfo);
 
       let cmdStorage;
+      let scenarioStroage;
 
       switch (wrapCmdFormat) {
         case reqWCF.SINGLE:
@@ -354,7 +355,7 @@ class ApiClient extends DeviceManager {
           cmdStorage = this.controller.executeFlowControl(reqCmdInfo);
           break;
         case reqWCF.SCENARIO:
-          // BU.CLI('reqWCF.SCENARIO');
+          // FIXME: 시나리오 반환값은 cmdStorage가 아님. 필요한 값만 get 처리 함
           cmdStorage = this.controller.executeScenarioControl(reqCmdInfo);
           break;
         default:
@@ -363,7 +364,7 @@ class ApiClient extends DeviceManager {
           break;
       }
 
-      if (_.isEmpty(cmdStorage)) {
+      if (cmdStorage === undefined && scenarioStroage === undefined) {
         throw new Error(`WCT: ${wrapCmdFormat} is not defined`);
       }
 

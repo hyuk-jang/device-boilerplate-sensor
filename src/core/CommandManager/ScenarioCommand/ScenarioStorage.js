@@ -5,6 +5,10 @@ const { BU } = require('base-util-jh');
 const ScenarioComponent = require('./ScenarioComponent');
 const ScenarioCommand = require('./ScenarioCommand');
 
+const {
+  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF, reqWrapCmdType: reqWCT },
+} = require('../../../module').di;
+
 /**
  * 명령 이터레이터
  * @param {number} start
@@ -47,6 +51,26 @@ class ScenarioStorage extends ScenarioComponent {
 
     /** @type {IterableIterator} */
     this.iterator;
+  }
+
+  /** @return {string} 명령 형식, MEASURE, SINGLE, SET, FLOW, SCENARIO */
+  get wrapCmdFormat() {
+    return reqWCF.SCENARIO;
+  }
+
+  /** @return {string} 명령 타입, CONTROL, CANCEL */
+  get wrapCmdType() {
+    return reqWCT.CONTROL;
+  }
+
+  /** @return {string} 명령 ID */
+  get wrapCmdId() {
+    return this.scenarioId;
+  }
+
+  /** @return {string} 명령 이름 */
+  get wrapCmdName() {
+    return this.scenarioName;
   }
 
   /**

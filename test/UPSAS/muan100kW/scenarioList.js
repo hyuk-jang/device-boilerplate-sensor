@@ -13,7 +13,7 @@ const {
 /** @type {mScenarioInfo[]} */
 module.exports = [
   {
-    scenarioId: 'rainMode',
+    scenarioId: 'rainMode2',
     scenarioList: [
       // 모든 장치 닫기
       {
@@ -166,7 +166,7 @@ module.exports = [
     ],
   },
   {
-    scenarioId: 'normalFlowScenario',
+    scenarioId: 'normalFlowScenario2',
     scenarioList: [
       // 모든 장치 닫기
       {
@@ -361,24 +361,14 @@ module.exports = [
     ],
   },
   {
-    scenarioId: 'vipFlowScenario',
+    scenarioId: 'normalFlowScenario',
+    scenarioName: '소금 생산 시나리오',
     scenarioList: [
       // 모든 장치 닫기
       {
         wrapCmdFormat: reqWCF.SET,
         wrapCmdType: reqWCT.CONTROL,
         setCmdId: 'closeAllDevice',
-        imgDisplayList: [
-          {
-            cmdStep: cmdStep.PROCEED,
-            imgId: 'TEST_closeAllDevice',
-          },
-          {
-            cmdStep: cmdStep.COMPLETE,
-            imgId: 'TEST_closeAllDevice',
-            isAppear: 0,
-          },
-        ],
       },
       // 저수지 1 > 저수지 1 염수 이동
       [
@@ -488,14 +478,84 @@ module.exports = [
             ],
           },
         ],
+        [
+          {
+            wrapCmdFormat: reqWCF.FLOW,
+            wrapCmdType: reqWCT.CONTROL,
+            wrapCmdGoalInfo: {
+              limitTimeSec: 5,
+            },
+            flowSrcPlaceId: 'BW_3',
+            flowDestPlaceId: 'SEB_TWO',
+          },
+        ],
+      ],
+    ],
+  },
+  {
+    scenarioId: 'rainMode',
+    scenarioName: '우천 모드',
+    scenarioList: [
+      // 모든 장치 닫기
+      {
+        wrapCmdFormat: reqWCF.SET,
+        wrapCmdType: reqWCT.CONTROL,
+        setCmdId: 'closeAllDevice',
+      },
+      // 염수 대피
+      [
+        // 결정지 염수 이동
         {
           wrapCmdFormat: reqWCF.FLOW,
           wrapCmdType: reqWCT.CONTROL,
+          flowSrcPlaceId: 'NCB',
+          flowDestPlaceId: 'BW_5',
           wrapCmdGoalInfo: {
-            limitTimeSec: 5,
+            limitTimeSec: 10,
           },
-          flowSrcPlaceId: 'BW_3',
-          flowDestPlaceId: 'SEB_TWO',
+          imgDisplayList: [
+            {
+              cmdStep: cmdStep.PROCEED,
+              imgId: 'rainMode',
+            },
+          ],
+        },
+        // 수중 태양광 증발지 그룹 2 염수 이동
+        {
+          wrapCmdFormat: reqWCF.FLOW,
+          wrapCmdType: reqWCT.CONTROL,
+          flowSrcPlaceId: 'SEB_TWO',
+          flowDestPlaceId: 'BW_3',
+          wrapCmdGoalInfo: {
+            limitTimeSec: 10,
+          },
+        },
+        // 수중 태양광 증발지 그룹 1 염수 이동
+        {
+          wrapCmdFormat: reqWCF.FLOW,
+          wrapCmdType: reqWCT.CONTROL,
+          flowSrcPlaceId: 'SEB_ONE',
+          flowDestPlaceId: 'BW_2',
+          wrapCmdGoalInfo: {
+            limitTimeSec: 10,
+          },
+          imgDisplayList: [
+            {
+              cmdStep: cmdStep.END,
+              imgId: 'rainMode',
+              isAppear: 0,
+            },
+          ],
+        },
+        // 일반 증발지 2 염수 이동
+        {
+          wrapCmdFormat: reqWCF.FLOW,
+          wrapCmdType: reqWCT.CONTROL,
+          flowSrcPlaceId: 'NEB_2',
+          flowDestPlaceId: 'BW_1',
+          wrapCmdGoalInfo: {
+            limitTimeSec: 10,
+          },
         },
       ],
     ],
