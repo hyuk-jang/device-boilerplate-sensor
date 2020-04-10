@@ -289,9 +289,7 @@ class CommandExecManager {
   executeCommand(reqCommandInfo) {
     // BU.CLI(reqCommandInfo.wrapCmdId);
     try {
-      const { wrapCmdFormat, reqCmdEleList } = reqCommandInfo;
-
-      // BU.CLIN(reqCmdEleList);
+      const { reqCmdEleList } = reqCommandInfo;
 
       reqCmdEleList.forEach(reqCmdEleInfo => {
         const { searchIdList } = reqCmdEleInfo;
@@ -307,18 +305,26 @@ class CommandExecManager {
           }
 
           return errMsg.length;
-
-          // // 계측 명령 내릴 때 에러가 있을 경우
-          // if(errMsg.length) {
-          //   // 계측 명령이
-          //   return true;
-          // }
         });
       });
 
       // BU.CLIN(reqCmdEleList);
 
       return this.coreFacade.cmdManager.executeCommand(reqCommandInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 기존에 실행 중인 명령을 취소하고자 할 경우
+   * @param {executeCmdInfo} executeCmdInfo
+   */
+  executeCancelCommand(executeCmdInfo) {
+    try {
+      // 기본 값 CANCEL로 설정
+      executeCmdInfo.wrapCmdType = reqWCT.CANCEL;
+      return this.coreFacade.cmdManager.executeCommand(executeCmdInfo);
     } catch (error) {
       throw error;
     }

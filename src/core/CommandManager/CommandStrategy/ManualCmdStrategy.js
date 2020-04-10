@@ -56,16 +56,12 @@ class ManualCmdStrategy extends CmdStrategy {
       wrapCmdId,
     });
 
-    /** @type {commandWrapInfo} */
-    let cmdWrapInfo = {};
-
     // 명령이 존재하지 않을 경우 container 계산
-    if (_.isEmpty(foundCmdStoarge)) {
-      cmdWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
-    } else {
-      // BU.CLI('저장소가 존재');
-      cmdWrapInfo = foundCmdStoarge.wrapCmdInfo;
-    }
+    /** @type {commandWrapInfo} */
+    const cmdWrapInfo =
+      foundCmdStoarge === undefined
+        ? this.cmdManager.refineReqCommand(reqCmdInfo)
+        : foundCmdStoarge.wrapCmdInfo;
 
     // 명령 저장소에서 설정 객체를 불러옴
     /** @type {commandContainerInfo[]} Restore Command 생성 */
@@ -74,10 +70,9 @@ class ManualCmdStrategy extends CmdStrategy {
       .filter({ singleControlType: reqDCT.TRUE })
       // 복원 명령으로 변형
       .map(containerInfo => {
-        const { nodeId } = containerInfo;
         /** @type {commandContainerInfo} */
         const newContainerInfo = {
-          nodeId,
+          nodeId: containerInfo.nodeId,
           singleControlType: reqDCT.FALSE,
           isIgnore: false,
         };

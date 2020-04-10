@@ -399,6 +399,18 @@ class Control extends EventEmitter {
   }
 
   /**
+   * 기존에 실행 중인 명령을 취소하고자 할 경우
+   * @param {executeCmdInfo} executeCmdInfo
+   */
+  executeCancelCommand(executeCmdInfo) {
+    try {
+      return this.commandExecManager.executeCancelCommand(executeCmdInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * 정기적인 Router Status 탐색
    */
   inquiryAllDeviceStatus() {

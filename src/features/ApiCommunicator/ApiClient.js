@@ -5,7 +5,7 @@ const { BU } = require('base-util-jh');
 const { di, dpc } = require('../../module');
 
 const {
-  dcmConfigModel: { reqWrapCmdFormat: reqWCF, nodePickKey, commandPickKey },
+  dcmConfigModel: { reqWrapCmdFormat: reqWCF, reqWrapCmdType: reqWCT, nodePickKey, commandPickKey },
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
 } = di;
 
@@ -310,9 +310,11 @@ class ApiClient extends DeviceManager {
     try {
       /** @type {wsControlCmdAPI} 웹 API Server에서 받은 명령 정보 비구조화할당 이름 재정의 */
       const {
+        WCU: wrapCmdUUID,
         WCF: wrapCmdFormat,
         WCT: wrapCmdType,
         WCI: wrapCmdId,
+        WCN: wrapCmdName,
         WCG: wrapCmdGoalInfo,
         SCT: singleControlType,
         CSV: controlSetValue,
@@ -324,9 +326,11 @@ class ApiClient extends DeviceManager {
 
       /** @type {reqCommandInfo} DBS에서 사용될 명령 Format 으로 변경 */
       const reqCmdInfo = {
+        wrapCmdUUID,
         wrapCmdFormat,
         wrapCmdType,
         wrapCmdId,
+        wrapCmdName,
         wrapCmdGoalInfo,
         rank,
         singleControlType,
@@ -336,32 +340,35 @@ class ApiClient extends DeviceManager {
         destPlaceId: DPI,
       };
 
-      // BU.CLI(reqCmdInfo);
-
       let cmdStorage;
       let scenarioStroage;
 
-      switch (wrapCmdFormat) {
-        case reqWCF.SINGLE:
-          // BU.CLI('reqWCF.SINGLE');
-          cmdStorage = this.controller.executeSingleControl(reqCmdInfo);
-          break;
-        case reqWCF.SET:
-          // BU.CLI('reqWCF.SET');
-          cmdStorage = this.controller.executeSetControl(reqCmdInfo);
-          break;
-        case reqWCF.FLOW:
-          // BU.CLI('reqWCF.FLOW');
-          cmdStorage = this.controller.executeFlowControl(reqCmdInfo);
-          break;
-        case reqWCF.SCENARIO:
-          // FIXME: 시나리오 반환값은 cmdStorage가 아님. 필요한 값만 get 처리 함
-          cmdStorage = this.controller.executeScenarioControl(reqCmdInfo);
-          break;
-        default:
-          responseMsg.isError = 1;
-          responseMsg.message = `WCT: ${wrapCmdFormat} is not defined`;
-          break;
+      // wrapCmdUUID가 존재하고 명령 타입이 취소일 경우 명령 스토리지에 존재하는 명령 저장소에 취소 요청
+      if (typeof wrapCmdUUID === 'string' && wrapCmdType === reqWCT.CANCEL) {
+        cmdStorage = this.controller.executeCancelCommand(reqCmdInfo);
+      } else {
+        switch (wrapCmdFormat) {
+          case reqWCF.SINGLE:
+            // BU.CLI('reqWCF.SINGLE');
+            cmdStorage = this.controller.executeSingleControl(reqCmdInfo);
+            break;
+          case reqWCF.SET:
+            // BU.CLI('reqWCF.SET');
+            cmdStorage = this.controller.executeSetControl(reqCmdInfo);
+            break;
+          case reqWCF.FLOW:
+            // BU.CLI('reqWCF.FLOW');
+            cmdStorage = this.controller.executeFlowControl(reqCmdInfo);
+            break;
+          case reqWCF.SCENARIO:
+            // FIXME: 시나리오 반환값은 cmdStorage가 아님. 필요한 값만 get 처리 함
+            cmdStorage = this.controller.executeScenarioControl(reqCmdInfo);
+            break;
+          default:
+            responseMsg.isError = 1;
+            responseMsg.message = `WCT: ${wrapCmdFormat} is not defined`;
+            break;
+        }
       }
 
       if (cmdStorage === undefined && scenarioStroage === undefined) {
