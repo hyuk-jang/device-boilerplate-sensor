@@ -146,9 +146,10 @@ class CmdStorage extends CmdComponent {
         // 복원 명령 요청
         return this.executeCommandFromDLC();
       });
+    } else {
+      // 복원 명령이 없다면 최종적인 명령 단계: END 교체
+      return this.updateCommandStep(cmdStep.END);
     }
-    // 복원 명령이 없담녀 최종적인 명령 단계: END 교체
-    return this.updateCommandStep(cmdStep.END);
   }
 
   /** Data Logger Controller에게 명령 실행 요청 */
