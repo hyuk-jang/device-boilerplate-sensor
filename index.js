@@ -45,6 +45,36 @@ if (require !== undefined && require.main === module) {
 
       control.inquiryAllDeviceStatus();
       control.runDeviceInquiryScheduler();
+
+      // control.executeSetControl({
+      //   wrapCmdId: 'closeAllDevice',
+      // });
+
+      // setTimeout(() => {
+      //   control.executeFlowControl({
+      //     srcPlaceId: 'SEB_ONE',
+      //     destPlaceId: 'SEA',
+      //     // rank: 1,
+      //   });
+
+      //   control.executeFlowControl({
+      //     srcPlaceId: 'SEB_ONE',
+      //     destPlaceId: 'SEA',
+      //     wrapCmdType: 'CANCEL',
+      //     // rank: 1,
+      //   });
+
+      // control.executeFlowControl({
+      //   srcPlaceId: 'BW_2',
+      //   destPlaceId: 'SEB_ONE',
+      // });
+
+      // control.executeFlowControl({
+      //   srcPlaceId: 'BW_2',
+      //   destPlaceId: 'SEB_ONE',
+      //   wrapCmdType: 'CANCEL',
+      // });
+      // }, 1000 * 2);
     })
     .catch(err => {
       BU.CLI(err);

@@ -123,6 +123,11 @@ class ManualCmdStrategy extends CmdStrategy {
       const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
       this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
 
+      // BU.CLI(
+      //   commandWrapInfo.wrapCmdName,
+      //   commandWrapInfo.containerCmdList.filter(info => !info.isIgnore),
+      // );
+
       return this.cmdManager.executeRealCommand(commandWrapInfo, this);
     } catch (error) {
       throw error;

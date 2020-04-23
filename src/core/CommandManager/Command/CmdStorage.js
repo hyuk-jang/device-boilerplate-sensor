@@ -311,7 +311,7 @@ class CmdStorage extends CmdComponent {
   }
 
   /** @return {string} 명령 실행 우선 순위 */
-  get wrapCmdRank() {
+  get rank() {
     return this.wrapCmdInfo.rank;
   }
 
@@ -350,9 +350,19 @@ class CmdStorage extends CmdComponent {
    * @return {CmdElement[]}
    */
   getCmdEleList(cmdElementSearch) {
-    // BU.CLIN(_.map(this.cmdElements, 'nodeId'));
-    // BU.CLI(this.cmdElements.length, cmdElementSearch);
+    // const { nodeId: rNi, singleControlType: rSc, controlSetValue: rCs } = cmdElementSearch;
+
+    // return this.cmdElements.reduce((results, cmdElement) => {
+    //   const { nodeId: ni, singleControlType: sc, controlSetValue: cs } = cmdElement;
+    //   if (rNi === ni && rSc === sc && rCs === cs) {
+    //     results.push(cmdElement);
+    //   }
+    //   return results;
+    // }, []);
+
     return _.filter(this.cmdElements, cmdElementSearch);
+
+    // return _.filter(this.cmdElements, cmdElementSearch);
   }
 
   /** 모든 세부 명령 완료 여부 */

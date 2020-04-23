@@ -275,7 +275,7 @@ class CommandManager {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    // BU.CLI('updateCommandStep >>> Default', cmdStorage.cmdStep);
+    // BU.CLI('updateCommandStep >>> Default', cmdStorage.wrapCmdName + cmdStorage.cmdStep);
     const { wrapCmdFormat, wrapCmdStep, wrapCmdId } = cmdStorage;
     //  명령 완료를 받았을 경우
     if (wrapCmdStep === cmdStep.COMPLETE) {
@@ -298,6 +298,7 @@ class CommandManager {
     // BU.CLI('notifyUpdateCommandStep', cmdStorage.cmdStep);
     // FIXME: 임시. 메시지 전체 보냄
     // BU.CLI(_.pick(cmdStorage, commandPickKey.FOR_SERVER));
+    // BU.CLI('updateCommandStep >>> Default', cmdStorage.wrapCmdName + cmdStorage.cmdStep);
 
     process.env.LOG_DBS_CMD_REMAIN === '1' &&
       BU.CLI(
@@ -408,12 +409,13 @@ class CommandManager {
       // _.assign(containerInfo, { isLive: true });
 
       // BU.CLIN(foundCmdEle, 1);
-      // 기존재할 경우
+      // 기존재하고 아직 명령이 완수되지 않았다면 추가 제어 무시함
       if (foundCmdEle instanceof CmdElement) {
-        containerInfo.isIgnore = true;
+        containerInfo.isIgnore = !foundCmdEle.isCommandClear();
       } else {
         // 현재 값과 제어할려는 값이 동일할 경우 true, 다르다면 false
-        containerInfo.isIgnore = this.isEqualCurrNodeData(containerInfo);
+        containerInfo.isIgnore =
+          process.env.IS_OVERLAP_CMD !== '0' ? this.isEqualCurrNodeData(containerInfo) : false;
       }
     });
   }

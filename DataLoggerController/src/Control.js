@@ -193,7 +193,7 @@ class DataLoggerController extends DccFacade {
       this.model = new Model(this);
       // 중앙 값 사용하는 Node가 있다면 적용
       const filterdNodeList = _.filter(this.nodeList, { is_avg_center: 1 });
-      if (!_.isEmpty(filterdNodeList)) {
+      if (filterdNodeList.length) {
         this.model.bindingAverageStorageForNode(filterdNodeList, true);
       }
       // DCC 초기화 시작
