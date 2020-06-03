@@ -1,5 +1,7 @@
 const CoreFacade = require('../../../src/core/CoreFacade');
 
+const rainScenario = require('./rainScenario');
+
 const { dcmConfigModel } = CoreFacade;
 
 const {
@@ -11,7 +13,7 @@ const {
 } = dcmConfigModel;
 
 /** @type {mScenarioInfo[]} */
-module.exports = [
+const scenarioList = [
   {
     scenarioId: 'rainMode2',
     scenarioList: [
@@ -561,3 +563,5 @@ module.exports = [
     ],
   },
 ];
+
+module.exports = Object.assign(scenarioList, rainScenario);

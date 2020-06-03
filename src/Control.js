@@ -128,6 +128,8 @@ class Control extends EventEmitter {
 
     // 가져온 Main 정보에서 main_seq를 구함
     this.mainSeq = _.get(mainRow, 'main_seq', '');
+    this.mainRow = mainRow;
+
     const where = {
       main_seq: this.mainSeq,
     };
@@ -177,6 +179,7 @@ class Control extends EventEmitter {
 
     // 맵 데이터 중 DBS에서 필요치 않는 Draw 관련 정보 삭제
     _.unset(this.deviceMap, 'drawInfo');
+    _.unset(this.mainRow, 'map');
   }
 
   /**
