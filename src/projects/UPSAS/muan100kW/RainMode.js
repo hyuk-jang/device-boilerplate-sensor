@@ -33,16 +33,14 @@ const JUDGMENT = {
 module.exports = class {
   /**
    *
-   * @param {CoreFacade} coreFacade
+
    * @param {Object} siteInfo
    * @param {number} siteInfo.main_seq
    * @param {number} siteInfo.weather_location_seq
    */
-  constructor(coreFacade, siteInfo) {
-    this.coreFacade = coreFacade;
+  constructor(siteInfo) {
+    // BU.CLI(siteInfo);
     const { main_seq: ms, weather_location_seq: wls } = siteInfo;
-
-    this.biModule = coreFacade.model.biModule;
 
     this.mainSeq = ms;
     this.wls = wls;
@@ -53,8 +51,14 @@ module.exports = class {
     this.rainScheduler = null;
   }
 
-  /** 우천 모드 체크 */
-  init() {
+  /**
+   * 우천 모드 체크
+   * @param {CoreFacade} coreFacade
+   */
+  init(coreFacade) {
+    this.coreFacade = coreFacade;
+    this.biModule = coreFacade.model.biModule;
+
     this.executeRainCommand();
   }
 
@@ -161,6 +165,7 @@ module.exports = class {
   async checkRainWeatherDevice(rangeMin = 10) {
     // 기상 계측 장비
     const weatherDeviceRows = await this.getWeatherDevice(rangeMin);
+    // BU.CLI(weatherDeviceRows);
 
     // 70% 이상의 데이터를 보유하였을 경우에만 진행
     if (weatherDeviceRows.length < rangeMin * 0.7) return JUDGMENT.NULL;
@@ -265,6 +270,6 @@ module.exports = class {
       ORDER BY weather_device_data_seq DESC
     `;
 
-    return this.biModule.db.single(sql, null, true);
+    return this.biModule.db.single(sql, null, false);
   }
 };

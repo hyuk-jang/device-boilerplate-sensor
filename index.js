@@ -41,7 +41,12 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       // FIXME: 시나리오 테스트
       control.model.scenarioManager.scenarioCmdList = scenarioList;
-      // control.executeScenarioControl({ wrapCmdId: 'normalFlowScenario' });
+
+      // rainEvacuation
+      // rainRelease
+      // rainEvaRelease
+      // rainRestore
+      // control.executeScenarioControl({ wrapCmdId: 'rainRestore' });
 
       control.inquiryAllDeviceStatus();
       control.runDeviceInquiryScheduler();

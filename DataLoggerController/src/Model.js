@@ -32,9 +32,14 @@ class Model {
    */
   initModel() {
     // nodeList를 돌면서 데이터를 undefined 처리함
-    _.forEach(this.nodeList, nodeInfo => {
-      nodeInfo.data = undefined;
+
+    this.nodeList.forEach(nodeInfo => {
+      delete nodeInfo.data;
     });
+
+    this.tempStorage = this.controller.converter.BaseModel;
+
+    this.requestCommandSetList = [];
 
     if (this.hasAverageStorage) {
       this.averageStorage.init();

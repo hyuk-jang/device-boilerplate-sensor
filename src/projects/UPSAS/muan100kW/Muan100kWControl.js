@@ -49,6 +49,14 @@ class MuanControl extends Control {
     this.coreFacade.setCoreAlgorithm(algorithmStorage);
 
     this.bindingEventHandler();
+
+    // FIXME: 우천 모드 수정 필요 (제어 로직의 변경 필요)
+    // const { mainRow } = this.coreFacade.controller;
+
+    // this.rainMode = new RainMode({
+    //   main_seq: mainRow.main_seq,
+    //   weather_location_seq: mainRow.weather_location_seq,
+    // });
   }
 
   /**
@@ -90,6 +98,9 @@ class MuanControl extends Control {
           break;
       }
     });
+
+    // FIXME: 우천 모드 수정 필요 (제어 로직의 변경 필요)
+    // this.rainMode.init(this.coreFacade);
   }
 
   // /**
@@ -98,7 +109,10 @@ class MuanControl extends Control {
   //  * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
   //  */
   // initMakeConfigForDLC() {
-  //   // return super.initMakeConfigForDLC();
+  //   if (process.env.IS_INIT_DLC !== '1') {
+  //     return super.initMakeConfigForDLC();
+  //   }
+
   //   // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
   //   this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
   //     const {
@@ -137,7 +151,7 @@ class MuanControl extends Control {
   //       connInfo.subType = '';
   //       delete connInfo.addConfigInfo;
 
-  //       // connInfo = {};
+  //       connInfo = {};
   //     } else if (connInfo.type === 'modbus' && connInfo.subType === 'rtu') {
   //       // 접속반
   //       connInfo.type = 'socket';
@@ -148,7 +162,7 @@ class MuanControl extends Control {
   //       //   option: '}',
   //       // };
   //       delete connInfo.addConfigInfo;
-  //       // connInfo = {};
+  //       connInfo = {};
   //     }
 
   //     // FIXME: TEST 로 사용됨  -------------

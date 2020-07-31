@@ -493,7 +493,7 @@ class Control extends EventEmitter {
       }
     } catch (error) {
       // 예외는 기록만 함
-      // BU.error(error);
+      // BU.CLIN(this, 1);
       BU.error(error.message);
       throw error;
     }
@@ -505,7 +505,19 @@ class Control extends EventEmitter {
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {dcEvent} dcEvent 이벤트 발생 내역
    */
-  notifyDeviceEvent(dataLoggerController, dcEvent) {}
+  notifyDeviceEvent(dataLoggerController, dcEvent) {
+    const { CONNECT, DISCONNECT } = dataLoggerController.definedControlEvent;
+
+    switch (dcEvent.eventName) {
+      case CONNECT:
+        break;
+      // FIXME: 명령 삭제, DBW로 명령 Fail 전송(commandType: transmitToServerCT.COMMAND_FAIL)
+      case DISCONNECT:
+        break;
+      default:
+        break;
+    }
+  }
 
   /**
    * TODO: 메시지 처리
