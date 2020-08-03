@@ -168,7 +168,8 @@ const scenarioList = [
     ],
   },
   {
-    scenarioId: 'normalFlowScenario2',
+    scenarioId: 'normalFlowScenario',
+    scenarioName: '소금 생산 시나리오',
     scenarioList: [
       // 모든 장치 닫기
       {
@@ -363,7 +364,7 @@ const scenarioList = [
     ],
   },
   {
-    scenarioId: 'normalFlowScenario',
+    scenarioId: 'VIP',
     scenarioName: '소금 생산 시나리오',
     scenarioList: [
       // 모든 장치 닫기
@@ -492,6 +493,27 @@ const scenarioList = [
           },
         ],
       ],
+      // 결정지 소금 생산
+      [
+        [
+          // 해주 5 > 결정지 염수 이동
+          {
+            wrapCmdFormat: reqWCF.FLOW,
+            wrapCmdType: reqWCT.CONTROL,
+            wrapCmdGoalInfo: {
+              limitTimeSec: 5,
+            },
+            flowSrcPlaceId: 'BW_5',
+            flowDestPlaceId: 'NCB',
+          },
+          {
+            wrapCmdFormat: reqWCF.FLOW,
+            wrapCmdType: reqWCT.CANCEL,
+            flowSrcPlaceId: 'BW_5',
+            flowDestPlaceId: 'NCB',
+          },
+        ],
+      ],
     ],
   },
   {
@@ -564,4 +586,5 @@ const scenarioList = [
   },
 ];
 
-module.exports = Object.assign(scenarioList, rainScenario);
+// module.exports = Object.assign(scenarioList, rainScenario);
+module.exports = scenarioList.concat(rainScenario);
