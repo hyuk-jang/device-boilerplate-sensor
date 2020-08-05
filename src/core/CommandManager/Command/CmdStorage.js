@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const uuidv4 = require('uuid/v4');
+const uuid = require('uuid');
 
 const { BU } = require('base-util-jh');
 
@@ -22,7 +22,7 @@ class CmdStorage extends CmdComponent {
     super();
     this.coreFacade = coreFacade;
 
-    this.cmdStorageUuid = uuidv4();
+    this.cmdStorageUuid = uuid.v4();
 
     this.wrapCmdInfo;
 
@@ -58,20 +58,16 @@ class CmdStorage extends CmdComponent {
    * @param {commandWrapInfo} wrapCmdInfo
    */
   setCommand(wrapCmdInfo) {
-    try {
-      // BU.CLIN(_.omit(wrapCmdInfo, 'containerCmdList'));
-      // 명령 객체 정보 저장
-      this.wrapCmdInfo = wrapCmdInfo;
-      const { containerCmdList } = wrapCmdInfo;
+    // BU.CLIN(_.omit(wrapCmdInfo, 'containerCmdList'));
+    // 명령 객체 정보 저장
+    this.wrapCmdInfo = wrapCmdInfo;
+    const { containerCmdList } = wrapCmdInfo;
 
-      // 실제 제어할 목록 만큼 실행
-      this.setCommandElements(containerCmdList);
+    // 실제 제어할 목록 만큼 실행
+    this.setCommandElements(containerCmdList);
 
-      // 명령 대기 상태로 전환
-      return this.updateCommandStep(cmdStep.WAIT);
-    } catch (error) {
-      throw error;
-    }
+    // 명령 대기 상태로 전환
+    return this.updateCommandStep(cmdStep.WAIT);
   }
 
   /**
@@ -82,45 +78,41 @@ class CmdStorage extends CmdComponent {
    */
   cancelCommand(restoreCmdList = []) {
     // BU.CLI('cancelCommand');
-    try {
-      if (_.isEmpty(this.wrapCmdInfo)) {
-        throw new Error('wrapCmdInfo does not exist.');
-      }
-
-      // BU.CLI(restoreCmdList);
-
-      // 취소 상태로 변경 및 명령 진행 단계는 대기 단계로 변경
-      this.wrapCmdInfo.wrapCmdType = reqWCT.CANCEL;
-      // 명령 단계를 CANCELING으로 교체
-      // this.cmdStep = cmdStep.CANCELING;
-      // 복원 명령 정의
-      this.restoreCmdList = restoreCmdList;
-
-      // 임계 명령 해제
-      if (this.thresholdStorage) {
-        this.removeThreshold();
-      }
-
-      // 이미 모든 명령을 완료한 상태라면 즉시 복원 명령 요청
-      if (this.isCommandClear()) {
-        return this.restoreCommand();
-      }
-
-      // 명령 단계를 CANCELING으로 교체
-      // BU.CLI('명령 단계 CANCELING');
-      this.updateCommandStep(cmdStep.CANCELING);
-
-      // 아직 완료되지 못한 개체 취소 요청
-      _.forEach(this.cmdElements, cmdElement => {
-        // 취소 중이므로 살아있는 객체여부 false
-        cmdElement.isLive = false;
-        if (!cmdElement.isCommandClear()) {
-          cmdElement.cancelCommandFromDLC();
-        }
-      });
-    } catch (error) {
-      throw error;
+    if (_.isEmpty(this.wrapCmdInfo)) {
+      throw new Error('wrapCmdInfo does not exist.');
     }
+
+    // BU.CLI(restoreCmdList);
+
+    // 취소 상태로 변경 및 명령 진행 단계는 대기 단계로 변경
+    this.wrapCmdInfo.wrapCmdType = reqWCT.CANCEL;
+    // 명령 단계를 CANCELING으로 교체
+    // this.cmdStep = cmdStep.CANCELING;
+    // 복원 명령 정의
+    this.restoreCmdList = restoreCmdList;
+
+    // 임계 명령 해제
+    if (this.thresholdStorage) {
+      this.removeThreshold();
+    }
+
+    // 이미 모든 명령을 완료한 상태라면 즉시 복원 명령 요청
+    if (this.isCommandClear()) {
+      return this.restoreCommand();
+    }
+
+    // 명령 단계를 CANCELING으로 교체
+    // BU.CLI('명령 단계 CANCELING');
+    this.updateCommandStep(cmdStep.CANCELING);
+
+    // 아직 완료되지 못한 개체 취소 요청
+    _.forEach(this.cmdElements, (cmdElement) => {
+      // 취소 중이므로 살아있는 객체여부 false
+      cmdElement.isLive = false;
+      if (!cmdElement.isCommandClear()) {
+        cmdElement.cancelCommandFromDLC();
+      }
+    });
   }
 
   /**
@@ -162,7 +154,7 @@ class CmdStorage extends CmdComponent {
     }
     // BU.CLIN(this.cmdElements);
     // 세부 명령 객체에게 장치 제어 명령 요청
-    this.cmdElements.forEach(cmdElement => {
+    this.cmdElements.forEach((cmdElement) => {
       cmdElement.executeCommandFromDLC();
     });
   }
@@ -174,7 +166,7 @@ class CmdStorage extends CmdComponent {
   setCommandElements(commandContainerList) {
     this.cmdElements = [];
 
-    commandContainerList.forEach(containerInfo => {
+    commandContainerList.forEach((containerInfo) => {
       const cmdElement = new CmdElement(containerInfo, this.coreFacade);
       cmdElement.setSuccessor(this);
 
@@ -260,7 +252,7 @@ class CmdStorage extends CmdComponent {
   /** 명령 이벤트 발생 전파  */
   notifyObserver() {
     // BU.CLI('notifyObserver', `${this.cmdStep} ${this.wrapCmdId}`);
-    this.observers.forEach(observer => {
+    this.observers.forEach((observer) => {
       if (_.get(observer, 'updateCommandStep')) {
         observer.updateCommandStep(this);
       }
@@ -370,7 +362,7 @@ class CmdStorage extends CmdComponent {
     // BU.CLI(_.map(this.cmdElements, 'cmdEleStep'));
 
     // 모든 세부 명령 처리 여부
-    return this.cmdElements.every(cmdElement => cmdElement.isCommandClear());
+    return this.cmdElements.every((cmdElement) => cmdElement.isCommandClear());
   }
 
   /**
