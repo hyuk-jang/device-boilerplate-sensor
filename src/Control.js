@@ -320,9 +320,7 @@ class Control extends EventEmitter {
   setPassiveClient(mainUUID, passiveClient) {
     if (this.mainUUID !== mainUUID) {
       throw new Error(
-        `The ${
-          this.mainUUID
-        } of this site is different from the ${mainUUID} of the site you received.`,
+        `The ${this.mainUUID} of this site is different from the ${mainUUID} of the site you received.`,
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
@@ -535,6 +533,6 @@ class Control extends EventEmitter {
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {dcError} dcError 명령 수행 결과 데이터
    */
-  notifyError(dataLoggerController, dcError) {}
+  notifyDeviceError(dataLoggerController, dcError) {}
 }
 module.exports = Control;
