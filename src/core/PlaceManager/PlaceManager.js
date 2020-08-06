@@ -74,7 +74,6 @@ class PlaceManager extends PlaceComponent {
    * @param {string} placeId placeId와 같은 Place Component 객체를 찾아 반환
    */
   findPlace(placeId) {
-    // BU.CLI('findPlace', placeId);
     return _.find(this.placeStorageList, placeStorage => {
       return _.eq(placeId, placeStorage.placeInfo.place_id);
     });
@@ -85,7 +84,6 @@ class PlaceManager extends PlaceComponent {
    * @param {string|placeInfo} place 장소 id
    */
   getPlaceStorage(place) {
-    // BU.CLI(placeId);
     // 장소 정보라면 placeId를 추출하여 재정의
     if (_.isObject(place)) {
       place = place.place_id;

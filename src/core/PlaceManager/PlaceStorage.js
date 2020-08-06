@@ -18,8 +18,6 @@ class PlaceStorage extends PlaceComponent {
   constructor(placeInfo) {
     super();
 
-    // BU.CLI(placeInfo);
-
     // 기존에 PlaceInfo 객체가 존재한다면 재생성 하지 않음
     const existPlaceStorage = _.find(placeStorageList, placeStorage => {
       return placeStorage.placeInfo === placeInfo;

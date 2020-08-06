@@ -1,7 +1,5 @@
 const _ = require('lodash');
 
-const { BU } = require('base-util-jh');
-
 const AlgorithmComponent = require('./AlgorithmComponent');
 
 /** 2 Depth */
@@ -21,14 +19,10 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @return {operationConfig} 구동 모드 알고리즘 설정 정보
    */
   getOperationConfig(algorithmId) {
-    try {
-      if (_.isNil(algorithmId) || algorithmId.length === 0) {
-        return this.algorithmMode.getOperationConfig();
-      }
-      return this.getOperationMode(algorithmId).getOperationConfig();
-    } catch (error) {
-      throw error;
+    if (_.isNil(algorithmId) || algorithmId.length === 0) {
+      return this.algorithmMode.getOperationConfig();
     }
+    return this.getOperationMode(algorithmId).getOperationConfig();
   }
 
   /** @return {operationConfig[]} 구동 모드 알고리즘 설정 정보 목록 */
@@ -65,7 +59,6 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @param {AlgorithmComponent} algorithmMode
    */
   addOperationMode(algorithmMode) {
-    // BU.CLI(algorithmMode.algorithmId);
     // 삽입 후 true 반환
     return this.algorithmModeList.push(algorithmMode) && true;
   }
@@ -76,7 +69,6 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @return {AlgorithmComponent}
    */
   getOperationMode(algorithmId) {
-    // BU.CLI(this.children.length);
     return _.find(this.algorithmModeList, operationMode => {
       return operationMode.algorithmId === algorithmId;
     });
@@ -87,31 +79,25 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @param {string} algorithmId 제어 모드
    */
   changeOperationMode(algorithmId = 'DEFAULT') {
-    // BU.CLI('changeOperationMode', algorithmId);
-    try {
-      // 구동 모드 객체를 가져옴
-      const operationMode = this.getOperationMode(algorithmId);
+    // 구동 모드 객체를 가져옴
+    const operationMode = this.getOperationMode(algorithmId);
 
-      // BU.CLIN(operationMode, 1);
-      // 구동 모드가 존재하지 않을 경우
-      if (_.isEmpty(operationMode)) {
-        throw new Error(`algorithmId: (${algorithmId}) is not exist.`);
-      }
-      // 구동 모드가 동일 할 경우
-      if (operationMode === this.algorithmMode) {
-        throw new Error(`algorithmId: (${algorithmId}) is the same operation mode.`);
-      }
-
-      // 구동 모드 변경
-      this.algorithmMode = operationMode;
-
-      // 명령 알고리즘 모드 교체
-      this.coreFacade.cmdManager.updateOperationMode(operationMode);
-
-      return true;
-    } catch (error) {
-      throw error;
+    // 구동 모드가 존재하지 않을 경우
+    if (_.isEmpty(operationMode)) {
+      throw new Error(`algorithmId: (${algorithmId}) is not exist.`);
     }
+    // 구동 모드가 동일 할 경우
+    if (operationMode === this.algorithmMode) {
+      throw new Error(`algorithmId: (${algorithmId}) is the same operation mode.`);
+    }
+
+    // 구동 모드 변경
+    this.algorithmMode = operationMode;
+
+    // 명령 알고리즘 모드 교체
+    this.coreFacade.cmdManager.updateOperationMode(operationMode);
+
+    return true;
   }
 
   /**
@@ -121,13 +107,7 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @param {PlaceComponent} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpdateNode(placeNode) {
-    try {
-      // BU.CLIN(placeNode);
-      // BU.log('handleUpdateNode');
-      this.algorithmMode.handleUpdateNode(placeNode);
-    } catch (error) {
-      throw error;
-    }
+    this.algorithmMode.handleUpdateNode(placeNode);
   }
 }
 

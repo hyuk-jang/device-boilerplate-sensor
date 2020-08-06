@@ -58,7 +58,6 @@ class CmdStorage extends CmdComponent {
    * @param {commandWrapInfo} wrapCmdInfo
    */
   setCommand(wrapCmdInfo) {
-    // BU.CLIN(_.omit(wrapCmdInfo, 'containerCmdList'));
     // 명령 객체 정보 저장
     this.wrapCmdInfo = wrapCmdInfo;
     const { containerCmdList } = wrapCmdInfo;
@@ -77,17 +76,12 @@ class CmdStorage extends CmdComponent {
    * @param {commandContainerInfo[]} restoreCmdList 복원 명령 목록
    */
   cancelCommand(restoreCmdList = []) {
-    // BU.CLI('cancelCommand');
     if (_.isEmpty(this.wrapCmdInfo)) {
       throw new Error('wrapCmdInfo does not exist.');
     }
 
-    // BU.CLI(restoreCmdList);
-
     // 취소 상태로 변경 및 명령 진행 단계는 대기 단계로 변경
     this.wrapCmdInfo.wrapCmdType = reqWCT.CANCEL;
-    // 명령 단계를 CANCELING으로 교체
-    // this.cmdStep = cmdStep.CANCELING;
     // 복원 명령 정의
     this.restoreCmdList = restoreCmdList;
 
@@ -106,7 +100,7 @@ class CmdStorage extends CmdComponent {
     this.updateCommandStep(cmdStep.CANCELING);
 
     // 아직 완료되지 못한 개체 취소 요청
-    _.forEach(this.cmdElements, (cmdElement) => {
+    _.forEach(this.cmdElements, cmdElement => {
       // 취소 중이므로 살아있는 객체여부 false
       cmdElement.isLive = false;
       if (!cmdElement.isCommandClear()) {
@@ -119,16 +113,11 @@ class CmdStorage extends CmdComponent {
    * CANCELLING 과정
    */
   restoreCommand() {
-    // BU.CLI('restoreCommand');
     // 비동기 처리 과정 때문에 명령 단계 공지를 받지 못하는 경우가 있기 때문에 chaining 을 지연시킴
-
     if (this.restoreCmdList.length) {
       setImmediate(() => {
-        // BU.CLIN(restoreCmdList);
         // 자식 명령 객체 초기화
         this.cmdElements = [];
-        // BU.CLI('복원 명령 발송');
-        // BU.CLIN(this.restoreCmdList);
         // 요청해야 할 복원 세부 명령 등록
         this.setCommandElements(this.restoreCmdList);
 
@@ -146,15 +135,13 @@ class CmdStorage extends CmdComponent {
 
   /** Data Logger Controller에게 명령 실행 요청 */
   executeCommandFromDLC() {
-    // BU.CLI('executeCommandFromDLC', this.cmdStep);
     // 모든 명령이 완료된 경우라면 요청하지 않음
     if (this.isCommandClear()) {
       // 명령 스택자체가 없을 경우 동시에 notify가 발생하므로 약간의 지연을 갖추고 발송
       return setImmediate(() => this.handleCommandClear());
     }
-    // BU.CLIN(this.cmdElements);
     // 세부 명령 객체에게 장치 제어 명령 요청
-    this.cmdElements.forEach((cmdElement) => {
+    this.cmdElements.forEach(cmdElement => {
       cmdElement.executeCommandFromDLC();
     });
   }
@@ -166,7 +153,7 @@ class CmdStorage extends CmdComponent {
   setCommandElements(commandContainerList) {
     this.cmdElements = [];
 
-    commandContainerList.forEach((containerInfo) => {
+    commandContainerList.forEach(containerInfo => {
       const cmdElement = new CmdElement(containerInfo, this.coreFacade);
       cmdElement.setSuccessor(this);
 
@@ -180,7 +167,6 @@ class CmdStorage extends CmdComponent {
    * @param {csCmdGoalContraintInfo} wrapCmdGoalInfo
    */
   setThreshold(wrapCmdGoalInfo = {}) {
-    // BU.CLI('setThreshold', wrapCmdGoalInfo);
     const { goalDataList, limitTimeSec } = wrapCmdGoalInfo;
 
     // 임계치가 존재하지 않을 경우 임계 설정 하지 않음
@@ -201,7 +187,6 @@ class CmdStorage extends CmdComponent {
         const goalInfo = goalDataList[index];
 
         // 달성 목표 도달 여부
-
         const isReachGoal = ThreCmdGoal.isReachGoal(this.coreFacade, goalInfo);
         // 달성 목표가 목표에 도달하였을 경우
         if (isReachGoal) {
@@ -251,8 +236,7 @@ class CmdStorage extends CmdComponent {
 
   /** 명령 이벤트 발생 전파  */
   notifyObserver() {
-    // BU.CLI('notifyObserver', `${this.cmdStep} ${this.wrapCmdId}`);
-    this.observers.forEach((observer) => {
+    this.observers.forEach(observer => {
       if (_.get(observer, 'updateCommandStep')) {
         observer.updateCommandStep(this);
       }
@@ -264,15 +248,12 @@ class CmdStorage extends CmdComponent {
    * @param {string} updatedCmdStep 명령 저장소에 적용될 cmdStep
    */
   updateCommandStep(updatedCmdStep) {
-    // BU.debugConsole();
-    // BU.CLI(this.wrapCmdId, updatedCmdStep);
     // 정해진 Event 값이 아니면 종료
     if (!Object.values(cmdStep).includes(updatedCmdStep)) return false;
 
     // 현재 이벤트와 다른 상태일 경우 전파
     if (this.cmdStep !== updatedCmdStep) {
       this.cmdStep = updatedCmdStep;
-      // BU.error(`${this.wrapCmdName} === ${updatedCmdStep}`);
       return this.notifyObserver();
     }
   }
@@ -342,27 +323,13 @@ class CmdStorage extends CmdComponent {
    * @return {CmdElement[]}
    */
   getCmdEleList(cmdElementSearch) {
-    // const { nodeId: rNi, singleControlType: rSc, controlSetValue: rCs } = cmdElementSearch;
-
-    // return this.cmdElements.reduce((results, cmdElement) => {
-    //   const { nodeId: ni, singleControlType: sc, controlSetValue: cs } = cmdElement;
-    //   if (rNi === ni && rSc === sc && rCs === cs) {
-    //     results.push(cmdElement);
-    //   }
-    //   return results;
-    // }, []);
-
     return _.filter(this.cmdElements, cmdElementSearch);
-
-    // return _.filter(this.cmdElements, cmdElementSearch);
   }
 
   /** 모든 세부 명령 완료 여부 */
   isCommandClear() {
-    // BU.CLI(_.map(this.cmdElements, 'cmdEleStep'));
-
     // 모든 세부 명령 처리 여부
-    return this.cmdElements.every((cmdElement) => cmdElement.isCommandClear());
+    return this.cmdElements.every(cmdElement => cmdElement.isCommandClear());
   }
 
   /**
@@ -370,9 +337,6 @@ class CmdStorage extends CmdComponent {
    *  세부 명령이 완료했을 경우
    */
   handleCommandClear(cmdElement) {
-    // BU.CLI(this.cmdStep);
-    // BU.CLI(cmdElement.nodeId, this.cmdStep);
-
     // 모든 세부 명령이 완료되었을 경우
     if (this.isCommandClear()) {
       // 명령 취소를 완료하였을 경우 복원 명령 요청
@@ -387,7 +351,6 @@ class CmdStorage extends CmdComponent {
 
       // 임계 명령이 존재할 경우 명령 단계: RUNNING
       if (!_.isEmpty(this.wrapCmdGoalInfo) && this.setThreshold(this.wrapCmdGoalInfo)) {
-        // BU.CLI('@@@@@@@@@@@ RUNNING', this.wrapCmdId);
         return this.updateCommandStep(cmdStep.RUNNING);
       }
 
@@ -403,7 +366,6 @@ class CmdStorage extends CmdComponent {
 
   /** @param {ThreCmdStorage} threCmdStorage */
   handleThresholdClear() {
-    // BU.CLI('handleThresholdClear', this.wrapCmdId);
     // 임계 명령 삭제
     this.removeThreshold();
 

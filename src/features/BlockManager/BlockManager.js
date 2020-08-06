@@ -129,8 +129,6 @@ class BlockManager extends AbstBlockManager {
       dataStorageList.push(dataStorage);
     });
 
-    // Set Delay TEST
-    // await Promise.delay(1000);
     return dataContainer;
   }
 
@@ -154,7 +152,6 @@ class BlockManager extends AbstBlockManager {
         }
       });
     });
-    // BU.CLIN(this.dataContainerList[0]);
   }
 
   /**
@@ -164,7 +161,6 @@ class BlockManager extends AbstBlockManager {
    * @param {Date=} refineDate 해당 카테고리를 정제한 시각. insertData에 저장이 됨
    */
   async refineDataContainer(blockCategory, refineDate = new Date()) {
-    // BU.CLI('refineDataContainer', blockCategory);
     const dataContainer = this.getDataContainer(blockCategory);
 
     if (_.isEmpty(dataContainer)) {
@@ -185,7 +181,6 @@ class BlockManager extends AbstBlockManager {
       await this.processTrouble(dataContainer);
     }
 
-    // BU.CLIN(dataContainer.insertDataList);
     return dataContainer;
   }
 
@@ -205,8 +200,6 @@ class BlockManager extends AbstBlockManager {
     const { blockConfigInfo, insertDataList, insertTroubleList, updateTroubleList } = dataContainer;
     // 데이터 Table 정보와 Trouble Table 정보
     const { applyTableInfo, troubleTableInfo } = blockConfigInfo;
-
-    // BU.CLIS(insertDataList);
 
     // list 초기화
     dataContainer.insertDataList = [];
@@ -246,8 +239,6 @@ class BlockManager extends AbstBlockManager {
    * @return {dataContainerDBS}
    */
   getDataContainer(blockCategory) {
-    // BU.CLI('getDataContainer')
-    // BU.CLIN(this.dataContainerList, 2);
     return _.find(this.dataContainerList, {
       blockCategory,
     });
@@ -259,7 +250,6 @@ class BlockManager extends AbstBlockManager {
    * @param {dataContainerDBS} dataContainer
    */
   processData(dataContainer) {
-    // BU.CLIN(dataContainer.dataStorageList);
     const { refineDate, dataStorageList, blockConfigInfo, insertDataList } = dataContainer;
 
     const { applyTableInfo } = blockConfigInfo;
@@ -319,7 +309,6 @@ class BlockManager extends AbstBlockManager {
    * @param {dataContainerDBS} dataContainer
    */
   async processTrouble(dataContainer) {
-    // BU.CLIS('processTrouble');
     const {
       refineDate,
       troubleWhere,
@@ -328,8 +317,6 @@ class BlockManager extends AbstBlockManager {
       dataStorageList,
       blockConfigInfo,
     } = dataContainer;
-
-    // BU.CLIN(dataContainer, 2);
 
     const { troubleTableInfo } = blockConfigInfo;
     const { changeColumnKeyInfo } = troubleTableInfo;
@@ -405,8 +392,6 @@ class BlockManager extends AbstBlockManager {
 
       updateTroubleList.push(remainTroubleRow);
     });
-
-    // BU.CLIS(insertTroubleList, updateTroubleList);
   }
 
   /**

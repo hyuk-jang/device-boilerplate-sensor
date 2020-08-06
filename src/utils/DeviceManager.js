@@ -26,7 +26,6 @@ class DeviceManager extends EventEmitter {
    * @param {deviceInfo} deviceInfo
    */
   async connect(deviceInfo = {}) {
-    // BU.CLI('connect', deviceInfo);
     this.deviceInfo = deviceInfo;
     // 모델 선언
     try {
@@ -48,7 +47,6 @@ class DeviceManager extends EventEmitter {
 
       return this.deviceController;
     } catch (error) {
-      // BU.CLI(error);
       // 초기화에 실패할 경우에는 에러 처리
       if (error instanceof ReferenceError) {
         throw error;
@@ -61,7 +59,6 @@ class DeviceManager extends EventEmitter {
    * @param {string} eventName 'dcConnect' 연결, 'dcClose' 닫힘, 'dcError' 에러
    */
   onEvent(eventName) {
-    // BU.CLI(eventName);
     const { CONNECT, DISCONNECT } = this.definedControlEvent;
 
     switch (eventName) {
@@ -83,9 +80,6 @@ class DeviceManager extends EventEmitter {
    */
   onData(bufData) {
     BU.CLI(bufData.toString());
-    // const resultData = this.model.onData(bufData);
-
-    // BU.CLI(this.getDeviceOperationInfo().data);
   }
 
   /**

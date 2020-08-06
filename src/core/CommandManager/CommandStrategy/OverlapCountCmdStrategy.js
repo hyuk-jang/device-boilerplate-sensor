@@ -1,7 +1,5 @@
 const _ = require('lodash');
 
-const { BU } = require('base-util-jh');
-
 const {
   dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, reqDeviceControlType: reqDCT },
 } = require('../../../module').di;
@@ -14,14 +12,9 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    // BU.CLI(
-    //   'updateCommandStep >>> OverlapCountCmdStrategy',
-    //   `${cmdStorage.wrapCmdId} ${cmdStorage.cmdStep}`,
-    // );
     // 명령 Step 최종 단계인 END 일 경우만
     if (cmdStorage.cmdStep === cmdStep.END) {
       // WCT은 둘 중에 하나(CONTROL or CANCEL)
-
       // 달성 목표(Goal)를 이루었기 때문에 관련된 해당 명령을 복원하는 작업 진행 요청
       if (cmdStorage.wrapCmdType === reqWCT.CONTROL) {
         // 명령 복원이 진행되면 각 명령 Step이 진행됨에 따라 updateCommandStep이 호출되므로 return 처리
@@ -41,7 +34,6 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo 기존에 존재하는 명령
    */
   cancelCommand(reqCmdInfo) {
-    // BU.CLI('cancelCommand');
     const { wrapCmdFormat, wrapCmdId } = reqCmdInfo;
     // 복원해야할 명령이 있는지 계산
     const foundCmdStoarge = this.cmdManager.getCmdStorage({
@@ -100,26 +92,21 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {commandWrapInfo} commandWrapInfo 기존에 존재하는 명령
    */
   isConflict(commandWrapInfo) {
-    try {
-      const { wrapCmdId, wrapCmdName, containerCmdList } = commandWrapInfo;
-      const { TRUE, FALSE } = reqDCT;
-      // 제어할려고 하는 Node와 제어 상태를 바꿀려는 명령이 존재하는지 체크
-      _.forEach(containerCmdList, cmdContainerInfo => {
-        const { nodeId, singleControlType } = cmdContainerInfo;
-        const cmdEle = this.cmdManager.getCmdEle({
-          nodeId,
-          singleControlType: singleControlType === TRUE ? FALSE : TRUE,
-        });
-        if (cmdEle) {
-          throw new Error(
-            `${wrapCmdName} 명령은 ${cmdEle.wrapCmdName} 명령의 ${nodeId} 상태와 충돌합니다.`,
-          );
-          // throw new Error(`${wrapCmdId} and ${cmdEle.wrapCmdId} conflicted with ${nodeId}.`);
-        }
+    const { wrapCmdName, containerCmdList } = commandWrapInfo;
+    const { TRUE, FALSE } = reqDCT;
+    // 제어할려고 하는 Node와 제어 상태를 바꿀려는 명령이 존재하는지 체크
+    _.forEach(containerCmdList, cmdContainerInfo => {
+      const { nodeId, singleControlType } = cmdContainerInfo;
+      const cmdEle = this.cmdManager.getCmdEle({
+        nodeId,
+        singleControlType: singleControlType === TRUE ? FALSE : TRUE,
       });
-    } catch (error) {
-      throw error;
-    }
+      if (cmdEle) {
+        throw new Error(
+          `${wrapCmdName} 명령은 ${cmdEle.wrapCmdName} 명령의 ${nodeId} 상태와 충돌합니다.`,
+        );
+      }
+    });
   }
 
   /**
@@ -127,37 +114,31 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeDefaultControl(reqCmdInfo) {
-    try {
-      const { wrapCmdId, wrapCmdType, srcPlaceId, destPlaceId, reqCmdEleList } = reqCmdInfo;
+    const { wrapCmdId, wrapCmdType, srcPlaceId, destPlaceId, reqCmdEleList } = reqCmdInfo;
 
-      // 취소 명령 요청이 들어 올 경우 실행중인 명령 탐색
-      if (wrapCmdType === reqWCT.CANCEL) {
-        return this.cancelCommand(reqCmdInfo);
-      }
-
-      // 이미 실행 중인 명령인지 체크
-      const existCmdStorage = this.cmdManager.getCmdStorage({
-        wrapCmdId,
-      });
-
-      // 이미 존재하는 명령이라면 예외 처리
-      if (existCmdStorage) {
-        throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
-      }
-
-      // 실제 수행할 장치를 정제
-      const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo, true);
-      this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
-
-      // 충돌 여부 검증
-      this.isConflict(commandWrapInfo);
-
-      // BU.CLIN(commandWrapInfo)
-
-      return this.cmdManager.executeRealCommand(commandWrapInfo, this);
-    } catch (error) {
-      throw error;
+    // 취소 명령 요청이 들어 올 경우 실행중인 명령 탐색
+    if (wrapCmdType === reqWCT.CANCEL) {
+      return this.cancelCommand(reqCmdInfo);
     }
+
+    // 이미 실행 중인 명령인지 체크
+    const existCmdStorage = this.cmdManager.getCmdStorage({
+      wrapCmdId,
+    });
+
+    // 이미 존재하는 명령이라면 예외 처리
+    if (existCmdStorage) {
+      throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
+    }
+
+    // 실제 수행할 장치를 정제
+    const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo, true);
+    this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
+
+    // 충돌 여부 검증
+    this.isConflict(commandWrapInfo);
+
+    return this.cmdManager.executeRealCommand(commandWrapInfo, this);
   }
 
   /**
@@ -165,11 +146,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeSingleControl(reqCmdInfo) {
-    try {
-      return this.executeDefaultControl(reqCmdInfo);
-    } catch (error) {
-      throw error;
-    }
+    return this.executeDefaultControl(reqCmdInfo);
   }
 
   /**
@@ -177,12 +154,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeSetControl(reqCmdInfo) {
-    // BU.CLI(reqCmdInfo);
-    try {
-      return this.executeDefaultControl(reqCmdInfo);
-    } catch (error) {
-      throw error;
-    }
+    return this.executeDefaultControl(reqCmdInfo);
   }
 
   /**
@@ -190,20 +162,15 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeFlowControl(reqCmdInfo) {
-    // BU.CLIN(reqCmdInfo);
-    try {
-      const { wrapCmdType, srcPlaceId, destPlaceId } = reqCmdInfo;
+    const { wrapCmdType, srcPlaceId, destPlaceId } = reqCmdInfo;
 
-      if (wrapCmdType === reqWCT.CANCEL) {
-        return this.cancelCommand(reqCmdInfo);
-      }
-      // 흐름 명령 가능 여부 체크 (급배수지 환경 조건 고려[수위, 염도, 온도 등등등])
-      this.coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId);
-
-      return this.executeDefaultControl(reqCmdInfo);
-    } catch (error) {
-      throw error;
+    if (wrapCmdType === reqWCT.CANCEL) {
+      return this.cancelCommand(reqCmdInfo);
     }
+    // 흐름 명령 가능 여부 체크 (급배수지 환경 조건 고려[수위, 염도, 온도 등등등])
+    this.coreFacade.isPossibleFlowCommand(srcPlaceId, destPlaceId);
+
+    return this.executeDefaultControl(reqCmdInfo);
   }
 }
 module.exports = OverlapCountCmdStrategy;

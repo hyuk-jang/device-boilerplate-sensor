@@ -65,7 +65,6 @@ class ScenarioManager {
 
     // 시나리오 구성 요소 각각 생성 후 정의 (Tree 구조)
     scenarioStorage.initScenario(scenarioList);
-    // BU.CLIN(scenarioStorage, 4);
 
     // 명령 실행
     scenarioStorage.executeScenario();

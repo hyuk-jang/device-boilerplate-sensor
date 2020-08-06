@@ -47,7 +47,6 @@ class NodeUpdatorManager {
       _.isEqual(nodeOb, observer),
     );
 
-    // console.log(foundIndex, nodeInfo);
     // 동일 옵저버가 존재하지 않을 경우에 추가
     if (foundIndex === -1) {
       foundNodeUpdator.attachObserver(observer, isHeader);

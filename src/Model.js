@@ -24,7 +24,6 @@ class Model {
     const {
       config,
       coreFacade,
-      deviceMap = {},
       dataLoggerControllerList,
       dataLoggerList,
       nodeList,
@@ -46,8 +45,6 @@ class Model {
     this.inquirySchedulerCurrCount = 0;
 
     this.deviceMap = controller.deviceMap;
-
-    // BU.CLIN(this.deviceMap, 1);
 
     // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
     this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
@@ -78,7 +75,6 @@ class Model {
    * 2. 단순 명령 ID 코드 생성(srcPlaceId_TO_destPlaceId)
    */
   initCommand() {
-    // BU.CLI(this.deviceMap)
     const {
       controlInfo: { flowCmdList = [], setCmdList = [], scenarioCmdList = [] } = {},
     } = this.deviceMap;
@@ -97,7 +93,6 @@ class Model {
           .value();
       }
       // 출발지 한글이름 추가
-      // simpleCommandInfo.srcPlaceName ||
       _.set(simpleCommandInfo, 'srcPlaceName', srcPlaceName);
       // 목적지 목록을 순회하면서 상세 명령 정보 정의
       simpleCommandInfo.destList.forEach(scDesInfo => {
@@ -112,7 +107,6 @@ class Model {
         }
 
         // 목적지 한글이름 추가 및 명령 정보 정의
-        // _.set(simpleCommandInfo, 'destPlaceName', srcPlaceName);
         _.set(scDesInfo, 'cmdId', `${srcPlaceId}_TO_${destPlaceId}`);
         _.set(scDesInfo, 'cmdName', `${srcPlaceName} → ${destPlaceName}`);
       });
@@ -141,7 +135,6 @@ class Model {
    * @param {string} scenarioId
    */
   findScenarioCommand(scenarioId) {
-    // BU.CLIN(this.scenarioManager.scenarioCmdList, 1);
     return _.find(this.scenarioManager.scenarioCmdList, { scenarioId });
   }
 
@@ -158,10 +151,7 @@ class Model {
 
     // 명령 Full ID로 찾고자 할 경우
     if (cmdId.length) {
-      return _(this.mapCmdInfo.flowCmdList)
-        .map('destList')
-        .flatten()
-        .find({ cmdId });
+      return _(this.mapCmdInfo.flowCmdList).map('destList').flatten().find({ cmdId });
     }
     try {
       // 출발지와 목적지가 있을 경우
@@ -180,7 +170,6 @@ class Model {
    * @param {dataLoggerInfo|string} searchValue string: dl_id, node_id or Object: DataLogger
    */
   findDataLoggerController(searchValue) {
-    // BU.CLI(searchValue);
     // Node Id 일 경우
     if (_.isString(searchValue)) {
       // Data Logger List에서 찾아봄
@@ -197,7 +186,6 @@ class Model {
         });
         // string 인데 못 찾았다면 존재하지 않음. 예외 발생
         if (_.isEmpty(nodeInfo)) {
-          BU.CLIN(this.controller.mainUUID);
           throw new Error(`Node ID: ${searchValue} is not exist`);
         }
         searchValue = nodeInfo.getDataLogger();
@@ -231,13 +219,11 @@ class Model {
       this.nodeList,
       _.get(this, 'config.inquirySchedulerInfo.validInfo'),
       this.controller.inquirySchedulerRunMoment,
-      // momentDate.format('YYYY-MM-DD HH:mm:ss'),
     );
 
     // 정기 계측 명령 완료 이벤트 발송 (각 프로젝트 마다 Block Update 이벤트 바인딩 수신을 위함)
     this.controller.emit('completeInquiryAllDeviceStatus');
 
-    // BU.CLIN(validNodeList);
     process.env.LOG_DBS_INQUIRY_RESULT === '1' &&
       BU.CLI(this.getAllNodeStatus(nodePickKey.FOR_DATA));
 
@@ -247,7 +233,6 @@ class Model {
           nodePickKey.FOR_DATA,
           _.filter(this.nodeList, nodeInfo => {
             return nodeInfo.is_submit_api === 1 && !_.isNil(nodeInfo.data);
-            // { is_submit_api: 1 }
           }),
         ),
       );
@@ -265,12 +250,9 @@ class Model {
    * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
    */
   getAllNodeStatus(nodePickKeyInfo = nodePickKey.FOR_SERVER, nodeList = this.nodeList) {
-    // Object 형태로 들어올 경우
-
     // 데이터 Key를 변환하여 보내주고자 할 경우
     if (!_.isArray(nodePickKeyInfo) && _.isObject(nodePickKeyInfo)) {
       return _.map(nodeList, nodeInfo => {
-        // BU.CLI(nodeInfo)
         return _.reduce(
           nodePickKeyInfo,
           (result, value, key) => {
@@ -293,7 +275,7 @@ class Model {
       })
       .orderBy(orderKey)
       .value();
-    // BU.CLI(statusList);
+
     return statusList;
   }
 
@@ -330,22 +312,12 @@ class Model {
     diffInfo = { diffType: 'minutes', duration: 1 },
     momentDate = moment(),
   ) {
-    // BU.CLIN(nodeList);
     // 입력된 노드 리스트를 돌면서 유효성 검증
     return nodeList.filter(nodeInfo => {
       // 날짜 차 계산
       const diffNum = momentDate.diff(moment(nodeInfo.writeDate), diffInfo.diffType);
       // 날짜 차가 허용 범위를 넘어섰다면 유효하지 않는 데이터
-      if (diffNum > diffInfo.duration) {
-        // BU.CLI(
-        //   `${
-        //     nodeInfo.node_id
-        //   }는 날짜(${diffType}) 차이가 허용 범위(${permitValue})를 넘어섰습니다. ${diffNum}`,
-        // );
-        return false;
-      }
-      // momentDate.format('YYYY-MM-DD HH:mm:ss'),
-      return true;
+      return diffNum <= diffInfo.duration;
     });
   }
 
@@ -364,7 +336,7 @@ class Model {
           .filter(ele => ele.save_db_type === SENSOR && _.isNumber(ele.data))
           .map(ele => BU.renameObj(_.pick(ele, FOR_DB), 'data', 'num_data'))
           .value();
-        // BU.CLI(nodeSensorList);
+
         const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
         returnValue.push(result);
       }
@@ -376,7 +348,6 @@ class Model {
           .map(ele => BU.renameObj(_.pick(ele, FOR_DB), 'data', 'str_data'))
           .value();
 
-        // BU.CLI(nodeDeviceList);
         const result = await this.biModule.setTables('dv_device_data', nodeDeviceList, false);
         returnValue.push(result);
       }
@@ -385,8 +356,6 @@ class Model {
       return returnValue;
     }
 
-    // BU.CLIN(nodeList);
-    // BU.CLIS(insertOption, insertOption.hasSensor, insertOption.hasDevice);
     // 센서류 삽입
     return returnValue;
   }

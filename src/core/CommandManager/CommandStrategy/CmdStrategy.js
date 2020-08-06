@@ -26,26 +26,21 @@ class CmdStrategy {
    */
   executeCommand(reqCmdInfo) {
     const { wrapCmdId } = reqCmdInfo;
-    try {
-      switch (reqCmdInfo.wrapCmdFormat) {
-        // case reqWCF.MEASURE:
-        //   return this.executeMeasureControl(reqCmdInfo);
-        case reqWCF.SINGLE:
-          return this.executeSingleControl(reqCmdInfo);
-        case reqWCF.SET:
-          return this.executeSetControl(reqCmdInfo);
-        case reqWCF.FLOW:
-          return this.executeFlowControl(reqCmdInfo);
-        case reqWCF.SCENARIO:
-          return this.executeScenarioControl(reqCmdInfo);
-        default:
-          throw new Error(
-            `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
-          );
-      }
-    } catch (error) {
-      // BU.error(error.message);
-      throw error;
+    switch (reqCmdInfo.wrapCmdFormat) {
+      // case reqWCF.MEASURE:
+      //   return this.executeMeasureControl(reqCmdInfo);
+      case reqWCF.SINGLE:
+        return this.executeSingleControl(reqCmdInfo);
+      case reqWCF.SET:
+        return this.executeSetControl(reqCmdInfo);
+      case reqWCF.FLOW:
+        return this.executeFlowControl(reqCmdInfo);
+      case reqWCF.SCENARIO:
+        return this.executeScenarioControl(reqCmdInfo);
+      default:
+        throw new Error(
+          `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
+        );
     }
   }
 

@@ -32,7 +32,6 @@ class Main {
             break;
           case 'muan100kW':
             MainControl = Muan100kWControl;
-            // MainModel = MuanModel;
             break;
           default:
             break;
@@ -61,9 +60,6 @@ class Main {
       default:
         break;
     }
-
-    // console.log(MainModel);
-    // MainControl.Model = MainModel;
 
     const mainControl = new MainControl(config);
     mainControl.Model = MainModel;

@@ -53,7 +53,6 @@ class ScenarioCommand extends ScenarioComponent {
 
   /** 시나리오 명령 실행 */
   executeScenario() {
-    // BU.CLI('executeScenario', this.scenarioCmdInfo);
     try {
       const {
         wrapCmdFormat,
@@ -106,7 +105,6 @@ class ScenarioCommand extends ScenarioComponent {
 
         // 찾은 객체가 있다면 옵저버 추가
       }
-      // BU.CLI('뭐야');
       this.cmdStorage.attachObserver(this);
     } catch (error) {
       this.scenarioStorage.handleScenarioFail();
@@ -140,9 +138,6 @@ class ScenarioCommand extends ScenarioComponent {
    */
   updateCommandStep(cmdStorage) {
     const { wrapCmdStep } = cmdStorage;
-    // BU.debugConsole(5);
-    // BU.log(wrapCmdStep);
-
     // 시나리오 이미지 변경 객체 찾음
     const imgDisplayInfo = _.find(this.imgDisplayList, { cmdStep: wrapCmdStep });
     // 이미지 변경 객체가 있을 경우 API Server로 전송

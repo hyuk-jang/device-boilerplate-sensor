@@ -187,17 +187,12 @@ class ApiClient extends DeviceManager {
    * 서버로 현재 진행중인 데이터(노드, 명령)를 보내줌
    */
   transmitStorageDataToServer() {
-    // BU.log('transmitStorageDataToServer');
-    // this.controller.notifyDeviceData(null, this.controller.nodeList);
-
-    // BU.CLIN(coreFacade.coreAlgorithm);
-
     /** @type {wsModeInfo} */
     const modeInfo = {
       algorithmId: this.coreFacade.coreAlgorithm.algorithmId,
       operationConfigList: this.coreFacade.coreAlgorithm.getOperationConfigList(),
     };
-    // BU.CLI(modeInfo);
+
     // 구동 모드 현황
     this.transmitDataToServer({
       commandType: transmitToServerCT.MODE,
@@ -257,11 +252,9 @@ class ApiClient extends DeviceManager {
       // DCC에 전송 명령
       return this.write(encodingMsg);
     } catch (error) {
-      // BU.CLI(error);
       responseMsg.isError = 1;
       responseMsg.message = _.get(error, 'message');
 
-      // BU.CLI(responseMsg);
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
@@ -276,7 +269,6 @@ class ApiClient extends DeviceManager {
    * @param {defaultFormatToRequest} responsedDataByServer
    */
   interpretRequestedCommand(responsedDataByServer) {
-    // BU.CLI('interpretRequestedCommand', responsedDataByServer);
     const { commandId, contents, uuid } = responsedDataByServer;
     /** @type {defaultFormatToResponse} */
     const responseMsg = {
@@ -329,15 +321,12 @@ class ApiClient extends DeviceManager {
       } else {
         switch (wrapCmdFormat) {
           case reqWCF.SINGLE:
-            // BU.CLI('reqWCF.SINGLE');
             cmdStorage = this.controller.executeSingleControl(reqCmdInfo);
             break;
           case reqWCF.SET:
-            // BU.CLI('reqWCF.SET');
             cmdStorage = this.controller.executeSetControl(reqCmdInfo);
             break;
           case reqWCF.FLOW:
-            // BU.CLI('reqWCF.FLOW');
             cmdStorage = this.controller.executeFlowControl(reqCmdInfo);
             break;
           case reqWCF.SCENARIO:
@@ -355,43 +344,16 @@ class ApiClient extends DeviceManager {
         throw new Error(`WCT: ${wrapCmdFormat} is not defined`);
       }
 
-      // const cmdStorageWrapInfo = cmdStorage.getExecuteCmdInfo();
-
       responseMsg.contents = _.pick(cmdStorage, commandPickKey.FOR_SERVER);
-
-      // commandType Key를 가지고 있고 그 Key의 값이 transmitToClientCommandType 안에 들어온다면 명령 요청이라고 판단
-      // if (_.values(transmitToClientCommandType).includes(_.get(wsControlCmdApiInfo, 'commandId'))) {
-      //   switch (commandId) {
-      //     // TODO: API 구조 개편
-      //     // case transmitToClientCommandType.CMD: // 명령 요청
-      //     //   console.log(dataInfo);
-      //     //   break;
-      //     case transmitToClientCommandType.SINGLE: // 단일 제어
-      //       this.controller.executeSingleControl(contents);
-      //       break;
-      //     case transmitToClientCommandType.AUTOMATIC: // 명령 제어
-      //       this.controller.executeSavedCommand(contents);
-      //       break;
-      //     case transmitToClientCommandType.SCENARIO: // 시나리오
-      //       this.controller.executeScenarioControl(contents);
-      //       break;
-      //     default:
-      //       throw new Error(`commandId: ${commandId} does not exist.`);
-      //   }
-      // }
-
-      // throw new Error(`comma`)
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 
       // DBW에 전송 명령
       return this.write(encodingMsg);
     } catch (error) {
-      // BU.CLI(error);
       responseMsg.isError = 1;
       responseMsg.message = _.get(error, 'message');
 
-      // BU.CLI(responseMsg);
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);
 

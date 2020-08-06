@@ -35,7 +35,6 @@ class CommandExecManager {
    * @param {reqMeasureCmdInfo} reqMeasureCmdInfo
    */
   executeMeasure(reqMeasureCmdInfo) {
-    // BU.CLI(reqMeasureCmdInfo);
     const {
       wrapCmdType = reqWCT.CONTROL,
       wrapCmdId,
@@ -60,11 +59,7 @@ class CommandExecManager {
       ],
     };
 
-    try {
-      return this.executeCommand(reqCommandOption);
-    } catch (error) {
-      throw error;
-    }
+    return this.executeCommand(reqCommandOption);
   }
 
   /**
@@ -73,8 +68,6 @@ class CommandExecManager {
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
   executeSingleControl(reqSingleCmdInfo) {
-    // BU.CLI('executeSingleControl', reqSingleCmdInfo);
-
     const {
       wrapCmdType = reqWCT.CONTROL,
       nodeId,
@@ -85,12 +78,10 @@ class CommandExecManager {
     } = reqSingleCmdInfo;
 
     // 제어하고자 하는 노드 정보를 가져옴
-
     try {
       // 다중 배열 Node 가 들어올 경우
       if (_.isArray(nodeId)) {
         // 사용자가 알 수 있는 제어 구문으로 변경
-
         /** @type {reqCommandInfo} 명령 실행 설정 객체 */
         const reqCommandOption = {
           wrapCmdFormat: reqWCF.SINGLE,
@@ -143,37 +134,32 @@ class CommandExecManager {
    * @param {reqSetCmdInfo} reqSetCmdInfo 저장된 명령 ID
    */
   executeSetControl(reqSetCmdInfo) {
-    // BU.CLI(reqSetCmdInfo);
-    try {
-      const {
-        wrapCmdId,
-        wrapCmdType = reqWCT.CONTROL,
-        rank = definedCommandSetRank.SECOND,
-        wrapCmdGoalInfo,
-      } = reqSetCmdInfo;
+    const {
+      wrapCmdId,
+      wrapCmdType = reqWCT.CONTROL,
+      rank = definedCommandSetRank.SECOND,
+      wrapCmdGoalInfo,
+    } = reqSetCmdInfo;
 
-      // 설정 명령 조회
-      const setCmdInfo = this.model.findSetCommand(wrapCmdId);
-      // 세부 흐름 명령이 존재하지 않을 경우
-      if (_.isEmpty(setCmdInfo)) {
-        throw new Error(`set command: ${wrapCmdId} not found`);
-      }
-
-      /** @type {reqCommandInfo} 명령 실행 설정 객체 */
-      const reqCommandOption = {
-        wrapCmdFormat: reqWCF.SET,
-        wrapCmdType,
-        wrapCmdId,
-        wrapCmdName: setCmdInfo.cmdName,
-        reqCmdEleList: this.makeControlEleCmdList(setCmdInfo, rank),
-        wrapCmdGoalInfo,
-        rank,
-      };
-
-      return this.executeCommand(reqCommandOption);
-    } catch (error) {
-      throw error;
+    // 설정 명령 조회
+    const setCmdInfo = this.model.findSetCommand(wrapCmdId);
+    // 세부 흐름 명령이 존재하지 않을 경우
+    if (_.isEmpty(setCmdInfo)) {
+      throw new Error(`set command: ${wrapCmdId} not found`);
     }
+
+    /** @type {reqCommandInfo} 명령 실행 설정 객체 */
+    const reqCommandOption = {
+      wrapCmdFormat: reqWCF.SET,
+      wrapCmdType,
+      wrapCmdId,
+      wrapCmdName: setCmdInfo.cmdName,
+      reqCmdEleList: this.makeControlEleCmdList(setCmdInfo, rank),
+      wrapCmdGoalInfo,
+      rank,
+    };
+
+    return this.executeCommand(reqCommandOption);
   }
 
   /**
@@ -181,42 +167,35 @@ class CommandExecManager {
    * @param {reqFlowCmdInfo} reqFlowCmdInfo
    */
   executeFlowControl(reqFlowCmdInfo) {
-    try {
-      const {
-        srcPlaceId,
-        destPlaceId,
-        wrapCmdType = reqWCT.CONTROL,
-        wrapCmdGoalInfo,
-        rank = definedCommandSetRank.SECOND,
-      } = reqFlowCmdInfo;
+    const {
+      srcPlaceId,
+      destPlaceId,
+      wrapCmdType = reqWCT.CONTROL,
+      wrapCmdGoalInfo,
+      rank = definedCommandSetRank.SECOND,
+    } = reqFlowCmdInfo;
 
-      // BU.CLI(reqFlowCmdInfo)
-
-      // 세부 명령 흐름 조회
-      const flowCmdDestInfo = this.model.findFlowCommand(reqFlowCmdInfo);
-      // 세부 흐름 명령이 존재하지 않을 경우
-      if (_.isEmpty(flowCmdDestInfo)) {
-        BU.CLI(`The flow command: ${srcPlaceId}_TO_${destPlaceId} not found`);
-        throw new Error(`The flow command: ${srcPlaceId}_TO_${destPlaceId} not found`);
-      }
-
-      /** @type {reqCommandInfo} 명령 실행 설정 객체 */
-      const reqCommandOption = {
-        wrapCmdFormat: reqWCF.FLOW,
-        wrapCmdType,
-        wrapCmdId: flowCmdDestInfo.cmdId,
-        wrapCmdName: flowCmdDestInfo.cmdName,
-        srcPlaceId,
-        destPlaceId,
-        reqCmdEleList: this.makeControlEleCmdList(flowCmdDestInfo, rank),
-        wrapCmdGoalInfo,
-        rank,
-      };
-
-      return this.executeCommand(reqCommandOption);
-    } catch (error) {
-      throw error;
+    // 세부 명령 흐름 조회
+    const flowCmdDestInfo = this.model.findFlowCommand(reqFlowCmdInfo);
+    // 세부 흐름 명령이 존재하지 않을 경우
+    if (_.isEmpty(flowCmdDestInfo)) {
+      throw new Error(`The flow command: ${srcPlaceId}_TO_${destPlaceId} not found`);
     }
+
+    /** @type {reqCommandInfo} 명령 실행 설정 객체 */
+    const reqCommandOption = {
+      wrapCmdFormat: reqWCF.FLOW,
+      wrapCmdType,
+      wrapCmdId: flowCmdDestInfo.cmdId,
+      wrapCmdName: flowCmdDestInfo.cmdName,
+      srcPlaceId,
+      destPlaceId,
+      reqCmdEleList: this.makeControlEleCmdList(flowCmdDestInfo, rank),
+      wrapCmdGoalInfo,
+      rank,
+    };
+
+    return this.executeCommand(reqCommandOption);
   }
 
   /**
@@ -224,32 +203,22 @@ class CommandExecManager {
    * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
    */
   executeScenarioControl(reqScenarioCmdInfo) {
-    // BU.CLI(reqSetCmdInfo);
-    try {
-      const {
-        wrapCmdId,
-        wrapCmdType = reqWCT.CONTROL,
-        rank = definedCommandSetRank.SECOND,
-      } = reqScenarioCmdInfo;
+    const { wrapCmdId, rank = definedCommandSetRank.SECOND } = reqScenarioCmdInfo;
 
-      const scenarioCmdInfo = this.model.findScenarioCommand(wrapCmdId);
-      // BU.CLIN(scenarioCmdInfo);
-      // 세부 흐름 명령이 존재하지 않을 경우
-      if (_.isEmpty(scenarioCmdInfo)) {
-        throw new Error(`scenario command: ${wrapCmdId} not found`);
-      }
-
-      /** @type {reqCommandInfo} 명령 실행 설정 객체 */
-      const reqCommandOption = {
-        wrapCmdFormat: reqWCF.SCENARIO,
-        wrapCmdId,
-        rank,
-      };
-
-      return this.model.scenarioManager.initScenario(reqCommandOption);
-    } catch (error) {
-      throw error;
+    const scenarioCmdInfo = this.model.findScenarioCommand(wrapCmdId);
+    // 세부 흐름 명령이 존재하지 않을 경우
+    if (_.isEmpty(scenarioCmdInfo)) {
+      throw new Error(`scenario command: ${wrapCmdId} not found`);
     }
+
+    /** @type {reqCommandInfo} 명령 실행 설정 객체 */
+    const reqCommandOption = {
+      wrapCmdFormat: reqWCF.SCENARIO,
+      wrapCmdId,
+      rank,
+    };
+
+    return this.model.scenarioManager.initScenario(reqCommandOption);
   }
 
   /**
@@ -287,33 +256,24 @@ class CommandExecManager {
    * @param {reqCommandInfo} reqCommandInfo
    */
   executeCommand(reqCommandInfo) {
-    // BU.CLI(reqCommandInfo.wrapCmdId);
-    try {
-      const { reqCmdEleList } = reqCommandInfo;
+    const { reqCmdEleList } = reqCommandInfo;
 
-      reqCmdEleList.forEach(reqCmdEleInfo => {
-        const { searchIdList } = reqCmdEleInfo;
-        reqCmdEleInfo.searchIdList = _.reject(searchIdList, searchId => {
-          const dlc = this.model.findDataLoggerController(searchId);
-          let errMsg = '';
-          if (_.isUndefined(dlc)) {
-            errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
-            // BU.CLI(errMsg);
-          } else if (!_.get(dlc, 'hasConnectedDevice')) {
-            errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
-            // BU.CLI(errMsg);
-          }
+    reqCmdEleList.forEach(reqCmdEleInfo => {
+      const { searchIdList } = reqCmdEleInfo;
+      reqCmdEleInfo.searchIdList = _.reject(searchIdList, searchId => {
+        const dlc = this.model.findDataLoggerController(searchId);
+        let errMsg = '';
+        if (_.isUndefined(dlc)) {
+          errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
+        } else if (!_.get(dlc, 'hasConnectedDevice')) {
+          errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
+        }
 
-          return errMsg.length;
-        });
+        return errMsg.length;
       });
+    });
 
-      // BU.CLIN(reqCmdEleList);
-
-      return this.coreFacade.cmdManager.executeCommand(reqCommandInfo);
-    } catch (error) {
-      throw error;
-    }
+    return this.coreFacade.cmdManager.executeCommand(reqCommandInfo);
   }
 
   /**
@@ -321,36 +281,25 @@ class CommandExecManager {
    * @param {executeCmdInfo} executeCmdInfo
    */
   executeCancelCommand(executeCmdInfo) {
-    try {
-      // 기본 값 CANCEL로 설정
-      executeCmdInfo.wrapCmdType = reqWCT.CANCEL;
-      return this.coreFacade.cmdManager.executeCommand(executeCmdInfo);
-    } catch (error) {
-      throw error;
-    }
+    // 기본 값 CANCEL로 설정
+    executeCmdInfo.wrapCmdType = reqWCT.CANCEL;
+    return this.coreFacade.cmdManager.executeCommand(executeCmdInfo);
   }
 
   /**
    * 정기적인 Router Status 탐색
    */
   inquiryAllDeviceStatus() {
-    // BU.CLI('inquiryAllDeviceStatus', this.controller.mainUUID);
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
-    try {
-      /** @type {reqMeasureCmdInfo} */
-      const reqMeasureCmdOption = {
-        wrapCmdId: 'inquiryAllDeviceStatus',
-        wrapCmdName: '정기 장치 상태 계측',
-        searchIdList: _.map(this.dataLoggerList, 'dl_id'),
-      };
+    /** @type {reqMeasureCmdInfo} */
+    const reqMeasureCmdOption = {
+      wrapCmdId: 'inquiryAllDeviceStatus',
+      wrapCmdName: '정기 장치 상태 계측',
+      searchIdList: _.map(this.dataLoggerList, 'dl_id'),
+    };
 
-      // BU.CLI(reqMeasureCmdOption);
-
-      return this.executeMeasure(reqMeasureCmdOption);
-    } catch (error) {
-      throw error;
-    }
+    return this.executeMeasure(reqMeasureCmdOption);
   }
 
   /** MainUUID 가 존재할 경우 해당 지점을 알리기 위한 텍스트 생성 */

@@ -50,7 +50,7 @@ class AbstBlockManager {
    * @param {blockConfig[]} blockConfigList
    * @return {Promise.<dataContainerDBS[]>}
    */
-  async setBlockTable(blockConfigList) {}
+  setBlockTable(blockConfigList) {}
 
   /**
    * @desc only DBS.
@@ -65,14 +65,14 @@ class AbstBlockManager {
    * @param {Date=} refineDate 해당 카테고리를 정제한 시각. insertData에 저장이 됨
    * @return {Promise.<dataContainerDBS>}
    */
-  async refineDataContainer(blockCategory, refineDate = new Date()) {}
+  refineDataContainer(blockCategory, refineDate = new Date()) {}
 
   /**
    * DB에 컨테이너 단위로 저장된 insertDataList, insertTroubleList, updateTroubleList를 적용
    * @param {string} blockCategory 카테고리 명
    * @return {Promise.<dataContainerDBS>}
    */
-  async saveDataToDB(blockCategory) {}
+  saveDataToDB(blockCategory) {}
 
   /**
    * 장치 저장소 카테고리에 맞는 타입을 가져옴

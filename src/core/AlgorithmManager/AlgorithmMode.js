@@ -61,48 +61,43 @@ class AlgorithmMode extends AlgorithmComponent {
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpdateNode(placeNode) {
-    try {
-      // BU.CLIN('handleUpdateNode');
-      const threAlgorithm = _.find(this.threPlaceList, { nodeDefId: placeNode.getNodeDefId() });
+    const threAlgorithm = _.find(this.threPlaceList, { nodeDefId: placeNode.getNodeDefId() });
 
-      if (_.isEmpty(threAlgorithm)) {
-        // BU.CLI(`알고리즘 없음 ${this.threPlaceList.length}`, placeNode.getNodeDefId());
-        return false;
-      }
-
-      let selectedAlgorithmMethod = threAlgorithm.handleNormal;
-
-      switch (placeNode.getNodeStatus()) {
-        case nodeStatus.MAX_OVER:
-          selectedAlgorithmMethod = threAlgorithm.handleMaxOver;
-          break;
-        case nodeStatus.UPPER_LIMIT_OVER:
-          selectedAlgorithmMethod = threAlgorithm.handleUpperLimitOver;
-          break;
-        case nodeStatus.NORMAL:
-          selectedAlgorithmMethod = threAlgorithm.handleNormal;
-          break;
-        case nodeStatus.LOWER_LIMIT_UNDER:
-          selectedAlgorithmMethod = threAlgorithm.handleLowerLimitUnder;
-          break;
-        case nodeStatus.MIN_UNDER:
-          selectedAlgorithmMethod = threAlgorithm.handleMinUnder;
-          break;
-        case nodeStatus.UNKNOWN:
-          selectedAlgorithmMethod = threAlgorithm.handleUnknown;
-          break;
-        case nodeStatus.ERROR:
-          selectedAlgorithmMethod = threAlgorithm.handleError;
-          break;
-        default:
-          selectedAlgorithmMethod = threAlgorithm.handleNormal;
-          break;
-      }
-      // 임계치에 맞는 메소드 호출. (this 인자를 잃으므로 지정 처리)
-      selectedAlgorithmMethod.call(threAlgorithm, placeNode);
-    } catch (error) {
-      throw error;
+    if (_.isEmpty(threAlgorithm)) {
+      // BU.CLI(`알고리즘 없음 ${this.threPlaceList.length}`, placeNode.getNodeDefId());
+      return false;
     }
+
+    let selectedAlgorithmMethod = threAlgorithm.handleNormal;
+
+    switch (placeNode.getNodeStatus()) {
+      case nodeStatus.MAX_OVER:
+        selectedAlgorithmMethod = threAlgorithm.handleMaxOver;
+        break;
+      case nodeStatus.UPPER_LIMIT_OVER:
+        selectedAlgorithmMethod = threAlgorithm.handleUpperLimitOver;
+        break;
+      case nodeStatus.NORMAL:
+        selectedAlgorithmMethod = threAlgorithm.handleNormal;
+        break;
+      case nodeStatus.LOWER_LIMIT_UNDER:
+        selectedAlgorithmMethod = threAlgorithm.handleLowerLimitUnder;
+        break;
+      case nodeStatus.MIN_UNDER:
+        selectedAlgorithmMethod = threAlgorithm.handleMinUnder;
+        break;
+      case nodeStatus.UNKNOWN:
+        selectedAlgorithmMethod = threAlgorithm.handleUnknown;
+        break;
+      case nodeStatus.ERROR:
+        selectedAlgorithmMethod = threAlgorithm.handleError;
+        break;
+      default:
+        selectedAlgorithmMethod = threAlgorithm.handleNormal;
+        break;
+    }
+    // 임계치에 맞는 메소드 호출. (this 인자를 잃으므로 지정 처리)
+    selectedAlgorithmMethod.call(threAlgorithm, placeNode);
   }
 }
 module.exports = AlgorithmMode;

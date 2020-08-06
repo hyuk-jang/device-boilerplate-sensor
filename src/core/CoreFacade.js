@@ -6,9 +6,8 @@ const { dcmWsModel, dccFlagModel, dcmConfigModel } = require('../module').di;
 
 const AlgorithmComponent = require('./AlgorithmManager/AlgorithmComponent');
 
-const PlaceComponent = require('././PlaceManager/PlaceComponent');
-// const PlaceThreshold = require('././PlaceManager/PlaceThreshold');
-const PlaceThreshold = require('././AlgorithmManager/PlaceThreshold');
+const PlaceComponent = require('./PlaceManager/PlaceComponent');
+const PlaceThreshold = require('./AlgorithmManager/PlaceThreshold');
 
 class CoreFacade {
   /**
@@ -55,7 +54,6 @@ class CoreFacade {
    * @param {CommandExecManager} cmdExecManager
    */
   setCmdExecManager(cmdExecManager) {
-    // BU.CLIN(cmdExecManager, 1);
     this.cmdExecManager = cmdExecManager;
   }
 
@@ -81,23 +79,17 @@ class CoreFacade {
    */
   changeCmdStrategy(cmdMode) {
     // 명령 전략 변경.
-    // BU.CLIN(this.cmdManager, 1);
     this.cmdManager.changeCmdStrategy(cmdMode);
   }
 
   /** @param {string} algorithmId 제어 모드 변경 알림 */
   changeOperationMode(algorithmId) {
-    try {
-      // 구동 모드 변경
-      return this.coreAlgorithm.changeOperationMode(algorithmId);
-    } catch (error) {
-      throw error;
-    }
+    // 구동 모드 변경
+    return this.coreAlgorithm.changeOperationMode(algorithmId);
   }
 
   /** 현재 명령 알고리즘(제어 모드) */
   getOperationConfig() {
-    // BU.CLIN(this.coreAlgorithm);
     return this.coreAlgorithm.getOperationConfig();
   }
 
@@ -179,13 +171,7 @@ class CoreFacade {
    * @param {boolean=} 예외 발생 시 throw 여부
    */
   handleUpdateNode(placeNode, isIgnoreError = false) {
-    try {
-      this.coreAlgorithm.handleUpdateNode(placeNode);
-    } catch (error) {
-      // BU.error(error);
-      // if (isIgnoreError) return false;
-      throw error;
-    }
+    this.coreAlgorithm.handleUpdateNode(placeNode);
   }
 
   /**
@@ -196,8 +182,6 @@ class CoreFacade {
    */
   reloadPlaceStorage(placeId, nodeDefId) {
     try {
-      // BU.CLI('reloadPlaceStorage', placeId, nodeDefId);
-      // BU.CLIN(this.placeManager.getPlaceStorage(placeId));
       this.placeManager.getPlaceStorage(placeId).updateNode(nodeDefId);
     } catch (error) {
       // BU.CLIN(this.placeManager.getPlaceStorage(placeId))
@@ -216,7 +200,6 @@ class CoreFacade {
       return this.cmdExecManager.executeSingleControl(reqSingleCmdInfo);
     } catch (error) {
       BU.error(error);
-      // BU.error(error.message);
     }
   }
 
@@ -226,11 +209,9 @@ class CoreFacade {
    * @param {reqSetCmdInfo} reqSetCmdInfo
    */
   executeSetControl(reqSetCmdInfo) {
-    // BU.CLI(reqSetCmdInfo);
     try {
       return this.cmdExecManager.executeSetControl(reqSetCmdInfo);
     } catch (error) {
-      // BU.error(error);
       BU.error(error.message);
     }
   }
@@ -241,12 +222,9 @@ class CoreFacade {
    * @param {reqFlowCmdInfo} reqFlowCmdInfo
    */
   executeFlowControl(reqFlowCmdInfo) {
-    // BU.CLIN(reqFlowCmdInfo);
     try {
-      // BU.CLIN(this.cmdExecManager, 1);
       return this.cmdExecManager.executeFlowControl(reqFlowCmdInfo);
     } catch (error) {
-      // BU.error(error);
       BU.error(error.message);
     }
   }
@@ -257,12 +235,9 @@ class CoreFacade {
    * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
    */
   executeScenarioControl(reqScenarioCmdInfo) {
-    // BU.CLIN(reqScenarioCmdInfo);
     try {
-      // BU.CLIN(this.cmdExecManager, 1);
       return this.cmdExecManager.executeScenarioControl(reqScenarioCmdInfo);
     } catch (error) {
-      // BU.error(error);
       BU.error(error.message);
     }
   }

@@ -81,7 +81,6 @@ class Control extends EventEmitter {
 
       // init Step: 2 Updator 등록(Step 1에서 nodeList를 정의한 후 진행해야 함)
       this.nodeUpdatorManager = new NodeUpdatorManager(this.nodeList);
-      // BU.CLIN(this.nodeUpdatorManager, 1);
 
       // init Step: 3 this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
       this.initMakeConfigForDLC();
@@ -93,7 +92,6 @@ class Control extends EventEmitter {
       // Binding Feature
       this.bindingFeature();
     } catch (error) {
-      BU.CLI(error);
       BU.errorLog('init', error);
     }
   }
@@ -105,17 +103,13 @@ class Control extends EventEmitter {
    * @param {string} mainUUID
    */
   async initSetProperty(dbInfo = this.config.dbInfo, mainUUID = this.mainUUID) {
-    // BU.CLI('initSetProperty', dbInfo);
     this.mainUUID = mainUUID;
     this.config.dbInfo = dbInfo;
     const biModule = new BM(dbInfo);
-    // BU.CLI(dbInfo);
-    // BU.CLI(mainUUID);
 
     const mainWhere = _.isNil(mainUUID) ? null : { uuid: mainUUID };
 
-    // DB에서 UUID 가 동일한 main 정보를 가져옴
-    /** @type {MAIN} */
+    /** @type {MAIN} DB에서 UUID 가 동일한 main 정보를 가져옴 */
     const mainRow = await biModule.getTableRow('main', mainWhere);
 
     // UUID가 동일한 정보가 없다면 종료
@@ -139,12 +133,8 @@ class Control extends EventEmitter {
     this.deviceMap = BU.IsJsonString(mainRow.map) ? JSON.parse(mainRow.map) : {};
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
-    this.dataLoggerList = await biModule.getTable(
-      'v_dv_data_logger',
-      Object.assign({ is_deleted: 0 }, where),
-    );
+    this.dataLoggerList = await biModule.getTable('v_dv_data_logger', { is_deleted: 0, ...where });
 
-    // BU.CLI(this.dataLoggerList)
     this.nodeList = await biModule.getTable('v_dv_node', where);
 
     // 장소 단위로 묶을 장소 목록을 가져옴
@@ -238,46 +228,38 @@ class Control extends EventEmitter {
    * 4. 생성 객체를 routerLists 에 삽입
    */
   async initCreateOpsDLC() {
-    // BU.CLI('initConOpsDLC');
-    try {
-      // 하부 Data Logger 순회
-      const resultInitDataLoggerList = await Promise.map(
-        this.config.dataLoggerList,
-        dataLoggerConfig => {
-          // BU.CLI(dataLoggerConfig);
-          // 데이터 로거 객체 생성
-          const dataLoggerController = new DataLoggerController(dataLoggerConfig);
+    // 하부 Data Logger 순회
+    const resultInitDataLoggerList = await Promise.map(
+      this.config.dataLoggerList,
+      dataLoggerConfig => {
+        // 데이터 로거 객체 생성
+        const dataLoggerController = new DataLoggerController(dataLoggerConfig);
 
-          // DataLogger, NodeList 설정
-          dataLoggerController.s1SetLoggerAndNodeByConfig();
-          // deviceInfo 설정
-          dataLoggerController.s2SetDeviceInfo();
-          // DeviceClientController, ProtocolConverter, Model 초기화
-          // 컨트롤러에 현 객체 Observer 등록
-          dataLoggerController.attach(this);
+        // DataLogger, NodeList 설정
+        dataLoggerController.s1SetLoggerAndNodeByConfig();
+        // deviceInfo 설정
+        dataLoggerController.s2SetDeviceInfo();
+        // DeviceClientController, ProtocolConverter, Model 초기화
+        // 컨트롤러에 현 객체 Observer 등록
+        dataLoggerController.attach(this);
 
-          // BU.CLI(`DBS Init  ${this.mainUUID}`, dataLoggerConfig.dataLoggerInfo.dl_real_id);
-          return dataLoggerController.init(this.mainUUID);
-        },
-      );
+        return dataLoggerController.init(this.mainUUID);
+      },
+    );
 
-      // 하부 PCS 객체 리스트 정의
-      this.dataLoggerControllerList = resultInitDataLoggerList;
-      // BU.CLIN(this.dataLoggerControllerList);
+    // 하부 PCS 객체 리스트 정의
+    this.dataLoggerControllerList = resultInitDataLoggerList;
 
-      /** @type {Model} */
-      this.model = new this.Model(this);
-      this.model.init();
+    /** @type {Model} */
+    this.model = new this.Model(this);
+    this.model.init();
 
-      // 모델 등록
-      this.coreFacade.setModel(this.model);
+    // 모델 등록
+    this.coreFacade.setModel(this.model);
 
-      this.commandExecManager = new CommandExecManager(this);
+    this.commandExecManager = new CommandExecManager(this);
 
-      return this.dataLoggerControllerList;
-    } catch (error) {
-      throw error;
-    }
+    return this.dataLoggerControllerList;
   }
 
   /**
@@ -285,7 +267,6 @@ class Control extends EventEmitter {
    * DBS 순수 기능 외에 추가 될 기능
    */
   bindingFeature() {
-    // BU.CLI('bindingFeature');
     // API Socket Server
     this.apiClient = new AbstApiClient(this);
     // 현황판
@@ -340,11 +321,7 @@ class Control extends EventEmitter {
    * @param {string} algorithmId Algorithm Id
    */
   changeOperationMode(algorithmId) {
-    try {
-      return this.coreFacade.changeOperationMode(algorithmId);
-    } catch (error) {
-      throw error;
-    }
+    return this.coreFacade.changeOperationMode(algorithmId);
   }
 
   /**
@@ -353,12 +330,8 @@ class Control extends EventEmitter {
    * @param {reqSingleCmdInfo} reqSingleCmdInfo
    */
   executeSingleControl(reqSingleCmdInfo) {
-    try {
-      // BU.CLI(reqSingleCmdInfo);
-      return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
-    } catch (error) {
-      throw error;
-    }
+    // BU.CLI(reqSingleCmdInfo);
+    return this.commandExecManager.executeSingleControl(reqSingleCmdInfo);
   }
 
   /**
@@ -366,11 +339,7 @@ class Control extends EventEmitter {
    * @param {reqSetCmdInfo} reqSetCmdInfo 저장된 명령 ID
    */
   executeSetControl(reqSetCmdInfo) {
-    try {
-      return this.commandExecManager.executeSetControl(reqSetCmdInfo);
-    } catch (error) {
-      throw error;
-    }
+    return this.commandExecManager.executeSetControl(reqSetCmdInfo);
   }
 
   /**
@@ -379,12 +348,7 @@ class Control extends EventEmitter {
    * @param {reqFlowCmdInfo} reqFlowCmdInfo
    */
   executeFlowControl(reqFlowCmdInfo) {
-    // BU.CLIN(reqFlowCmdInfo);
-    try {
-      return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);
-    } catch (error) {
-      throw error;
-    }
+    return this.commandExecManager.executeFlowControl(reqFlowCmdInfo);
   }
 
   /**
@@ -392,11 +356,7 @@ class Control extends EventEmitter {
    * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
    */
   executeScenarioControl(reqScenarioCmdInfo) {
-    try {
-      return this.commandExecManager.executeScenarioControl(reqScenarioCmdInfo);
-    } catch (error) {
-      throw error;
-    }
+    return this.commandExecManager.executeScenarioControl(reqScenarioCmdInfo);
   }
 
   /**
@@ -404,59 +364,38 @@ class Control extends EventEmitter {
    * @param {executeCmdInfo} executeCmdInfo
    */
   executeCancelCommand(executeCmdInfo) {
-    try {
-      return this.commandExecManager.executeCancelCommand(executeCmdInfo);
-    } catch (error) {
-      throw error;
-    }
+    return this.commandExecManager.executeCancelCommand(executeCmdInfo);
   }
 
   /**
    * 정기적인 Router Status 탐색
    */
   inquiryAllDeviceStatus() {
-    try {
-      // BU.debugConsole(10);
-      return this.commandExecManager.inquiryAllDeviceStatus();
-    } catch (error) {
-      throw error;
-    }
+    return this.commandExecManager.inquiryAllDeviceStatus();
   }
 
   /**
    * 데이터 로거의 현 상태를 조회하는 스케줄러
    */
   runDeviceInquiryScheduler() {
-    // BU.CLI('runDeviceInquiryScheduler');
-    try {
-      if (this.cronScheduler !== null) {
-        // BU.CLI('Stop')
-        this.cronScheduler.stop();
-      }
-      // BU.CLI(this.config.inquiryIntervalSecond)
-      // 1분마다 요청
-      this.cronScheduler = new cron.CronJob(
-        this.config.inquirySchedulerInfo.intervalCronFormat,
-        () => {
-          // BU.CLI('fuck', this.mainUUID);
-          this.inquirySchedulerRunMoment = moment();
-          this.inquiryAllDeviceStatus();
-        },
-        null,
-        true,
-      );
-
-      return true;
-    } catch (error) {
-      throw error;
+    if (this.cronScheduler !== null) {
+      this.cronScheduler.stop();
     }
+    // 1분마다 요청
+    this.cronScheduler = new cron.CronJob(
+      this.config.inquirySchedulerInfo.intervalCronFormat,
+      () => {
+        this.inquirySchedulerRunMoment = moment();
+        this.inquiryAllDeviceStatus();
+      },
+      null,
+      true,
+    );
   }
 
   /** 인증이 되었음을 알림 */
   // nofityAuthentication() {
   //   BU.CLI('nofityAuthentication');
-  //   // 현황판 데이터 요청
-  //   this.emit('nofityAuthentication');
   // }
 
   /**
@@ -466,17 +405,12 @@ class Control extends EventEmitter {
    * @param {nodeInfo[]} renewalNodeList 갱신된 노드 목록 (this.nodeList가 공유하므로 업데이트 필요 X)
    */
   notifyDeviceData(dataLoggerController, renewalNodeList) {
-    // BU.CLI(
-    //   '@@@@@@@@@@@ notifyDeviceData',
-    //   this.model.getAllNodeStatus(nodePickKey.FOR_SERVER, renewalNodeList),
-    // );
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
       // 노드 갱신 매니저에게 갱신된 노드 목록을 알림
       this.nodeUpdatorManager.updateNodeList(renewalNodeList);
 
-      // BU.CLIN(renewalNodeList);
       const dataList = this.model.getAllNodeStatus(
         nodePickKey.FOR_SERVER,
         renewalNodeList.filter(nodeInfo => nodeInfo.is_submit_api),
@@ -491,7 +425,6 @@ class Control extends EventEmitter {
       }
     } catch (error) {
       // 예외는 기록만 함
-      // BU.CLIN(this, 1);
       BU.error(error.message);
       throw error;
     }
