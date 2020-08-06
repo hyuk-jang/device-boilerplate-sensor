@@ -89,9 +89,7 @@ class Model {
     }
     // 비교 조건과 같은 requestCommandSet 제거 후 남은 List 반환
     return _.remove(this.requestCommandSetList, requestCommand =>
-      _(requestCommand)
-        .pick(_.keys(compareInfo))
-        .isEqual(compareInfo),
+      _(requestCommand).pick(_.keys(compareInfo)).isEqual(compareInfo),
     );
   }
 
@@ -156,6 +154,55 @@ class Model {
     this.tempStorage = this.controller.converter.BaseModel;
     return renewalNodeList;
   }
+
+  // completeOnData2() {
+  //   // 갱신된 Node 목록
+  //   const renewalNodeList = this.onData(this.tempStorage);
+  //   // 임시 저장소를 다시 초기화
+  //   this.tempStorage = this.controller.converter.BaseModel;
+
+  //   renewalNodeList.forEach((nodeInfo) => {
+  //     const { node_id: ni, data } = nodeInfo;
+
+  //     let addValue = 0;
+
+  //     switch (ni) {
+  //       case 'WL_009':
+  //         addValue = 0.7;
+  //         break;
+  //       case 'WL_010':
+  //         addValue = 0.2;
+  //         break;
+  //       case 'WL_011':
+  //         addValue = -0.5;
+  //         break;
+  //       // case 'WL_012':
+  //       //   addValue = 0.2;
+  //       //   break;
+  //       case 'WL_015':
+  //         addValue = -0.2;
+  //         break;
+  //       case 'WL_016':
+  //         addValue = 0.2;
+  //         break;
+
+  //       default:
+  //         break;
+  //     }
+
+  //     if (_.isNumber(data)) {
+  //       const calcData = _.round(_.sum([addValue, data]), 1);
+
+  //       if (calcData < 0) {
+  //         nodeInfo.data = 0;
+  //       } else {
+  //         nodeInfo.data = calcData;
+  //       }
+  //     }
+  //   });
+
+  //   return renewalNodeList;
+  // }
 }
 
 module.exports = Model;
