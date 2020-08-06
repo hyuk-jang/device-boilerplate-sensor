@@ -21,7 +21,8 @@
     "build": "pkg . --out-path dist",
     "build:win": "pkg . --out-path dist --targets node8-win-x64",
     "build:linux": "pkg . --out-path dist --targets node8-linux-x64",
-    "build:macos": "pkg . --out-path dist --targets node8-macos-x64"
+    "build:macos": "pkg . --out-path dist --targets node8-macos-x64",
+    "forever": "forever start --minUptime 5000 --spinSleepTime 2000 -a index.js"
   },
   "keywords": [],
   "author": "",
