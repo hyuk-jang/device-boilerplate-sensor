@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const uuidv4 = require('uuid/v4');
+const uuid = require('uuid');
 
 const { BU } = require('base-util-jh');
 
@@ -19,7 +19,7 @@ class CmdElement extends CmdComponent {
    */
   constructor(cmdEleInfo, coreFacade) {
     super();
-    this.cmdEleUuid = uuidv4();
+    this.cmdEleUuid = uuid.v4();
     this.cmdEleInfo = cmdEleInfo;
 
     const { nodeId, isIgnore = false, singleControlType, controlSetValue } = cmdEleInfo;

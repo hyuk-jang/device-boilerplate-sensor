@@ -20,7 +20,8 @@ class DataLoggerController extends DccFacade {
     super();
 
     this.config = config;
-    // BU.CLI(this.config);
+
+    this.isConnected = false;
 
     /** @type {deviceInfo} Controller 객체의 생성 정보를 담고 있는 설정 정보 */
     this.deviceInfo;
@@ -123,7 +124,6 @@ class DataLoggerController extends DccFacade {
    * @param {nodeInfo[]} nodeInfoList
    */
   s1AddNodeList(nodeInfoList) {
-    // BU.CLI(this.siteUUID, nodeInfoList.length);
     nodeInfoList.forEach(nodeInfo => {
       const foundIt = _.find(this.nodeList, {
         node_id: nodeInfo.node_id,
@@ -186,23 +186,20 @@ class DataLoggerController extends DccFacade {
       const { CONNECT, DISCONNECT } = this.definedControlEvent;
       // 프로토콜 컨버터 바인딩
       this.converter = new MainConverter(this.protocolInfo);
-      // BU.CLI('setProtocolConverter');
+
       this.converter.setProtocolConverter();
-      // BU.CLI('setProtocolConverter');
       // 모델 선언
       this.model = new Model(this);
       // 중앙 값 사용하는 Node가 있다면 적용
       const filterdNodeList = _.filter(this.nodeList, { is_avg_center: 1 });
-      if (!_.isEmpty(filterdNodeList)) {
+      if (filterdNodeList.length) {
         this.model.bindingAverageStorageForNode(filterdNodeList, true);
       }
       // DCC 초기화 시작
       // connectInfo가 없거나 수동 Client를 사용할 경우
       if (_.isEmpty(this.connectInfo) || this.connectInfo.hasPassive) {
-        // BU.CLI('setPassiveClient', this.id);
         // 수동 클라이언트를 사용할 경우에는 반드시 사이트 UUID가 필요함
         if (_.isString(siteUUID)) {
-          // BU.CLI('setPassiveClient', this.id, siteUUID);
           // 해당 사이트 고유 ID
           this.siteUUID = siteUUID;
           this.setPassiveClient(this.deviceInfo, siteUUID);
@@ -212,7 +209,6 @@ class DataLoggerController extends DccFacade {
       }
       // 접속 경로가 존재시 선언 및 자동 접속을 수행
 
-      // BU.CLI('setDeviceClient');
       this.setDeviceClient(this.deviceInfo);
 
       // 만약 장치가 접속된 상태라면
@@ -220,10 +216,8 @@ class DataLoggerController extends DccFacade {
         return this;
       }
 
-      // BU.CLI('DataLogger Init', this.config.dataLoggerInfo.dl_real_id)
       // 장치와의 접속 수립이 아직 안되었을 경우 장치 접속 결과를 기다림
       await eventToPromise.multi(this, [CONNECT], [DISCONNECT]);
-      // BU.CLI('Connected', this.id);
       // Controller 반환
       return this;
     } catch (error) {
@@ -280,7 +274,6 @@ class DataLoggerController extends DccFacade {
         nodeId = '',
         rank = this.definedCommandSetRank.THIRD,
       } = executeCmdInfo;
-      // BU.CLI(this.siteUUID);
 
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
@@ -293,7 +286,7 @@ class DataLoggerController extends DccFacade {
       const nodeInfo = _.find(this.nodeList, {
         node_id: nodeId,
       });
-      // let modelId = orderInfo.modelId;
+
       if (_.isEmpty(nodeInfo)) {
         throw new Error(`Node ${executeCmdInfo.nodeId} 장치는 존재하지 않습니다.`);
       }
@@ -318,13 +311,9 @@ class DataLoggerController extends DccFacade {
         rank,
       });
 
-      // BU.CLIN(commandSet);
       // 장치로 명령 요청
       this.executeCommand(commandSet);
 
-      // if (_.map(this.nodeList, 'node_id').includes('P_001')) {
-      //   BU.CLIN(commandSet, 1);
-      // }
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
       return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
@@ -345,8 +334,7 @@ class DataLoggerController extends DccFacade {
       wrapCmdType = reqWrapCmdFormat.MEASURE,
       rank = this.definedCommandSetRank.THIRD,
     } = executeCmd;
-    // BU.CLIN(executeCmd)
-    // BU.CLI('orderOperationToDataLogger')
+
     try {
       if (!this.hasConnectedDevice) {
         throw new Error(`The device has been disconnected. ${_.get(this.connectInfo, 'port')}`);
@@ -370,10 +358,8 @@ class DataLoggerController extends DccFacade {
       });
 
       this.executeCommand(commandSet);
-      // BU.CLIN(this.manager.findCommandStorage({commandId: reqExecCmdInfo.wrapCmdId}), 4);
 
       // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
-      // BU.CLIN(commandSet, 1)
       return this.model.addRequestCommandSet(commandSet);
     } catch (error) {
       BU.CLI(error);
@@ -396,20 +382,30 @@ class DataLoggerController extends DccFacade {
 
     switch (dcEvent.eventName) {
       case CONNECT:
+        this.isConnected = true;
         this.emit(CONNECT);
         break;
       case DISCONNECT:
+        // 장치와의 접속이 해제되었을 경우 장치 데이터 및 진행 명령을 초기화
+        if (this.isConnected) {
+          this.isConnected = false;
+          // 장치 데이터 초기화, 명령 초기화
+          this.model.initModel();
+          // 옵저버에게 데이터 초기화 전파
+          this.observerList.forEach(ob => {
+            _.get(ob, 'notifyDeviceData') && ob.notifyDeviceData(this, this.nodeList);
+          });
+        }
+
         this.emit(DISCONNECT);
         break;
       default:
         break;
     }
 
-    // Observer가 해당 메소드를 가지고 있다면 전송
-    _.forEach(this.observerList, observer => {
-      if (_.get(observer, 'notifyDeviceEvent')) {
-        observer.notifyDeviceEvent(this, dcEvent);
-      }
+    // 이벤트 발송
+    this.observerList.forEach(observer => {
+      observer.notifyDeviceEvent(this, dcEvent);
     });
   }
 
@@ -425,32 +421,28 @@ class DataLoggerController extends DccFacade {
 
     const { RETRY, ERROR } = this.definedCommanderResponse;
 
-    // 재시도 횟수가 설정되어 있고 재시도 횟수 제한에 걸리지 않았다면 재시도
-    if (
-      this.commander.setRetryChance > 0 &&
-      !_.eq(_.get(dcError, 'errorInfo.message'), E_RETRY_MAX)
-    ) {
-      // BU.CLI(this.commander.setRetryChance, dcError.errorInfo.message);
-      return this.requestTakeAction(RETRY);
+    // 재시도 횟수 설정 시
+    if (this.commander.setRetryChance > 0) {
+      // !_.eq(_.get(dcError, 'errorInfo.message'), E_RETRY_MAX)
+      const {
+        errorInfo: { message },
+      } = dcError;
+      // 재시도 횟수 제한에 걸리지 않았다면 재시도
+      if (message < E_RETRY_MAX) {
+        return this.requestTakeAction(RETRY);
+      }
     }
 
     // 에러 카운트 증가
     this.errorCount += 1;
-
-    // 빈 센서 데이터 객체를 전달.
-    // this.model.onPartData(this.converter.BaseModel);
-    // this.tempStorage = this.converter.BaseModel;
-
     // (config.deviceInfo.protocol_info.protocolOptionInfo.hasTrackingData = true 일 경우 추적하기 때문에 Data를 계속 적재하는 것을 방지함)
     this.converter.resetTrackingDataBuffer();
 
     // 현재 진행 중인 명령 객체를 삭제 요청
     this.requestTakeAction(ERROR);
     // Observer가 해당 메소드를 가지고 있다면 전송
-    _.forEach(this.observerList, observer => {
-      if (_.get(observer, 'notifyDeviceError')) {
-        observer.notifyDeviceError(this, dcError);
-      }
+    this.observerList.forEach(ob => {
+      ob.notifyDeviceError(this, dcError);
     });
   }
 
@@ -503,22 +495,14 @@ class DataLoggerController extends DccFacade {
           .value();
         BU.CLI(this.id, pickedNodeList);
       }
-      this.observerList.forEach(observer => {
-        if (_.get(observer, 'notifyDeviceData')) {
-          try {
-            observer.notifyDeviceData(this, renewalNodeList);
-          } catch (error) {
-            BU.errorLog(error.name, error.message, error);
-          }
-        }
+      this.observerList.forEach(ob => {
+        ob.notifyDeviceData(this, renewalNodeList);
       });
     }
 
     // Observer가 해당 메소드를 가지고 있다면 전송
-    this.observerList.forEach(observer => {
-      if (_.get(observer, 'notifyDeviceMessage')) {
-        observer.notifyDeviceMessage(this, dcMessage);
-      }
+    this.observerList.forEach(ob => {
+      ob.notifyDeviceMessage(this, dcMessage);
     });
   }
 
@@ -528,9 +512,6 @@ class DataLoggerController extends DccFacade {
    * @param {dcData} dcData 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcData(dcData) {
-    // if (_.map(this.nodeList, 'node_id').includes('P_001')) {
-    //   BU.CLI(dcData.commandSet.uuid, _.head(dcData.commandSet.cmdList).data);
-    // }
     process.env.LOG_DLC_ON_DATA === '1' && super.onDcData(dcData);
 
     try {

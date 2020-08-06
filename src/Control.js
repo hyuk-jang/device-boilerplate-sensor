@@ -128,6 +128,8 @@ class Control extends EventEmitter {
 
     // 가져온 Main 정보에서 main_seq를 구함
     this.mainSeq = _.get(mainRow, 'main_seq', '');
+    this.mainRow = mainRow;
+
     const where = {
       main_seq: this.mainSeq,
     };
@@ -137,7 +139,10 @@ class Control extends EventEmitter {
     this.deviceMap = BU.IsJsonString(mainRow.map) ? JSON.parse(mainRow.map) : {};
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
-    this.dataLoggerList = await biModule.getTable('v_dv_data_logger', where);
+    this.dataLoggerList = await biModule.getTable(
+      'v_dv_data_logger',
+      Object.assign({ is_deleted: 0 }, where),
+    );
 
     // BU.CLI(this.dataLoggerList)
     this.nodeList = await biModule.getTable('v_dv_node', where);
@@ -174,6 +179,7 @@ class Control extends EventEmitter {
 
     // 맵 데이터 중 DBS에서 필요치 않는 Draw 관련 정보 삭제
     _.unset(this.deviceMap, 'drawInfo');
+    _.unset(this.mainRow, 'map');
   }
 
   /**
@@ -385,9 +391,21 @@ class Control extends EventEmitter {
    * 시나리오를 수행하고자 할 경우
    * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
    */
-  executeScenarioControl(scenarioInfo) {
+  executeScenarioControl(reqScenarioCmdInfo) {
     try {
-      return this.commandExecManager.executeScenarioControl(scenarioInfo);
+      return this.commandExecManager.executeScenarioControl(reqScenarioCmdInfo);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 기존에 실행 중인 명령을 취소하고자 할 경우
+   * @param {executeCmdInfo} executeCmdInfo
+   */
+  executeCancelCommand(executeCmdInfo) {
+    try {
+      return this.commandExecManager.executeCancelCommand(executeCmdInfo);
     } catch (error) {
       throw error;
     }
@@ -473,7 +491,7 @@ class Control extends EventEmitter {
       }
     } catch (error) {
       // 예외는 기록만 함
-      // BU.error(error);
+      // BU.CLIN(this, 1);
       BU.error(error.message);
       throw error;
     }
@@ -485,7 +503,19 @@ class Control extends EventEmitter {
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {dcEvent} dcEvent 이벤트 발생 내역
    */
-  notifyDeviceEvent(dataLoggerController, dcEvent) {}
+  notifyDeviceEvent(dataLoggerController, dcEvent) {
+    const { CONNECT, DISCONNECT } = dataLoggerController.definedControlEvent;
+
+    switch (dcEvent.eventName) {
+      case CONNECT:
+        break;
+      // FIXME: 명령 삭제, DBW로 명령 Fail 전송(commandType: transmitToServerCT.COMMAND_FAIL)
+      case DISCONNECT:
+        break;
+      default:
+        break;
+    }
+  }
 
   /**
    * TODO: 메시지 처리
@@ -503,6 +533,6 @@ class Control extends EventEmitter {
    * @param {DataLoggerController} dataLoggerController Data Logger Controller 객체
    * @param {dcError} dcError 명령 수행 결과 데이터
    */
-  notifyError(dataLoggerController, dcError) {}
+  notifyDeviceError(dataLoggerController, dcError) {}
 }
 module.exports = Control;

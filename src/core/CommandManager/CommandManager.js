@@ -41,6 +41,9 @@ class CommandManager {
     /** @type {CmdStorage[]} */
     this.commandList = [];
 
+    /** @type {wsSvgImgInfo[]} */
+    this.svgImgList = [];
+
     this.mapCmdInfo = mapCmdInfo;
 
     // 명령 전략가 등록
@@ -150,7 +153,7 @@ class CommandManager {
    */
   executeCommand(reqCommandInfo, observer) {
     try {
-      const { wrapCmdFormat, wrapCmdId } = reqCommandInfo;
+      const { wrapCmdFormat, wrapCmdType, wrapCmdId, wrapCmdName } = reqCommandInfo;
 
       // 계측 명령 일 경우에는 전략에 상관없이 요청
       if (wrapCmdFormat === reqWCF.MEASURE) {
@@ -163,12 +166,15 @@ class CommandManager {
           throw new Error(`${foundCommand.wrapCmdName} 명령은 존재합니다.`);
           // throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
         }
+
         // 실제 수행할 장치를 정제
         const commandWrapInfo = this.refineReqCommand(reqCommandInfo);
 
         return this.executeRealCommand(commandWrapInfo);
       }
       // 계측 명령이 아닐 경우 명령 전략에 따라 진행
+      process.env.LOG_DBS_CMD_START === '1' &&
+        BU.CLI(`(${wrapCmdFormat})(${wrapCmdType}) ${wrapCmdName} [${wrapCmdId}] `);
 
       return this.cmdStrategy.executeCommand(reqCommandInfo);
     } catch (error) {
@@ -197,13 +203,39 @@ class CommandManager {
       // 명령 목록에 추가
       this.commandList.push(cmdStorage);
 
-      // 실제 장치로 명령 요청
-      cmdStorage.executeCommandFromDLC();
+      // 실제 장치로 명령 요청하기 전에 cmdStorage를 먼저 반환하기 위함.
+      setImmediate(() => cmdStorage.executeCommandFromDLC());
 
       return cmdStorage;
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * SVG 화면에 나타낼 Img의 변동이 생겼을 경우 진행중인 이미지 관리를 함
+   * @param {mScenarioImgDisplayInfo} svgImgInfo
+   */
+  updateSvgImg(svgImgInfo) {
+    const { imgId, isAppear = 1 } = svgImgInfo;
+    // BU.CLI(imgId, isAppear);
+
+    // 새로이 생성하는 이미지이고 중복이 없을 경우 삽입
+    if (isAppear === 1) {
+      this.svgImgList.findIndex(svgImg => svgImg.imgId === imgId) < 0 &&
+        this.svgImgList.push({
+          imgId,
+        });
+    } else {
+      _.remove(this.svgImgList, { imgId });
+    }
+    // BU.CLI(this.svgImgList);
+
+    // BU.CLI(this.model.getAllSvgImg());
+    this.controller.apiClient.transmitDataToServer({
+      commandType: transmitToServerCT.SVG_IMG,
+      data: this.model.getAllSvgImg(),
+    });
   }
 
   /**
@@ -243,7 +275,7 @@ class CommandManager {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    // BU.CLI('updateCommandStep >>> Default', cmdStorage.cmdStep);
+    // BU.CLI('updateCommandStep >>> Default', cmdStorage.wrapCmdName + cmdStorage.cmdStep);
     const { wrapCmdFormat, wrapCmdStep, wrapCmdId } = cmdStorage;
     //  명령 완료를 받았을 경우
     if (wrapCmdStep === cmdStep.COMPLETE) {
@@ -266,20 +298,23 @@ class CommandManager {
     // BU.CLI('notifyUpdateCommandStep', cmdStorage.cmdStep);
     // FIXME: 임시. 메시지 전체 보냄
     // BU.CLI(_.pick(cmdStorage, commandPickKey.FOR_SERVER));
+    // BU.CLI('updateCommandStep >>> Default', cmdStorage.wrapCmdName + cmdStorage.cmdStep);
 
-    // BU.CLI(
-    //   _(this.commandList)
-    //     .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
-    //     .value(),
-    // );
+    process.env.LOG_DBS_CMD_REMAIN === '1' &&
+      BU.CLI(
+        _(this.commandList)
+          .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
+          .value(),
+      );
 
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCT.COMMAND,
       // data: [_.pick(cmdStorage, commandPickKey.FOR_SERVER)],
       // data: _.map(this.commandList, cmdStorage => _.pick(cmdStorage, commandPickKey.FOR_SERVER)),
-      data: _(this.commandList)
-        .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
-        .value(),
+      data: this.model.getAllCmdStatus(commandPickKey.FOR_SERVER),
+      // data: _(this.commandList)
+      //   .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
+      //   .value(),
     });
 
     // 명령 업데이트를 구독하고 있는 대상에게 공지
@@ -374,12 +409,13 @@ class CommandManager {
       // _.assign(containerInfo, { isLive: true });
 
       // BU.CLIN(foundCmdEle, 1);
-      // 기존재할 경우
+      // 기존재하고 아직 명령이 완수되지 않았다면 추가 제어 무시함
       if (foundCmdEle instanceof CmdElement) {
-        containerInfo.isIgnore = true;
+        containerInfo.isIgnore = !foundCmdEle.isCommandClear();
       } else {
         // 현재 값과 제어할려는 값이 동일할 경우 true, 다르다면 false
-        containerInfo.isIgnore = this.isEqualCurrNodeData(containerInfo);
+        containerInfo.isIgnore =
+          process.env.IS_OVERLAP_CMD !== '0' ? this.isEqualCurrNodeData(containerInfo) : false;
       }
     });
   }

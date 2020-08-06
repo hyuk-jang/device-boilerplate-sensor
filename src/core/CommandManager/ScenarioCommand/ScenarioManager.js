@@ -54,7 +54,7 @@ class ScenarioManager {
 
     const scenarioCmdInfo = _.find(this.scenarioCmdList, { scenarioId: wrapCmdId });
 
-    const { scenarioId, scenarioName, scenarioList } = scenarioCmdInfo;
+    const { scenarioList } = scenarioCmdInfo;
 
     // 최초 시나리오 저장소 생성
     const scenarioStorage = new ScenarioStorage(scenarioCmdInfo, this.coreFacade);
@@ -69,6 +69,8 @@ class ScenarioManager {
 
     // 명령 실행
     scenarioStorage.executeScenario();
+
+    return scenarioStorage;
   }
 
   /**

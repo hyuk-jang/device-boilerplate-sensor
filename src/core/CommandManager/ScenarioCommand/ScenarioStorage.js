@@ -5,6 +5,10 @@ const { BU } = require('base-util-jh');
 const ScenarioComponent = require('./ScenarioComponent');
 const ScenarioCommand = require('./ScenarioCommand');
 
+const {
+  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF, reqWrapCmdType: reqWCT },
+} = require('../../../module').di;
+
 /**
  * 명령 이터레이터
  * @param {number} start
@@ -47,6 +51,26 @@ class ScenarioStorage extends ScenarioComponent {
 
     /** @type {IterableIterator} */
     this.iterator;
+  }
+
+  /** @return {string} 명령 형식, MEASURE, SINGLE, SET, FLOW, SCENARIO */
+  get wrapCmdFormat() {
+    return reqWCF.SCENARIO;
+  }
+
+  /** @return {string} 명령 타입, CONTROL, CANCEL */
+  get wrapCmdType() {
+    return reqWCT.CONTROL;
+  }
+
+  /** @return {string} 명령 ID */
+  get wrapCmdId() {
+    return this.scenarioId;
+  }
+
+  /** @return {string} 명령 이름 */
+  get wrapCmdName() {
+    return this.scenarioName;
   }
 
   /**
@@ -154,7 +178,7 @@ class ScenarioStorage extends ScenarioComponent {
       return this.children[this.executeIndex].updateScenarioClear(wrapCmdId);
     }
     // 비동기 명령일 경우 자식 요소에 모두 전파. 부합되는 명령이 존재할 경우 업데이트 처리하고 반환
-    return _.some(this.children, child => child.updateScenarioClear(wrapCmdId));
+    return this.children.some(child => child.updateScenarioClear(wrapCmdId));
   }
 
   /** 현재 시나리오 명령 완료 여부 */
@@ -164,7 +188,7 @@ class ScenarioStorage extends ScenarioComponent {
       return this.children[this.executeIndex].isScenarioClear();
     }
     // 자식 내 모든 시나리오가 처리되었는지 여부 확인
-    return _.every(this.children, child => child.isScenarioClear());
+    return this.children.every(child => child.isScenarioClear());
   }
 
   /**

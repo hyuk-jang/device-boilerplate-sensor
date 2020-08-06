@@ -22,6 +22,10 @@ class ThreCmdStorage extends CmdComponent {
 
     this.threCmdLimitTimer;
     this.cmdStorage;
+
+    this.limitTimeCalcUnit = process.env.LIMIT_TIME_CALC_UNIT
+      ? Number(process.env.LIMIT_TIME_CALC_UNIT)
+      : 1000;
   }
 
   /**
@@ -84,7 +88,7 @@ class ThreCmdStorage extends CmdComponent {
       // 제한 시간 초과로 달성 목표를 이루었다고 판단
       // BU.CLIN(this.cmdStorage);
       this.cmdStorage.handleThresholdClear();
-    }, limitTimeSec * 1000);
+    }, limitTimeSec * this.limitTimeCalcUnit);
   }
 
   /** @param {ThreCmdGoal} threCmdGoal */

@@ -250,6 +250,22 @@ class CoreFacade {
       BU.error(error.message);
     }
   }
+
+  /**
+   * 시나리오를 수행하고자 할 경우
+   * 예외 발생 시 무시
+   * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
+   */
+  executeScenarioControl(reqScenarioCmdInfo) {
+    // BU.CLIN(reqScenarioCmdInfo);
+    try {
+      // BU.CLIN(this.cmdExecManager, 1);
+      return this.cmdExecManager.executeScenarioControl(reqScenarioCmdInfo);
+    } catch (error) {
+      // BU.error(error);
+      BU.error(error.message);
+    }
+  }
 }
 CoreFacade.dcmWsModel = dcmWsModel;
 CoreFacade.dccFlagModel = dccFlagModel;

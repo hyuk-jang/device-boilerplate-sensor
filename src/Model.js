@@ -141,7 +141,8 @@ class Model {
    * @param {string} scenarioId
    */
   findScenarioCommand(scenarioId) {
-    return _.find(this.mapCmdInfo.scenarioCmdList, { scenarioId });
+    // BU.CLIN(this.scenarioManager.scenarioCmdList, 1);
+    return _.find(this.scenarioManager.scenarioCmdList, { scenarioId });
   }
 
   /**
@@ -242,7 +243,13 @@ class Model {
 
     process.env.LOG_DBS_INQUIRY_RESULT_SUBMIT_DATA === '1' &&
       BU.CLI(
-        this.getAllNodeStatus(nodePickKey.FOR_DATA, _.filter(this.nodeList, { is_submit_api: 1 })),
+        this.getAllNodeStatus(
+          nodePickKey.FOR_DATA,
+          _.filter(this.nodeList, nodeInfo => {
+            return nodeInfo.is_submit_api === 1 && !_.isNil(nodeInfo.data);
+            // { is_submit_api: 1 }
+          }),
+        ),
       );
 
     await this.insertNodeDataToDB(validNodeList, {
@@ -300,6 +307,15 @@ class Model {
     return _(cmdStorages)
       .map(commandStorage => _.pick(commandStorage, cmdPickInfo))
       .value();
+  }
+
+  /**
+   * 모든 노드가 가지고 있는 정보 출력
+   * @param {Object} pickInfo
+   * @param {wsSvgImgInfo[]=} svgImgList
+   */
+  getAllSvgImg(pickInfo, svgImgList = this.cmdManager.svgImgList) {
+    return svgImgList;
   }
 
   /**

@@ -275,7 +275,7 @@ describe('시나리오 동작 테스트', function() {
     BU.CLI('TC_1 >>> 3 단계 완료');
   });
 
-  it.skip('시연 모드 1', async () => {
+  it.only('시연 모드 1', async () => {
     const { cmdManager, placeManager, scenarioManager } = control.model;
     // 시나리오 입힘
     scenarioManager.scenarioCmdList = scenarioList;
@@ -307,5 +307,7 @@ describe('시나리오 동작 테스트', function() {
     BU.CLI('TC_1 >>> 1 단계 완료');
 
     const ss_STEP_2 = mainScenarioStorage.getRunningScenario();
+
+    throw new Error('hi');
   });
 });
