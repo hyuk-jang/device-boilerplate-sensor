@@ -48,117 +48,117 @@ class S2W extends Control {
     // });
   }
 
-  /**
-   * @override
-   * @desc init Step: 2
-   * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
-   */
-  initMakeConfigForDLC() {
-    // BU.CLI('initMakeConfigForDLC');
-    // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
-    this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
-      const {
-        data_logger_seq: seqDL,
-        connect_info: connectInfo = {},
-        protocol_info: protocolInfo = {},
-      } = dataLoggerInfo;
+  // /**
+  //  * @override
+  //  * @desc init Step: 2
+  //  * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
+  //  */
+  // initMakeConfigForDLC() {
+  //   // BU.CLI('initMakeConfigForDLC');
+  //   // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
+  //   this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
+  //     const {
+  //       data_logger_seq: seqDL,
+  //       connect_info: connectInfo = {},
+  //       protocol_info: protocolInfo = {},
+  //     } = dataLoggerInfo;
 
-      const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
+  //     const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
 
-      /** @type {connect_info} */
-      let connInfo = JSON.parse(connectInfo);
-      /** @type {protocol_info} */
-      const protoInfo = JSON.parse(protocolInfo);
+  //     /** @type {connect_info} */
+  //     let connInfo = JSON.parse(connectInfo);
+  //     /** @type {protocol_info} */
+  //     const protoInfo = JSON.parse(protocolInfo);
 
-      // 장치 id가 Buffer 타입이라면 Buffer로 변환 후 strnig 으로 변환
-      if (protoInfo.deviceId && protoInfo.deviceId.type === 'Buffer') {
-        protoInfo.deviceId = Buffer.from(protoInfo.deviceId.data).toString();
-      }
+  //     // 장치 id가 Buffer 타입이라면 Buffer로 변환 후 strnig 으로 변환
+  //     if (protoInfo.deviceId && protoInfo.deviceId.type === 'Buffer') {
+  //       protoInfo.deviceId = Buffer.from(protoInfo.deviceId.data).toString();
+  //     }
 
-      // FIXME: TEST 로 사용됨  -------------
-      // 농병 센서
-      if (protoInfo.mainCategory === 'S2W') {
-        connInfo.type = 'socket';
-        connInfo.subType = '';
-        connInfo.port = 9000;
-        // connInfo.hasPassive = false;
+  //     // FIXME: TEST 로 사용됨  -------------
+  //     // 농병 센서
+  //     if (protoInfo.mainCategory === 'S2W') {
+  //       connInfo.type = 'socket';
+  //       connInfo.subType = '';
+  //       connInfo.port = 9000;
+  //       // connInfo.hasPassive = false;
 
-        switch (protoInfo.deviceId) {
-          case '\u0001':
-          case '\u0002':
-          case '\u0003':
-          case '\u0004':
-          case '\u0005':
-          case '\u0006':
-          case '\u0007':
-            connInfo.port = 9000;
-            break;
-          case '\u0008':
-          case '\u0009':
-            connInfo.port = 9001;
-            break;
-          case '\u000a':
-          case '\u000b':
-            connInfo.port = 9002;
-            break;
-          case '\u000c':
-          case '\u000d':
-            connInfo.port = 9003;
-            break;
-          case '\u000e':
-          case '\u000f':
-          case '\u0010':
-            connInfo.port = 9004;
-            break;
+  //       switch (protoInfo.deviceId) {
+  //         case '\u0001':
+  //         case '\u0002':
+  //         case '\u0003':
+  //         case '\u0004':
+  //         case '\u0005':
+  //         case '\u0006':
+  //         case '\u0007':
+  //           connInfo.port = 9000;
+  //           break;
+  //         case '\u0008':
+  //         case '\u0009':
+  //           connInfo.port = 9001;
+  //           break;
+  //         case '\u000a':
+  //         case '\u000b':
+  //           connInfo.port = 9002;
+  //           break;
+  //         case '\u000c':
+  //         case '\u000d':
+  //           connInfo.port = 9003;
+  //           break;
+  //         case '\u000e':
+  //         case '\u000f':
+  //         case '\u0010':
+  //           connInfo.port = 9004;
+  //           break;
 
-          default:
-            break;
-        }
+  //         default:
+  //           break;
+  //       }
 
-        protoInfo.wrapperCategory = 'default';
+  //       protoInfo.wrapperCategory = 'default';
 
-        // connInfo = {};
-      } else if (protoInfo.subCategory === 'ESP3K5') {
-        connInfo.type = 'socket';
-        connInfo.port = 9005;
-        // connInfo.subType = '';
-        // connInfo.hasPassive = false;
+  //       // connInfo = {};
+  //     } else if (protoInfo.subCategory === 'ESP3K5') {
+  //       connInfo.type = 'socket';
+  //       connInfo.port = 9005;
+  //       // connInfo.subType = '';
+  //       // connInfo.hasPassive = false;
 
-        protoInfo.wrapperCategory = 'default';
-        delete connInfo.addConfigInfo;
+  //       protoInfo.wrapperCategory = 'default';
+  //       delete connInfo.addConfigInfo;
 
-        // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
-        // 현재 모든 농병 사이트 인버터 계측하지 않음
-        switch (this.mainUUID) {
-          // case '101':
-          case '102':
-          case '103':
-          case '104':
-            connInfo = {};
-            break;
-          default:
-            break;
-        }
+  //       // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
+  //       // 현재 모든 농병 사이트 인버터 계측하지 않음
+  //       switch (this.mainUUID) {
+  //         // case '101':
+  //         case '102':
+  //         case '103':
+  //         case '104':
+  //           connInfo = {};
+  //           break;
+  //         default:
+  //           break;
+  //       }
 
-        // connInfo = {};
-      }
-      // FIXME: TEST 로 사용됨  -------------
+  //       // connInfo = {};
+  //     }
+  //     // FIXME: TEST 로 사용됨  -------------
 
-      // 변환한 설정정보 입력
-      !_.isEmpty(connInfo) && _.set(dataLoggerInfo, 'connect_info', connInfo);
-      !_.isEmpty(protoInfo) && _.set(dataLoggerInfo, 'protocol_info', protoInfo);
+  //     // 변환한 설정정보 입력
+  //     !_.isEmpty(connInfo) && _.set(dataLoggerInfo, 'connect_info', connInfo);
+  //     !_.isEmpty(protoInfo) && _.set(dataLoggerInfo, 'protocol_info', protoInfo);
 
-      /** @type {dataLoggerConfig} */
-      const loggerConfig = {
-        hasDev: false,
-        dataLoggerInfo,
-        nodeList: foundNodeList,
-        deviceInfo: {},
-      };
+  //     /** @type {dataLoggerConfig} */
+  //     const loggerConfig = {
+  //       hasDev: false,
+  //       dataLoggerInfo,
+  //       nodeList: foundNodeList,
+  //       deviceInfo: {},
+  //     };
 
-      return loggerConfig;
-    });
-  }
+  //     return loggerConfig;
+  //   });
+  // }
 
   bindingEventHandler() {
     this.on('completeInquiryAllDeviceStatus', () => {

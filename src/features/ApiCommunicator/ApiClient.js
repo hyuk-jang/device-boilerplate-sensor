@@ -39,21 +39,14 @@ class ApiClient extends DeviceManager {
    */
   onData(bufData) {
     try {
-      // BU.debugConsole();
-      // BU.CLI(bufData.toString());
       const decodingData = this.defaultConverter.decodingMsg(bufData);
       const strData = decodingData.toString();
 
-      // BU.CLI(strData);
-
       // 형식을 지켜서 보낸 명령만 대응
       if (!BU.IsJsonString(strData)) {
-        BU.errorLog('onDataError', strData);
-        return false;
+        return BU.errorLog('onDataError', strData);
       }
-      // BU.CLI(BU.IsJsonString(strData));
 
-      // const parseData = JSON.parse(strData);
       /** @type {defaultFormatToResponse|defaultFormatToRequest} */
       const apiData = JSON.parse(strData);
 
@@ -62,7 +55,6 @@ class ApiClient extends DeviceManager {
       }
       return this.onRequestData(apiData);
     } catch (error) {
-      // BU.CLI(error);
       BU.logFile(error);
       throw error;
     }
@@ -123,7 +115,6 @@ class ApiClient extends DeviceManager {
    * 초기 구동 개시
    */
   startOperation() {
-    // BU.CLI('startOperation');
     // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
     this.transmitDataToServer({
       commandType: transmitToServerCT.CERTIFICATION,
@@ -137,46 +128,35 @@ class ApiClient extends DeviceManager {
    * @param {transDataToServerInfo} transDataToServerInfo
    */
   transmitDataToServer(transDataToServerInfo = {}) {
-    // BU.debugConsole();
     const { commandType, data } = transDataToServerInfo;
-    // BU.CLI(commandType, data);
     try {
-      // BU.CLI('transDataToServerInfo');
       // 소켓 연결이 되지 않으면 명령 전송 불가
       if (!this.isConnect) {
-        throw new Error('The socket is not connected yet.');
+        throw new RangeError('The socket is not connected yet.');
       }
       // 인증이 되지 않았는데 별도의 데이터를 보낼 수는 없음
       if (commandType !== transmitToServerCT.CERTIFICATION && !this.hasCertification) {
-        // BU.CLI('Authentication must be performed first');
-        // return false;
         throw new Error('Authentication must be performed first');
       }
-      // 기본 전송규격 프레임에 넣음
-      // BU.CLIF(transDataToServerInfo);
 
-      /** @type {defaultFormatToRequest} */
+      /** @type {defaultFormatToRequest} 기본 전송규격 프레임에 넣음 */
       const transmitDataToServer = {
         commandId: commandType,
         contents: data,
       };
 
-      // if (commandType === transmitToServerCT.MODE) {
-      //   BU.debugConsole();
-      //   BU.CLI(transmitDataToServer);
-      // }
-
       const encodingData = this.defaultConverter.encodingMsg(transmitDataToServer);
 
-      // BU.CLI(encodingData.toString());
       // 명령 전송 성공 유무 반환
       return this.write(encodingData)
         .then(() => true)
         .catch(err => BU.errorLog('transmitDataToServer', err));
-      // this.requestTakeAction(this.definedCommanderResponse.NEXT);
     } catch (error) {
-      // console.trace(error.stack);
-      // BU.CLI(error.message);
+      // Range Error가 발생하면 소켓 연결이 되지 않은 것으로 판단
+      if (error instanceof RangeError) {
+        return false;
+      }
+
       BU.errorLog('error', 'transmitDataToServer', error.message);
     }
   }
