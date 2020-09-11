@@ -5,7 +5,12 @@ const { BU } = require('base-util-jh');
 const { di, dpc } = require('../../module');
 
 const {
-  dcmConfigModel: { reqWrapCmdFormat: reqWCF, reqWrapCmdType: reqWCT, nodePickKey, commandPickKey },
+  dcmConfigModel: {
+    reqWrapCmdFormat: reqWCF,
+    reqWrapCmdType: reqWCT,
+    nodePickKey,
+    commandPickKey,
+  },
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
 } = di;
 
@@ -351,8 +356,10 @@ class ApiClient extends DeviceManager {
       // DBW에 전송 명령
       return this.write(encodingMsg);
     } catch (error) {
+      console.dir(error);
       responseMsg.isError = 1;
-      responseMsg.message = _.get(error, 'message');
+      responseMsg.message =
+        process.env.NODE_ENV === 'production' ? error.message : error.stack;
 
       // 기본 전송 프레임으로 감쌈.
       const encodingMsg = this.defaultConverter.encodingMsg(responseMsg);

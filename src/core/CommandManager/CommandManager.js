@@ -27,7 +27,7 @@ const OperationModeUpdator = require('../Updator/OperationModeUpdator/OperationM
 class CommandManager {
   /** @param {Model} model */
   constructor(model) {
-    const { coreFacade, controller, mapCmdInfo, nodeList } = model;
+    const { coreFacade, controller, mapCmdInfo, dControlIdenStorage, nodeList } = model;
 
     this.commandUpdator = new CommandUpdator();
 
@@ -35,6 +35,7 @@ class CommandManager {
     this.controller = controller;
     this.model = model;
 
+    this.dControlIdenStorage = dControlIdenStorage;
     this.nodeList = nodeList;
 
     // FIXME:
@@ -191,25 +192,21 @@ class CommandManager {
    * @param {Observer=}
    */
   executeRealCommand(cmdWrapInfo, observer) {
-    try {
-      // BU.CLIN(cmdWrapInfo.containerCmdList)
-      // 명령 저장소 생성
-      const cmdStorage = new CmdStorage(this.coreFacade);
-      // 옵저버 추가
-      // BU.CLIN(observer, 1);
-      cmdStorage.attachObserver(observer || this);
+    // BU.CLIN(cmdWrapInfo.containerCmdList)
+    // 명령 저장소 생성
+    const cmdStorage = new CmdStorage(this.coreFacade);
+    // 옵저버 추가
+    // BU.CLIN(observer, 1);
+    cmdStorage.attachObserver(observer || this);
 
-      cmdStorage.setCommand(cmdWrapInfo);
-      // 명령 목록에 추가
-      this.commandList.push(cmdStorage);
+    cmdStorage.setCommand(cmdWrapInfo);
+    // 명령 목록에 추가
+    this.commandList.push(cmdStorage);
 
-      // 실제 장치로 명령 요청하기 전에 cmdStorage를 먼저 반환하기 위함.
-      setImmediate(() => cmdStorage.executeCommandFromDLC());
+    // 실제 장치로 명령 요청하기 전에 cmdStorage를 먼저 반환하기 위함.
+    setImmediate(() => cmdStorage.executeCommandFromDLC());
 
-      return cmdStorage;
-    } catch (error) {
-      throw error;
-    }
+    return cmdStorage;
   }
 
   /**
@@ -349,44 +346,40 @@ class CommandManager {
     // 이상있는 장치는 제거 후 재 저장
     // BU.CLI(this.controller.mainUUID, reqCmdInfo);
 
-    try {
-      /** @type {commandContainerInfo[]} */
-      const containerCmdList = [];
+    /** @type {commandContainerInfo[]} */
+    const containerCmdList = [];
 
-      reqCmdInfo.reqCmdEleList.forEach(cmdEleInfo => {
-        const { searchIdList, controlSetValue, singleControlType } = cmdEleInfo;
+    reqCmdInfo.reqCmdEleList.forEach(cmdEleInfo => {
+      const { searchIdList, controlSetValue, singleControlType } = cmdEleInfo;
 
-        _.forEach(searchIdList, searchId => {
-          /** @type {commandContainerInfo} */
-          const cmdContainer = {
-            singleControlType,
-            controlSetValue,
-            isIgnore: false,
-            nodeId: searchId,
-          };
-          const dataLoggerController = this.model.findDataLoggerController(searchId);
+      _.forEach(searchIdList, searchId => {
+        /** @type {commandContainerInfo} */
+        const cmdContainer = {
+          singleControlType,
+          controlSetValue,
+          isIgnore: false,
+          nodeId: searchId,
+        };
+        const dataLoggerController = this.model.findDataLoggerController(searchId);
 
-          let errMsg = '';
-          if (isThrow && _.isUndefined(dataLoggerController)) {
-            errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
-            throw new Error(errMsg);
-            // BU.CLI(errMsg);
-          } else if (isThrow && !_.get(dataLoggerController, 'hasConnectedDevice')) {
-            errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
-            throw new Error(errMsg);
-            // BU.CLI(errMsg);
-          } else {
-            containerCmdList.push(cmdContainer);
-          }
-        });
+        let errMsg = '';
+        if (isThrow && _.isUndefined(dataLoggerController)) {
+          errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
+          throw new Error(errMsg);
+          // BU.CLI(errMsg);
+        } else if (isThrow && !_.get(dataLoggerController, 'hasConnectedDevice')) {
+          errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
+          throw new Error(errMsg);
+          // BU.CLI(errMsg);
+        } else {
+          containerCmdList.push(cmdContainer);
+        }
       });
+    });
 
-      _.set(reqCmdInfo, 'containerCmdList', containerCmdList);
-      // _.set(reqCmdInfo, 'realContainerCmdList', []);
-      return reqCmdInfo;
-    } catch (error) {
-      throw error;
-    }
+    _.set(reqCmdInfo, 'containerCmdList', containerCmdList);
+    // _.set(reqCmdInfo, 'realContainerCmdList', []);
+    return reqCmdInfo;
   }
 
   /**
@@ -415,40 +408,30 @@ class CommandManager {
       } else {
         // 현재 값과 제어할려는 값이 동일할 경우 true, 다르다면 false
         containerInfo.isIgnore =
-          process.env.IS_OVERLAP_CMD !== '0' ? this.isEqualCurrNodeData(containerInfo) : false;
+          process.env.IS_OVERLAP_CMD !== '0'
+            ? this.isEqualCurrNodeData(containerInfo)
+            : false;
       }
     });
   }
 
   /**
    * @param {commandContainerInfo} containerInfo
-   * @example
-   * singleControlType
-   * 0: Close, Off
-   * 1: Open, On
-   * undefined, 2: Status
-   * 3: Set   --> controlSetValue 가 필수적으로 입력
    */
   isEqualCurrNodeData(containerInfo) {
     // BU.CLI(containerInfo);
 
     const { nodeId, singleControlType, controlSetValue } = containerInfo;
     // BU.CLI(singleControlType, nodeId);
-    const nodeInfo = this.coreFacade.getNodeInfo(nodeId);
+    const { data, nc_target_id: ncId } = this.coreFacade.getNodeInfo(nodeId);
 
-    const cmdName = this.convertControlValueToString(nodeInfo, singleControlType);
-    // 설정 제어 값이 존재
-    if (_.isNil(controlSetValue)) {
-      // node 현재 값과 동일하다면 제어 요청하지 않음
-      // BU.CLI(_.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName)));
-      if (_.eq(_.lowerCase(nodeInfo.data), _.lowerCase(cmdName))) {
-        return true;
-      }
-      // 동일하지 않을 경우
-      return false;
-    }
-    // 설정 값이 존재한다면 그 값과 현재 node 값을 비교
-    return _.eq(nodeInfo.data, controlSetValue);
+    const { enName, krName, isSetValue = false } = this.dControlIdenStorage
+      .get(ncId)
+      .get(singleControlType);
+
+    // isSetValue 가 true일 경우 controlSetValue와 현재 data가 동일한지 확인
+    // isSetValue 가 false일 경우  enName | krName과 data가 같은지 확인
+    return isSetValue ? data === controlSetValue : data === enName || data === krName;
   }
 
   /**
@@ -495,9 +478,7 @@ class CommandManager {
    */
   getLastCmdEle(cmdElementSearch) {
     // BU.CLI(cmdElementSearch);
-    const cmdElement = _(this.getCmdEleList(cmdElementSearch))
-      .sortBy('rank')
-      .head();
+    const cmdElement = _(this.getCmdEleList(cmdElementSearch)).sortBy('rank').head();
 
     return cmdElement;
   }
@@ -518,14 +499,6 @@ class CommandManager {
   }
 
   /**
-   * @param {nodeInfo} nodeInfo
-   * @param {number} singleControlType
-   */
-  convertControlValueToString(nodeInfo, singleControlType) {
-    return this.cmdStrategy.convertControlValueToString(nodeInfo, singleControlType);
-  }
-
-  /**
    * 명령상에 있는 장치 제어 중에 이상이 있는 장치 점검. 이상이 있을 경우 수행 불가
    */
   isNormalOperation(containerCmdList) {
@@ -533,9 +506,13 @@ class CommandManager {
     return _.every(containerCmdList, containerCmdInfo => {
       const { eleCmdList } = containerCmdInfo;
       const result = _.every(eleCmdList, eleCmdInfo => {
-        const foundDataLoggerController = this.model.findDataLoggerController(eleCmdInfo.nodeId);
+        const foundDataLoggerController = this.model.findDataLoggerController(
+          eleCmdInfo.nodeId,
+        );
         // 데이터로거가 존재하고 해당 데이터 로거가 에러 상태가 아닐 경우 True
-        return _.isObject(foundDataLoggerController) && !foundDataLoggerController.isErrorDLC;
+        return (
+          _.isObject(foundDataLoggerController) && !foundDataLoggerController.isErrorDLC
+        );
       });
       // BU.CLI(result);
       return result;

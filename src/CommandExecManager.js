@@ -19,12 +19,20 @@ class CommandExecManager {
   constructor(controller) {
     this.controller = controller;
 
-    const { coreFacade, model, nodeList, dataLoggerList, mainUUID } = controller;
+    const {
+      coreFacade,
+      model,
+      dControlIdenStorage,
+      nodeList,
+      dataLoggerList,
+      mainUUID,
+    } = controller;
     // Command Execute Manager 를 Core Facde에 정의
     coreFacade.setCmdExecManager(this);
 
     this.coreFacade = coreFacade;
     this.model = model;
+    this.dControlIdenStorage = dControlIdenStorage;
     this.nodeList = nodeList;
     this.dataLoggerList = dataLoggerList;
     this.mainUUID = mainUUID;
@@ -91,6 +99,7 @@ class CommandExecManager {
           reqCmdEleList: [
             {
               singleControlType,
+              controlSetValue,
               searchIdList: nodeId,
             },
           ],
@@ -99,20 +108,24 @@ class CommandExecManager {
         };
         return this.executeCommand(reqCommandOption);
       }
-      const nodeInfo = _.find(this.nodeList, { node_id: nodeId });
+      const { node_name: nName, nc_target_id: ncId } = _.find(this.nodeList, {
+        node_id: nodeId,
+      });
 
-      // 사용자가 알 수 있는 제어 구문으로 변경
-      const cmdName = this.coreFacade.cmdManager.convertControlValueToString(
-        nodeInfo,
-        singleControlType,
-      );
+      const { enName, krName } = this.dControlIdenStorage
+        .get(ncId)
+        .get(singleControlType);
+
+      this.nodeList;
 
       /** @type {reqCommandInfo} 명령 실행 설정 객체 */
       const reqCommandOption = {
         wrapCmdFormat: reqWCF.SINGLE,
         wrapCmdType,
-        wrapCmdId: `${nodeId}_${cmdName}${_.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`}`,
-        wrapCmdName: `${nodeInfo.node_name} ${cmdName}`,
+        wrapCmdId: `${nodeId}_${enName}${
+          _.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`
+        }`,
+        wrapCmdName: `${nName} ${krName}`,
         reqCmdEleList: [
           {
             singleControlType,

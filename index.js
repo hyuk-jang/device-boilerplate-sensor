@@ -93,7 +93,7 @@ if (require !== undefined && require.main === module) {
   });
 
   process.on('unhandledRejection', err => {
-    // BU.debugConsole();
+    BU.debugConsole(10);
     BU.CLI(err);
     console.log('Node NOT Exiting...');
   });

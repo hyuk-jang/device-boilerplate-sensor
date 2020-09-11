@@ -64,7 +64,9 @@ class CmdStrategy {
     });
 
     if (cmdStorage) {
-      throw new Error(`${cmdStorage.wrapCmdName} 명령(${cmdStorage.wrapCmdId})은 존재합니다.`);
+      throw new Error(
+        `${cmdStorage.wrapCmdName} 명령(${cmdStorage.wrapCmdId})은 존재합니다.`,
+      );
     }
 
     // 실제 수행할 장치를 정제
@@ -115,51 +117,6 @@ class CmdStrategy {
     throw new Error(
       `${wrapCmdId} is not available in ${this.cmdManager.getCurrCmdStrategyType()} mode.`,
     );
-  }
-
-  /**
-   * @abstract
-   * @param {nodeInfo} nodeInfo
-   * @param {string} singleControlType
-   */
-  convertControlValueToString(nodeInfo, singleControlType) {
-    // BU.CLIS(nodeInfo, singleControlType);
-    singleControlType = Number(singleControlType);
-    let strControlValue = '';
-    const onOffList = ['pump'];
-    const openCloseList = ['valve', 'waterDoor'];
-
-    let strTrue = '';
-    let strFalse = '';
-
-    // Node Class ID를 가져옴. 장치 명에 따라 True, False 개체 명명 변경
-    if (_.includes(onOffList, nodeInfo.nc_target_id)) {
-      strTrue = 'On';
-      strFalse = 'Off';
-    } else if (_.includes(openCloseList, nodeInfo.nc_target_id)) {
-      strTrue = 'Open';
-      strFalse = 'Close';
-    } else {
-      throw new Error(`${nodeInfo.node_id} nc_target_id: ${nodeInfo.nc_target_id} is not defined.`);
-    }
-
-    switch (singleControlType) {
-      case reqDCT.FALSE:
-        strControlValue = strFalse;
-        break;
-      case reqDCT.TRUE:
-        strControlValue = strTrue;
-        break;
-      case reqDCT.MEASURE:
-        strControlValue = 'Measure';
-        break;
-      case reqDCT.SET:
-        strControlValue = 'Set';
-        break;
-      default:
-        break;
-    }
-    return strControlValue;
   }
 }
 module.exports = CmdStrategy;

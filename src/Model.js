@@ -26,6 +26,7 @@ class Model {
       coreFacade,
       dataLoggerControllerList,
       dataLoggerList,
+      dControlIdenStorage,
       nodeList,
       placeList,
       placeRelationList,
@@ -34,6 +35,7 @@ class Model {
     this.coreFacade = coreFacade;
     this.dataLoggerControllerList = dataLoggerControllerList;
     this.dataLoggerList = dataLoggerList;
+    this.dControlIdenStorage = dControlIdenStorage;
     this.nodeList = nodeList;
     this.placeList = placeList;
     this.placeRelationList = placeRelationList;
@@ -41,13 +43,14 @@ class Model {
     this.biModule = new BM(config.dbInfo);
 
     // 정기 조회 Count
-    this.inquirySchedulerIntervalSaveCnt = _.get(config, 'inquirySchedulerInfo.intervalSaveCnt', 1);
+    this.inquirySchedulerIntervalSaveCnt = _.get(
+      config,
+      'inquirySchedulerInfo.intervalSaveCnt',
+      1,
+    );
     this.inquirySchedulerCurrCount = 0;
 
     this.deviceMap = controller.deviceMap;
-
-    // FIXME: 임시로 자동 명령 리스트 넣어둠. DB에서 가져오는 걸로 수정해야함(2018-07-30)
-    this.excuteControlList = _.get(this.deviceMap, 'controlInfo.tempControlList', []);
   }
 
   /** Model 상세 초기화 */
@@ -61,7 +64,10 @@ class Model {
     this.coreFacade.setCmdManager(this.cmdManager);
     this.cmdManager.init();
 
-    this.scenarioManager = new ScenarioManager(this.mapCmdInfo.scenarioCmdList, this.coreFacade);
+    this.scenarioManager = new ScenarioManager(
+      this.mapCmdInfo.scenarioCmdList,
+      this.coreFacade,
+    );
     this.coreFacade.setScenarioManager(this.scenarioManager);
 
     this.placeManager = new PlaceManager(this.coreFacade);
@@ -264,7 +270,9 @@ class Model {
       });
     }
 
-    const orderKey = _.includes(nodePickKeyInfo, 'node_id') ? 'node_id' : _.head(nodePickKeyInfo);
+    const orderKey = _.includes(nodePickKeyInfo, 'node_id')
+      ? 'node_id'
+      : _.head(nodePickKeyInfo);
 
     const statusList = _(nodeList)
       .map(nodeInfo => {
@@ -285,7 +293,10 @@ class Model {
    * @param {CmdStorage[]=} cmdStorages
    * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
    */
-  getAllCmdStatus(cmdPickInfo = cmdPickKey.FOR_SERVER, cmdStorages = this.cmdManager.commandList) {
+  getAllCmdStatus(
+    cmdPickInfo = cmdPickKey.FOR_SERVER,
+    cmdStorages = this.cmdManager.commandList,
+  ) {
     return _(cmdStorages)
       .map(commandStorage => _.pick(commandStorage, cmdPickInfo))
       .value();
@@ -326,7 +337,10 @@ class Model {
    * @param {nodeInfo[]} nodeList 노드 리스트
    * @param {{hasSensor: boolean, hasDevice: boolean}} insertOption DB에 입력 처리 체크
    */
-  async insertNodeDataToDB(nodeList, insertOption = { hasSensor: false, hasDevice: false }) {
+  async insertNodeDataToDB(
+    nodeList,
+    insertOption = { hasSensor: false, hasDevice: false },
+  ) {
     const { DEVICE, SENSOR } = nodeDataType;
     const { FOR_DB } = nodePickKey;
     const returnValue = [];
@@ -337,7 +351,11 @@ class Model {
           .map(ele => BU.renameObj(_.pick(ele, FOR_DB), 'data', 'num_data'))
           .value();
 
-        const result = await this.biModule.setTables('dv_sensor_data', nodeSensorList, false);
+        const result = await this.biModule.setTables(
+          'dv_sensor_data',
+          nodeSensorList,
+          false,
+        );
         returnValue.push(result);
       }
 
@@ -348,7 +366,11 @@ class Model {
           .map(ele => BU.renameObj(_.pick(ele, FOR_DB), 'data', 'str_data'))
           .value();
 
-        const result = await this.biModule.setTables('dv_device_data', nodeDeviceList, false);
+        const result = await this.biModule.setTables(
+          'dv_device_data',
+          nodeDeviceList,
+          false,
+        );
         returnValue.push(result);
       }
     } catch (error) {

@@ -47,6 +47,8 @@ class Control extends EventEmitter {
     /** @type {V_DV_PLACE_RELATION[]} */
     this.placeRelationList = [];
 
+    /** @type {dControlNodeStorage} */
+    this.dControlIdenStorage = new Map();
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
     /** @type {dataLoggerInfo[]} */
@@ -97,6 +99,38 @@ class Control extends EventEmitter {
   }
 
   /**
+   * 장치 제어 식별 Map 생성
+   * @param {dCmdScenarioInfo} dCmdScenarioInfo
+   * @param {dControlValueStorage=} dControlValueStorage
+   */
+  initDeviceControlIdentify(dCmdScenarioInfo, dControlValueStorage = new Map()) {
+    const { confirmList, scenarioMsg, isSetValue, setValueInfo } = dCmdScenarioInfo;
+
+    confirmList.forEach(confirmInfo => {
+      const { enName, krName, controlValue, nextStepInfo } = confirmInfo;
+
+      // 다음 동작이 존재한다면 재귀
+      if (nextStepInfo) {
+        return this.initDeviceControlIdentify(nextStepInfo, dControlValueStorage);
+      }
+
+      /** @type {dControlIdenInfo} */
+      const dControlIdenInfo = {
+        enName,
+        krName,
+        scenarioMsg,
+        controlValue,
+        isSetValue,
+        setValueInfo,
+      };
+
+      dControlValueStorage.set(controlValue, dControlIdenInfo);
+    });
+
+    return dControlValueStorage;
+  }
+
+  /**
    * @desc init Step: 1
    * DB 정보를 기초로 nodeList, dataLoggerList, placeList 구성
    * @param {dbInfo} dbInfo
@@ -132,8 +166,25 @@ class Control extends EventEmitter {
     /** @type {mDeviceMap} */
     this.deviceMap = BU.IsJsonString(mainRow.map) ? JSON.parse(mainRow.map) : {};
 
+    // Map.configInfo.deviceCmdList 목록이 존재할 경우 Map<ncId, Map<controlValue, deviceCmdInfo>> 생성
+    if (_.get(this, 'deviceMap.configInfo.deviceCmdList', []).length) {
+      this.deviceMap.configInfo.deviceCmdList.forEach(deviceCmdInfo => {
+        const { applyDeviceList = [], dCmdScenarioInfo } = deviceCmdInfo;
+
+        // 장치 제어 식별 Map 생성
+        const dControlValueStorage = this.initDeviceControlIdentify(dCmdScenarioInfo);
+        // Node Class Id 기준으로 해당 식별 Map을 붙여줌
+        applyDeviceList.forEach(ncId => {
+          this.dControlIdenStorage.set(ncId, dControlValueStorage);
+        });
+      });
+    }
+
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
-    this.dataLoggerList = await biModule.getTable('v_dv_data_logger', { is_deleted: 0, ...where });
+    this.dataLoggerList = await biModule.getTable('v_dv_data_logger', {
+      is_deleted: 0,
+      ...where,
+    });
 
     this.nodeList = await biModule.getTable('v_dv_node', where);
 
@@ -185,7 +236,10 @@ class Control extends EventEmitter {
         protocol_info: protocolInfo = {},
       } = dataLoggerInfo;
 
-      const foundNodeList = _.filter(this.nodeList, nodeInfo => nodeInfo.data_logger_seq === seqDL);
+      const foundNodeList = _.filter(
+        this.nodeList,
+        nodeInfo => nodeInfo.data_logger_seq === seqDL,
+      );
 
       /** @type {connect_info} */
       const connInfo = JSON.parse(connectInfo);
