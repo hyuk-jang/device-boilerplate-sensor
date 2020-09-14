@@ -135,15 +135,20 @@ class CmdStorage extends CmdComponent {
 
   /** Data Logger Controller에게 명령 실행 요청 */
   executeCommandFromDLC() {
-    // 모든 명령이 완료된 경우라면 요청하지 않음
-    if (this.isCommandClear()) {
-      // 명령 스택자체가 없을 경우 동시에 notify가 발생하므로 약간의 지연을 갖추고 발송
-      return setImmediate(() => this.handleCommandClear());
+    try {
+      // 모든 명령이 완료된 경우라면 요청하지 않음
+      if (this.isCommandClear()) {
+        // 명령 스택자체가 없을 경우 동시에 notify가 발생하므로 약간의 지연을 갖추고 발송
+        return setImmediate(() => this.handleCommandClear());
+      }
+      // 세부 명령 객체에게 장치 제어 명령 요청
+      this.cmdElements.forEach(cmdElement => {
+        cmdElement.executeCommandFromDLC();
+      });
+    } catch (error) {
+      // 데이터 전송에 문제가 있다면 해당 명령 삭제
+      this.cancelCommand();
     }
-    // 세부 명령 객체에게 장치 제어 명령 요청
-    this.cmdElements.forEach(cmdElement => {
-      cmdElement.executeCommandFromDLC();
-    });
   }
 
   /**
@@ -175,7 +180,7 @@ class CmdStorage extends CmdComponent {
     }
 
     // 누적 임계가 실행되는 것 방지를 위한 초기화
-    this.removeThreshold();
+    // this.removeThreshold();
 
     let isClearGoals = false;
     // 달성 목표가 존재하고 이미 해당 목표를 완료하였는지 체크
@@ -359,7 +364,10 @@ class CmdStorage extends CmdComponent {
     }
 
     // 명령 단계: WAIT 일 경우 명령 단계: PROCEED
-    if (this.cmdStep === cmdStep.WAIT && _.get(cmdElement, 'cmdEleStep') === cmdStep.PROCEED) {
+    if (
+      this.cmdStep === cmdStep.WAIT &&
+      _.get(cmdElement, 'cmdEleStep') === cmdStep.PROCEED
+    ) {
       return this.updateCommandStep(cmdStep.PROCEED);
     }
   }

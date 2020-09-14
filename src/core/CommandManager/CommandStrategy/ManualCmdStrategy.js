@@ -2,7 +2,11 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const {
-  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, reqDeviceControlType: reqDCT },
+  dcmConfigModel: {
+    commandStep: cmdStep,
+    reqWrapCmdType: reqWCT,
+    reqDeviceControlType: reqDCT,
+  },
 } = require('../../../module').di;
 
 const CmdStrategy = require('./CmdStrategy');
@@ -27,10 +31,15 @@ class ManualCmdStrategy extends CmdStrategy {
       // 달성 목표(Goal)를 이루었기 때문에 관련된 해당 명령을 복원하는 작업 진행 요청
       if (cmdStorage.wrapCmdType === reqWCT.CONTROL) {
         // 명령 복원이 진행되면 각 명령 Step이 진행됨에 따라 updateCommandStep이 호출되므로 return 처리
-        return this.cancelCommand(cmdStorage);
+        const cancelResult = this.cancelCommand(cmdStorage);
+        if (cancelResult === false) {
+          this.cmdManager.removeCommandStorage(cmdStorage);
+        } else {
+          return false;
+        }
       }
       // 위에서 명령 복원을 완료하였을 경우 실제적으로 명령 저장소에서 삭제
-      if (cmdStorage.wrapCmdType === reqWCT.CANCEL) {
+      else if (cmdStorage.wrapCmdType === reqWCT.CANCEL) {
         this.cmdManager.removeCommandStorage(cmdStorage);
       }
     }
@@ -89,10 +98,12 @@ class ManualCmdStrategy extends CmdStrategy {
         return this.cmdManager.executeRealCommand(cmdWrapInfo, this);
       }
     } else {
-      // 명령 저장소에 명령 취소 요청
-      // BU.CLI(restoreContainerList);
-      foundCmdStoarge.cancelCommand(restoreContainerList);
-      return foundCmdStoarge;
+      // 복원 명령이 존재할 경우 명령 저장소에 명령 취소 요청
+      if (restoreContainerList.length) {
+        foundCmdStoarge.cancelCommand(restoreContainerList);
+        return foundCmdStoarge;
+      }
+      return false;
     }
   }
 
