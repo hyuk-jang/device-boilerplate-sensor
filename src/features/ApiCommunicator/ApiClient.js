@@ -14,27 +14,42 @@ const {
   dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
 } = di;
 
-const {
-  BaseModel: { defaultModule },
-} = dpc;
+const AbstApiClient = require('./AbstApiClient');
 
-const DeviceManager = require('../../utils/DeviceManager');
-
-class ApiClient extends DeviceManager {
+class ApiClient extends AbstApiClient {
   /** @param {MainControl} controller */
   constructor(controller) {
-    super();
-    this.controller = controller;
+    super(controller);
     this.coreFacade = controller.coreFacade;
-    /** 기본 Encoding, Decondig 처리를 할 라이브러리 */
-    this.defaultConverter = defaultModule;
-    // socket Client의 인증 여부
-    this.hasCertification = false;
+
+    this.reconectScheduler;
+
+    _.once(this.runCronReconnect);
   }
 
-  /** @param {MainControl} controller */
-  setControl(controller) {
-    this.controller = controller;
+  /** API Server 연결 해제시 재접속 */
+  runCronReconnect() {
+    if (this.reconectScheduler !== undefined) {
+      // BU.CLI('Stop')
+      clearInterval(this.reconectScheduler);
+    }
+    // 즉시 접속
+    this.transmitDataToServer({
+      commandType: transmitToServerCT.CERTIFICATION,
+      data: this.controller.mainUUID,
+    });
+
+    this.reconectScheduler = setInterval(() => {
+      if (!this.hasCertification) {
+        // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
+        this.transmitDataToServer({
+          commandType: transmitToServerCT.CERTIFICATION,
+          data: this.controller.mainUUID,
+        });
+      }
+    }, 1000 * 60);
+
+    return true;
   }
 
   /**
@@ -121,10 +136,29 @@ class ApiClient extends DeviceManager {
    */
   startOperation() {
     // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
-    this.transmitDataToServer({
-      commandType: transmitToServerCT.CERTIFICATION,
-      data: this.controller.mainUUID,
-    });
+    this.runCronReconnect();
+  }
+
+  /**
+   * Device Controller에서 새로운 이벤트가 발생되었을 경우 알림
+   * @param {string} eventName 'dcConnect' 연결, 'dcClose' 닫힘, 'dcError' 에러
+   */
+  onEvent(eventName) {
+    // BU.CLI(eventName);
+    const { CONNECT, DISCONNECT } = this.definedControlEvent;
+
+    switch (eventName) {
+      // 연결 수립이 되면 최초 1번에 한해서 초기 구동 명령을 요청
+      case CONNECT:
+        this.startOperation();
+        break;
+      // Socket 연결이 해제되면 인증 여부를 false로 되돌림.
+      case DISCONNECT:
+        this.hasCertification = false;
+        break;
+      default:
+        break;
+    }
   }
 
   /**
@@ -163,28 +197,6 @@ class ApiClient extends DeviceManager {
       }
 
       BU.errorLog('error', 'transmitDataToServer', error.message);
-    }
-  }
-
-  /**
-   * Device Controller에서 새로운 이벤트가 발생되었을 경우 알림
-   * @param {string} eventName 'dcConnect' 연결, 'dcClose' 닫힘, 'dcError' 에러
-   */
-  onEvent(eventName) {
-    // BU.CLI(eventName);
-    const { CONNECT, DISCONNECT } = this.definedControlEvent;
-
-    switch (eventName) {
-      // 연결 수립이 되면 최초 1번에 한해서 초기 구동 명령을 요청
-      case CONNECT:
-        this.startOperation();
-        break;
-      // Socket 연결이 해제되면 인증 여부를 false로 되돌림.
-      case DISCONNECT:
-        this.hasCertification = false;
-        break;
-      default:
-        break;
     }
   }
 

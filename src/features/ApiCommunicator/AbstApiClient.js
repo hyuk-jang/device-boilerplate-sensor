@@ -2,7 +2,11 @@ const { BU } = require('base-util-jh');
 
 const DeviceManager = require('../../utils/DeviceManager');
 
-const { BaseModel } = require('../../module').dpc;
+const { dpc } = require('../../module');
+
+const {
+  BaseModel: { defaultModule },
+} = dpc;
 
 class AbstApiClient extends DeviceManager {
   /** @param {MainControl} controller */
@@ -10,7 +14,7 @@ class AbstApiClient extends DeviceManager {
     super();
     this.controller = controller;
     /** 기본 Encoding, Decondig 처리를 할 라이브러리 */
-    this.defaultConverter = BaseModel.defaultModule;
+    this.defaultConverter = defaultModule;
     // socket Client의 인증 여부
     this.hasCertification = false;
   }
@@ -28,16 +32,15 @@ class AbstApiClient extends DeviceManager {
   onData(bufData) {}
 
   /**
-   * 메시지 전송
-   * @param {*} msg 전송 데이터
-   * @return {Promise.<boolean>} Promise 반환 객체
-   */
-  write(msg) {}
-
-  /**
    * 초기 구동 개시
    */
   startOperation() {}
+
+  /**
+   * Device Controller에서 새로운 이벤트가 발생되었을 경우 알림
+   * @param {string} eventName 'dcConnect' 연결, 'dcClose' 닫힘, 'dcError' 에러
+   */
+  onEvent(eventName) {}
 
   /**
    * @desc DataLogger --> Server 데이터 보고. (보고에 관한 추적은 하지 않으므로 onData 메소드에서 별도의 처리는 하지 않음)
