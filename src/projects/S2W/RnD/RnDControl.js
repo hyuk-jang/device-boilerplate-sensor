@@ -48,130 +48,135 @@ class S2W extends Control {
     });
   }
 
-  // /**
-  //  * @override
-  //  * @desc init Step: 2
-  //  * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
-  //  */
-  // initMakeConfigForDLC() {
-  //   BU.CLI('initMakeConfigForDLC');
-  //   // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
-  //   this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
-  //     const {
-  //       data_logger_seq: seqDL,
-  //       connect_info: connectInfo = {},
-  //       protocol_info: protocolInfo = {},
-  //     } = dataLoggerInfo;
+  /**
+   * @override
+   * @desc init Step: 2
+   * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
+   */
+  initMakeConfigForDLC() {
+    if (process.env.IS_INIT_DLC !== '1') {
+      return super.initMakeConfigForDLC();
+    }
 
-  //     const foundNodeList = _.filter(
-  //       this.nodeList,
-  //       nodeInfo => nodeInfo.data_logger_seq === seqDL,
-  //     );
+    BU.CLI('initMakeConfigForDLC');
 
-  //     /** @type {connect_info} */
-  //     let connInfo = JSON.parse(connectInfo);
-  //     /** @type {protocol_info} */
-  //     const protoInfo = JSON.parse(protocolInfo);
+    // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
+    this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {
+      const {
+        data_logger_seq: seqDL,
+        connect_info: connectInfo = {},
+        protocol_info: protocolInfo = {},
+      } = dataLoggerInfo;
 
-  //     // 장치 id가 Buffer 타입이라면 Buffer로 변환 후 strnig 으로 변환
-  //     if (protoInfo.deviceId && protoInfo.deviceId.type === 'Buffer') {
-  //       protoInfo.deviceId = Buffer.from(protoInfo.deviceId.data).toString();
-  //     }
+      const foundNodeList = _.filter(
+        this.nodeList,
+        nodeInfo => nodeInfo.data_logger_seq === seqDL,
+      );
 
-  //     // FIXME: TEST 로 사용됨  -------------
-  //     // 농병 센서
-  //     if (protoInfo.subCategory === 'dmTech') {
-  //       connInfo.type = 'socket';
-  //       connInfo.subType = '';
-  //       connInfo.port = 9001;
-  //       connInfo.hasPassive = false;
+      /** @type {connect_info} */
+      let connInfo = JSON.parse(connectInfo);
+      /** @type {protocol_info} */
+      const protoInfo = JSON.parse(protocolInfo);
 
-  //       switch (protoInfo.deviceId) {
-  //         case '\u0021':
-  //         case '\u0022':
-  //         case '\u0023':
-  //         case '\u0024':
-  //           connInfo.port = 9001;
-  //           break;
-  //         default:
-  //           break;
-  //       }
+      // 장치 id가 Buffer 타입이라면 Buffer로 변환 후 strnig 으로 변환
+      if (protoInfo.deviceId && protoInfo.deviceId.type === 'Buffer') {
+        protoInfo.deviceId = Buffer.from(protoInfo.deviceId.data).toString();
+      }
 
-  //       protoInfo.wrapperCategory = 'default';
+      // FIXME: TEST 로 사용됨  -------------
+      // 농병 센서
+      if (protoInfo.subCategory === 'dmTech') {
+        connInfo.type = 'socket';
+        connInfo.subType = '';
+        connInfo.port = 9001;
+        connInfo.hasPassive = false;
 
-  //       // connInfo = {};
-  //     } else if (protoInfo.subCategory === 'sm') {
-  //       connInfo.type = 'socket';
-  //       connInfo.subType = '';
-  //       connInfo.port = 9001;
-  //       connInfo.hasPassive = false;
+        switch (protoInfo.deviceId) {
+          case '\u0021':
+          case '\u0022':
+          case '\u0023':
+          case '\u0024':
+            connInfo.port = 9001;
+            break;
+          default:
+            break;
+        }
 
-  //       protoInfo.wrapperCategory = 'default';
+        protoInfo.wrapperCategory = 'default';
 
-  //       // connInfo = {};
-  //     } else if (protoInfo.subCategory === 'ESP3K5') {
-  //       connInfo.type = 'socket';
-  //       connInfo.port = 9005;
-  //       // connInfo.subType = '';
-  //       // connInfo.hasPassive = false;
+        // connInfo = {};
+      } else if (protoInfo.subCategory === 'sm') {
+        connInfo.type = 'socket';
+        connInfo.subType = '';
+        connInfo.port = 9001;
+        connInfo.hasPassive = false;
 
-  //       protoInfo.wrapperCategory = 'default';
-  //       delete connInfo.addConfigInfo;
+        protoInfo.wrapperCategory = 'default';
 
-  //       // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
-  //       // 현재 모든 농병 사이트 인버터 계측하지 않음
-  //       switch (this.mainUUID) {
-  //         case '102':
-  //         case '101':
-  //         case '103':
-  //         case '104':
-  //           connInfo = {};
-  //           break;
-  //         default:
-  //           break;
-  //       }
+        // connInfo = {};
+      } else if (protoInfo.subCategory === 'ESP3K5') {
+        connInfo.type = 'socket';
+        connInfo.port = 9005;
+        // connInfo.subType = '';
+        // connInfo.hasPassive = false;
 
-  //       connInfo = {};
-  //     } else if (protoInfo.subCategory === 'KDX_300') {
-  //       connInfo.type = 'socket';
-  //       connInfo.port = 9006;
-  //       // connInfo.subType = '';
-  //       // connInfo.hasPassive = false;
+        protoInfo.wrapperCategory = 'default';
+        delete connInfo.addConfigInfo;
 
-  //       protoInfo.wrapperCategory = 'default';
-  //       delete connInfo.addConfigInfo;
+        // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
+        // 현재 모든 농병 사이트 인버터 계측하지 않음
+        switch (this.mainUUID) {
+          case '102':
+          case '101':
+          case '103':
+          case '104':
+            connInfo = {};
+            break;
+          default:
+            break;
+        }
 
-  //       // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
-  //       // 현재 모든 농병 사이트 인버터 계측하지 않음
-  //       switch (this.mainUUID) {
-  //         case '102':
-  //         case '101':
-  //         case '103':
-  //         case '104':
-  //           connInfo = {};
-  //           break;
-  //         default:
-  //           break;
-  //       }
+        connInfo = {};
+      } else if (protoInfo.subCategory === 'KDX_300') {
+        connInfo.type = 'socket';
+        connInfo.port = 9006;
+        // connInfo.subType = '';
+        // connInfo.hasPassive = false;
 
-  //       connInfo = {};
-  //     }
+        protoInfo.wrapperCategory = 'default';
+        delete connInfo.addConfigInfo;
 
-  //     // 변환한 설정정보 입력
-  //     !_.isEmpty(connInfo) && _.set(dataLoggerInfo, 'connect_info', connInfo);
-  //     !_.isEmpty(protoInfo) && _.set(dataLoggerInfo, 'protocol_info', protoInfo);
+        // FIXME: Site에 따라 인버터 접속 유무 조절(현지 상황에 따라 수정 필요)
+        // 현재 모든 농병 사이트 인버터 계측하지 않음
+        switch (this.mainUUID) {
+          case '102':
+          case '101':
+          case '103':
+          case '104':
+            connInfo = {};
+            break;
+          default:
+            break;
+        }
 
-  //     /** @type {dataLoggerConfig} */
-  //     const loggerConfig = {
-  //       hasDev: false,
-  //       dataLoggerInfo,
-  //       nodeList: foundNodeList,
-  //       deviceInfo: {},
-  //     };
+        connInfo = {};
+      }
 
-  //     return loggerConfig;
-  //   });
-  // }
+      // 변환한 설정정보 입력
+      !_.isEmpty(connInfo) && _.set(dataLoggerInfo, 'connect_info', connInfo);
+      !_.isEmpty(protoInfo) && _.set(dataLoggerInfo, 'protocol_info', protoInfo);
+
+      /** @type {dataLoggerConfig} */
+      const loggerConfig = {
+        hasDev: false,
+        dataLoggerInfo,
+        nodeList: foundNodeList,
+        deviceInfo: {},
+      };
+
+      return loggerConfig;
+    });
+  }
 
   bindingEventHandler() {
     this.on('completeInquiryAllDeviceStatus', () => {
