@@ -27,7 +27,7 @@ const OperationModeUpdator = require('../Updator/OperationModeUpdator/OperationM
 class CommandManager {
   /** @param {Model} model */
   constructor(model) {
-    const { coreFacade, controller, mapCmdInfo, dControlIdenStorage, nodeList } = model;
+    const { coreFacade, controller, mapCmdInfo, mdControlIdenStorage, nodeList } = model;
 
     this.commandUpdator = new CommandUpdator();
 
@@ -35,7 +35,7 @@ class CommandManager {
     this.controller = controller;
     this.model = model;
 
-    this.dControlIdenStorage = dControlIdenStorage;
+    this.mdControlIdenStorage = mdControlIdenStorage;
     this.nodeList = nodeList;
 
     // FIXME:
@@ -425,7 +425,7 @@ class CommandManager {
     // BU.CLI(singleControlType, nodeId);
     const { data, nc_target_id: ncId } = this.coreFacade.getNodeInfo(nodeId);
 
-    const { enName, krName, isSetValue = false } = this.dControlIdenStorage
+    const { enName, krName, isSetValue = false } = this.mdControlIdenStorage
       .get(ncId)
       .get(singleControlType);
 

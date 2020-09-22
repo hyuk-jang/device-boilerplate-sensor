@@ -172,7 +172,6 @@ class Control extends EventEmitter {
     this.deviceMap = BU.IsJsonString(mainRow.map) ? JSON.parse(mainRow.map) : {};
 
     const { controlInfo: { singleCmdList = [] } = {} } = this.deviceMap;
-    BU.CLI('???', singleCmdList.length);
     // Map.configInfo.deviceCmdList 목록이 존재할 경우 Map<ncId, Map<controlValue, deviceCmdInfo>> 생성
     if (singleCmdList.length) {
       // 장치 제어 목록 설정
@@ -187,8 +186,6 @@ class Control extends EventEmitter {
         });
       });
     }
-
-    BU.CLIN(this.mdControlIdenStorage);
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', {
