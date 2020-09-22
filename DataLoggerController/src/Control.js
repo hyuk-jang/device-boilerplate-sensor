@@ -300,7 +300,9 @@ class DataLoggerController extends DccFacade {
       nodeInfo,
     });
 
-    const commandName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${singleControlType}`;
+    const commandName = `${nodeInfo.node_name} ${
+      nodeInfo.node_id
+    } Type: ${singleControlType}`;
 
     const commandSet = this.generationManualCommand({
       wrapCmdUUID,
@@ -342,7 +344,9 @@ class DataLoggerController extends DccFacade {
       key: 'DEFAULT',
       value: reqDeviceControlType.MEASURE,
     });
-    const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${this.config.dataLoggerInfo.dl_target_code} Type: ${wrapCmdType}`;
+    const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${
+      this.config.dataLoggerInfo.dl_target_code
+    } Type: ${wrapCmdType}`;
 
     const commandSet = this.generationManualCommand({
       wrapCmdUUID,
@@ -408,22 +412,14 @@ class DataLoggerController extends DccFacade {
    * @param {dcError} dcError 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcError(dcError) {
+    // BU.CLIN(dcError);
     process.env.LOG_DLC_ERROR === '1' && super.onDcError(dcError);
-
-    const { E_RETRY_MAX } = this.definedOperationError;
 
     const { RETRY, ERROR } = this.definedCommanderResponse;
 
-    // 재시도 횟수 설정 시
-    if (this.commander.setRetryChance > 0) {
-      // !_.eq(_.get(dcError, 'errorInfo.message'), E_RETRY_MAX)
-      const {
-        errorInfo: { message },
-      } = dcError;
-      // 재시도 횟수 제한에 걸리지 않았다면 재시도
-      if (message < E_RETRY_MAX) {
-        return this.requestTakeAction(RETRY);
-      }
+    // 재시도 횟수 제한에 걸리지 않았다면 재시도
+    if (this.commander.isRetryExecute()) {
+      return this.requestTakeAction(RETRY);
     }
 
     // 에러 카운트 증가

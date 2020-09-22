@@ -100,7 +100,11 @@ class BlockManager extends AbstBlockManager {
       const { fromToKeyTableList: trobleFromToList } = troubleTableInfo;
 
       trobleFromToList.forEach(fromToInfo => {
-        _.set(dataContainer.troubleWhere, fromToInfo.toKey, _.map(tableRows, fromToInfo.fromKey));
+        _.set(
+          dataContainer.troubleWhere,
+          fromToInfo.toKey,
+          _.map(tableRows, fromToInfo.fromKey),
+        );
       });
     }
 
@@ -108,7 +112,9 @@ class BlockManager extends AbstBlockManager {
       // insertDataList 에서 사용될 기본 객체 정보 생성. baseFrame을 얕은 복사를 사용하여 객체 생성.
       const dataFrame = _.clone(baseDataFrame);
       const troubleFrame = _.clone(baseTroubleFrame);
-      const frameList = _.isEmpty(troubleTableInfo) ? [dataFrame] : [dataFrame, troubleFrame];
+      const frameList = _.isEmpty(troubleTableInfo)
+        ? [dataFrame]
+        : [dataFrame, troubleFrame];
 
       frameList.forEach(frame => {
         _.forEach(fromToKeyTableList, fromToKeyInfo => {
@@ -197,7 +203,12 @@ class BlockManager extends AbstBlockManager {
     }
 
     // 블록 정보와 DB에 적용할 데이터
-    const { blockConfigInfo, insertDataList, insertTroubleList, updateTroubleList } = dataContainer;
+    const {
+      blockConfigInfo,
+      insertDataList,
+      insertTroubleList,
+      updateTroubleList,
+    } = dataContainer;
     // 데이터 Table 정보와 Trouble Table 정보
     const { applyTableInfo, troubleTableInfo } = blockConfigInfo;
 
@@ -228,7 +239,12 @@ class BlockManager extends AbstBlockManager {
 
       // 수정할 Trouble이 있을 경우
       if (updateTroubleList.length) {
-        await this.biModule.updateTablesByPool(tableName, primaryKey, updateTroubleList, false);
+        await this.biModule.updateTablesByPool(
+          tableName,
+          primaryKey,
+          updateTroubleList,
+          false,
+        );
       }
     }
   }
@@ -250,7 +266,12 @@ class BlockManager extends AbstBlockManager {
    * @param {dataContainerDBS} dataContainer
    */
   processData(dataContainer) {
-    const { refineDate, dataStorageList, blockConfigInfo, insertDataList } = dataContainer;
+    const {
+      refineDate,
+      dataStorageList,
+      blockConfigInfo,
+      insertDataList,
+    } = dataContainer;
 
     const { applyTableInfo } = blockConfigInfo;
     const { insertDateColumn, matchingList } = applyTableInfo;
@@ -276,7 +297,10 @@ class BlockManager extends AbstBlockManager {
       );
 
       // nodeList의 데이터 유효성 체크 진행
-      const existNodeList = _.filter(filterdNodeList, nodeInfo => !_.isNil(nodeInfo.data));
+      const existNodeList = _.filter(
+        filterdNodeList,
+        nodeInfo => !_.isNil(nodeInfo.data),
+      );
 
       // nodeList 중에서 1개라도 유효한 데이터가 있을 경우에만 insert 목록으로 처리
       if (existNodeList.length) {
@@ -411,11 +435,15 @@ class BlockManager extends AbstBlockManager {
     const { codeKey, fixDateKey } = changeColumnKeyInfo;
     const { foreignKey, primaryKey } = indexInfo;
 
+    // BU.CLIS(troubleTableInfo, troubleWhere);
+
     // 에러를 선택해서 가져온다면 추가로 쿼리 생성
     let subSql = '';
     if (!_.isEmpty(troubleWhere)) {
-      _.forEach(troubleWhere, (value, key) => {
-        subSql = subSql.concat(` AND originTbl.${key} IN (${value})`);
+      _.forEach(troubleWhere, (value = [], key) => {
+        if (value.length) {
+          subSql = subSql.concat(` AND originTbl.${key} IN (${value})`);
+        }
       });
     }
 
