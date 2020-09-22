@@ -23,14 +23,11 @@ class ApiClient extends AbstApiClient {
     this.coreFacade = controller.coreFacade;
 
     this.reconectScheduler;
-
-    _.once(this.runCronReconnect);
   }
 
   /** API Server 연결 해제시 재접속 */
   runCronReconnect() {
     if (this.reconectScheduler !== undefined) {
-      // BU.CLI('Stop')
       clearInterval(this.reconectScheduler);
     }
     // 즉시 접속
@@ -40,7 +37,15 @@ class ApiClient extends AbstApiClient {
     });
 
     this.reconectScheduler = setInterval(() => {
+      // BU.log(
+      //   `setInterval Reconnect >>> ${this.controller.mainUUID} ${this.hasCertification}`,
+      // );
       if (!this.hasCertification) {
+        // BU.log(
+        //   `setInterval Reconnect >>> ${this.controller.mainUUID} ${
+        //     this.hasCertification
+        //   }`,
+        // );
         // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
         this.transmitDataToServer({
           commandType: transmitToServerCT.CERTIFICATION,
@@ -135,8 +140,21 @@ class ApiClient extends AbstApiClient {
    * 초기 구동 개시
    */
   startOperation() {
+    BU.log(`startOperation >>> ${this.controller.mainUUID}`);
     // 장치 접속에 성공하면 인증 시도 (1회만 시도로 확실히 연결이 될 것으로 가정함)
     this.runCronReconnect();
+  }
+
+  endOperation() {
+    BU.log(`endOperation >>> ${this.controller.mainUUID}`);
+
+    this.hasCertification = false;
+
+    if (this.reconectScheduler !== undefined) {
+      clearInterval(this.reconectScheduler);
+      // 스케줄러 해제
+      this.reconectScheduler = undefined;
+    }
   }
 
   /**
@@ -154,7 +172,7 @@ class ApiClient extends AbstApiClient {
         break;
       // Socket 연결이 해제되면 인증 여부를 false로 되돌림.
       case DISCONNECT:
-        this.hasCertification = false;
+        this.endOperation();
         break;
       default:
         break;

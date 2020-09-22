@@ -34,17 +34,16 @@ class S2W extends Control {
    * @param {dbsFeatureConfig} featureConfig
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
-    // BU.CLI(featureConfig);
+    // BU.CLI(this.mainUUID, featureConfig);
 
     await this.blockManager.init(this.config.dbInfo, blockConfig);
 
-    // FIXME: DBW에 접속 처리하지 않음. Map 위치 정보 및 DBW API Server 구동 시 해제 (2019-02-13)
     const { apiConfig } = featureConfig;
     this.apiClient.connect({
       controlInfo: {
         hasReconnect: true,
       },
-      connect_info: apiConfig,
+      connect_info: { ...apiConfig, connId: this.mainUUID },
     });
   }
 
@@ -58,7 +57,7 @@ class S2W extends Control {
       return super.initMakeConfigForDLC();
     }
 
-    BU.CLI('initMakeConfigForDLC');
+    // BU.CLI('initMakeConfigForDLC');
 
     // 리스트 돌면서 데이터 로거에 속해있는 Node를 세팅함
     this.config.dataLoggerList = this.dataLoggerList.map(dataLoggerInfo => {

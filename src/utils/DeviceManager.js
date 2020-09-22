@@ -26,6 +26,7 @@ class DeviceManager extends EventEmitter {
    * @param {deviceInfo} deviceInfo
    */
   async connect(deviceInfo = {}) {
+    // BU.CLI('connect', deviceInfo);
     this.deviceInfo = deviceInfo;
     // 모델 선언
     try {
@@ -33,7 +34,13 @@ class DeviceManager extends EventEmitter {
       this.definedControlEvent = dccFacade.definedControlEvent;
       const { CONNECT, DISCONNECT } = this.definedControlEvent;
 
-      this.deviceController = dccFacade.setDeviceController(deviceInfo);
+      this.deviceController = dccFacade.setDeviceController({
+        ...deviceInfo,
+        controlInfo: {
+          hasReconnect: true,
+        },
+      });
+
       this.deviceController.attach(this);
 
       // 이미 접속 중인 객체가 있다면
