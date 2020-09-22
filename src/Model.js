@@ -26,7 +26,7 @@ class Model {
       coreFacade,
       dataLoggerControllerList,
       dataLoggerList,
-      dControlIdenStorage,
+      mdControlIdenStorage,
       nodeList,
       placeList,
       placeRelationList,
@@ -35,7 +35,7 @@ class Model {
     this.coreFacade = coreFacade;
     this.dataLoggerControllerList = dataLoggerControllerList;
     this.dataLoggerList = dataLoggerList;
-    this.dControlIdenStorage = dControlIdenStorage;
+    this.mdControlIdenStorage = mdControlIdenStorage;
     this.nodeList = nodeList;
     this.placeList = placeList;
     this.placeRelationList = placeRelationList;

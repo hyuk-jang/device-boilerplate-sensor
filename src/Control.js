@@ -48,7 +48,7 @@ class Control extends EventEmitter {
     this.placeRelationList = [];
 
     /** @type {dControlNodeStorage} */
-    this.dControlIdenStorage = new Map();
+    this.mdControlIdenStorage = new Map();
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];
     /** @type {dataLoggerInfo[]} */
@@ -100,11 +100,16 @@ class Control extends EventEmitter {
 
   /**
    * 장치 제어 식별 Map 생성
-   * @param {dCmdScenarioInfo} dCmdScenarioInfo
+   * @param {mSingleMiddleCmdInfo} dCmdScenarioInfo
    * @param {dControlValueStorage=} dControlValueStorage
    */
   initDeviceControlIdentify(dCmdScenarioInfo, dControlValueStorage = new Map()) {
-    const { confirmList, scenarioMsg, isSetValue, setValueInfo } = dCmdScenarioInfo;
+    const {
+      subCmdList: confirmList,
+      scenarioMsg,
+      isSetValue,
+      setValueInfo,
+    } = dCmdScenarioInfo;
 
     confirmList.forEach(confirmInfo => {
       const { enName, krName, controlValue, nextStepInfo } = confirmInfo;
@@ -166,19 +171,24 @@ class Control extends EventEmitter {
     /** @type {mDeviceMap} */
     this.deviceMap = BU.IsJsonString(mainRow.map) ? JSON.parse(mainRow.map) : {};
 
+    const { controlInfo: { singleCmdList = [] } = {} } = this.deviceMap;
+    BU.CLI('???', singleCmdList.length);
     // Map.configInfo.deviceCmdList 목록이 존재할 경우 Map<ncId, Map<controlValue, deviceCmdInfo>> 생성
-    if (_.get(this, 'deviceMap.configInfo.deviceCmdList', []).length) {
-      this.deviceMap.configInfo.deviceCmdList.forEach(deviceCmdInfo => {
-        const { applyDeviceList = [], dCmdScenarioInfo } = deviceCmdInfo;
+    if (singleCmdList.length) {
+      // 장치 제어 목록 설정
+      singleCmdList.forEach(deviceCmdInfo => {
+        const { applyDeviceList = [], singleMidCateCmdInfo } = deviceCmdInfo;
 
-        // 장치 제어 식별 Map 생성
-        const dControlValueStorage = this.initDeviceControlIdentify(dCmdScenarioInfo);
-        // Node Class Id 기준으로 해당 식별 Map을 붙여줌
+        const dControlValueStorage = this.initDeviceControlIdentify(singleMidCateCmdInfo);
+
         applyDeviceList.forEach(ncId => {
-          this.dControlIdenStorage.set(ncId, dControlValueStorage);
+          // Node Class Id 기준으로 해당 식별 Map을 붙여줌
+          this.mdControlIdenStorage.set(ncId, dControlValueStorage);
         });
       });
     }
+
+    BU.CLIN(this.mdControlIdenStorage);
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
     this.dataLoggerList = await biModule.getTable('v_dv_data_logger', {

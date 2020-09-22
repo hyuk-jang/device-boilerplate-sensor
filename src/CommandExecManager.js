@@ -22,7 +22,7 @@ class CommandExecManager {
     const {
       coreFacade,
       model,
-      dControlIdenStorage,
+      mdControlIdenStorage,
       nodeList,
       dataLoggerList,
       mainUUID,
@@ -32,7 +32,7 @@ class CommandExecManager {
 
     this.coreFacade = coreFacade;
     this.model = model;
-    this.dControlIdenStorage = dControlIdenStorage;
+    this.mdControlIdenStorage = mdControlIdenStorage;
     this.nodeList = nodeList;
     this.dataLoggerList = dataLoggerList;
     this.mainUUID = mainUUID;
@@ -112,7 +112,7 @@ class CommandExecManager {
         node_id: nodeId,
       });
 
-      const { enName, krName } = this.dControlIdenStorage
+      const { enName, krName } = this.mdControlIdenStorage
         .get(ncId)
         .get(singleControlType);
 
