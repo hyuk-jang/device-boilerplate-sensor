@@ -505,7 +505,7 @@ class DataLoggerController extends DccFacade {
 
     try {
       const { DONE, ERROR, WAIT, RETRY } = this.definedCommanderResponse;
-      const { eventCode, data } = this.converter.parsingUpdateData(dcData);
+      const { eventCode, data } = this.converter.parsingUpdateData(dcData, this.nodeList);
 
       // BU.CLI(eventCode, data);
 

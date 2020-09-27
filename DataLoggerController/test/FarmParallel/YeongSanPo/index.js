@@ -12,7 +12,7 @@ control.s1AddNodeList(config.nodeList);
 control.s2SetDeviceInfo();
 
 control.init();
-control.model.hasAverageStorage = true;
+control.model.hasAvgStorage = true;
 // control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
 
 setTimeout(() => {

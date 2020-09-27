@@ -19,7 +19,7 @@ control.init().then(c => {
     control.requestCommand({ wrapCmdId: 'test' });
   }, 1000);
 });
-control.model.hasAverageStorage = true;
+control.model.hasAvgStorage = true;
 // control.model.bindingAverageStorageForNode([_.nth(config.nodeList, 1)]);
 
 // setTimeout(() => {
