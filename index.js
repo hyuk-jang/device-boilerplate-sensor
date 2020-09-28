@@ -82,7 +82,7 @@ if (require !== undefined && require.main === module) {
       // }, 1000 * 2);
     })
     .catch(err => {
-      BU.CLI(err);
+      BU.CLI(err.message);
     });
 
   process.on('uncaughtException', err => {

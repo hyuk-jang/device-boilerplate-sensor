@@ -6,10 +6,10 @@ const { controllerParserType } = require('./module').di.dccFlagModel;
 
 /** @type {integratedDataLoggerConfig} */
 const config = {
-  uuid: ENV.PJ_UUID || '001',
+  uuid: ENV.PJ_UUID,
   projectInfo: {
-    projectMainId: ENV.PJ_MAIN_ID || 'UPSAS',
-    projectSubId: ENV.PJ_SUB_ID || 'muan',
+    projectMainId: ENV.PJ_MAIN_ID,
+    projectSubId: ENV.PJ_SUB_ID,
     featureConfig: {
       apiConfig: {
         type: 'socket',
@@ -36,7 +36,7 @@ const config = {
     database: ENV.PJ_DB_DB || 'test',
   },
   inquirySchedulerInfo: {
-    intervalCronFormat: '0 * * * * *',
+    intervalCronFormat: ENV.CRON_FORMAT || '0 * * * * *',
     intervalSaveCnt: 1,
     validInfo: {
       diffType: 'minutes',

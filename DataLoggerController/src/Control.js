@@ -222,6 +222,7 @@ class DataLoggerController extends DccFacade {
       return this;
     } catch (error) {
       BU.errorLog('init', error);
+      BU.error(error.message);
       // 초기화에 실패할 경우에는 에러 처리
       if (error instanceof ReferenceError) {
         throw error;
