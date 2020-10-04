@@ -138,10 +138,11 @@ class Model {
 
   /**
    * 시나리오 명령을 찾고자 할 경우
-   * @param {string} scenarioId
+   * @param {string} cmdId
    */
-  findScenarioCommand(scenarioId) {
-    return _.find(this.scenarioManager.scenarioCmdList, { scenarioId });
+  findScenarioCommand(cmdId) {
+    // BU.CLIN(this.scenarioManager.scenarioCmdList);
+    return _.find(this.scenarioManager.scenarioCmdList, { cmdId });
   }
 
   /**
@@ -157,7 +158,10 @@ class Model {
 
     // 명령 Full ID로 찾고자 할 경우
     if (cmdId.length) {
-      return _(this.mapCmdInfo.flowCmdList).map('destList').flatten().find({ cmdId });
+      return _(this.mapCmdInfo.flowCmdList)
+        .map('destList')
+        .flatten()
+        .find({ cmdId });
     }
     try {
       // 출발지와 목적지가 있을 경우

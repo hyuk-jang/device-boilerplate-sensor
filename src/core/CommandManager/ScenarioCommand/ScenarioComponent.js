@@ -48,5 +48,12 @@ class ScenarioComponent {
    * @param {ScenarioComponent} scenarioComponent
    */
   handleScenarioFail(scenarioComponent) {}
+
+  /**
+   * FIXME: cmdStorage와의 호환성을 위함. 로직 개편시 수정
+   */
+  getCmdEleList() {
+    return [];
+  }
 }
 module.exports = ScenarioComponent;

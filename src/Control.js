@@ -94,6 +94,7 @@ class Control extends EventEmitter {
       // Binding Feature
       this.bindingFeature();
     } catch (error) {
+      // BU.CLI(error);
       BU.errorLog('init', error);
     }
   }
@@ -328,6 +329,7 @@ class Control extends EventEmitter {
    * DBS 순수 기능 외에 추가 될 기능
    */
   bindingFeature() {
+    // BU.CLI('bindingFeature');
     // API Socket Server
     this.apiClient = new AbstApiClient(this);
     // 현황판
@@ -351,7 +353,9 @@ class Control extends EventEmitter {
    * @param {dbsFeatureConfig} featureConfig
    * @return {Promise}
    */
-  runFeature(featureConfig) {}
+  runFeature(featureConfig) {
+    BU.CLI('runFeature');
+  }
 
   /**
    * Passive Client를 수동으로 붙여줄 경우

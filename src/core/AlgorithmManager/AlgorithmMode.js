@@ -61,7 +61,9 @@ class AlgorithmMode extends AlgorithmComponent {
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpdateNode(placeNode) {
-    const threAlgorithm = _.find(this.threPlaceList, { nodeDefId: placeNode.getNodeDefId() });
+    const threAlgorithm = _.find(this.threPlaceList, {
+      nodeDefId: placeNode.getNodeDefId(),
+    });
 
     if (_.isEmpty(threAlgorithm)) {
       // BU.CLI(`알고리즘 없음 ${this.threPlaceList.length}`, placeNode.getNodeDefId());

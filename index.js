@@ -35,12 +35,12 @@ if (require !== undefined && require.main === module) {
   control
     .init(dbInfo, config.uuid)
     .then(() => {
-      BU.CLI('start Program');
+      // BU.CLI('start Program');
       return control.runFeature();
     })
     .then(() => {
       // FIXME: 시나리오 테스트
-      control.model.scenarioManager.scenarioCmdList = scenarioList;
+      //   control.model.scenarioManager.scenarioCmdList = scenarioList;
 
       // rainEvacuation
       // rainRelease
@@ -82,6 +82,7 @@ if (require !== undefined && require.main === module) {
       // }, 1000 * 2);
     })
     .catch(err => {
+      // BU.CLI(err);
       BU.CLI(err.message);
     });
 

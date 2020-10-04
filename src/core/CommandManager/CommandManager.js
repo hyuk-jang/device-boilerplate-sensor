@@ -187,17 +187,21 @@ class CommandManager {
   }
 
   /**
-   *
+   * 실제 장치로 내릴 명령 정제
+   * MEASURE >> cmdManager 에서 직접 호출
+   * SINGLE, SET >> cmdStrategy에서 호출
    * @param {commandWrapInfo} cmdWrapInfo 실제 내릴 명령 객체 정보
    * @param {Observer=}
    */
   executeRealCommand(cmdWrapInfo, observer) {
-    // BU.CLIN(cmdWrapInfo.containerCmdList)
+    // BU.CLIN(cmdWrapInfo.containerCmdList);
     // 명령 저장소 생성
     const cmdStorage = new CmdStorage(this.coreFacade);
     // 옵저버 추가
     // BU.CLIN(observer, 1);
     cmdStorage.attachObserver(observer || this);
+
+    // BU.CLIN(cmdStorage.cmdElements);
 
     cmdStorage.setCommand(cmdWrapInfo);
     // 명령 목록에 추가
@@ -254,6 +258,8 @@ class CommandManager {
         .getCmdEle({ cmdEleUuid: uuid })
         .updateCommand(msgCode);
     } catch (error) {
+      // BU.CLI(this.model.getAllCmdStatus());
+
       // BU.CLIS(wrapCmdUUID, uuid, commandId, nodeId);
       // _.map(this.commandList, cmdStorage => {
       //   BU.CLI(cmdStorage.wrapCmdUUID, cmdStorage.wrapCmdInfo);
@@ -306,23 +312,13 @@ class CommandManager {
 
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCT.COMMAND,
-      // data: [_.pick(cmdStorage, commandPickKey.FOR_SERVER)],
-      // data: _.map(this.commandList, cmdStorage => _.pick(cmdStorage, commandPickKey.FOR_SERVER)),
       data: this.model.getAllCmdStatus(commandPickKey.FOR_SERVER),
-      // data: _(this.commandList)
-      //   .map(commandStorage => _.pick(commandStorage, commandPickKey.FOR_SERVER))
-      //   .value(),
     });
 
     // 명령 업데이트를 구독하고 있는 대상에게 공지
     this.commandUpdator.notifyObserver(cmdStorage);
 
     this.controller.emit(cmdStorage.cmdStep, cmdStorage);
-
-    // this.controller.apiClient.transmitDataToServer({
-    //   commandType: transmitToServerCT.COMMAND,
-    //   data: _(cmdStorage).pick(commandPickKey.FOR_SERVER),
-    // });
   }
 
   /**
@@ -478,7 +474,9 @@ class CommandManager {
    */
   getLastCmdEle(cmdElementSearch) {
     // BU.CLI(cmdElementSearch);
-    const cmdElement = _(this.getCmdEleList(cmdElementSearch)).sortBy('rank').head();
+    const cmdElement = _(this.getCmdEleList(cmdElementSearch))
+      .sortBy('rank')
+      .head();
 
     return cmdElement;
   }

@@ -112,33 +112,38 @@ class ManualCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeDefaultControl(reqCmdInfo) {
-    const { wrapCmdId, wrapCmdType } = reqCmdInfo;
+    try {
+      const { wrapCmdId, wrapCmdType } = reqCmdInfo;
 
-    // 취소 명령 요청이 들어 올 경우
-    if (wrapCmdType === reqWCT.CANCEL) {
-      return this.cancelCommand(reqCmdInfo);
+      // 취소 명령 요청이 들어 올 경우
+      if (wrapCmdType === reqWCT.CANCEL) {
+        return this.cancelCommand(reqCmdInfo);
+      }
+
+      // 이미 실행 중인 명령인지 체크
+      const existCmdStorage = this.cmdManager.getCmdStorage({
+        wrapCmdId,
+      });
+
+      // 이미 존재하는 명령이라면 예외 처리
+      if (existCmdStorage) {
+        throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
+      }
+
+      // 실제 수행할 장치를 정제
+      const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
+      this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
+
+      // BU.CLI(
+      //   commandWrapInfo.wrapCmdName,
+      //   commandWrapInfo.containerCmdList.filter(info => !info.isIgnore),
+      // );
+
+      return this.cmdManager.executeRealCommand(commandWrapInfo, this);
+    } catch (error) {
+      // BU.CLI(reqCmdInfo);
+      throw error;
     }
-
-    // 이미 실행 중인 명령인지 체크
-    const existCmdStorage = this.cmdManager.getCmdStorage({
-      wrapCmdId,
-    });
-
-    // 이미 존재하는 명령이라면 예외 처리
-    if (existCmdStorage) {
-      throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
-    }
-
-    // 실제 수행할 장치를 정제
-    const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
-    this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
-
-    // BU.CLI(
-    //   commandWrapInfo.wrapCmdName,
-    //   commandWrapInfo.containerCmdList.filter(info => !info.isIgnore),
-    // );
-
-    return this.cmdManager.executeRealCommand(commandWrapInfo, this);
   }
 
   /**
@@ -170,18 +175,23 @@ class ManualCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeScenarioControl(reqCmdInfo) {
-    const { wrapCmdType } = reqCmdInfo;
+    // BU.CLI(reqCmdInfo);
+    const { wrapCmdType, wrapCmdId } = reqCmdInfo;
 
-    switch (wrapCmdType) {
-      case reqWCT.CONTROL:
-        this.coreFacade.scenarioManager.executeScenario(reqCmdInfo);
-        break;
-      case reqWCT.CANCEL:
-        this.coreFacade.scenarioManager.cancelScenario(reqCmdInfo);
-        break;
-      default:
-        break;
+    if (wrapCmdType === reqWCT.CANCEL) {
+      return this.coreFacade.scenarioManager.cancelScenario(reqCmdInfo);
     }
+
+    const existCmdStorage = this.cmdManager.getCmdStorage({
+      wrapCmdId,
+    });
+
+    // 이미 존재하는 명령이라면 예외 처리
+    if (existCmdStorage) {
+      throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
+    }
+
+    return this.coreFacade.scenarioManager.executeScenario(reqCmdInfo);
   }
 }
 module.exports = ManualCmdStrategy;

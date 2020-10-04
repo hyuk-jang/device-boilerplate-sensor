@@ -29,7 +29,9 @@ class NodeUpdatorManager {
       node = this.getNodeInfo(node);
     }
 
-    return _.find(this.nodeUpdatorList, nodeUpdator => _.isEqual(nodeUpdator.nodeInfo, node));
+    return _.find(this.nodeUpdatorList, nodeUpdator =>
+      _.isEqual(nodeUpdator.nodeInfo, node),
+    );
   }
 
   /**

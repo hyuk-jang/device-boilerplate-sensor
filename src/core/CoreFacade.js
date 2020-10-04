@@ -199,7 +199,7 @@ class CoreFacade {
     try {
       return this.cmdExecManager.executeSingleControl(reqSingleCmdInfo);
     } catch (error) {
-      BU.error(error);
+      BU.error(error.message);
     }
   }
 

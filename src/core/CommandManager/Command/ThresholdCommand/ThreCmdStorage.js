@@ -47,13 +47,20 @@ class ThreCmdStorage extends CmdComponent {
 
     // 세부 달성 목록 목표만큼 객체 생성 후 옵저버 등록
     goalDataList.forEach(goalInfo => {
+      const { nodeId, expressInfo: { nodeList = [] } = {} } = goalInfo;
       const threCmdGoal = new ThreCmdGoal(this.coreFacade, goalInfo);
       // 세부 달성 목표 추가
       this.addThreCmdGoal(threCmdGoal);
       // 저장소를 Successor로 등록
       threCmdGoal.setSuccessor(this);
       // 노드 갱신 매니저에게 임계치 목표 객체를 옵저버로 등록
-      this.coreFacade.attachNodeObserver(goalInfo.nodeId, threCmdGoal, true);
+      if (nodeList.length) {
+        nodeList.forEach(expressionNodeId => {
+          this.coreFacade.attachNodeObserver(expressionNodeId, threCmdGoal, true);
+        });
+      } else {
+        this.coreFacade.attachNodeObserver(nodeId, threCmdGoal, true);
+      }
     });
   }
 

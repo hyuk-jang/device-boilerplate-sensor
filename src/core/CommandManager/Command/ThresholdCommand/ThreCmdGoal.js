@@ -1,3 +1,4 @@
+const { BU } = require('base-util-jh');
 const _ = require('lodash');
 
 const {
@@ -20,7 +21,14 @@ class ThreCmdGoal extends CmdComponent {
    */
   constructor(coreFacade, csCmdGoalInfo) {
     super();
-    const { nodeId, goalValue, goalRange, isCompleteClear = false } = csCmdGoalInfo;
+    const {
+      nodeId = '',
+      goalValue,
+      goalRange,
+      isCompleteClear = false,
+      expressInfo: { expression = '', nodeList = [] } = {},
+    } = csCmdGoalInfo;
+
     this.coreFacade = coreFacade;
     // 임계치 모니터링 Node 객체 Id
     this.nodeId = nodeId;
@@ -31,7 +39,20 @@ class ThreCmdGoal extends CmdComponent {
     // 이 달성 목표만 성공하면 모든 조건 클리어 여부
     this.isCompleteClear = isCompleteClear;
 
-    this.nodeInfo = coreFacade.getNodeInfo(nodeId);
+    // 동적 표현식 메소드 생성
+    // eslint-disable-next-line no-new-func
+    this.expressionFn = new Function(...nodeList, `return ${expression}`);
+
+    this.nodeInfo = nodeId.length ? coreFacade.getNodeInfo(nodeId) : {};
+
+    this.nodeList = nodeList.length
+      ? nodeList.map(expNodeId => coreFacade.getNodeInfo(expNodeId))
+      : [];
+
+    if (this.nodeList.length) {
+      // BU.CLIN(this.nodeList);
+      BU.CLIN(this.expressionFn);
+    }
   }
 
   /**
@@ -40,21 +61,38 @@ class ThreCmdGoal extends CmdComponent {
    */
   static isReachGoal(coreFacade, goalInfo) {
     // BU.log('@@', goalInfo);
-    const { nodeId, goalValue, goalRange } = goalInfo;
+    const {
+      nodeId,
+      goalValue,
+      goalRange,
+      expressInfo: { expression = '', nodeList = [] } = {},
+    } = goalInfo;
 
-    const { data } = coreFacade.getNodeInfo(nodeId);
+    let goalData;
+    // 표현식을 사용할경우 우선
+    if (expression.length) {
+      // eslint-disable-next-line no-new-func
+      const expressionFn = new Function(...nodeList, `return ${expression}`);
+      const expressionDataList = _.map(nodeList, expressionNodeId => {
+        return coreFacade.getNodeInfo(expressionNodeId).data;
+      });
+
+      goalData = expressionFn(...expressionDataList);
+    } else {
+      goalData = coreFacade.getNodeInfo(nodeId).data;
+    }
 
     let isReachGoal = false;
 
     switch (goalRange) {
       case goalDR.EQUAL:
-        isReachGoal = data === goalValue;
+        isReachGoal = goalData === goalValue;
         break;
       case goalDR.LOWER:
-        isReachGoal = data <= goalValue;
+        isReachGoal = goalData <= goalValue;
         break;
       case goalDR.UPPER:
-        isReachGoal = data >= goalValue;
+        isReachGoal = goalData >= goalValue;
         break;
       default:
         break;
@@ -76,15 +114,20 @@ class ThreCmdGoal extends CmdComponent {
    * @return {boolean} 목표 달성 시 ture, 실패 시 false
    */
   get isClear() {
-    const { data } = this.nodeInfo;
-
     let isClear = false;
 
-    if (_.isNumber(data)) {
-      isClear = this.isReachNumGoal(data);
-    } else if (_.isString(data)) {
-      isClear = this.isReachStrGoal(data);
+    // 표현식이 존재할 경우
+    if (this.nodeList.length) {
+      isClear = this.isReachExpression();
+    } else {
+      const { data } = this.nodeInfo;
+      if (_.isNumber(data)) {
+        isClear = this.isReachNumGoal(data);
+      } else if (_.isString(data)) {
+        isClear = this.isReachStrGoal(data);
+      }
     }
+
     return isClear;
   }
 
@@ -112,22 +155,27 @@ class ThreCmdGoal extends CmdComponent {
     return this.isClear && this.thresholdStorage.handleThresholdClear(this);
   }
 
+  /** 표현식으로 임계치를 체크할 경우 */
+  isReachExpression() {
+    const expressResult = this.expressionFn(..._.map(this.nodeList, 'data'));
+    return this.isReachNumGoal(expressResult);
+  }
+
   /**
    * @param {number} deviceData number 형식 데이터
    */
   isReachNumGoal(deviceData) {
-    const { data } = this.nodeInfo;
     let isClear = false;
 
     switch (this.goalRange) {
       case goalDR.EQUAL:
-        isClear = data === this.goalValue;
+        isClear = deviceData === this.goalValue;
         break;
       case goalDR.LOWER:
-        isClear = data <= this.goalValue;
+        isClear = deviceData <= this.goalValue;
         break;
       case goalDR.UPPER:
-        isClear = data >= this.goalValue;
+        isClear = deviceData >= this.goalValue;
         break;
       default:
         break;

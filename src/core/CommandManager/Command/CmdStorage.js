@@ -146,6 +146,8 @@ class CmdStorage extends CmdComponent {
         cmdElement.executeCommandFromDLC();
       });
     } catch (error) {
+      BU.error(error.message);
+      // BU.error(error);
       // 데이터 전송에 문제가 있다면 해당 명령 삭제
       this.cancelCommand();
     }

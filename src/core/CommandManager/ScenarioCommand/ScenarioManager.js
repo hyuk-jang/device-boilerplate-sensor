@@ -27,10 +27,10 @@ class ScenarioManager {
    */
   executeScenario(reqCommandInfo) {
     if (this.scenarioStorage instanceof ScenarioStorage) {
-      throw new Error(`${this.scenarioStorage.scenarioId} is ruuning.`);
+      throw new Error(`${this.scenarioStorage.cmdId} is ruuning.`);
     }
 
-    this.initScenario(reqCommandInfo);
+    return this.initScenario(reqCommandInfo);
   }
 
   /**
@@ -52,7 +52,7 @@ class ScenarioManager {
   initScenario(reqCommandInfo) {
     const { wrapCmdId } = reqCommandInfo;
 
-    const scenarioCmdInfo = _.find(this.scenarioCmdList, { scenarioId: wrapCmdId });
+    const scenarioCmdInfo = _.find(this.scenarioCmdList, { cmdId: wrapCmdId });
 
     const { scenarioList } = scenarioCmdInfo;
 
@@ -69,6 +69,9 @@ class ScenarioManager {
     // 명령 실행
     scenarioStorage.executeScenario();
 
+    // FIXME: 버그 발생 가능성 존재
+    this.coreFacade.cmdManager.commandList.push(scenarioStorage);
+
     return scenarioStorage;
   }
 
@@ -78,6 +81,10 @@ class ScenarioManager {
    */
   handleScenarioClear(scenarioComponent) {
     this.scenarioStorage = {};
+    // 동일한 명령 객체 삭제
+    _.remove(this.coreFacade.cmdManager.commandList, cmdStorage => {
+      return cmdStorage === scenarioComponent;
+    });
   }
 
   /**

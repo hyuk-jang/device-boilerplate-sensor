@@ -6,7 +6,11 @@ const ScenarioComponent = require('./ScenarioComponent');
 const ScenarioCommand = require('./ScenarioCommand');
 
 const {
-  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF, reqWrapCmdType: reqWCT },
+  dcmConfigModel: {
+    commandStep: cmdStep,
+    reqWrapCmdFormat: reqWCF,
+    reqWrapCmdType: reqWCT,
+  },
 } = require('../../../module').di;
 
 /**
@@ -35,14 +39,17 @@ class ScenarioStorage extends ScenarioComponent {
 
     this.coreFacade = coreFacade;
 
-    const { scenarioId, scenarioName } = scenarioInfo;
+    const { cmdId, cmdName, scenarioCount = 1 } = scenarioInfo;
 
-    this.scenarioId = scenarioId;
-    this.scenarioName = scenarioName;
+    this.cmdId = cmdId;
+    this.scenarioName = cmdName;
 
     this.successor;
     // 동기화 저장소 여부
     this.isSync = false;
+
+    // 시나리오 반복 횟수
+    this.scenarioCount = scenarioCount;
 
     /** @type {ScenarioComponent[]} */
     this.children = [];
@@ -51,6 +58,18 @@ class ScenarioStorage extends ScenarioComponent {
 
     /** @type {IterableIterator} */
     this.iterator;
+
+    /**
+     * 명령 실행 단계
+     * WAIT: 명령이 대기열에 올라가있는 리스트, 아직 장치 제어 요청이 일어나기 전
+     * PROCEED: 명령이 진행되었을 경우
+     * COMPLETE: 명령 요청 처리가 완료되었을 경우
+     * RUNNING: COMPLETE 처리가 되었지만 지켜보고자 할 경우, (Goal 달성 및 실행 중 명령으로 둘 경우 )
+     * CANCELING: 종전에 요청한 명령을 DLC에 취소를 요청하는 중
+     * RESTORE: CANCELING 완료 후 복원 명령이 있을 경우 해당 명령의 완료를 기다리는 경우
+     * END: 명령의 종료할 경우.(Goal 달성 및 삭제)
+     */
+    this.cmdStep = '';
   }
 
   /** @return {string} 명령 형식, MEASURE, SINGLE, SET, FLOW, SCENARIO */
@@ -65,7 +84,7 @@ class ScenarioStorage extends ScenarioComponent {
 
   /** @return {string} 명령 ID */
   get wrapCmdId() {
-    return this.scenarioId;
+    return this.cmdId;
   }
 
   /** @return {string} 명령 이름 */
@@ -81,7 +100,13 @@ class ScenarioStorage extends ScenarioComponent {
   initScenario(scenarioList, isSync = true) {
     this.isSync = isSync;
 
-    // 시나리오 명령 객체를 Tree 구조로 생성 후 반환
+    for (let index = 1; index < this.scenarioCount; index += 1) {
+      // 시나리오 명령 객체를 Tree 구조로 생성 후 반환
+      scenarioList = scenarioList.concat(scenarioList);
+    }
+
+    // BU.CLIN(scenarioList);
+
     _.forEach(scenarioList, scenario => {
       if (!_.isArray(scenario)) {
         const scenarioCommand = new ScenarioCommand(scenario, this.coreFacade);
@@ -118,8 +143,8 @@ class ScenarioStorage extends ScenarioComponent {
 
   /** @param {ScenarioComponent} scenarioComponent */
   addScenario(scenarioComponent) {
-    // 이미 존재한다면 false 반환
-    if (_.findIndex(this.children, scenarioComponent) !== -1) return false;
+    // 이미 존재하여도 동일 명령 추가 가능
+    // if (_.findIndex(this.children, scenarioComponent) !== -1) return false;
     // 삽입 후 true 반환
     return this.children.push(scenarioComponent) && true;
   }
@@ -137,6 +162,7 @@ class ScenarioStorage extends ScenarioComponent {
   /** 시나리오 명령 실행 */
   executeScenario() {
     // 동기 일 경우에는 자식 요소 단계 별 실행
+    this.cmdStep = cmdStep.PROCEED;
     // 비동기 일 경우에는 자식 요소 일괄 실행
     if (this.isSync === false) {
       this.children.forEach(child => {
@@ -145,7 +171,7 @@ class ScenarioStorage extends ScenarioComponent {
     } else {
       const nextScenario = this.iterator.next();
       if (nextScenario.done) {
-        return this.successor.handleScenarioClear();
+        return this.successor.handleScenarioClear(this);
       }
       // 실행중인 단위 시나리오 Step Index 증가
       this.executeIndex = nextScenario.value;

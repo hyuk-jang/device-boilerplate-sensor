@@ -222,7 +222,7 @@ class DataLoggerController extends DccFacade {
       return this;
     } catch (error) {
       BU.errorLog('init', error);
-      BU.error(error.message);
+      BU.CLIN(error);
       // 초기화에 실패할 경우에는 에러 처리
       if (error instanceof ReferenceError) {
         throw error;
@@ -261,66 +261,72 @@ class DataLoggerController extends DccFacade {
    * @param {executeCmdInfo} executeCmdInfo
    */
   requestCommand(executeCmdInfo) {
-    if (process.env.LOG_DLC_ORDER === '1') {
-      BU.CLIN(executeCmdInfo);
+    try {
+      if (process.env.LOG_DLC_ORDER === '1') {
+        BU.CLIN(executeCmdInfo);
+      }
+
+      const {
+        wrapCmdUUID,
+        wrapCmdId,
+        wrapCmdType,
+        uuid,
+        singleControlType,
+        controlSetValue,
+        nodeId = '',
+        rank = this.definedCommandSetRank.THIRD,
+      } = executeCmdInfo;
+
+      if (!this.hasConnectedDevice) {
+        throw new Error(
+          `The device has been disconnected. ${_.get(this.connectInfo, 'port')}`,
+        );
+      }
+
+      // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
+      if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
+        return this.requestDefaultCommand(executeCmdInfo);
+      }
+
+      const nodeInfo = _.find(this.nodeList, {
+        node_id: nodeId,
+      });
+
+      if (_.isEmpty(nodeInfo)) {
+        throw new Error(`Node ${executeCmdInfo.nodeId} 장치는 존재하지 않습니다.`);
+      }
+
+      const cmdList = this.converter.generationCommand({
+        key: nodeInfo.nd_target_id,
+        value: singleControlType,
+        setValue: controlSetValue,
+        nodeInfo,
+      });
+
+      const commandName = `${nodeInfo.node_name} ${
+        nodeInfo.node_id
+      } Type: ${singleControlType}`;
+
+      const commandSet = this.generationManualCommand({
+        wrapCmdUUID,
+        cmdList,
+        commandId: wrapCmdId,
+        commandName,
+        commandType: wrapCmdType,
+        uuid,
+        nodeId,
+        rank,
+      });
+
+      // 장치로 명령 요청
+      this.executeCommand(commandSet);
+
+      // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
+      return this.model.addRequestCommandSet(commandSet);
+    } catch (error) {
+      // BU.error(error);
+      throw error;
     }
-
-    const {
-      wrapCmdUUID,
-      wrapCmdId,
-      wrapCmdType,
-      uuid,
-      singleControlType,
-      controlSetValue,
-      nodeId = '',
-      rank = this.definedCommandSetRank.THIRD,
-    } = executeCmdInfo;
-
-    if (!this.hasConnectedDevice) {
-      throw new Error(
-        `The device has been disconnected. ${_.get(this.connectInfo, 'port')}`,
-      );
-    }
-
-    // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
-    if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
-      return this.requestDefaultCommand(executeCmdInfo);
-    }
-    const nodeInfo = _.find(this.nodeList, {
-      node_id: nodeId,
-    });
-
-    if (_.isEmpty(nodeInfo)) {
-      throw new Error(`Node ${executeCmdInfo.nodeId} 장치는 존재하지 않습니다.`);
-    }
-
-    const cmdList = this.converter.generationCommand({
-      key: nodeInfo.nd_target_id,
-      value: singleControlType,
-      setValue: controlSetValue,
-      nodeInfo,
-    });
-
-    const commandName = `${nodeInfo.node_name} ${
-      nodeInfo.node_id
-    } Type: ${singleControlType}`;
-
-    const commandSet = this.generationManualCommand({
-      wrapCmdUUID,
-      cmdList,
-      commandId: wrapCmdId,
-      commandName,
-      commandType: wrapCmdType,
-      uuid,
-      nodeId,
-      rank,
-    });
-
-    // 장치로 명령 요청
-    this.executeCommand(commandSet);
-
-    // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
-    return this.model.addRequestCommandSet(commandSet);
   }
 
   /**
@@ -518,6 +524,10 @@ class DataLoggerController extends DccFacade {
         // BU.CLI(data)
         !_.isEmpty(haveData) && BU.CLI(this.id, haveData);
         // BU.CLI(haveData);
+      }
+
+      if (eventCode === WAIT) {
+        return;
       }
 
       // 확실히 오류 데이터가 들어왔다고 판단했을 경우 재전송 요청

@@ -3,11 +3,13 @@ const MuanControl = require('./projects/UPSAS/muan/MuanControl');
 const Muan100kWControl = require('./projects/UPSAS/muan100kW/Muan100kWControl');
 const FPRndControl = require('./projects/FP/RnD/RnDControl');
 const S2WRndControl = require('./projects/S2W/RnD/RnDControl');
+const CompressorControl = require('./projects/PP/Compressor/CompressorControl');
 
 const Model = require('./Model');
 const MuanModel = require('./projects/UPSAS/muan/MuanModel');
 const FPRndModel = require('./projects/FP/RnD/RnDModel');
 const S2WRndModel = require('./projects/S2W/RnD/RnDModel');
+// const S2WRndModel = require('./projects/PP/Compressor/');
 
 /**
  * 프로젝트에 따라 Control과 Model을 생성.
@@ -54,6 +56,18 @@ class Main {
             MainModel = S2WRndModel;
             break;
           default:
+            break;
+        }
+        break;
+      case 'PP':
+        switch (projectSubId) {
+          case 'RnD':
+            MainControl = CompressorControl;
+            MainModel = Model;
+            break;
+          default:
+            MainControl = CompressorControl;
+            MainModel = Model;
             break;
         }
         break;

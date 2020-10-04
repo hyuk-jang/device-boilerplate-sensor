@@ -1,7 +1,11 @@
 const _ = require('lodash');
 
 const {
-  dcmConfigModel: { commandStep: cmdStep, reqWrapCmdType: reqWCT, reqDeviceControlType: reqDCT },
+  dcmConfigModel: {
+    commandStep: cmdStep,
+    reqWrapCmdType: reqWCT,
+    reqDeviceControlType: reqDCT,
+  },
 } = require('../../../module').di;
 
 const CmdStrategy = require('./CmdStrategy');
@@ -103,7 +107,9 @@ class OverlapCountCmdStrategy extends CmdStrategy {
       });
       if (cmdEle) {
         throw new Error(
-          `${wrapCmdName} 명령은 ${cmdEle.wrapCmdName} 명령의 ${nodeId} 상태와 충돌합니다.`,
+          `${wrapCmdName} 명령은 ${
+            cmdEle.wrapCmdName
+          } 명령의 ${nodeId} 상태와 충돌합니다.`,
         );
       }
     });

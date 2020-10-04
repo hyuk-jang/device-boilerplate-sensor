@@ -116,8 +116,6 @@ class CommandExecManager {
         .get(ncId)
         .get(singleControlType);
 
-      this.nodeList;
-
       /** @type {reqCommandInfo} 명령 실행 설정 객체 */
       const reqCommandOption = {
         wrapCmdFormat: reqWCF.SINGLE,
@@ -137,6 +135,7 @@ class CommandExecManager {
       };
       return this.executeCommand(reqCommandOption);
     } catch (error) {
+      // BU.CLIN(error);
       BU.errorLog('excuteControl', 'Error', error);
       throw error;
     }
@@ -216,7 +215,12 @@ class CommandExecManager {
    * @param {reqScenarioCmdInfo} reqScenarioCmdInfo 시나리오 명령 정보
    */
   executeScenarioControl(reqScenarioCmdInfo) {
-    const { wrapCmdId, rank = definedCommandSetRank.SECOND } = reqScenarioCmdInfo;
+    // BU.CLIN(reqScenarioCmdInfo);
+    const {
+      wrapCmdId,
+      wrapCmdType = reqWCT.CONTROL,
+      rank = definedCommandSetRank.SECOND,
+    } = reqScenarioCmdInfo;
 
     const scenarioCmdInfo = this.model.findScenarioCommand(wrapCmdId);
     // 세부 흐름 명령이 존재하지 않을 경우
@@ -224,14 +228,20 @@ class CommandExecManager {
       throw new Error(`scenario command: ${wrapCmdId} not found`);
     }
 
+    const { cmdName, scenarioCount = 1 } = scenarioCmdInfo;
+
     /** @type {reqCommandInfo} 명령 실행 설정 객체 */
     const reqCommandOption = {
       wrapCmdFormat: reqWCF.SCENARIO,
+      wrapCmdType,
       wrapCmdId,
+      wrapCmdName: cmdName,
       rank,
+      scenarioCount,
     };
 
-    return this.model.scenarioManager.initScenario(reqCommandOption);
+    return this.coreFacade.cmdManager.executeCommand(reqCommandOption);
+    // return this.model.scenarioManager.initScenario(reqCommandOption);
   }
 
   /**
@@ -242,7 +252,7 @@ class CommandExecManager {
   makeControlEleCmdList(flowCmdDestInfo, rank) {
     /** @type {reqCmdEleInfo[]} */
     const reqCmdEleList = [];
-    const { trueNodeList, falseNodeList } = flowCmdDestInfo;
+    const { trueNodeList = [], falseNodeList = [] } = flowCmdDestInfo;
     if (trueNodeList.length) {
       reqCmdEleList.push({
         singleControlType: reqDCT.TRUE,
