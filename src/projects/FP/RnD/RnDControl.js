@@ -55,7 +55,7 @@ class FPControl extends Control {
    * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
    */
   initMakeConfigForDLC() {
-    if (process.env.IS_INIT_DLC !== '1') {
+    if (process.env.PJ_IS_INIT_DLC !== '1') {
       return super.initMakeConfigForDLC();
     }
     BU.CLI('initMakeConfigForDLC');

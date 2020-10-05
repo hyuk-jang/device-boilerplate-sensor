@@ -8,7 +8,7 @@ class AbstBlockManager {
     /** @type {dataContainerDBS[]} */
     this.dataContainerList = [];
 
-    this.isSaveToDB = true;
+    this.isSaveToDB = false;
   }
 
   /**
@@ -17,8 +17,8 @@ class AbstBlockManager {
    * @param {blockConfig[]} blockConfigList
    */
   async init(dbInfo, blockConfigList) {
-    if (process.env.DBS_SAVE_BLOCK === '0') {
-      this.isSaveToDB = false;
+    if (process.env.DBS_SAVE_BLOCK === '1') {
+      this.isSaveToDB = true;
     }
     // DB Connector 설정 (현재 mysql만 되어 있음.)
     this.setDbConnector(dbInfo);

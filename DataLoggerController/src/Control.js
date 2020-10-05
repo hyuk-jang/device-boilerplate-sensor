@@ -149,6 +149,15 @@ class DataLoggerController extends DccFacade {
    * dataLoggerInfo 를 deviceInfo로 변환하여 저장
    */
   s2SetDeviceInfo() {
+    const {
+      PJ_LOG_RESPONSE = false,
+      PJ_LOG_ERROR = false,
+      PJ_LOG_EVENT = false,
+      PJ_LOG_MSG = false,
+      PJ_LOG_DATA = false,
+      PJ_LOG_CMD = false,
+    } = process.env;
+
     this.deviceInfo = {
       target_id: this.dataLoggerInfo.dl_real_id,
       target_name: this.dataLoggerInfo.dld_target_name,
@@ -160,12 +169,12 @@ class DataLoggerController extends DccFacade {
         hasReconnect: true,
       },
       logOption: {
-        hasCommanderResponse: true,
-        hasDcError: true,
-        hasDcEvent: true,
-        hasDcMessage: true,
-        hasReceiveData: true,
-        hasTransferCommand: true,
+        hasCommanderResponse: PJ_LOG_RESPONSE === '1',
+        hasDcError: PJ_LOG_ERROR === '1',
+        hasDcEvent: PJ_LOG_EVENT === '1',
+        hasDcMessage: PJ_LOG_MSG === '1',
+        hasReceiveData: PJ_LOG_DATA === '1',
+        hasTransferCommand: PJ_LOG_CMD === '1',
       },
     };
 
@@ -261,72 +270,65 @@ class DataLoggerController extends DccFacade {
    * @param {executeCmdInfo} executeCmdInfo
    */
   requestCommand(executeCmdInfo) {
-    try {
-      if (process.env.LOG_DLC_ORDER === '1') {
-        BU.CLIN(executeCmdInfo);
-      }
-
-      const {
-        wrapCmdUUID,
-        wrapCmdId,
-        wrapCmdType,
-        uuid,
-        singleControlType,
-        controlSetValue,
-        nodeId = '',
-        rank = this.definedCommandSetRank.THIRD,
-      } = executeCmdInfo;
-
-      if (!this.hasConnectedDevice) {
-        throw new Error(
-          `The device has been disconnected. ${_.get(this.connectInfo, 'port')}`,
-        );
-      }
-
-      // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
-      if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
-        return this.requestDefaultCommand(executeCmdInfo);
-      }
-
-      const nodeInfo = _.find(this.nodeList, {
-        node_id: nodeId,
-      });
-
-      if (_.isEmpty(nodeInfo)) {
-        throw new Error(`Node ${executeCmdInfo.nodeId} 장치는 존재하지 않습니다.`);
-      }
-
-      const cmdList = this.converter.generationCommand({
-        key: nodeInfo.nd_target_id,
-        value: singleControlType,
-        setValue: controlSetValue,
-        nodeInfo,
-      });
-
-      const commandName = `${nodeInfo.node_name} ${
-        nodeInfo.node_id
-      } Type: ${singleControlType}`;
-
-      const commandSet = this.generationManualCommand({
-        wrapCmdUUID,
-        cmdList,
-        commandId: wrapCmdId,
-        commandName,
-        commandType: wrapCmdType,
-        uuid,
-        nodeId,
-        rank,
-      });
-
-      // 장치로 명령 요청
-      this.executeCommand(commandSet);
-
-      // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
-      return this.model.addRequestCommandSet(commandSet);
-    } catch (error) {
-      // BU.error(error);
-      throw error;
+    if (process.env.LOG_DLC_ORDER === '1') {
+      BU.CLIN(executeCmdInfo);
     }
+
+    const {
+      wrapCmdUUID,
+      wrapCmdId,
+      wrapCmdType,
+      uuid,
+      singleControlType,
+      controlSetValue,
+      nodeId = '',
+      rank = this.definedCommandSetRank.THIRD,
+    } = executeCmdInfo;
+
+    if (!this.hasConnectedDevice) {
+      throw new Error(
+        `The device has been disconnected. ${_.get(this.connectInfo, 'port')}`,
+      );
+    }
+
+    // nodeId가 dl_id와 동일하거나 없을 경우 데이터 로거에 요청한거라고 판단
+    if (nodeId === this.dataLoggerInfo.dl_id || nodeId === '' || nodeId === undefined) {
+      return this.requestDefaultCommand(executeCmdInfo);
+    }
+
+    const nodeInfo = _.find(this.nodeList, {
+      node_id: nodeId,
+    });
+
+    if (_.isEmpty(nodeInfo)) {
+      throw new Error(`Node ${executeCmdInfo.nodeId} 장치는 존재하지 않습니다.`);
+    }
+
+    const cmdList = this.converter.generationCommand({
+      key: nodeInfo.nd_target_id,
+      value: singleControlType,
+      setValue: controlSetValue,
+      nodeInfo,
+    });
+
+    const commandName = `${nodeInfo.node_name} ${nodeInfo.node_id} Type: ${singleControlType}`;
+
+    const commandSet = this.generationManualCommand({
+      wrapCmdUUID,
+      cmdList,
+      commandId: wrapCmdId,
+      commandName,
+      commandType: wrapCmdType,
+      uuid,
+      nodeId,
+      rank,
+    });
+
+    // 장치로 명령 요청
+    this.executeCommand(commandSet);
+
+    // 명령 요청에 문제가 없으므로 현재 진행중인 명령에 추가
+    return this.model.addRequestCommandSet(commandSet);
   }
 
   /**
@@ -351,9 +353,7 @@ class DataLoggerController extends DccFacade {
       key: 'DEFAULT',
       value: reqDeviceControlType.MEASURE,
     });
-    const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${
-      this.config.dataLoggerInfo.dl_target_code
-    } Type: ${wrapCmdType}`;
+    const cmdName = `${this.config.dataLoggerInfo.dld_target_name} ${this.config.dataLoggerInfo.dl_target_code} Type: ${wrapCmdType}`;
 
     const commandSet = this.generationManualCommand({
       wrapCmdUUID,

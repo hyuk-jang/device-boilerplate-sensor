@@ -46,11 +46,11 @@
     "base-util-jh": "^1.2.8",
     "bluebird": "^3.7.2",
     "cron": "^1.8.2",
+    "device-client-controller-jh": "^0.2.6",
     "dotenv": "^8.2.0",
     "event-to-promise": "^0.8.0",
     "lodash": "^4.17.20",
     "moment": "^2.27.0",
-    "serialport": "^9.0.1",
     "split": "^1.0.1",
     "uuid": "^8.3.0"
   }

@@ -158,10 +158,7 @@ class Model {
 
     // 명령 Full ID로 찾고자 할 경우
     if (cmdId.length) {
-      return _(this.mapCmdInfo.flowCmdList)
-        .map('destList')
-        .flatten()
-        .find({ cmdId });
+      return _(this.mapCmdInfo.flowCmdList).map('destList').flatten().find({ cmdId });
     }
     try {
       // 출발지와 목적지가 있을 경우
@@ -248,8 +245,8 @@ class Model {
       );
 
     await this.insertNodeDataToDB(validNodeList, {
-      hasSensor: process.env.DBS_SAVE_SENSOR !== '0',
-      hasDevice: process.env.DBS_SAVE_DEVICE !== '0',
+      hasSensor: process.env.DBS_SAVE_SENSOR === '1',
+      hasDevice: process.env.DBS_SAVE_DEVICE === '1',
     });
   }
 

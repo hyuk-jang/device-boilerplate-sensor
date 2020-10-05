@@ -48,11 +48,6 @@ class ThreCmdGoal extends CmdComponent {
     this.nodeList = nodeList.length
       ? nodeList.map(expNodeId => coreFacade.getNodeInfo(expNodeId))
       : [];
-
-    if (this.nodeList.length) {
-      // BU.CLIN(this.nodeList);
-      BU.CLIN(this.expressionFn);
-    }
   }
 
   /**

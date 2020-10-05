@@ -36,7 +36,7 @@ const config = {
     database: ENV.PJ_DB_DB || 'test',
   },
   inquirySchedulerInfo: {
-    intervalCronFormat: ENV.CRON_FORMAT || '0 * * * * *',
+    intervalCronFormat: ENV.PJ_CRON_FORMAT || '0 * * * * *',
     intervalSaveCnt: 1,
     validInfo: {
       diffType: 'minutes',
