@@ -96,7 +96,15 @@ class CmdElement extends CmdComponent {
     // if (this.nodeId === 'P_001') {
     //   BU.CLI(this.getExecuteCmdInfo());
     // }
-    this.dataLoggerController.requestCommand(this.getExecuteCmdInfo());
+
+    // 명령을 내릴 의미가 없을 경우
+    const isClear = this.dataLoggerController.requestCommand(this.getExecuteCmdInfo());
+
+    if (isClear) {
+      this.cmdEleStep = cmdStep.COMPLETE;
+      // 삭제 처리되지 않았을 경우 저장소에 알림
+      this.cmdStorage.handleCommandClear(this);
+    }
   }
 
   /** 명령 취소 */

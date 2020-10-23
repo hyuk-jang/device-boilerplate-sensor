@@ -21,7 +21,11 @@ class DataLoggerController extends DccFacade {
 
     this.config = config;
 
-    this.isConnected = false;
+    const {
+      dataLoggerInfo: { connect_info: connectInfo },
+    } = config;
+
+    this.connectInfo = connectInfo;
 
     /** @type {deviceInfo} Controller 객체의 생성 정보를 담고 있는 설정 정보 */
     this.deviceInfo;
@@ -44,6 +48,9 @@ class DataLoggerController extends DccFacade {
 
     /** @type {number} DLC 에러 누적 횟수 */
     this.errorCount = 0;
+
+    // 장치와의 접속 여부. Connect < - > Disconnect 전환 시 이벤트 처리를 위함
+    this.isConnectedDeviceFlag = false;
   }
 
   /**
@@ -149,6 +156,7 @@ class DataLoggerController extends DccFacade {
    * dataLoggerInfo 를 deviceInfo로 변환하여 저장
    */
   s2SetDeviceInfo() {
+    // BU.error('s2SetDeviceInfo');
     const {
       PJ_LOG_RESPONSE = false,
       PJ_LOG_ERROR = false,
@@ -158,6 +166,11 @@ class DataLoggerController extends DccFacade {
       PJ_LOG_CMD = false,
     } = process.env;
 
+    const { hasOnDataClose = false, hasReconnect = true } = this.connectInfo;
+
+    // 장치 데이터 수신 시 접속 해제 Flag
+    this.hasOnDataClose = hasOnDataClose;
+
     this.deviceInfo = {
       target_id: this.dataLoggerInfo.dl_real_id,
       target_name: this.dataLoggerInfo.dld_target_name,
@@ -166,7 +179,9 @@ class DataLoggerController extends DccFacade {
       controlInfo: {
         hasErrorHandling: true,
         hasOneAndOne: false,
-        hasReconnect: true,
+        hasOnDataClose,
+        // 데이터 수신 후 접속 해제일 경우에는 재접속을 하지 않음
+        hasReconnect: hasOnDataClose ? false : hasReconnect,
       },
       logOption: {
         hasCommanderResponse: PJ_LOG_RESPONSE === '1',
@@ -177,6 +192,8 @@ class DataLoggerController extends DccFacade {
         hasTransferCommand: PJ_LOG_CMD === '1',
       },
     };
+
+    // BU.CLI(this.deviceInfo.logOption);
 
     this.connectInfo = this.deviceInfo.connect_info;
     this.protocolInfo = this.deviceInfo.protocol_info;
@@ -221,7 +238,7 @@ class DataLoggerController extends DccFacade {
       this.setDeviceClient(this.deviceInfo);
 
       // 만약 장치가 접속된 상태라면
-      if (this.hasConnectedDevice) {
+      if (this.isConnectedDevice) {
         return this;
       }
 
@@ -231,7 +248,7 @@ class DataLoggerController extends DccFacade {
       return this;
     } catch (error) {
       BU.errorLog('init', error);
-      BU.CLIN(error);
+      // BU.CLIN(error);
       // 초기화에 실패할 경우에는 에러 처리
       if (error instanceof ReferenceError) {
         throw error;
@@ -268,8 +285,10 @@ class DataLoggerController extends DccFacade {
   /**
    * 외부에서 명령을 내릴경우
    * @param {executeCmdInfo} executeCmdInfo
+   * @return {boolean=} 내릴 명령이 없을 경우 즉시 해당 명령 종료 알림. >> cmdElement
    */
   requestCommand(executeCmdInfo) {
+    // BU.CLI('requestCommand');
     if (process.env.LOG_DLC_ORDER === '1') {
       BU.CLIN(executeCmdInfo);
     }
@@ -285,7 +304,7 @@ class DataLoggerController extends DccFacade {
       rank = this.definedCommandSetRank.THIRD,
     } = executeCmdInfo;
 
-    if (!this.hasConnectedDevice) {
+    if (!this.isAliveDLC) {
       throw new Error(
         `The device has been disconnected. ${_.get(this.connectInfo, 'port')}`,
       );
@@ -324,6 +343,11 @@ class DataLoggerController extends DccFacade {
       rank,
     });
 
+    // 내릴 명령이 없을 경우 cmdElement로 명령 클리어 요청
+    if (commandSet.cmdList.length === 0) {
+      return true;
+    }
+
     // 장치로 명령 요청
     this.executeCommand(commandSet);
 
@@ -334,6 +358,7 @@ class DataLoggerController extends DccFacade {
   /**
    * DataLogger Default 명령을 내리기 위함
    * @param {executeCmdInfo} executeCmd
+   * @return {boolean=} 내릴 명령이 없을 경우 즉시 해당 명령 종료 알림. >> cmdElement
    */
   requestDefaultCommand(executeCmd) {
     const {
@@ -344,7 +369,7 @@ class DataLoggerController extends DccFacade {
       rank = this.definedCommandSetRank.THIRD,
     } = executeCmd;
 
-    if (!this.hasConnectedDevice) {
+    if (this.isAliveDLC === false) {
       throw new Error(
         `The device has been disconnected. ${_.get(this.connectInfo, 'port')}`,
       );
@@ -364,6 +389,11 @@ class DataLoggerController extends DccFacade {
       commandType: wrapCmdType,
       rank,
     });
+
+    // 내릴 명령이 없을 경우 cmdElement로 명령 클리어 요청
+    if (commandSet.cmdList.length === 0) {
+      return true;
+    }
 
     this.executeCommand(commandSet);
 
@@ -386,19 +416,21 @@ class DataLoggerController extends DccFacade {
 
     switch (dcEvent.eventName) {
       case CONNECT:
-        this.isConnected = true;
+        this.isConnectedDeviceFlag = true;
         this.emit(CONNECT);
         break;
       case DISCONNECT:
         // 장치와의 접속이 해제되었을 경우 장치 데이터 및 진행 명령을 초기화
-        if (this.isConnected) {
-          this.isConnected = false;
-          // 장치 데이터 초기화, 명령 초기화
-          this.model.initModel();
-          // 옵저버에게 데이터 초기화 전파
-          this.observerList.forEach(ob => {
-            _.get(ob, 'notifyDeviceData') && ob.notifyDeviceData(this, this.nodeList);
-          });
+        if (this.isConnectedDeviceFlag) {
+          this.isConnectedDeviceFlag = false;
+          // 장치 데이터 초기화, 명령 초기화(단 의도된 접속 해제는 고려대상 아님 >> hasOnDataClose)
+          if (this.hasOnDataClose === false) {
+            this.model.initModel();
+            // 옵저버에게 데이터 초기화 전파
+            this.observerList.forEach(ob => {
+              _.get(ob, 'notifyDeviceData') && ob.notifyDeviceData(this, this.nodeList);
+            });
+          }
         }
 
         this.emit(DISCONNECT);
@@ -419,7 +451,6 @@ class DataLoggerController extends DccFacade {
    * @param {dcError} dcError 현재 장비에서 실행되고 있는 명령 객체
    */
   onDcError(dcError) {
-    // BU.CLIN(dcError);
     process.env.LOG_DLC_ERROR === '1' && super.onDcError(dcError);
 
     const { RETRY, ERROR } = this.definedCommanderResponse;
@@ -482,7 +513,6 @@ class DataLoggerController extends DccFacade {
         break;
     }
 
-    // BU.CLIN(this.model.requestCommandSetList);
     // 데이터가 갱신되었다면 Observer에게 알림.
     if (renewalNodeList.length) {
       if (process.env.LOG_DLC_RENEWAL_DATA === '1') {

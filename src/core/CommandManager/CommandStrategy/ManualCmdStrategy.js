@@ -141,7 +141,7 @@ class ManualCmdStrategy extends CmdStrategy {
 
       return this.cmdManager.executeRealCommand(commandWrapInfo, this);
     } catch (error) {
-      // BU.CLI(reqCmdInfo);
+      // BU.CLI(error);
       throw error;
     }
   }

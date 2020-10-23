@@ -41,39 +41,32 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       // FIXME: 시나리오 테스트
       //   control.model.scenarioManager.scenarioCmdList = scenarioList;
-
       // rainEvacuation
       // rainRelease
       // rainEvaRelease
       // rainRestore
       // control.executeScenarioControl({ wrapCmdId: 'rainRestore' });
-
       control.inquiryAllDeviceStatus();
       control.runDeviceInquiryScheduler();
-
       // control.executeSetControl({
       //   wrapCmdId: 'closeAllDevice',
       // });
-
       // setTimeout(() => {
       //   control.executeFlowControl({
       //     srcPlaceId: 'SEB_ONE',
       //     destPlaceId: 'SEA',
       //     // rank: 1,
       //   });
-
       //   control.executeFlowControl({
       //     srcPlaceId: 'SEB_ONE',
       //     destPlaceId: 'SEA',
       //     wrapCmdType: 'CANCEL',
       //     // rank: 1,
       //   });
-
       // control.executeFlowControl({
       //   srcPlaceId: 'BW_2',
       //   destPlaceId: 'SEB_ONE',
       // });
-
       // control.executeFlowControl({
       //   srcPlaceId: 'BW_2',
       //   destPlaceId: 'SEB_ONE',

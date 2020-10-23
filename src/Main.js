@@ -1,4 +1,7 @@
 const Control = require('./Control');
+
+const DefaultControl = require('./projects/DefaultControl');
+
 const MuanControl = require('./projects/UPSAS/muan/MuanControl');
 const Muan100kWControl = require('./projects/UPSAS/muan100kW/Muan100kWControl');
 const FPRndControl = require('./projects/FP/RnD/RnDControl');
@@ -22,7 +25,7 @@ class Main {
     const { projectInfo = {} } = config;
     const { projectMainId, projectSubId } = projectInfo;
 
-    let MainControl = Control;
+    let MainControl = DefaultControl;
     let MainModel = Model;
 
     switch (projectMainId) {

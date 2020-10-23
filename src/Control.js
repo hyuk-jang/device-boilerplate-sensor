@@ -215,9 +215,13 @@ class Control extends EventEmitter {
       // 장소 시퀀스와 노드 시퀀스를 불러옴
       const { place_seq: placeSeq, node_seq: nodeSeq } = plaRelRow;
       // 장소 시퀀스를 가진 객체 검색
-      const placeInfo = _.find(this.placeList, { place_seq: placeSeq });
+      const placeInfo = _.find(this.placeList, {
+        place_seq: placeSeq,
+      });
       // 노드 시퀀스를 가진 객체 검색
-      const nodeInfo = _.find(this.nodeList, { node_seq: nodeSeq });
+      const nodeInfo = _.find(this.nodeList, {
+        node_seq: nodeSeq,
+      });
 
       // 장소에 해당 노드가 있다면 자식으로 설정. nodeList 키가 없을 경우 생성
       if (_.isObject(placeInfo) && _.isObject(nodeInfo)) {
@@ -353,8 +357,8 @@ class Control extends EventEmitter {
    * @param {dbsFeatureConfig} featureConfig
    * @return {Promise}
    */
-  runFeature(featureConfig) {
-    BU.CLI('runFeature');
+  runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
+    BU.CLI('runFeature', featureConfig);
   }
 
   /**
@@ -366,9 +370,7 @@ class Control extends EventEmitter {
   setPassiveClient(mainUUID, passiveClient) {
     if (this.mainUUID !== mainUUID) {
       throw new Error(
-        `The ${
-          this.mainUUID
-        } of this site is different from the ${mainUUID} of the site you received.`,
+        `The ${this.mainUUID} of this site is different from the ${mainUUID} of the site you received.`,
       );
     }
     const fountIt = _.find(this.dataLoggerControllerList, dataLoggerController =>
@@ -482,6 +484,8 @@ class Control extends EventEmitter {
         nodePickKey.FOR_SERVER,
         renewalNodeList.filter(nodeInfo => nodeInfo.is_submit_api),
       );
+
+      // BU.CLIN(dataList);
 
       // API 접속이 이루어져 있고 데이터가 있을 경우에만 전송
       if (this.apiClient.isConnect && dataList.length) {

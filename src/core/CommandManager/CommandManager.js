@@ -361,12 +361,12 @@ class CommandManager {
         let errMsg = '';
         if (isThrow && _.isUndefined(dataLoggerController)) {
           errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
-          throw new Error(errMsg);
           // BU.CLI(errMsg);
-        } else if (isThrow && !_.get(dataLoggerController, 'hasConnectedDevice')) {
+          throw new Error(errMsg);
+        } else if (isThrow && !dataLoggerController.isAliveDLC) {
           errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
-          throw new Error(errMsg);
           // BU.CLI(errMsg);
+          throw new Error(errMsg);
         } else {
           containerCmdList.push(cmdContainer);
         }
@@ -397,7 +397,6 @@ class CommandManager {
       const foundCmdEle = this.getLastCmdEle(containerInfo);
       // _.assign(containerInfo, { isLive: true });
 
-      // BU.CLIN(foundCmdEle, 1);
       // 기존재하고 아직 명령이 완수되지 않았다면 추가 제어 무시함
       if (foundCmdEle instanceof CmdElement) {
         containerInfo.isIgnore = !foundCmdEle.isCommandClear();
@@ -474,9 +473,7 @@ class CommandManager {
    */
   getLastCmdEle(cmdElementSearch) {
     // BU.CLI(cmdElementSearch);
-    const cmdElement = _(this.getCmdEleList(cmdElementSearch))
-      .sortBy('rank')
-      .head();
+    const cmdElement = _(this.getCmdEleList(cmdElementSearch)).sortBy('rank').head();
 
     return cmdElement;
   }
