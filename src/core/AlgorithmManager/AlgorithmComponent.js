@@ -4,6 +4,30 @@ class AlgorithmComponent {
   init() {}
 
   /**
+   * 현재 구동 모드 알고리즘 ID 가져옴
+   * @return {string} Algorithm Id
+   */
+  get algorithmId() {
+    return '';
+  }
+
+  /**
+   * 현재 구동 모드 알고리즘 Name 가져옴
+   * @return {string} Algorithm Name
+   */
+  get algorithmName() {
+    return '';
+  }
+
+  /**
+   * 현재 명령 전략 가져옴
+   * @return {string} cmdStrategy
+   */
+  get cmdStrategy() {
+    return '';
+  }
+
+  /**
    * 구동 모드 객체를 추가함
    * @param {AlgorithmComponent} algorithmMode
    */
@@ -29,30 +53,6 @@ class AlgorithmComponent {
   changeOperationMode(algorithmId) {}
 
   /**
-   * 현재 구동 모드 알고리즘 ID 가져옴
-   * @return {string} Algorithm Id
-   */
-  get algorithmId() {
-    return '';
-  }
-
-  /**
-   * 현재 구동 모드 알고리즘 Name 가져옴
-   * @return {string} Algorithm Name
-   */
-  get algorithmName() {
-    return '';
-  }
-
-  /**
-   * 현재 명령 전략 가져옴
-   * @return {string} cmdStrategy
-   */
-  get cmdStrategy() {
-    return '';
-  }
-
-  /**
    * 흐름 명령을 수행할 수 있는지 여부 체크
    * @param {PlaceManager} placeManager
    * @param {string} srcPlaceId
@@ -60,6 +60,9 @@ class AlgorithmComponent {
    * @param {csCmdGoalInfo=} goalInfo
    */
   isPossibleFlowCommand(placeManager, srcPlaceId, destPlaceId, goalInfo) {}
+
+  /** 정기 계측 명령이 종료 되었을 경우 알고리즘 반영 */
+  handleCompleteMeasureScheduler() {}
 
   /**
    * 노드 데이터 갱신

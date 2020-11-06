@@ -37,7 +37,6 @@ class Control extends EventEmitter {
   constructor(config = mainConfig) {
     super();
     this.config = config;
-    // BU.CLI(this.config);
     // Core Facade 등록
     this.coreFacade = new CoreFacade(this);
 
@@ -47,7 +46,7 @@ class Control extends EventEmitter {
     /** @type {V_DV_PLACE_RELATION[]} */
     this.placeRelationList = [];
 
-    /** @type {dControlNodeStorage} */
+    /** @type {Map<string, dControlValueStorage>} key:nodeId 단일 제어 Select 영역 구성 필요 정보 */
     this.mdControlIdenStorage = new Map();
     /** @type {DataLoggerController[]} */
     this.dataLoggerControllerList = [];

@@ -109,6 +109,10 @@ class AlgorithmStorage extends AlgorithmComponent {
   handleUpdateNode(placeNode) {
     this.algorithmMode.handleUpdateNode(placeNode);
   }
+
+  handleCompleteMeasureScheduler() {
+    this.algorithmMode.handleCompleteMeasureScheduler();
+  }
 }
 
 module.exports = AlgorithmStorage;

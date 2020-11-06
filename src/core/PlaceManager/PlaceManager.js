@@ -58,7 +58,9 @@ class PlaceManager extends PlaceComponent {
 
       // 현재 장소에 임계치 설정 정보가 존재할 경우 현재 Node가 해당 되는지 체크하고 부합된다면 임계치 설정 정보 반영
       if (thresholdConfigList.length) {
-        thresholdConfigInfo = _.find(thresholdConfigList, { ndId: nodeInfo.nd_target_id });
+        thresholdConfigInfo = _.find(thresholdConfigList, {
+          ndId: nodeInfo.nd_target_id,
+        });
       }
 
       // 장소 노드 생성 및 추가 및 저장소 바인딩

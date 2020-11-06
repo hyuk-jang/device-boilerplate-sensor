@@ -212,6 +212,9 @@ class Model {
     // 정기 계측 카운팅 증가
     this.inquirySchedulerCurrCount += 1;
 
+    // 계측 명령이 종료되었을 경우 알고리즘 수행
+    this.coreFacade.coreAlgorithm.handleCompleteMeasureScheduler();
+
     // 정기 계측 저장 간격 수와 현재 수행된 정기 계측 명령 수가 같지 않다면 데이터 저장 X
     // 1분당 간격이 아닌 더 적은 인터벌 계측이 이루어 질 경우
     if (this.inquirySchedulerIntervalSaveCnt !== this.inquirySchedulerCurrCount) {

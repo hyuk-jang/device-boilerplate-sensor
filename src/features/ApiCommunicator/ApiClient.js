@@ -146,7 +146,7 @@ class ApiClient extends AbstApiClient {
   }
 
   endOperation() {
-    BU.log(`endOperation >>> ${this.controller.mainUUID}`);
+    // BU.log(`endOperation >>> ${this.controller.mainUUID}`);
 
     this.hasCertification = false;
 

@@ -46,7 +46,7 @@
     "base-util-jh": "^1.2.8",
     "bluebird": "^3.7.2",
     "cron": "^1.8.2",
-    "device-client-controller-jh": "^0.2.6",
+    "device-client-controller-jh": "^1.0.0",
     "dotenv": "^8.2.0",
     "event-to-promise": "^0.8.0",
     "lodash": "^4.17.20",

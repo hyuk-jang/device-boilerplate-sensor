@@ -123,7 +123,10 @@ module.exports = class extends PlaceThreshold {
     // 급수 가능한 염수량이 없을 경우 계산
     if (!_.isNumber(needWaterVolume)) {
       // BU.CLIN(waterSupplyPlace);
-      const drainageWVInfo = waterFlowFn.getDrainageAbleWVInfo(drainagePlace, thresholdKey);
+      const drainageWVInfo = waterFlowFn.getDrainageAbleWVInfo(
+        drainagePlace,
+        thresholdKey,
+      );
       needWaterVolume = drainageWVInfo.drainageAbleWV;
     }
     // BU.CLI(needWaterVolume);
@@ -148,7 +151,10 @@ module.exports = class extends PlaceThreshold {
 
       // 최종 급수지가 존재하고 배수할려는 장소 객체와 같지 않을 경우에 실행
       if (waterSupplyPlace !== finalDrainagePlace) {
-        const waterSupplyAbleWV = waterFlowFn.getWaterSupplyAbleWV(waterSupplyPlace, thresholdKey);
+        const waterSupplyAbleWV = waterFlowFn.getWaterSupplyAbleWV(
+          waterSupplyPlace,
+          thresholdKey,
+        );
         // BU.CLI(waterSupplyAbleWV, needWaterVolume);
 
         // 설정과 하한선의 중간 염수량을 만족할 수 있다면
@@ -171,7 +177,12 @@ module.exports = class extends PlaceThreshold {
    * isDrainageInvoker >>> true = 배수지에서 배수가 필요하여 명령을 요청할 경우
    * isDrainageInvoker >>> false = 급수지에서 급수가 필요하여 명령을 요청할 경우
    */
-  executeWaterFlow(drainagePlace, waterSupplyPlace, isDrainageInvoker = true, thresholdKey = '') {
+  executeWaterFlow(
+    drainagePlace,
+    waterSupplyPlace,
+    isDrainageInvoker = true,
+    thresholdKey = '',
+  ) {
     /** @type {reqFlowCmdInfo} */
     const waterFlowCommand = {
       srcPlaceId: drainagePlace.getPlaceId(),

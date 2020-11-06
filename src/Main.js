@@ -3,16 +3,13 @@ const Control = require('./Control');
 const DefaultControl = require('./projects/DefaultControl');
 
 const MuanControl = require('./projects/UPSAS/muan/MuanControl');
+const SolarControl = require('./projects/ETC/solarIoT/SolarControl');
 const Muan100kWControl = require('./projects/UPSAS/muan100kW/Muan100kWControl');
 const FPRndControl = require('./projects/FP/RnD/RnDControl');
 const S2WRndControl = require('./projects/S2W/RnD/RnDControl');
 const CompressorControl = require('./projects/PP/Compressor/CompressorControl');
 
 const Model = require('./Model');
-const MuanModel = require('./projects/UPSAS/muan/MuanModel');
-const FPRndModel = require('./projects/FP/RnD/RnDModel');
-const S2WRndModel = require('./projects/S2W/RnD/RnDModel');
-// const S2WRndModel = require('./projects/PP/Compressor/');
 
 /**
  * 프로젝트에 따라 Control과 Model을 생성.
@@ -26,14 +23,23 @@ class Main {
     const { projectMainId, projectSubId } = projectInfo;
 
     let MainControl = DefaultControl;
-    let MainModel = Model;
+    const MainModel = Model;
 
+    console.log(projectMainId);
     switch (projectMainId) {
+      case 'ETC':
+        switch (projectSubId) {
+          case 'solarIoT':
+            MainControl = SolarControl;
+            break;
+          default:
+            break;
+        }
+        break;
       case 'UPSAS':
         switch (projectSubId) {
           case 'muan':
             MainControl = MuanControl;
-            MainModel = MuanModel;
             break;
           case 'muan100kW':
             MainControl = Muan100kWControl;
@@ -46,7 +52,6 @@ class Main {
         switch (projectSubId) {
           case 'RnD':
             MainControl = FPRndControl;
-            MainModel = FPRndModel;
             break;
           default:
             break;
@@ -56,7 +61,6 @@ class Main {
         switch (projectSubId) {
           case 'RnD':
             MainControl = S2WRndControl;
-            MainModel = S2WRndModel;
             break;
           default:
             break;
@@ -66,11 +70,9 @@ class Main {
         switch (projectSubId) {
           case 'RnD':
             MainControl = CompressorControl;
-            MainModel = Model;
             break;
           default:
             MainControl = CompressorControl;
-            MainModel = Model;
             break;
         }
         break;

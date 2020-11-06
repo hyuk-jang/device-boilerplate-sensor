@@ -56,6 +56,14 @@ class PlaceNode extends PlaceComponent {
     this.coreFacade.attachNodeObserver(nodeInfo, this);
   }
 
+  get nodeId() {
+    return this.nodeInfo.node_id;
+  }
+
+  get ncId() {
+    return this.nodeInfo.nc_target_id;
+  }
+
   /**
    * 현 Place Node 객체를 가지는 Place Storage 객체
    * @param {PlaceStorage} placeStorage
@@ -196,7 +204,6 @@ class PlaceNode extends PlaceComponent {
     const { data } = this.nodeInfo;
 
     // BU.CLI('updateNode', data);
-
     let nextNodeStatus;
 
     if (_.isNumber(data)) {
@@ -255,16 +262,22 @@ class PlaceNode extends PlaceComponent {
   updateNumValue(data) {
     let nextPlaceNodeStatus = this.placeNodeStatus;
     // BU.CLI(deviceData, this.goalRange);
-    if (_.isNumber(this.getMaxValue()) && data >= this.getMaxValue()) {
+
+    const maxValue = this.getMaxValue();
+    const upperLimitValue = this.getUpperLimitValue();
+    const minValue = this.getMinValue();
+    const lowerLimitValue = this.getLowerLimitValue();
+
+    if (_.isNumber(maxValue) && data >= maxValue) {
       nextPlaceNodeStatus = pNS.MAX_OVER;
       // this.handleMaxOver();
-    } else if (_.isNumber(this.getUpperLimitValue()) && data >= this.getUpperLimitValue()) {
+    } else if (_.isNumber(upperLimitValue) && data >= upperLimitValue) {
       nextPlaceNodeStatus = pNS.UPPER_LIMIT_OVER;
       // this.handleUpperLimitOver();
-    } else if (_.isNumber(this.getMinValue()) && data <= this.getMinValue()) {
+    } else if (_.isNumber(minValue) && data <= minValue) {
       nextPlaceNodeStatus = pNS.MIN_UNDER;
       // this.handleMinUnder();
-    } else if (_.isNumber(this.getLowerLimitValue()) && data <= this.getLowerLimitValue()) {
+    } else if (_.isNumber(lowerLimitValue) && data <= lowerLimitValue) {
       nextPlaceNodeStatus = pNS.LOWER_LIMIT_UNDER;
       // this.handleLowerLimitUnder();
     } else {

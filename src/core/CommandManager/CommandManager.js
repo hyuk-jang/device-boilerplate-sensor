@@ -87,6 +87,9 @@ class CommandManager {
     };
     // BU.CLI('updateOperationMode', modeInfo);
 
+    // 계측 명령이 종료 알고리즘 수행
+    this.coreFacade.coreAlgorithm.handleCompleteMeasureScheduler();
+
     this.controller.apiClient.transmitDataToServer({
       commandType: transmitToServerCT.MODE,
       data: modeInfo,

@@ -33,7 +33,9 @@ class OperationModeUpdator extends Updator {
   notifyObserver(algorithmMode) {
     // 동일 모드라면 교체 불가
     if (this.prevOperationMode === algorithmMode) {
-      throw new Error(`algorithmId: (${algorithmMode.algorithmId}) is the same operation mode.`);
+      throw new Error(
+        `algorithmId: (${algorithmMode.algorithmId}) is the same operation mode.`,
+      );
     }
 
     const prevMode = this.prevOperationMode;
