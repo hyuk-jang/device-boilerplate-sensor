@@ -46,16 +46,17 @@ module.exports = class extends Control {
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
     // 초기 구동 모드 Basic 변경
-    this.coreFacade.changeOperationMode(commonFn.algorithmIdInfo.AUTOMATION);
+    this.coreFacade.changeOperationMode(commonFn.algorithmIdInfo.DEFAULT);
 
     // 정상적으로 구동이 된 후에 API Server에 접속함. 초기 API Client transmitStorageDataToServer 실행 때문.
     const { apiConfig } = featureConfig;
-    this.apiClient.connect({
-      controlInfo: {
-        hasReconnect: true,
-      },
-      connect_info: apiConfig,
-    });
+    process.env.PJ_IS_API_CLIENT === '1' &&
+      this.apiClient.connect({
+        controlInfo: {
+          hasReconnect: true,
+        },
+        connect_info: apiConfig,
+      });
   }
 
   /**
@@ -64,7 +65,10 @@ module.exports = class extends Control {
    * this.dataLoggerList 목록을 돌면서 DLC 객체를 생성하기 위한 설정 정보 생성
    */
   initMakeConfigForDLC() {
-    if (process.env.PJ_IS_INIT_DLC !== '1') {
+    const {
+      env: { PJ_IS_INIT_DLC = '0' },
+    } = process;
+    if (PJ_IS_INIT_DLC === '0') {
       return super.initMakeConfigForDLC();
     }
 
@@ -94,12 +98,23 @@ module.exports = class extends Control {
 
       // FIXME: TEST 로 사용됨  -------------
       if (dlCode === '001') {
-        connInfo.host = 'localhost';
-        connInfo.port = 15300;
+        connInfo.type = 'socket';
+        // connInfo.subType = '';
+        connInfo.host = PJ_IS_INIT_DLC === '2' ? '192.168.0.158' : 'localhost';
+        connInfo.port = PJ_IS_INIT_DLC === '2' ? 15800 : 15300;
+        // connInfo.port = PJ_IS_INIT_DLC === '2' ? 15810 : 15300;
+        connInfo.hasOnDataClose = true;
+        // BU.CLI(connInfo);
+        // connInfo.port = 15300;
         // connInfo = {};
       } else if (dlCode === '002') {
-        connInfo.host = 'localhost';
-        connInfo.port = 15301;
+        connInfo.type = 'socket';
+        // connInfo.subType = '';
+        connInfo.host = PJ_IS_INIT_DLC === '2' ? '192.168.0.158' : 'localhost';
+        connInfo.port = PJ_IS_INIT_DLC === '2' ? 15801 : 15301;
+        // connInfo.port = PJ_IS_INIT_DLC === '2' ? 15811 : 15301;
+        connInfo.hasOnDataClose = true;
+        // connInfo.port = 15301;
         // connInfo = {};
       } else if (dlCode === '003') {
         connInfo.host = 'localhost';
@@ -111,6 +126,7 @@ module.exports = class extends Control {
       // 변환한 설정정보 입력
       _.set(dataLoggerInfo, 'connect_info', connInfo);
       _.set(dataLoggerInfo, 'protocol_info', protoInfo);
+      // BU.CLI(connInfo);
 
       /** @type {dataLoggerConfig} */
       const loggerConfig = {

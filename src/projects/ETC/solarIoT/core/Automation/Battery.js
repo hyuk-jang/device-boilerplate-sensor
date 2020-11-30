@@ -32,7 +32,7 @@ module.exports = class extends ConcretePlaceThreshold {
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
   handleUpperLimitOver(placeNode) {
-    BU.log('handleUpperLimitOver', placeNode.getPlaceId());
+    // BU.log('handleUpperLimitOver', placeNode.getPlaceId());
 
     // 장소에 걸려있는 릴레이 장치를 가져옴
     const {
@@ -93,7 +93,7 @@ module.exports = class extends ConcretePlaceThreshold {
    * @param {PlaceNode} placeNode 데이터 갱신이 발생한 노드
    */
   handleLowerLimitUnder(placeNode) {
-    BU.log('handleLowerLimitUnder', placeNode.getPlaceId());
+    // BU.log('handleLowerLimitUnder', placeNode.getPlaceId());
     const {
       nodeInfo: { data },
       nodeId,

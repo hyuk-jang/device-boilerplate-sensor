@@ -77,23 +77,23 @@ class ThreCmdGoal extends CmdComponent {
       goalData = coreFacade.getNodeInfo(nodeId).data;
     }
 
-    let isReachGoal = false;
+    let isReach = false;
 
     switch (goalRange) {
       case goalDR.EQUAL:
-        isReachGoal = goalData === goalValue;
+        isReach = goalData === goalValue;
         break;
       case goalDR.LOWER:
-        isReachGoal = goalData <= goalValue;
+        isReach = goalData < goalValue;
         break;
       case goalDR.UPPER:
-        isReachGoal = goalData >= goalValue;
+        isReach = goalData > goalValue;
         break;
       default:
         break;
     }
 
-    return isReachGoal;
+    return isReach;
   }
 
   /**
@@ -167,10 +167,10 @@ class ThreCmdGoal extends CmdComponent {
         isClear = deviceData === this.goalValue;
         break;
       case goalDR.LOWER:
-        isClear = deviceData <= this.goalValue;
+        isClear = deviceData < this.goalValue;
         break;
       case goalDR.UPPER:
-        isClear = deviceData >= this.goalValue;
+        isClear = deviceData > this.goalValue;
         break;
       default:
         break;

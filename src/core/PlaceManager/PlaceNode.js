@@ -268,26 +268,18 @@ class PlaceNode extends PlaceComponent {
     const minValue = this.getMinValue();
     const lowerLimitValue = this.getLowerLimitValue();
 
-    if (_.isNumber(maxValue) && data >= maxValue) {
+    if (_.isNumber(maxValue) && data > maxValue) {
       nextPlaceNodeStatus = pNS.MAX_OVER;
-      // this.handleMaxOver();
-    } else if (_.isNumber(upperLimitValue) && data >= upperLimitValue) {
+    } else if (_.isNumber(upperLimitValue) && data > upperLimitValue) {
       nextPlaceNodeStatus = pNS.UPPER_LIMIT_OVER;
-      // this.handleUpperLimitOver();
-    } else if (_.isNumber(minValue) && data <= minValue) {
+    } else if (_.isNumber(minValue) && data < minValue) {
       nextPlaceNodeStatus = pNS.MIN_UNDER;
-      // this.handleMinUnder();
-    } else if (_.isNumber(lowerLimitValue) && data <= lowerLimitValue) {
+    } else if (_.isNumber(lowerLimitValue) && data < lowerLimitValue) {
       nextPlaceNodeStatus = pNS.LOWER_LIMIT_UNDER;
-      // this.handleLowerLimitUnder();
     } else {
       nextPlaceNodeStatus = pNS.NORMAL;
-      // this.handleNormal();
     }
 
-    // if (this.getPlaceId() === 'BW_1') {
-    //   BU.CLI(nextPlaceNodeStatus);
-    // }
     return nextPlaceNodeStatus;
   }
 
