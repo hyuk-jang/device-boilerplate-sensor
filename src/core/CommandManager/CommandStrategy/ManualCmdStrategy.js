@@ -112,38 +112,43 @@ class ManualCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeDefaultControl(reqCmdInfo) {
-    try {
-      const { wrapCmdId, wrapCmdType } = reqCmdInfo;
+    const { wrapCmdId, wrapCmdType, wrapCmdName } = reqCmdInfo;
 
-      // 취소 명령 요청이 들어 올 경우
-      if (wrapCmdType === reqWCT.CANCEL) {
-        return this.cancelCommand(reqCmdInfo);
-      }
-
-      // 이미 실행 중인 명령인지 체크
-      const existCmdStorage = this.cmdManager.getCmdStorage({
-        wrapCmdId,
-      });
-
-      // 이미 존재하는 명령이라면 예외 처리
-      if (existCmdStorage) {
-        throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
-      }
-
-      // 실제 수행할 장치를 정제
-      const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
-      this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
-
-      // BU.CLI(
-      //   commandWrapInfo.wrapCmdName,
-      //   commandWrapInfo.containerCmdList.filter(info => !info.isIgnore),
-      // );
-
-      return this.cmdManager.executeRealCommand(commandWrapInfo, this);
-    } catch (error) {
-      // BU.CLI(error);
-      throw error;
+    // 취소 명령 요청이 들어 올 경우
+    if (wrapCmdType === reqWCT.CANCEL) {
+      return this.cancelCommand(reqCmdInfo);
     }
+
+    // 이미 실행 중인 명령인지 체크
+    const existCmdStorage = this.cmdManager.getCmdStorage({
+      wrapCmdId,
+    });
+
+    // 이미 존재하는 명령이라면 예외 처리
+    if (existCmdStorage) {
+      throw new Error(`${existCmdStorage.wrapCmdName} 명령은 존재합니다.`);
+    }
+
+    // 실제 수행할 장치를 정제
+    const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
+    this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
+
+    // 추가 제어할 장치가 없다면 요청하지 않음
+    if (_.every(commandWrapInfo.containerCmdList, { isIgnore: true })) {
+      throw new Error(`명령(${wrapCmdName})은 현재 상태와 동일합니다.`);
+    }
+
+    // 명령을 요청하는 장치 중 식별 되지 않는 장치가 있을 경우 예외처리
+    const isFail = commandWrapInfo.containerCmdList.some(cmdEleInfo => {
+      const nodeInfo = _.find(this.cmdManager.nodeList, { node_id: cmdEleInfo.nodeId });
+      return _.isNil(nodeInfo.data);
+    });
+
+    if (isFail) {
+      throw new Error(`명령(${wrapCmdName})에는 아직 식별되지 않은 장치가 존재합니다.`);
+    }
+
+    return this.cmdManager.executeRealCommand(commandWrapInfo, this);
   }
 
   /**

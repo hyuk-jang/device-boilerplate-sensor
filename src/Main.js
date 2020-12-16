@@ -25,7 +25,6 @@ class Main {
     let MainControl = DefaultControl;
     const MainModel = Model;
 
-    console.log(projectMainId);
     switch (projectMainId) {
       case 'ETC':
         switch (projectSubId) {

@@ -107,9 +107,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
       });
       if (cmdEle) {
         throw new Error(
-          `${wrapCmdName} 명령은 ${
-            cmdEle.wrapCmdName
-          } 명령의 ${nodeId} 상태와 충돌합니다.`,
+          `${wrapCmdName} 명령은 ${cmdEle.wrapCmdName} 명령의 ${nodeId} 상태와 충돌합니다.`,
         );
       }
     });
@@ -120,7 +118,7 @@ class OverlapCountCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeDefaultControl(reqCmdInfo) {
-    const { wrapCmdId, wrapCmdType, srcPlaceId, destPlaceId, reqCmdEleList } = reqCmdInfo;
+    const { wrapCmdId, wrapCmdType, wrapCmdName } = reqCmdInfo;
 
     // 취소 명령 요청이 들어 올 경우 실행중인 명령 탐색
     if (wrapCmdType === reqWCT.CANCEL) {
@@ -140,6 +138,20 @@ class OverlapCountCmdStrategy extends CmdStrategy {
     // 실제 수행할 장치를 정제
     const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo, true);
     this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
+
+    // 추가 제어할 장치가 없다면 요청하지 않음
+    if (_.every(commandWrapInfo.containerCmdList, { isIgnore: true })) {
+      throw new Error(`명령(${wrapCmdName})은 현재 상태와 동일합니다.`);
+    }
+
+    const isFail = commandWrapInfo.containerCmdList.some(cmdEleInfo => {
+      const nodeInfo = _.find(this.cmdManager.nodeList, { node_id: cmdEleInfo.nodeId });
+      return _.isNil(nodeInfo.data);
+    });
+
+    if (isFail) {
+      throw new Error(`명령(${wrapCmdName})에는 아직 식별되지 않은 장치가 존재합니다.`);
+    }
 
     // 충돌 여부 검증
     this.isConflict(commandWrapInfo);

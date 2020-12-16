@@ -386,7 +386,7 @@ class ApiClient extends AbstApiClient {
       // DBW에 전송 명령
       return this.write(encodingMsg);
     } catch (error) {
-      console.dir(error);
+      console.dir(error.message);
       responseMsg.isError = 1;
       responseMsg.message =
         process.env.NODE_ENV === 'production' ? error.message : error.stack;

@@ -184,7 +184,7 @@ class CommandManager {
     } catch (error) {
       // BU.error(error.stack);
       // console.error(error)
-      BU.error(error.message);
+      // BU.error(error.message);
       throw error;
     }
   }
@@ -197,16 +197,29 @@ class CommandManager {
    * @param {Observer=}
    */
   executeRealCommand(cmdWrapInfo, observer) {
-    // BU.CLIN(cmdWrapInfo.containerCmdList);
     // 명령 저장소 생성
     const cmdStorage = new CmdStorage(this.coreFacade);
-    // 옵저버 추가
-    // BU.CLIN(observer, 1);
-    cmdStorage.attachObserver(observer || this);
-
-    // BU.CLIN(cmdStorage.cmdElements);
-
+    // 명령 저장소 생성
     cmdStorage.setCommand(cmdWrapInfo);
+
+    // console.log(cmdWrapInfo);
+
+    // console.log('???????');
+    // const isAlive = cmdStorage.cmdElements.every(cmdEleInfo => {
+    //   const nodeInfo = _.find(this.nodeList, { node_id: cmdEleInfo.nodeId });
+    //   return !!nodeInfo.data;
+    // });
+
+    // // 실행할 명령이 없다면 종료
+    // if (cmdStorage.isCommandClear()) {
+    //   throw new Error(`명령(${cmdWrapInfo.wrapCmdName})은 현재 상태와 동일합니다.`);
+    // }
+
+    // 옵저버 추가
+    cmdStorage.attachObserver(observer || this);
+    // 명령 대기 상태로 전환
+    cmdStorage.updateCommandStep(cmdStep.WAIT);
+
     // 명령 목록에 추가
     this.commandList.push(cmdStorage);
 

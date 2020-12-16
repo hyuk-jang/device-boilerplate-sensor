@@ -64,9 +64,6 @@ class CmdStorage extends CmdComponent {
 
     // 실제 제어할 목록 만큼 실행
     this.setCommandElements(containerCmdList);
-
-    // 명령 대기 상태로 전환
-    return this.updateCommandStep(cmdStep.WAIT);
   }
 
   /**
