@@ -282,7 +282,6 @@ class CommandExecManager {
    * @param {reqCommandInfo} reqCommandInfo
    */
   executeCommand(reqCommandInfo) {
-    console.dir(reqCommandInfo);
     const { reqCmdEleList, wrapCmdFormat, wrapCmdName } = reqCommandInfo;
 
     reqCmdEleList.forEach(reqCmdEleInfo => {
