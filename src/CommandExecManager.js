@@ -247,14 +247,15 @@ class CommandExecManager {
   }
 
   /**
-   * 흐름 명령을 세부 제어 목록 반환
-   * @param {flowCmdDestInfo} flowCmdDestInfo
+   * 명령을 세부 제어 목록 반환
+   * @param {trueAndFalseCmdInfo} trueAndFalseCmdInfo
    * @param {number} rank
    */
-  makeControlEleCmdList(flowCmdDestInfo, rank) {
+  makeControlEleCmdList(trueAndFalseCmdInfo, rank) {
+    // BU.error(trueAndFalseCmdInfo);
     /** @type {reqCmdEleInfo[]} */
     const reqCmdEleList = [];
-    const { trueNodeList = [], falseNodeList = [] } = flowCmdDestInfo;
+    const { trueNodeList = [], falseNodeList = [] } = trueAndFalseCmdInfo;
     if (trueNodeList.length) {
       reqCmdEleList.push({
         singleControlType: reqDCT.TRUE,
@@ -281,7 +282,8 @@ class CommandExecManager {
    * @param {reqCommandInfo} reqCommandInfo
    */
   executeCommand(reqCommandInfo) {
-    const { reqCmdEleList } = reqCommandInfo;
+    console.dir(reqCommandInfo);
+    const { reqCmdEleList, wrapCmdFormat, wrapCmdName } = reqCommandInfo;
 
     reqCmdEleList.forEach(reqCmdEleInfo => {
       const { searchIdList } = reqCmdEleInfo;
@@ -291,12 +293,19 @@ class CommandExecManager {
         if (_.isUndefined(dlc)) {
           errMsg = `DLC: ${searchId}가 존재하지 않습니다.`;
         } else if (!dlc.isAliveDLC) {
-          errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
+          errMsg = `명령: (${wrapCmdName})을 수행할 수 없습니다. 장치 상태를 점검해주세요.`;
+          // errMsg = `${searchId}는 장치와 연결되지 않았습니다.`;
+        }
+        // 계측 명령이 아니면 명령에 DataLogger가 식별되지 않는다면 요청 불가
+        if (wrapCmdFormat !== reqWCF.MEASURE && errMsg.length) {
+          throw new Error(errMsg);
         }
 
         return errMsg.length;
       });
     });
+
+    // BU.CLI(reqCmdEleList);
 
     return this.coreFacade.cmdManager.executeCommand(reqCommandInfo);
   }

@@ -25,6 +25,7 @@ class ThreCmdGoal extends CmdComponent {
       nodeId = '',
       goalValue,
       goalRange,
+      isInclusionGoal = 0,
       isCompleteClear = false,
       expressInfo: { expression = '', nodeList = [] } = {},
     } = csCmdGoalInfo;
@@ -36,6 +37,8 @@ class ThreCmdGoal extends CmdComponent {
     this.goalValue = goalValue;
     // 달성 목표 범위(LOWER, EQUAL, UPPER)
     this.goalRange = goalRange;
+    // 달성 목표 데이터 포함 여부.
+    this.isInclusionGoal = isInclusionGoal;
     // 이 달성 목표만 성공하면 모든 조건 클리어 여부
     this.isCompleteClear = isCompleteClear;
 
@@ -60,6 +63,7 @@ class ThreCmdGoal extends CmdComponent {
       nodeId,
       goalValue,
       goalRange,
+      isInclusionGoal = 0,
       expressInfo: { expression = '', nodeList = [] } = {},
     } = goalInfo;
 
@@ -84,10 +88,10 @@ class ThreCmdGoal extends CmdComponent {
         isReach = goalData === goalValue;
         break;
       case goalDR.LOWER:
-        isReach = goalData < goalValue;
+        isReach = isInclusionGoal ? goalData < goalValue : goalData <= goalValue;
         break;
       case goalDR.UPPER:
-        isReach = goalData > goalValue;
+        isReach = isInclusionGoal ? goalData > goalValue : goalData >= goalValue;
         break;
       default:
         break;
@@ -161,16 +165,19 @@ class ThreCmdGoal extends CmdComponent {
    */
   isReachNumGoal(deviceData) {
     let isClear = false;
-
     switch (this.goalRange) {
       case goalDR.EQUAL:
         isClear = deviceData === this.goalValue;
         break;
       case goalDR.LOWER:
-        isClear = deviceData < this.goalValue;
+        isClear = this.isInclusionGoal
+          ? deviceData < this.goalValue
+          : deviceData <= this.goalValue;
         break;
       case goalDR.UPPER:
-        isClear = deviceData > this.goalValue;
+        isClear = this.isInclusionGoal
+          ? deviceData > this.goalValue
+          : deviceData >= this.goalValue;
         break;
       default:
         break;

@@ -103,7 +103,7 @@ module.exports = class extends Control {
         connInfo.host = PJ_IS_INIT_DLC === '2' ? '192.168.0.158' : 'localhost';
         connInfo.port = PJ_IS_INIT_DLC === '2' ? 15800 : 15300;
         // connInfo.port = PJ_IS_INIT_DLC === '2' ? 15810 : 15300;
-        connInfo.hasOnDataClose = true;
+        connInfo.hasOnDataClose = false;
         // BU.CLI(connInfo);
         // connInfo.port = 15300;
         // connInfo = {};
@@ -113,7 +113,7 @@ module.exports = class extends Control {
         connInfo.host = PJ_IS_INIT_DLC === '2' ? '192.168.0.158' : 'localhost';
         connInfo.port = PJ_IS_INIT_DLC === '2' ? 15801 : 15301;
         // connInfo.port = PJ_IS_INIT_DLC === '2' ? 15811 : 15301;
-        connInfo.hasOnDataClose = true;
+        connInfo.hasOnDataClose = false;
         // connInfo.port = 15301;
         // connInfo = {};
       } else if (dlCode === '003') {

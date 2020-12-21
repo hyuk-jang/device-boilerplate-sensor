@@ -241,13 +241,12 @@ class DataLoggerController extends DccFacade {
       if (this.isConnectedDevice) {
         return this;
       }
-
       // 장치와의 접속 수립이 아직 안되었을 경우 장치 접속 결과를 기다림
       await eventToPromise.multi(this, [CONNECT], [DISCONNECT]);
       // Controller 반환
       return this;
     } catch (error) {
-      BU.errorLog('init', error);
+      BU.errorLog('init', error.message);
       // BU.CLIN(error);
       // 초기화에 실패할 경우에는 에러 처리
       if (error instanceof ReferenceError) {
@@ -423,14 +422,12 @@ class DataLoggerController extends DccFacade {
         // 장치와의 접속이 해제되었을 경우 장치 데이터 및 진행 명령을 초기화
         if (this.isConnectedDeviceFlag) {
           this.isConnectedDeviceFlag = false;
-          // 장치 데이터 초기화, 명령 초기화(단 의도된 접속 해제는 고려대상 아님 >> hasOnDataClose)
-          if (this.hasOnDataClose === false) {
-            this.model.initModel();
-            // 옵저버에게 데이터 초기화 전파
-            this.observerList.forEach(ob => {
-              _.get(ob, 'notifyDeviceData') && ob.notifyDeviceData(this, this.nodeList);
-            });
-          }
+          // 장치 데이터 초기화
+          this.model.initModel();
+          // 옵저버에게 데이터 초기화 전파
+          this.observerList.forEach(ob => {
+            _.get(ob, 'notifyDeviceData') && ob.notifyDeviceData(this, this.nodeList);
+          });
         }
 
         this.emit(DISCONNECT);

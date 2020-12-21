@@ -35,10 +35,11 @@ if (require !== undefined && require.main === module) {
   control
     .init(dbInfo, config.uuid)
     .then(() => {
-      // BU.CLI('start Program');
+      BU.CLI('Start Program');
       return control.runFeature();
     })
     .then(() => {
+      BU.CLI('Start Scheduler');
       // FIXME: 시나리오 테스트
       //   control.model.scenarioManager.scenarioCmdList = scenarioList;
       // rainEvacuation

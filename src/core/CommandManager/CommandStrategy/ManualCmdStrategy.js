@@ -98,12 +98,10 @@ class ManualCmdStrategy extends CmdStrategy {
         return this.cmdManager.executeRealCommand(cmdWrapInfo, this);
       }
     } else {
-      // 복원 명령이 존재할 경우 명령 저장소에 명령 취소 요청
-      if (restoreContainerList.length) {
-        foundCmdStoarge.cancelCommand(restoreContainerList);
-        return foundCmdStoarge;
-      }
-      return false;
+      // 명령 저장소 존재시 삭제
+      foundCmdStoarge.cancelCommand(restoreContainerList);
+
+      return foundCmdStoarge;
     }
   }
 
@@ -133,11 +131,6 @@ class ManualCmdStrategy extends CmdStrategy {
     const commandWrapInfo = this.cmdManager.refineReqCommand(reqCmdInfo);
     this.cmdManager.calcDefaultRealContainerCmd(commandWrapInfo.containerCmdList);
 
-    // 추가 제어할 장치가 없다면 요청하지 않음
-    if (_.every(commandWrapInfo.containerCmdList, { isIgnore: true })) {
-      throw new Error(`명령(${wrapCmdName})은 현재 상태와 동일합니다.`);
-    }
-
     // 명령을 요청하는 장치 중 식별 되지 않는 장치가 있을 경우 예외처리
     const isFail = commandWrapInfo.containerCmdList.some(cmdEleInfo => {
       const nodeInfo = _.find(this.cmdManager.nodeList, { node_id: cmdEleInfo.nodeId });
@@ -145,7 +138,12 @@ class ManualCmdStrategy extends CmdStrategy {
     });
 
     if (isFail) {
-      throw new Error(`명령(${wrapCmdName})에는 아직 식별되지 않은 장치가 존재합니다.`);
+      throw new Error(`명령(${wrapCmdName})에는 식별되지 않은 장치가 존재합니다.`);
+    }
+
+    // 추가 제어할 장치가 없다면 요청하지 않음
+    if (_.every(commandWrapInfo.containerCmdList, { isIgnore: true })) {
+      throw new Error(`명령(${wrapCmdName})은 현재 상태와 동일합니다.`);
     }
 
     return this.cmdManager.executeRealCommand(commandWrapInfo, this);
