@@ -235,16 +235,15 @@ class Model {
     this.controller.emit('completeInquiryAllDeviceStatus');
 
     process.env.LOG_DBS_INQUIRY_RESULT === '1' &&
-      BU.CLI(this.getAllNodeStatus(nodePickKey.FOR_DATA));
+      this.getAllNodeStatus(nodePickKey.FOR_DATA, undefined, 'LOG_DBS_INQUIRY_RESULT');
 
     process.env.LOG_DBS_INQUIRY_RESULT_SUBMIT_DATA === '1' &&
-      BU.CLI(
-        this.getAllNodeStatus(
-          nodePickKey.FOR_DATA,
-          _.filter(this.nodeList, nodeInfo => {
-            return nodeInfo.is_submit_api === 1 && !_.isNil(nodeInfo.data);
-          }),
-        ),
+      this.getAllNodeStatus(
+        nodePickKey.FOR_DATA,
+        _.filter(this.nodeList, nodeInfo => {
+          return nodeInfo.is_submit_api === 1 && !_.isNil(nodeInfo.data);
+        }),
+        'LOG_DBS_INQUIRY_RESULT_SUBMIT_DATA',
       );
 
     await this.insertNodeDataToDB(validNodeList, {
@@ -255,16 +254,17 @@ class Model {
 
   /**
    * 모든 노드가 가지고 있는 정보 출력
-   * @param {nodePickKey} nodePickKeyInfo
-   * @param {nodeInfo[]=} nodeList
+   * @param {nodePickKey} nPick
+   * @param {nodeInfo[]=} nList
+   * @param {string=} logMsg 로그 출력 여부
    * @param {number[]=} targetSensorRange 보내고자 하는 센서 범위를 결정하고 필요 데이터만을 정리하여 반환
    */
-  getAllNodeStatus(nodePickKeyInfo = nodePickKey.FOR_SERVER, nodeList = this.nodeList) {
+  getAllNodeStatus(nPick = nodePickKey.FOR_SERVER, nList = this.nodeList, logMsg = '') {
     // 데이터 Key를 변환하여 보내주고자 할 경우
-    if (!_.isArray(nodePickKeyInfo) && _.isObject(nodePickKeyInfo)) {
-      return _.map(nodeList, nodeInfo => {
+    if (!_.isArray(nPick) && _.isObject(nPick)) {
+      return _.map(nList, nodeInfo => {
         return _.reduce(
-          nodePickKeyInfo,
+          nPick,
           (result, value, key) => {
             result[value] = _.get(nodeInfo, key, '');
             return result;
@@ -274,21 +274,37 @@ class Model {
       });
     }
 
-    const orderKey = _.includes(nodePickKeyInfo, 'node_id')
-      ? 'node_id'
-      : _.head(nodePickKeyInfo);
+    const orderKey = _.includes(nPick, 'node_id') ? 'node_id' : _.head(nPick);
 
-    const statusList = _(nodeList)
-      .map(nodeInfo => {
-        if (nodePickKeyInfo) {
-          return _.pick(nodeInfo, nodePickKeyInfo);
-        }
-        return nodeInfo;
-      })
+    const statusInfo = _.chain(nList)
       .orderBy(orderKey)
+      .reduce(
+        (reportInfo, nodeInfo) => {
+          const { analysis, statusList } = reportInfo;
+          const nInfo = nPick ? _.pick(nodeInfo, nPick) : nodeInfo;
+
+          statusList.push(nInfo);
+          if (['string', 'number'].includes(typeof nodeInfo.data)) {
+            analysis.normal += 1;
+          }
+
+          return reportInfo;
+        },
+        {
+          analysis: {
+            normal: 0,
+            total: nList.length,
+          },
+          statusList: [],
+        },
+      )
       .value();
 
-    return statusList;
+    if (logMsg.length) {
+      console.log(`${logMsg} ===>`, statusInfo.statusList, statusInfo.analysis);
+    }
+
+    return statusInfo.statusList;
   }
 
   /**
