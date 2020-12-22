@@ -285,14 +285,17 @@ class Model {
 
           statusList.push(nInfo);
           if (['string', 'number'].includes(typeof nodeInfo.data)) {
-            analysis.normal += 1;
+            analysis.good += 1;
+          } else {
+            analysis.bad += 1;
           }
 
           return reportInfo;
         },
         {
           analysis: {
-            normal: 0,
+            good: 0,
+            bad: 0,
             total: nList.length,
           },
           statusList: [],
@@ -301,7 +304,8 @@ class Model {
       .value();
 
     if (logMsg.length) {
-      console.log(`${logMsg} ===>`, statusInfo.statusList, statusInfo.analysis);
+      BU.log(logMsg, moment().format('YY-MM-DD HH:mm:ss'));
+      console.log(statusInfo.statusList, statusInfo.analysis);
     }
 
     return statusInfo.statusList;

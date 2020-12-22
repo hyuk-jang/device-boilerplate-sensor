@@ -10,7 +10,9 @@
     "app": "./index.js"
   },
   "pkg": {
-    "assets": []
+    "assets": [
+      "node_modules/nanoid/**/*"
+    ]
   },
   "scripts": {
     "test": "mocha test/UPSAS/muan100kW/manual.test.js -w",
@@ -18,7 +20,7 @@
     "test:muan100": "mocha test/UPSAS/muan100kW/process.test.js -w",
     "start": "nodemon --trace-warnings index",
     "generate-docs": "node_modules/.bin/jsdoc -c jsdoc.json",
-    "build": "pkg . --out-path dist",
+    "build": "pkg . --out-path dist --targets node8-win-x64",
     "build:win": "pkg . --out-path dist --targets node8-win-x64",
     "build:linux": "pkg . --out-path dist --targets node8-linux-x64",
     "build:macos": "pkg . --out-path dist --targets node8-macos-x64",
