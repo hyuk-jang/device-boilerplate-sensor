@@ -2,10 +2,12 @@ const { BU } = require('base-util-jh');
 const _ = require('lodash');
 
 const {
-  dcmConfigModel: { goalDataRange: goalDR },
-} = require('../../../../module').di;
+  di: {
+    dcmConfigModel: { goalDataRange: goalDR },
+  },
+} = require('../../../../module');
 
-const CmdComponent = require('../CmdComponent');
+const ThreCmdComponent = require('./ThreCmdComponent');
 
 /**
  * 명령 달성 목표가 생성될 때 마다 객체를 생성.
@@ -13,7 +15,7 @@ const CmdComponent = require('../CmdComponent');
  * 데이터가 갱신될 때 마다 해당 달성 목표가 처리 되었는지 확인.
  * 달성 목표를 완료하였거나 Timer의 동작이 진행되면 Successor에게 전파
  */
-class ThreCmdGoal extends CmdComponent {
+class ThreCmdGoal extends ThreCmdComponent {
   /**
    *
    * @param {CoreFacade} coreFacade
@@ -25,6 +27,7 @@ class ThreCmdGoal extends CmdComponent {
       nodeId = '',
       goalValue,
       goalRange,
+      groupId = '',
       isInclusionGoal = 0,
       isCompleteClear = false,
       expressInfo: { expression = '', nodeList = [] } = {},
@@ -37,6 +40,8 @@ class ThreCmdGoal extends CmdComponent {
     this.goalValue = goalValue;
     // 달성 목표 범위(LOWER, EQUAL, UPPER)
     this.goalRange = goalRange;
+    // 임계치를 확인하는 그룹
+    this.groupId = groupId;
     // 달성 목표 데이터 포함 여부.
     this.isInclusionGoal = isInclusionGoal;
     // 이 달성 목표만 성공하면 모든 조건 클리어 여부
@@ -88,10 +93,10 @@ class ThreCmdGoal extends CmdComponent {
         isReach = goalData === goalValue;
         break;
       case goalDR.LOWER:
-        isReach = isInclusionGoal ? goalData < goalValue : goalData <= goalValue;
+        isReach = isInclusionGoal ? goalData <= goalValue : goalData < goalValue;
         break;
       case goalDR.UPPER:
-        isReach = isInclusionGoal ? goalData > goalValue : goalData >= goalValue;
+        isReach = isInclusionGoal ? goalData >= goalValue : goalData > goalValue;
         break;
       default:
         break;
@@ -124,6 +129,8 @@ class ThreCmdGoal extends CmdComponent {
         isClear = this.isReachNumGoal(data);
       } else if (_.isString(data)) {
         isClear = this.isReachStrGoal(data);
+      } else if (data === undefined) {
+        isClear = goalDR.EQUAL === this.goalRange && this.goalValue === data;
       }
     }
 
@@ -151,7 +158,7 @@ class ThreCmdGoal extends CmdComponent {
    * @param {nodeInfo} nodeInfo
    */
   updateNode(nodeInfo) {
-    return this.isClear && this.thresholdStorage.handleThresholdClear(this);
+    return this.thresholdStorage.handleThresholdClear(this);
   }
 
   /** 표현식으로 임계치를 체크할 경우 */
@@ -165,19 +172,20 @@ class ThreCmdGoal extends CmdComponent {
    */
   isReachNumGoal(deviceData) {
     let isClear = false;
+
     switch (this.goalRange) {
       case goalDR.EQUAL:
         isClear = deviceData === this.goalValue;
         break;
       case goalDR.LOWER:
         isClear = this.isInclusionGoal
-          ? deviceData < this.goalValue
-          : deviceData <= this.goalValue;
+          ? deviceData <= this.goalValue
+          : deviceData < this.goalValue;
         break;
       case goalDR.UPPER:
         isClear = this.isInclusionGoal
-          ? deviceData > this.goalValue
-          : deviceData >= this.goalValue;
+          ? deviceData >= this.goalValue
+          : deviceData > this.goalValue;
         break;
       default:
         break;

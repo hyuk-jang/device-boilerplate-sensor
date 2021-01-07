@@ -89,9 +89,7 @@ class Model {
     }
     // 비교 조건과 같은 requestCommandSet 제거 후 남은 List 반환
     return _.remove(this.requestCommandSetList, requestCommand =>
-      _(requestCommand)
-        .pick(_.keys(compareInfo))
-        .isEqual(compareInfo),
+      _(requestCommand).pick(_.keys(compareInfo)).isEqual(compareInfo),
     );
   }
 

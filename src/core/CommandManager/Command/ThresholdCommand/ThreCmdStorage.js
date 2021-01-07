@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const CmdComponent = require('../CmdComponent');
+const ThreCmdComponent = require('./ThreCmdComponent');
 const ThreCmdGoal = require('./ThreCmdGoal');
 
 /**
@@ -9,7 +9,7 @@ const ThreCmdGoal = require('./ThreCmdGoal');
  * 데이터가 갱신될 때 마다 해당 달성 목표가 처리 되었는지 확인.
  * 달성 목표를 완료하였거나 Timer의 동작이 진행되면 Successor에게 전파
  */
-class ThreCmdStorage extends CmdComponent {
+class ThreCmdStorage extends ThreCmdComponent {
   /**
    * @param {CoreFacade} coreFacade
    */
@@ -19,6 +19,9 @@ class ThreCmdStorage extends CmdComponent {
 
     /** @type {ThreCmdGoal[]} */
     this.threCmdGoals = [];
+
+    /** @type {ThreCmdGoal[]} */
+    this.threCmdGroupGoals = [];
 
     this.threCmdLimitTimer;
     this.cmdStorage;
@@ -62,6 +65,11 @@ class ThreCmdStorage extends CmdComponent {
         this.coreFacade.attachNodeObserver(nodeId, threCmdGoal, true);
       }
     });
+
+    this.threCmdGroupGoals = _.chain(this.threCmdGoals)
+      .groupBy('groupId')
+      .values()
+      .value();
   }
 
   /**
@@ -135,27 +143,30 @@ class ThreCmdStorage extends CmdComponent {
    * @return {boolean} 임계 명령 완료 여부
    */
   isThreCmdClear() {
-    // 중요 달성 목표를 가진 개체가 존재하는지 체크
-    const isCompleteClear = !!_.find(this.threCmdGoals, {
-      isClear: true,
-      isCompleteClear: true,
-    });
-    // 중요 달성 목표를 달성 하였다면
-    if (isCompleteClear) return true;
-    // 아닐 경우 모든 달성 목표를 클리어해야 true
+    return this.threCmdGroupGoals.every(threCmdGoals => {
+      // 중요 달성 목표를 가진 개체가 존재하는지 체크
+      const threClear = threCmdGoals.find(threCmdGoal => {
+        return threCmdGoal.isClear && threCmdGoal.isCompleteClear;
+      });
 
-    return _.every(this.threCmdGoals, 'isClear');
+      // 중요 달성 목표를 달성 하였다면
+      if (threClear) return true;
+
+      // 아닐 경우 모든 달성 목표를 클리어해야 true
+      return _.every(threCmdGoals, 'isClear');
+    });
   }
 
   /**
    * 세부 목표를 완료했다고 알려 올 세부 객체
-   * @param {ThreCmdGoal} threCmdGoal
    */
-  handleThresholdClear(threCmdGoal) {
+  handleThresholdClear() {
     // 요청 처리된 임계치가 isCompleteClear 거나
+
     // 모든 조건이 충족되었다면 Successor에게 임계치 명령 달성 처리 의뢰
-    if (threCmdGoal.isCompleteClear || this.isThreCmdClear()) {
+    if (this.isThreCmdClear()) {
       this.threCmdLimitTimer && clearTimeout(this.threCmdLimitTimer);
+
       this.cmdStorage.handleThresholdClear();
     }
   }
