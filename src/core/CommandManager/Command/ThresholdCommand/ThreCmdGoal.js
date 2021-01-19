@@ -1,4 +1,3 @@
-const { BU } = require('base-util-jh');
 const _ = require('lodash');
 
 const {
@@ -77,9 +76,10 @@ class ThreCmdGoal extends ThreCmdComponent {
     if (expression.length) {
       // eslint-disable-next-line no-new-func
       const expressionFn = new Function(...nodeList, `return ${expression}`);
-      const expressionDataList = _.map(nodeList, expressionNodeId => {
-        return coreFacade.getNodeInfo(expressionNodeId).data;
-      });
+      const expressionDataList = _.map(
+        nodeList,
+        expressionNodeId => coreFacade.getNodeInfo(expressionNodeId).data,
+      );
 
       goalData = expressionFn(...expressionDataList);
     } else {
@@ -163,8 +163,7 @@ class ThreCmdGoal extends ThreCmdComponent {
 
   /** 표현식으로 임계치를 체크할 경우 */
   isReachExpression() {
-    const expressResult = this.expressionFn(..._.map(this.nodeList, 'data'));
-    return this.isReachNumGoal(expressResult);
+    return this.expressionFn(..._.map(this.nodeList, 'data'));
   }
 
   /**
