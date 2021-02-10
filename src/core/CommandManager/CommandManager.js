@@ -156,37 +156,37 @@ class CommandManager {
    * @return {CmdStorage}
    */
   executeCommand(reqCommandInfo, observer) {
-    try {
-      const { wrapCmdFormat, wrapCmdType, wrapCmdId, wrapCmdName } = reqCommandInfo;
+    // try {
+    const { wrapCmdFormat, wrapCmdType, wrapCmdId, wrapCmdName } = reqCommandInfo;
 
-      // 계측 명령 일 경우에는 전략에 상관없이 요청
-      if (wrapCmdFormat === reqWCF.MEASURE) {
-        // BU.debugConsole(5);
-        // BU.CLI(`executeCommand-${this.controller.mainUUID}`, wrapCmdId);
-        // 동일 명령이 존재하는지 체크
-        const foundCommand = _.find(this.commandList, { wrapCmdId });
+    // 계측 명령 일 경우에는 전략에 상관없이 요청
+    if (wrapCmdFormat === reqWCF.MEASURE) {
+      // BU.debugConsole(5);
+      // BU.CLI(`executeCommand-${this.controller.mainUUID}`, wrapCmdId);
+      // 동일 명령이 존재하는지 체크
+      const foundCommand = _.find(this.commandList, { wrapCmdId });
 
-        if (foundCommand) {
-          throw new Error(`${foundCommand.wrapCmdName} 명령은 존재합니다.`);
-          // throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
-        }
-
-        // 실제 수행할 장치를 정제
-        const commandWrapInfo = this.refineReqCommand(reqCommandInfo);
-
-        return this.executeRealCommand(commandWrapInfo);
+      if (foundCommand) {
+        throw new Error(`${foundCommand.wrapCmdName} 명령은 존재합니다.`);
+        // throw new Error(`wrapCmdId: ${wrapCmdId} is exist`);
       }
-      // 계측 명령이 아닐 경우 명령 전략에 따라 진행
-      process.env.LOG_DBS_CMD_START === '1' &&
-        BU.CLI(`(${wrapCmdFormat})(${wrapCmdType}) ${wrapCmdName} [${wrapCmdId}] `);
 
-      return this.cmdStrategy.executeCommand(reqCommandInfo);
-    } catch (error) {
-      // BU.error(error.stack);
-      // console.error(error)
-      // BU.error(error.message);
-      throw error;
+      // 실제 수행할 장치를 정제
+      const commandWrapInfo = this.refineReqCommand(reqCommandInfo);
+
+      return this.executeRealCommand(commandWrapInfo);
     }
+    // 계측 명령이 아닐 경우 명령 전략에 따라 진행
+    process.env.LOG_DBS_CMD_START === '1' &&
+      BU.CLI(`(${wrapCmdFormat})(${wrapCmdType}) ${wrapCmdName} [${wrapCmdId}] `);
+
+    return this.cmdStrategy.executeCommand(reqCommandInfo);
+    // } catch (error) {
+    //   // BU.error(error.stack);
+    //   // console.error(error)
+    //   // BU.error(error.message);
+    //   throw error;
+    // }
   }
 
   /**
@@ -204,7 +204,6 @@ class CommandManager {
 
     // console.log(cmdWrapInfo);
 
-    // console.log('???????');
     // const isAlive = cmdStorage.cmdElements.every(cmdEleInfo => {
     //   const nodeInfo = _.find(this.nodeList, { node_id: cmdEleInfo.nodeId });
     //   return !!nodeInfo.data;
@@ -235,7 +234,6 @@ class CommandManager {
    */
   updateSvgImg(svgImgInfo) {
     const { imgId, isAppear = 1 } = svgImgInfo;
-    // BU.CLI(imgId, isAppear);
 
     // 새로이 생성하는 이미지이고 중복이 없을 경우 삽입
     if (isAppear === 1) {

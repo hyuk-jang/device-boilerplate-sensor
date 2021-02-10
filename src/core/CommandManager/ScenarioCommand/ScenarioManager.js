@@ -82,9 +82,10 @@ class ScenarioManager {
   handleScenarioClear(scenarioComponent) {
     this.scenarioStorage = {};
     // 동일한 명령 객체 삭제
-    _.remove(this.coreFacade.cmdManager.commandList, cmdStorage => {
-      return cmdStorage === scenarioComponent;
-    });
+    _.remove(
+      this.coreFacade.cmdManager.commandList,
+      cmdStorage => cmdStorage === scenarioComponent,
+    );
   }
 
   /**

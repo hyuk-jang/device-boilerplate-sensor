@@ -240,9 +240,10 @@ class Model {
     process.env.LOG_DBS_INQUIRY_RESULT_SUBMIT_DATA === '1' &&
       this.getAllNodeStatus(
         nodePickKey.FOR_DATA,
-        _.filter(this.nodeList, nodeInfo => {
-          return nodeInfo.is_submit_api === 1 && !_.isNil(nodeInfo.data);
-        }),
+        _.filter(
+          this.nodeList,
+          nodeInfo => nodeInfo.is_submit_api === 1 && !_.isNil(nodeInfo.data),
+        ),
         'LOG_DBS_INQUIRY_RESULT_SUBMIT_DATA',
       );
 
@@ -262,16 +263,16 @@ class Model {
   getAllNodeStatus(nPick = nodePickKey.FOR_SERVER, nList = this.nodeList, logMsg = '') {
     // 데이터 Key를 변환하여 보내주고자 할 경우
     if (!_.isArray(nPick) && _.isObject(nPick)) {
-      return _.map(nList, nodeInfo => {
-        return _.reduce(
+      return _.map(nList, nodeInfo =>
+        _.reduce(
           nPick,
           (result, value, key) => {
             result[value] = _.get(nodeInfo, key, '');
             return result;
           },
           {},
-        );
-      });
+        ),
+      );
     }
 
     const orderKey = _.includes(nPick, 'node_id') ? 'node_id' : _.head(nPick);

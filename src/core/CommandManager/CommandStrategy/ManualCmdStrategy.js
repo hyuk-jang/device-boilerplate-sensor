@@ -17,8 +17,6 @@ class ManualCmdStrategy extends CmdStrategy {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    // BU.CLI('updateCommandStep >>> ManualCmdStrategy', cmdStorage.cmdStep);
-
     // 달성 목표(Goal)이 없는 명령은 즉시 명령 저장소에서 삭제
     if (cmdStorage.cmdStep === cmdStep.COMPLETE) {
       this.cmdManager.removeCommandStorage(cmdStorage);
@@ -58,7 +56,6 @@ class ManualCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo 기존에 존재하는 명령
    */
   cancelCommand(reqCmdInfo) {
-    // BU.CLI('cancelCommand');
     const { wrapCmdId } = reqCmdInfo;
     // 복원해야할 명령이 있는지 계산
     const foundCmdStoarge = this.cmdManager.getCmdStorage({
@@ -178,7 +175,6 @@ class ManualCmdStrategy extends CmdStrategy {
    * @param {reqCommandInfo} reqCmdInfo
    */
   executeScenarioControl(reqCmdInfo) {
-    // BU.CLI(reqCmdInfo);
     const { wrapCmdType, wrapCmdId } = reqCmdInfo;
 
     if (wrapCmdType === reqWCT.CANCEL) {

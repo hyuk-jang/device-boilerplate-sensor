@@ -4,7 +4,6 @@ const { BU } = require('base-util-jh');
 
 const {
   dcmConfigModel: { commandStep: cmdStep, reqWrapCmdFormat: reqWCF },
-  dcmWsModel: { transmitToServerCommandType: transmitToServerCT },
 } = require('../../../module').di;
 
 const ScenarioComponent = require('./ScenarioComponent');

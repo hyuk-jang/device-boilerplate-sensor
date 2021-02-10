@@ -19,9 +19,10 @@ class PlaceStorage extends PlaceComponent {
     super();
 
     // 기존에 PlaceInfo 객체가 존재한다면 재생성 하지 않음
-    const existPlaceStorage = _.find(placeStorageList, placeStorage => {
-      return placeStorage.placeInfo === placeInfo;
-    });
+    const existPlaceStorage = _.find(
+      placeStorageList,
+      placeStorage => placeStorage.placeInfo === placeInfo,
+    );
 
     // 싱글톤 패턴에 의한 동일 객체라면 기존 객체 반환
     if (!_.isEmpty(existPlaceStorage)) {
@@ -256,9 +257,7 @@ class PlaceStorage extends PlaceComponent {
     // }
     // // node Def Id로 찾을 경우
     // if (_.isString(nodeDefId)) {
-    return _.find(this.children, placeNode => {
-      return placeNode.getNodeDefId() === nodeDefId;
-    });
+    return _.find(this.children, placeNode => placeNode.getNodeDefId() === nodeDefId);
     // }
   }
 

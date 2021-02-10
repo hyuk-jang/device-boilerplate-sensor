@@ -46,7 +46,6 @@ class OverlapCountCmdStrategy extends CmdStrategy {
 
     // 명령이 존재하지 않을 경우 Throw
     if (_.isEmpty(foundCmdStoarge)) {
-      // BU.CLI('뭐햐');
       throw new Error(`${wrapCmdFormat} >>> ${wrapCmdId} does not exist.`);
     }
 

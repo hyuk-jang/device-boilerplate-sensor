@@ -76,9 +76,9 @@ class PlaceManager extends PlaceComponent {
    * @param {string} placeId placeId와 같은 Place Component 객체를 찾아 반환
    */
   findPlace(placeId) {
-    return _.find(this.placeStorageList, placeStorage => {
-      return _.eq(placeId, placeStorage.placeInfo.place_id);
-    });
+    return _.find(this.placeStorageList, placeStorage =>
+      _.eq(placeId, placeStorage.placeInfo.place_id),
+    );
   }
 
   /**
@@ -91,9 +91,10 @@ class PlaceManager extends PlaceComponent {
       place = place.place_id;
     }
 
-    return _.find(this.placeStorageList, placeStorage => {
-      return placeStorage.getPlaceId() === place;
-    });
+    return _.find(
+      this.placeStorageList,
+      placeStorage => placeStorage.getPlaceId() === place,
+    );
   }
 
   /**

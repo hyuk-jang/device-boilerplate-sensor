@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { BU } = require('base-util-jh');
 
 const {
-  dcmConfigModel: { reqWrapCmdFormat: reqWCF, reqDeviceControlType: reqDCT },
+  dcmConfigModel: { reqWrapCmdFormat: reqWCF },
 } = require('../../../module').di;
 
 /**
@@ -49,7 +49,7 @@ class CmdStrategy {
    * @param {CmdStorage} cmdStorage
    */
   updateCommandStep(cmdStorage) {
-    BU.CLI('멍미');
+    BU.CLI('updateCommandStep');
   }
 
   /**

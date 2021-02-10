@@ -1,5 +1,3 @@
-const Control = require('./Control');
-
 const DefaultControl = require('./projects/DefaultControl');
 
 const MuanControl = require('./projects/UPSAS/muan/MuanControl');

@@ -152,9 +152,7 @@ class PlaceNode extends PlaceComponent {
    */
   getGroupPlaceList() {
     if (this.groupPlaceList.length) {
-      return _.map(this.groupPlaceList, placeId => {
-        return this.placeStorage.findPlace(placeId);
-      });
+      return _.map(this.groupPlaceList, placeId => this.placeStorage.findPlace(placeId));
     }
     return [this.placeStorage];
   }
@@ -193,6 +191,58 @@ class PlaceNode extends PlaceComponent {
   /** 노드 최저 임계치 */
   getMinValue() {
     return _.get(this, 'minValue.value');
+  }
+
+  /**
+   * 임계 최대값을 넘겼는지 확인
+   * @param {number} data
+   */
+  isMaxOver(data) {
+    // 숫자값이 아니라면 임계치 확인 불필요
+    if (!_.isNumber(this.getMaxValue())) return false;
+
+    const { value, isInclusionGoal = 0 } = this.maxValue;
+
+    return isInclusionGoal ? data >= value : data > value;
+  }
+
+  /**
+   * 임계 상한값을 넘겼는지 확인
+   * @param {number} data
+   */
+  isUpperLimitValue(data) {
+    // 숫자값이 아니라면 임계치 확인 불필요
+    if (!_.isNumber(this.getUpperLimitValue())) return false;
+
+    const { value, isInclusionGoal = 0 } = this.upperLimitValue;
+
+    return isInclusionGoal ? data >= value : data > value;
+  }
+
+  /**
+   * 임계 최저값을 넘겼는지 확인
+   * @param {number} data
+   */
+  isMinValue(data) {
+    // 숫자값이 아니라면 임계치 확인 불필요
+    if (!_.isNumber(this.getMinValue())) return false;
+
+    const { value, isInclusionGoal = 0 } = this.minValue;
+
+    return isInclusionGoal ? data <= value : data < value;
+  }
+
+  /**
+   * 임계 하한값을 넘겼는지 확인
+   * @param {number} data
+   */
+  isLowerLimitValue(data) {
+    // 숫자값이 아니라면 임계치 확인 불필요
+    if (!_.isNumber(this.getLowerLimitValue())) return false;
+
+    const { value, isInclusionGoal = 0 } = this.lowerLimitValue;
+
+    return isInclusionGoal ? data <= value : data < value;
   }
 
   /**
@@ -257,24 +307,19 @@ class PlaceNode extends PlaceComponent {
 
   /**
    * @desc Place Node :::
+   * 현재 노드의 데이터가 Place 임계치의 어느 부분에 와있는지 확인
    * @param {number} data number 형식 데이터
    */
   updateNumValue(data) {
     let nextPlaceNodeStatus = this.placeNodeStatus;
-    // BU.CLI(deviceData, this.goalRange);
 
-    const maxValue = this.getMaxValue();
-    const upperLimitValue = this.getUpperLimitValue();
-    const minValue = this.getMinValue();
-    const lowerLimitValue = this.getLowerLimitValue();
-
-    if (_.isNumber(maxValue) && data > maxValue) {
+    if (this.isMaxOver(data)) {
       nextPlaceNodeStatus = pNS.MAX_OVER;
-    } else if (_.isNumber(upperLimitValue) && data > upperLimitValue) {
+    } else if (this.isUpperLimitValue(data)) {
       nextPlaceNodeStatus = pNS.UPPER_LIMIT_OVER;
-    } else if (_.isNumber(minValue) && data < minValue) {
+    } else if (this.isMinValue(data)) {
       nextPlaceNodeStatus = pNS.MIN_UNDER;
-    } else if (_.isNumber(lowerLimitValue) && data < lowerLimitValue) {
+    } else if (this.isLowerLimitValue(data)) {
       nextPlaceNodeStatus = pNS.LOWER_LIMIT_UNDER;
     } else {
       nextPlaceNodeStatus = pNS.NORMAL;

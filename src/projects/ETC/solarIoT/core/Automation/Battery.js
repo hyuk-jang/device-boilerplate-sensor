@@ -56,12 +56,11 @@ module.exports = class extends ConcretePlaceThreshold {
     // 이미 실행 명령 요청 중일 경우
     // FIXME: 이미 실행 중인데 상태값이 안맞을 경우 처리 로직 필요
     const existCmdStorageList = this.coreFacade.cmdManager.commandList.filter(
-      cmdStorage => {
-        return cmdStorage.getCmdEleList({
+      cmdStorage =>
+        cmdStorage.getCmdEleList({
           nodeId,
           singleControlType: reqDCT.TRUE,
-        }).length;
-      },
+        }).length,
     );
 
     // 진행 중인 명령이 있다면 처리하지 않음
@@ -115,12 +114,11 @@ module.exports = class extends ConcretePlaceThreshold {
     // 이미 실행 명령 요청 중일 경우
     // FIXME: 이미 실행 중인데 상태값이 안맞을 경우 처리 로직 필요
     const existCmdStorageList = this.coreFacade.cmdManager.commandList.filter(
-      cmdStorage => {
-        return cmdStorage.getCmdEleList({
+      cmdStorage =>
+        cmdStorage.getCmdEleList({
           nodeId,
           singleControlType: reqDCT.FALSE,
-        }).length;
-      },
+        }).length,
     );
 
     // 진행 중인 명령이 있다면 처리하지 않음

@@ -145,9 +145,9 @@ class ThreCmdStorage extends ThreCmdComponent {
   isThreCmdClear() {
     return this.threCmdGroupGoals.every(threCmdGoals => {
       // 중요 달성 목표를 가진 개체가 존재하는지 체크
-      const threClear = threCmdGoals.find(threCmdGoal => {
-        return threCmdGoal.isClear && threCmdGoal.isCompleteClear;
-      });
+      const threClear = threCmdGoals.find(
+        threCmdGoal => threCmdGoal.isClear && threCmdGoal.isCompleteClear,
+      );
 
       // 중요 달성 목표를 달성 하였다면
       if (threClear) return true;

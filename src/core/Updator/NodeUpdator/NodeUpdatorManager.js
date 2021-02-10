@@ -7,9 +7,7 @@ class NodeUpdatorManager {
   constructor(nodeList) {
     this.nodeList = nodeList;
 
-    this.nodeUpdatorList = nodeList.map(nodeInfo => {
-      return new NodeUpdator(nodeInfo);
-    });
+    this.nodeUpdatorList = nodeList.map(nodeInfo => new NodeUpdator(nodeInfo));
   }
 
   /**

@@ -69,9 +69,10 @@ class AlgorithmStorage extends AlgorithmComponent {
    * @return {AlgorithmComponent}
    */
   getOperationMode(algorithmId) {
-    return _.find(this.algorithmModeList, operationMode => {
-      return operationMode.algorithmId === algorithmId;
-    });
+    return _.find(
+      this.algorithmModeList,
+      operationMode => operationMode.algorithmId === algorithmId,
+    );
   }
 
   /**
