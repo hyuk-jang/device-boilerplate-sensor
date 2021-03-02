@@ -141,7 +141,6 @@ class Model {
    * @param {string} cmdId
    */
   findScenarioCommand(cmdId) {
-    // BU.CLIN(this.scenarioManager.scenarioCmdList);
     return _.find(this.scenarioManager.scenarioCmdList, { cmdId });
   }
 

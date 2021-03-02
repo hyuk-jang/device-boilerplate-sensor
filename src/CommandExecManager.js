@@ -85,8 +85,6 @@ class CommandExecManager {
       wrapCmdGoalInfo,
     } = reqSingleCmdInfo;
 
-    // BU.CLI(reqSingleCmdInfo);
-
     // 제어하고자 하는 노드 정보를 가져옴
     try {
       // 다중 배열 Node 가 들어올 경우

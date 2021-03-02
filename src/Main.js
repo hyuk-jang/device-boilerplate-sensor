@@ -14,18 +14,23 @@ const Model = require('./Model');
  */
 class Main {
   /**
+   * 프로그램의 메인 컨트롤을 담당하는 컨트롤러 생성
    * @param {integratedDataLoggerConfig} config
    */
   createControl(config = {}) {
     const { projectInfo = {} } = config;
     const { projectMainId, projectSubId } = projectInfo;
 
+    // 기본 Control, Model 정의
     let MainControl = DefaultControl;
     const MainModel = Model;
 
+    // 프로젝트를 다르게 하여 생성할 경우 덮어씀
     switch (projectMainId) {
+      // 잡다한 프로젝트
       case 'ETC':
         switch (projectSubId) {
+          // 에너지 소비 최적화
           case 'solarIoT':
             MainControl = SolarControl;
             break;
@@ -33,6 +38,7 @@ class Main {
             break;
         }
         break;
+      // 수중태양광 Underwater Photovoltaic Systems Applying for Salt farms
       case 'UPSAS':
         switch (projectSubId) {
           case 'muan':
@@ -45,6 +51,7 @@ class Main {
             break;
         }
         break;
+      // 농병 Farm Parallel >> Agrophotovoltaic
       case 'FP':
         switch (projectSubId) {
           case 'RnD':
@@ -54,6 +61,7 @@ class Main {
             break;
         }
         break;
+      // 태양광 이모작 Solar 2 Way
       case 'S2W':
         switch (projectSubId) {
           case 'RnD':
@@ -63,6 +71,7 @@ class Main {
             break;
         }
         break;
+      // Personal Project
       case 'PP':
         switch (projectSubId) {
           case 'RnD':
