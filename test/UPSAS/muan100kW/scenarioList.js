@@ -336,7 +336,7 @@ const scenarioList = [
             wrapCmdFormat: reqWCF.FLOW,
             wrapCmdType: reqWCT.CONTROL,
             wrapCmdGoalInfo: {
-              limitTimeSec: CALC_TIME * 5,
+              limitTimeSec: CALC_TIME * 3,
             },
             flowSrcPlaceId: 'NEB_1',
             flowDestPlaceId: 'NEB_2',
@@ -356,7 +356,7 @@ const scenarioList = [
             wrapCmdFormat: reqWCF.FLOW,
             wrapCmdType: reqWCT.CONTROL,
             wrapCmdGoalInfo: {
-              limitTimeSec: CALC_TIME * 5,
+              limitTimeSec: CALC_TIME * 3,
             },
             flowSrcPlaceId: 'NEB_2',
             flowDestPlaceId: 'BW_2',
@@ -380,7 +380,7 @@ const scenarioList = [
             wrapCmdFormat: reqWCF.FLOW,
             wrapCmdType: reqWCT.CONTROL,
             wrapCmdGoalInfo: {
-              limitTimeSec: CALC_TIME * 5,
+              limitTimeSec: CALC_TIME * 7,
             },
             flowSrcPlaceId: 'BW_2',
             flowDestPlaceId: 'SEB_ONE',
@@ -422,7 +422,7 @@ const scenarioList = [
             wrapCmdFormat: reqWCF.FLOW,
             wrapCmdType: reqWCT.CONTROL,
             wrapCmdGoalInfo: {
-              limitTimeSec: CALC_TIME * 5,
+              limitTimeSec: CALC_TIME * 7,
             },
             flowSrcPlaceId: 'BW_3',
             flowDestPlaceId: 'SEB_TWO',

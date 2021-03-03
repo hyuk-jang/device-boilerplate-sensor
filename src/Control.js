@@ -139,10 +139,7 @@ class Control extends EventEmitter {
     this.deviceMap = BU.IsJsonString(mainRow.map) ? JSON.parse(mainRow.map) : {};
 
     // main_seq가 동일한 데이터 로거와 노드 목록을 가져옴
-    this.dataLoggerList = await biModule.getTable(
-      'v_dv_data_logger',
-      Object.assign({ is_deleted: 0 }, where),
-    );
+    this.dataLoggerList = await biModule.getTable('v_dv_data_logger', { is_deleted: 0, ...where });
 
     // BU.CLI(this.dataLoggerList)
     this.nodeList = await biModule.getTable('v_dv_node', where);
@@ -473,14 +470,101 @@ class Control extends EventEmitter {
     // NOTE: 갱신된 리스트를 Socket Server로 전송. 명령 전송 결과를 추적 하지 않음
     // 서버로 데이터 전송 요청
     try {
-      // 노드 갱신 매니저에게 갱신된 노드 목록을 알림
-      this.nodeUpdatorManager.updateNodeList(renewalNodeList);
+      const phantomWords = ['BT', 'MRT', 'WL', 'S'];
+      const cloneWords = ['BT', 'MRT', 'WL', 'S'];
 
-      // BU.CLIN(renewalNodeList);
+      const tempRenewalNodeList = [];
+
+      // FIXME: 가상 데이터 생성
+      renewalNodeList.forEach(nodeInfo => {
+        const {
+          nc_target_id: nodeClassId,
+          node_id: nId,
+          data,
+          nd_target_prefix: ndPrefix,
+        } = nodeInfo;
+
+        const isPhantom = cloneWords.includes(ndPrefix);
+
+        // 갱신 데이터 중 위와 같은 항목이 있을 경우
+        if (isPhantom) {
+          this.nodeList.forEach(nInfo => {
+            const { nd_target_prefix: prefix, n_target_code: nCode } = nInfo;
+            // 같은 접두사를 가진 데이터는 리뉴얼 데이터를 기준으로 갱신
+            if (ndPrefix === prefix) {
+              if (typeof data === 'number') {
+                const fixedData =
+                  prefix === 'BT'
+                    ? data * _.random(0.98, 1.02, true)
+                    : data * _.random(0.9, 1.1, true);
+
+                // 수중태양광 영역
+                if (prefix === 'S') {
+                  const isSolarBlock = [
+                    '002',
+                    '003',
+                    '004',
+                    '005',
+                    '006',
+                    '007',
+                    '008',
+                    '009',
+                  ].includes(nInfo.n_target_code);
+
+                  if (isSolarBlock) {
+                    nInfo.data = _.round(fixedData, 1);
+                    tempRenewalNodeList.push(nInfo);
+                  }
+                } else if (prefix === 'WL') {
+                  const isSolarBlock = [
+                    '009',
+                    '010',
+                    '011',
+                    '012',
+                    '013',
+                    '014',
+                    '015',
+                    '016',
+                  ].includes(nInfo.n_target_code);
+                  if (isSolarBlock) {
+                    nInfo.data = _.round(fixedData, 1);
+                    tempRenewalNodeList.push(nInfo);
+                  }
+                } else if (prefix === 'MRT' || prefix === 'BT') {
+                  const isSolarBlock = [
+                    '001',
+                    '002',
+                    '003',
+                    '004',
+                    '005',
+                    '006',
+                    '007',
+                    '008',
+                  ].includes(nInfo.n_target_code);
+
+                  if (isSolarBlock) {
+                    nInfo.data = _.round(fixedData, 1);
+                    tempRenewalNodeList.push(nInfo);
+                  }
+                }
+              }
+            }
+          });
+        } else {
+          tempRenewalNodeList.push(nodeInfo);
+        }
+      });
+
+      // 노드 갱신 매니저에게 갱신된 노드 목록을 알림
+      this.nodeUpdatorManager.updateNodeList(tempRenewalNodeList);
+
+      // BU.CLIN(tempRenewalNodeList);
       const dataList = this.model.getAllNodeStatus(
         nodePickKey.FOR_SERVER,
-        renewalNodeList.filter(nodeInfo => nodeInfo.is_submit_api),
+        tempRenewalNodeList.filter(nodeInfo => nodeInfo.is_submit_api),
       );
+
+      // BU.CLIN(dataList);
 
       // API 접속이 이루어져 있고 데이터가 있을 경우에만 전송
       if (this.apiClient.isConnect && dataList.length) {

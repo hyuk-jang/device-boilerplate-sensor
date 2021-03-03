@@ -161,8 +161,8 @@ class ApiClient extends DeviceManager {
         contents: data,
       };
 
-      // if (commandType === transmitToServerCT.MODE) {
-      //   BU.debugConsole();
+      // if (commandType === transmitToServerCT.NODE) {
+      //   // BU.debugConsole();
       //   BU.CLI(transmitDataToServer);
       // }
 
