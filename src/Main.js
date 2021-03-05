@@ -1,6 +1,7 @@
 const DefaultControl = require('./projects/DefaultControl');
 
 const MuanControl = require('./projects/UPSAS/muan/MuanControl');
+const SmRooftopControl = require('./projects/UPSAS/smRooftop/SmRooftopControl');
 const SolarControl = require('./projects/ETC/solarIoT/SolarControl');
 const Muan100kWControl = require('./projects/UPSAS/muan100kW/Muan100kWControl');
 const FPRndControl = require('./projects/FP/RnD/RnDControl');
@@ -46,6 +47,9 @@ class Main {
             break;
           case 'muan100kW':
             MainControl = Muan100kWControl;
+            break;
+          case 'smRooftop':
+            MainControl = SmRooftopControl;
             break;
           default:
             break;
