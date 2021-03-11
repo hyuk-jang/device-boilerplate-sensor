@@ -30,6 +30,7 @@ class ManualCmdStrategy extends CmdStrategy {
       if (cmdStorage.wrapCmdType === reqWCT.CONTROL) {
         // 명령 복원이 진행되면 각 명령 Step이 진행됨에 따라 updateCommandStep이 호출되므로 return 처리
         const cancelResult = this.cancelCommand(cmdStorage);
+
         if (cancelResult === false) {
           this.cmdManager.removeCommandStorage(cmdStorage);
         } else {
@@ -52,7 +53,7 @@ class ManualCmdStrategy extends CmdStrategy {
   }
 
   /**
-   *
+   * 명령이 존재할 경우 해당 명령 취소, 존재하지 않을 경우 신규 명령 요청
    * @param {reqCommandInfo} reqCmdInfo 기존에 존재하는 명령
    */
   cancelCommand(reqCmdInfo) {
@@ -86,20 +87,22 @@ class ManualCmdStrategy extends CmdStrategy {
       })
       .value();
 
-    // 명령이 존재하지 않을 경우 신규 생성
-    if (_.isEmpty(foundCmdStoarge)) {
-      // 복원 명령이 존재할 경우
-      if (restoreContainerList.length) {
+    // 복원 시킬 명령이 존재할 경우
+    if (restoreContainerList.length) {
+      // 복원 명령을 내릴 명령 저장소가 존재하지 않을 경우 신규 생성
+      if (_.isEmpty(foundCmdStoarge)) {
         cmdWrapInfo.containerCmdList = restoreContainerList;
 
         return this.cmdManager.executeRealCommand(cmdWrapInfo, this);
       }
-    } else {
-      // 명령 저장소 존재시 삭제
+      // 취소 명령 요청
       foundCmdStoarge.cancelCommand(restoreContainerList);
 
       return foundCmdStoarge;
     }
+
+    // 명령 저장소 존재시 삭제
+    return false;
   }
 
   /**

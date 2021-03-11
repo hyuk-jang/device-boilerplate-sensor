@@ -6,6 +6,8 @@ const Control = require('../../../Control');
 const ApiClient = require('../../../features/ApiCommunicator/ApiClient');
 const BlockManager = require('../../../features/BlockManager/BlockManager');
 
+const blockConfig = require('./block.config');
+
 module.exports = class extends Control {
   /**
    * @override
@@ -20,6 +22,8 @@ module.exports = class extends Control {
 
     /** @type {BlockManager} */
     this.blockManager = new BlockManager(this);
+
+    this.bindingEventHandler();
   }
 
   /**
@@ -28,6 +32,7 @@ module.exports = class extends Control {
    * @param {dbsFeatureConfig} featureConfig
    */
   async runFeature(featureConfig = _.get(this, 'config.projectInfo.featureConfig', {})) {
+    await this.blockManager.init(this.config.dbInfo, blockConfig);
     // 정상적으로 구동이 된 후에 API Server에 접속함. 초기 API Client transmitStorageDataToServer 실행 때문.
     const { apiConfig } = featureConfig;
     process.env.PJ_IS_API_CLIENT === '1' &&
@@ -107,5 +112,37 @@ module.exports = class extends Control {
 
       return loggerConfig;
     });
+  }
+
+  /**
+   * Control에서 Event가 발생했을 경우 처리 과정을 바인딩
+   * 1. 정기 계측 명령이 완료되었을 경우 inverter 카테고리 데이터 정제 후 DB 저장
+   */
+  bindingEventHandler() {
+    this.on('completeInquiryAllDeviceStatus', () => {
+      // BU.CLI('completeInquiryAllDeviceStatus');
+      // const SALTERN = 'saltern';
+      const INVERTER = 'inverter';
+      // const PV = 'connector';
+
+      // // 염전 Block Update
+      // this.saveBlockDB(SALTERN);
+
+      // 인버터 Block Update
+      this.saveBlockDB(INVERTER);
+
+      // // 접속반 Block Update
+      // this.saveBlockDB(PV);
+    });
+  }
+
+  /**
+   *
+   * @param {string} category
+   */
+  async saveBlockDB(category) {
+    // BU.CLI('saveBlockDB', category);
+    await this.blockManager.refineDataContainer(category);
+    await this.blockManager.saveDataToDB(category);
   }
 };
