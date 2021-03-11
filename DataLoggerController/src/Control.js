@@ -193,8 +193,6 @@ class DataLoggerController extends DccFacade {
       },
     };
 
-    // BU.CLI(this.deviceInfo.logOption);
-
     this.connectInfo = this.deviceInfo.connect_info;
     this.protocolInfo = this.deviceInfo.protocol_info;
   }

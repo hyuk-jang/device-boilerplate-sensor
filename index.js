@@ -8,7 +8,6 @@ if (require !== undefined && require.main === module) {
   console.log('__main__');
   const { BU } = require('base-util-jh');
   const config = require('./src/config');
-  const scenarioList = require('./test/UPSAS/muan100kW/scenarioList');
   const { dbInfo } = config;
 
   let path;
@@ -27,11 +26,9 @@ if (require !== undefined && require.main === module) {
   dotenv.config({ path });
 
   const main = new Main();
-  // const control = main.createControl({
-  //   dbInfo: config.dbInfo,
-  // });
+
   const control = main.createControl(config);
-  // control.init();
+
   control
     .init(dbInfo, config.uuid)
     .then(() => {
@@ -41,39 +38,8 @@ if (require !== undefined && require.main === module) {
     .then(() => {
       BU.CLI('Start Scheduler');
       // FIXME: 시나리오 테스트
-      //   control.model.scenarioManager.scenarioCmdList = scenarioList;
-      // rainEvacuation
-      // rainRelease
-      // rainEvaRelease
-      // rainRestore
-      // control.executeScenarioControl({ wrapCmdId: 'rainRestore' });
       control.inquiryAllDeviceStatus();
       control.runDeviceInquiryScheduler();
-      // control.executeSetControl({
-      //   wrapCmdId: 'closeAllDevice',
-      // });
-      // setTimeout(() => {
-      //   control.executeFlowControl({
-      //     srcPlaceId: 'SEB_ONE',
-      //     destPlaceId: 'SEA',
-      //     // rank: 1,
-      //   });
-      //   control.executeFlowControl({
-      //     srcPlaceId: 'SEB_ONE',
-      //     destPlaceId: 'SEA',
-      //     wrapCmdType: 'CANCEL',
-      //     // rank: 1,
-      //   });
-      // control.executeFlowControl({
-      //   srcPlaceId: 'BW_2',
-      //   destPlaceId: 'SEB_ONE',
-      // });
-      // control.executeFlowControl({
-      //   srcPlaceId: 'BW_2',
-      //   destPlaceId: 'SEB_ONE',
-      //   wrapCmdType: 'CANCEL',
-      // });
-      // }, 1000 * 2);
     })
     .catch(err => {
       // BU.CLI(err);
@@ -88,8 +54,9 @@ if (require !== undefined && require.main === module) {
   });
 
   process.on('unhandledRejection', err => {
-    BU.debugConsole(10);
-    BU.CLI(err);
+    // BU.debugConsole(10);
+    console.error(err.stack);
+    console.log(err.message);
     console.log('Node NOT Exiting...');
   });
 }
