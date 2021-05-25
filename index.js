@@ -42,8 +42,8 @@ if (require !== undefined && require.main === module) {
       control.runDeviceInquiryScheduler();
     })
     .catch(err => {
-      // BU.CLI(err);
-      BU.CLI(err.message);
+      BU.CLI(err);
+      // BU.CLI(err.message);
     });
 
   process.on('uncaughtException', err => {

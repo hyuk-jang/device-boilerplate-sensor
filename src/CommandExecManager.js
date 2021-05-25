@@ -84,6 +84,7 @@ class CommandExecManager {
       rank = definedCommandSetRank.SECOND,
       wrapCmdGoalInfo,
     } = reqSingleCmdInfo;
+    // BU.CLI(reqSingleCmdInfo);
 
     // 제어하고자 하는 노드 정보를 가져옴
     try {
@@ -123,16 +124,18 @@ class CommandExecManager {
         wrapCmdId: `${nodeId}_${enName}${
           _.isEmpty(controlSetValue) ? '' : `_${controlSetValue}`
         }`,
-        wrapCmdName: `${nName} ${krName}`,
+        wrapCmdName: `${nName}`,
         reqCmdEleList: [
           {
             singleControlType,
+            controlSetValue,
             searchIdList: [nodeId],
           },
         ],
         wrapCmdGoalInfo,
         rank,
       };
+
       return this.executeCommand(reqCommandOption);
     } catch (error) {
       // BU.CLIN(error);
@@ -321,6 +324,7 @@ class CommandExecManager {
    * 정기적인 Router Status 탐색
    */
   inquiryAllDeviceStatus() {
+    // BU.error('inquiryAllDeviceStatus');
     process.env.LOG_DBS_INQUIRY_START === '1' &&
       BU.CLI(`${this.makeCommentMainUUID()} Start inquiryAllDeviceStatus`);
     /** @type {reqMeasureCmdInfo} */
